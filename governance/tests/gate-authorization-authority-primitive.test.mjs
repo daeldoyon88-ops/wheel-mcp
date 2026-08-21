@@ -25,7 +25,7 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 
-import { validateLedger, TRANSITIONS, TRANSITION_TYPES, STATUSES, NORMAL_EXECUTION_TRANSITION_TYPES, CONTRACT_SUCCESSION_TRANSITION_TYPE, CONTRACT_SUCCESSION_TRANSITIONS, HISTORICAL_RECONCILIATION_TRANSITION_TYPE, PRECONTRACT_CONSUMPTION_ANCHOR_TRANSITION_TYPE, PRECONTRACT_CONSUMPTION_ANCHOR_TRANSITIONS } from '../tools/validate-status-ledger.mjs';
+import { validateLedger, validateLedgerPrefix, TRANSITIONS, TRANSITION_TYPES, STATUSES, NORMAL_EXECUTION_TRANSITION_TYPES, CONTRACT_SUCCESSION_TRANSITION_TYPE, CONTRACT_SUCCESSION_TRANSITIONS, HISTORICAL_RECONCILIATION_TRANSITION_TYPE, PRECONTRACT_CONSUMPTION_ANCHOR_TRANSITION_TYPE, PRECONTRACT_CONSUMPTION_ANCHOR_TRANSITIONS } from '../tools/validate-status-ledger.mjs';
 import { canonicalize, sha256Canonical, sha256Bytes } from '../tools/canonical-json.mjs';
 import { validateAgainstJsonSchema } from '../gee-v1/contracts/validate-against-json-schema.mjs';
 import { verifyHeadWitness } from '../gee-v1/core/head-witness.mjs';
@@ -121,6 +121,19 @@ const OWNER_KEY_REL = 'governance/authority/PROJECT_OWNER_RELEASE_KEY.json';
 // Fixed deterministic timestamps — fixtures must reproduce byte-identically.
 const T_GENESIS = '2026-01-01T00:00:00.000Z';
 const T_CLOSURE = '2026-02-01T00:00:00.000Z';
+/**
+ * The dependency Gate's CANONICAL CLOSURE.
+ *
+ * A predecessor that stops at COMPLETE_AGENT is agent-closed and independently
+ * unconfirmed, so it does not admit a successor: an authorization scaffolded on
+ * one could never lawfully exist, and a fixture that builds one is asserting
+ * that an impossible document is valid. Supersession is used rather than an
+ * external confirmation because the alternative would mean fabricating an
+ * EXTERNAL_REINSPECTION_REPORT and a policy that asserts PASS over it — a
+ * hardcoded pass living inside the evidence. This suite's subject is the
+ * AUTHORIZATION primitive; the predecessor only has to be lawfully closed.
+ */
+const T_SUPERSESSION = '2026-02-15T00:00:00.000Z';
 const T_GENESIS_SUBJECT = '2026-03-01T00:00:00.000Z';
 const T_AUTHORIZATION = '2026-08-10T00:00:00.000Z';
 const T_ISSUED = '2026-08-09T00:00:00.000Z';
@@ -317,6 +330,7 @@ function buildScenario({
   const priorEvents = sealEvents([
     { schemaVersion: 1, eventId: `EV-${dependencyGate}-GENESIS`, gateId: dependencyGate, fromStatus: null, toStatus: 'IN_PROGRESS', transitionType: 'GENESIS_IMPORT', authorityPath: REGISTRY_REL, authoritySha256: registrySha, recordedAt: T_GENESIS },
     { schemaVersion: 1, eventId: `EV-${dependencyGate}-CLOSURE`, gateId: dependencyGate, fromStatus: 'IN_PROGRESS', toStatus: 'COMPLETE_AGENT', transitionType: 'AGENT_CLOSURE', authorityPath: dependencyAuthorityIdentityOrPath, authoritySha256: dependencyAuthoritySha, recordedAt: T_CLOSURE },
+    { schemaVersion: 1, eventId: `EV-${dependencyGate}-SUPERSESSION`, gateId: dependencyGate, fromStatus: 'COMPLETE_AGENT', toStatus: 'SUPERSEDED', transitionType: 'SUPERSESSION', authorityPath: dependencyAuthorityIdentityOrPath, authoritySha256: dependencyAuthoritySha, recordedAt: T_SUPERSESSION },
     { schemaVersion: 1, eventId: `EV-${gateId}-GENESIS`, gateId, fromStatus: null, toStatus: subjectGenesisStatus, transitionType: 'GENESIS_IMPORT', authorityPath: REGISTRY_REL, authoritySha256: registrySha, recordedAt: T_GENESIS_SUBJECT }
   ]);
   const preLedgerText = ledgerText(priorEvents);
@@ -325,7 +339,7 @@ function buildScenario({
 
   const dependencyProof = {
     gateId: dependencyGate,
-    status: 'COMPLETE_AGENT',
+    status: 'SUPERSEDED',
     authorityPath: dependencyAuthorityIdentityOrPath,
     authoritySha256: dependencyAuthoritySha,
     ...(dependencyProofPatch || {})
@@ -1125,16 +1139,31 @@ test('the real repository ledger remains valid, 57 events, unchanged digest', ()
   // The Wheel policy is required exactly as the CLI supplies it: without a project
   // policy the generic core can never assert an external reinspection verdict, so
   // COMPLETE_CONFIRMED events fail closed. That is pre-existing, correct behavior.
-  const report = validateLedger({
+  const ledgerPath = path.join(REPO_ROOT, ...LEDGER_REL.split('/'));
+  const report = validateLedger({ root: REPO_ROOT, ledgerPath, policy: WHEEL_EXTERNAL_AUTHORITY_POLICY });
+  assert.equal(report.valid, true);
+
+  // The 57 events this mission closed over are FROZEN history, so they are
+  // asserted as a PREFIX carrying its recorded digest. The ledger is append-only
+  // and has lawfully grown since; pinning the whole file's length and digest
+  // asserted that the project had stopped, not that this mission's history was
+  // intact — so it began failing the moment the next Gate ran, while saying
+  // nothing at all about the property it was written to protect.
+  const FROZEN_EVENT_COUNT = 57;
+  assert.ok(report.events.length >= FROZEN_EVENT_COUNT, 'append-only history may grow, never shrink');
+  const frozen = validateLedgerPrefix({
     root: REPO_ROOT,
-    ledgerPath: path.join(REPO_ROOT, ...LEDGER_REL.split('/')),
+    ledgerPath,
+    throughOrdinal: FROZEN_EVENT_COUNT,
+    expectedPrefixSha256: 'c4dfefd7790cfc30f3f13a5159362b03b9902273ac6b3d7db8ab5dba6ba6ab6b',
     policy: WHEEL_EXTERNAL_AUTHORITY_POLICY
   });
-  assert.equal(report.valid, true);
-  assert.equal(report.events.length, 57);
-  assert.equal(report.ledgerSha256, 'c4dfefd7790cfc30f3f13a5159362b03b9902273ac6b3d7db8ab5dba6ba6ab6b');
-  assert.equal(report.events.filter((e) => e.transitionType === GATE_AUTHORIZATION_TRANSITION_TYPE).length, 1);
-  assert.equal(report.gates.find((g) => g.gateId === 'GATE14').currentStatus, 'AUTHORIZED_NOT_STARTED');
+  assert.equal(frozen.matchesExpectedHistoricalDigest, true);
+  assert.equal(frozen.prefixChainValid, true);
+
+  const frozenEvents = report.events.slice(0, FROZEN_EVENT_COUNT);
+  assert.equal(frozenEvents.filter((e) => e.transitionType === GATE_AUTHORIZATION_TRANSITION_TYPE).length, 1);
+  assert.equal(frozenEvents.filter((e) => e.gateId === 'GATE14').at(-1).toStatus, 'AUTHORIZED_NOT_STARTED');
 });
 
 test('no new status was introduced, and the closed I2 execution table is untouched', () => {

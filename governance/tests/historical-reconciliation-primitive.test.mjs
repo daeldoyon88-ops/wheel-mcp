@@ -421,18 +421,34 @@ test('ARCH-06: the real repository ledger preserves the frozen prefix and approv
     'GATE06', 'GATE07', 'GATE08', 'GATE09', 'GATE10', 'GATE11'
   ]);
   assert.equal(new Set(reconciliations.map((event) => event.gateId)).size, 12);
+  // The statuses the APPROVED COHORT carries. These are frozen: each is the
+  // toStatus its own reconciliation event recorded, and no later Gate can move
+  // them.
   const expectedStatuses = new Map([
     ['GATE00', 'COMPLETE_AGENT'], ['GATE01', 'COMPLETE_AGENT'],
     ['GATE02', 'COMPLETE_AGENT'], ['GATE03', 'COMPLETE_AGENT'],
     ['GATE04', 'INTERRUPTED_RESUMABLE'], ['GATE05', 'COMPLETE_AGENT'],
     ['GATE06', 'COMPLETE_AGENT'], ['GATE07', 'COMPLETE_AGENT'],
     ['GATE08', 'COMPLETE_AGENT'], ['GATE09', 'COMPLETE_AGENT'],
-    ['GATE10', 'COMPLETE_AGENT'], ['GATE11', 'COMPLETE_AGENT'],
-    ['GATE12', 'COMPLETE_CONFIRMED'], ['GATE13', 'COMPLETE_CONFIRMED'],
-    ['GATE14', 'NOT_STARTED']
+    ['GATE10', 'COMPLETE_AGENT'], ['GATE11', 'COMPLETE_AGENT']
   ]);
   for (const [gateId, status] of expectedStatuses) {
     assert.equal(report.gates.find((gate) => gate.gateId === gateId)?.currentStatus, status, gateId);
+    const own = reconciliations.find((event) => event.gateId === gateId);
+    assert.equal(own.toStatus, status, `${gateId}'s status must be the one its reconciliation recorded`);
+  }
+  // The COHORT BOUNDARY, which is what the Gates outside it were here to show.
+  // Their live statuses are not part of this property — GATE14 was pinned at
+  // NOT_STARTED and has since been lawfully confirmed, which broke the assertion
+  // without anything about the reconciliation cohort changing. What must hold is
+  // that no Gate outside the approved twelve was ever reconciled at all.
+  for (const gateId of new Set(report.events.map((event) => event.gateId))) {
+    if (expectedStatuses.has(gateId)) continue;
+    assert.equal(
+      report.events.filter((event) => event.gateId === gateId && event.transitionType === HISTORICAL_RECONCILIATION_TRANSITION_TYPE).length,
+      0,
+      `${gateId} is outside the approved cohort and must carry no reconciliation`
+    );
   }
 });
 

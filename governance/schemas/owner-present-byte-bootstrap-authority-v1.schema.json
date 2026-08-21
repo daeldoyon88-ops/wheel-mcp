@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Owner present-byte bootstrap authority (isolated candidate)",
+  "type": "object",
+  "required": ["documentKind", "authorityId", "bootstrapId", "gateId", "authorityMode", "maxUse", "ownerAuthorizationPath", "ownerAuthorizationSha256", "ownerDecisionId", "presentPaths", "transition"],
+  "properties": {
+    "documentKind": { "const": "OWNER_PRESENT_BYTE_BOOTSTRAP_AUTHORITY" },
+    "bootstrapId": { "const": "GATE20_OWNER_PRESENT_BYTE_BOOTSTRAP_R1" },
+    "authorityId": { "const": "GATE20_OWNER_PRESENT_BYTE_BOOTSTRAP_AUTHORITY_R1" },
+    "gateId": { "const": "GATE20" },
+    "authorityMode": { "const": "LOCAL_EXPLICIT_AUTHORITY" },
+    "maxUse": { "const": 1 },
+    "presentPaths": { "type": "array", "minItems": 2, "maxItems": 2 }
+  },
+  "additionalProperties": true
+}

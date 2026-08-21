@@ -1,0 +1,59 @@
+{
+  "documentKind": "POST_FREEZE_MAINTENANCE_AUTHORITY_CONSUMPTION",
+  "schemaVersion": 2,
+  "authorityId": "LIFECYCLE_AUTHORITY_COHORT_DERIVATION_LOCAL_AUTHORITY_R1",
+  "programId": "WHEEL_LIFECYCLE_AUTHORITY_COHORT_DERIVATION_R2",
+  "manifestSha256": "0ed8507769241c2b18935d32e7722faa6a6c96c3c02769d341915aba199fc490",
+  "baseHead": "00c019c42fb04b5ba11f1a7cdb62cb4750858db1",
+  "consumedUse": 1,
+  "transactionId": "WHEEL_LIFECYCLE_AUTHORITY_COHORT_DERIVATION_R2_TRANSACTION",
+  "recordedAt": "2026-08-16T16:23:15.687Z",
+  "commitMessage": "governance: derive lifecycle authority artifacts into the canonical cohort",
+  "cohortSelfExclusion": {
+    "path": "governance/historical-architecture/LIFECYCLE_AUTHORITY_COHORT_DERIVATION_CONSUMPTION_R1.json",
+    "reason": "The consumption record cannot hash its own final bytes; its identity is bound by the authority and manifest instead."
+  },
+  "cohortPathCount": 6,
+  "cohort": [
+    {
+      "path": "governance/gee-v1/core/canonical-authorized-cohort.mjs",
+      "sha256": "919529d0890dbb1bc86abeb2d5e31c3f33041915d3ebec8491921f313943aad3",
+      "byteLength": 14097,
+      "operation": "MODIFY",
+      "reason": "Derive each lifecycle phase's own authority artifacts — its record and the owner authority document that approved it — instead of harvesting only the payload paths a record names. R1 reached those two files solely by accident of payload shape: GATE_START_RECORD lists its own pair because gateStartWriteCohortPaths builds authorizedStartWritePaths that way, while GATE_AUTHORIZATION_RECORD and the local precontract authority CANNOT list theirs, the first because its cohort is a closed role-keyed set checked against gateAuthorization{State,Derived}CohortPaths and the second because its authorizedPaths are frozen inside approvedRequestDigest. Both phases were therefore refused by their own primitive for naming the files the phase exists to write, and their artifacts fell outside every cohort. The pair is now computed from the same canonical path helpers the lifecycle primitives use to locate those documents, and admitted only when the document's own validator accepts it, so occupancy of a canonical authority path never amounts to self-authorization.",
+      "artifactClass": "LIFECYCLE_AUTHORITY_COHORT_DERIVATION"
+    },
+    {
+      "path": "governance/gee-v1/core/precontract-authority.mjs",
+      "sha256": "2c6a17e06396d5247ced9d24c594df2ef01bbac41c48c952154bb8b6dc8b89a7",
+      "byteLength": 61694,
+      "operation": "MODIFY",
+      "reason": "Export precontractLocalAuthorityPath, the one canonical location helper this primitive never published. Its three siblings — gateAuthorizationRecordPath, gateAuthorizationAuthoritySnapshotPath and gateStartRecordPath with gateStartAuthorityPath — are already owned by the primitives that define those documents, so every consumer resolves them through the owning primitive. This document's location existed only as a literal at the call site, which is exactly how a consumer came to disagree with the primitive about where the authority lives. No behaviour of the precontract authority itself changes.",
+      "artifactClass": "LIFECYCLE_AUTHORITY_COHORT_DERIVATION"
+    },
+    {
+      "path": "governance/tests/fgi-canonical-cohort.test.mjs",
+      "sha256": "551588006b576f59eb6467f989caad1ecbb3ed86ca4e0090e1da48c66312b96e",
+      "byteLength": 16264,
+      "operation": "MODIFY",
+      "reason": "Extend the existing cohort battery with C10 through C17, which attack the new path class from the side that matters: self-admission. An authority-shaped file dropped at a canonical authority path, an authority whose declared pre-state was altered, an owner approval not bound to its record, and a document bound to another Gate must each contribute nothing including their own path; a path that merely exists must stay outside; and the cohort must be byte-identical where no Git repository exists at all. The isolation helper removes maintenance programs first, so each hostile measures what one authority alone contributes rather than what some other valid authority independently authorizes.",
+      "artifactClass": "LIFECYCLE_AUTHORITY_COHORT_DERIVATION"
+    },
+    {
+      "path": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_LIFECYCLE_AUTHORITY_COHORT_DERIVATION_R1.json",
+      "sha256": "ae3998110e6993b5745fa48df541c55eef765e8ab5a155851cdd83c43de832bd",
+      "byteLength": 2171,
+      "operation": "CREATE",
+      "reason": "Single-use LOCAL_EXPLICIT_AUTHORITY for this derivation repair; no already-consumed authority is reused.",
+      "artifactClass": "LIFECYCLE_AUTHORITY_COHORT_DERIVATION"
+    },
+    {
+      "path": "governance/historical-architecture/LIFECYCLE_AUTHORITY_COHORT_DERIVATION_AUTHORIZED_PATHS_R1.json",
+      "sha256": "0ed8507769241c2b18935d32e7722faa6a6c96c3c02769d341915aba199fc490",
+      "byteLength": 5883,
+      "operation": "CREATE",
+      "reason": "Exact finite six-path cohort with declared per-path pre-state; no wildcard and no directory blanket.",
+      "artifactClass": "LIFECYCLE_AUTHORITY_COHORT_DERIVATION"
+    }
+  ]
+}

@@ -1,0 +1,110 @@
+{
+  "documentKind": "POST_FREEZE_MAINTENANCE_AUTHORIZED_PATH_MANIFEST",
+  "schemaVersion": 2,
+  "manifestId": "GATE20_CONFIRMATION_LINEAGE_SUCCESSOR_AUTHORIZED_PATHS_R1",
+  "programId": "GATE20_CONFIRMATION_LINEAGE_SUCCESSOR_R1",
+  "prestateSelfExclusion": [
+    {
+      "path": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_GATE20_CONFIRMATION_LINEAGE_SUCCESSOR_R1.json",
+      "role": "AUTHORITY_DOCUMENT",
+      "reason": "The authority must exist for the canonical consumer to load it before this occupancy."
+    },
+    {
+      "path": "governance/historical-architecture/GATE20_CONFIRMATION_LINEAGE_SUCCESSOR_AUTHORIZED_PATHS_R1.json",
+      "role": "AUTHORIZED_PATH_MANIFEST",
+      "reason": "The manifest must exist for the authority to pin its exact digest before this occupancy."
+    }
+  ],
+  "paths": [
+    {
+      "path": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_GATE20_CONFIRMATION_LINEAGE_SUCCESSOR_R1.json",
+      "operation": "CREATE",
+      "phase": "CONFIRMATION_LINEAGE_SUCCESSOR",
+      "reason": "Single-use LOCAL_EXPLICIT_AUTHORITY that binds the already-recorded GATE20 confirmation as an explicit publication successor; it grants no START, GATE21, EXTERNAL_CONFIRMATION, or future-byte permission.",
+      "artifactClass": "CONFIRMATION_LINEAGE_SUCCESSOR",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "governance/historical-architecture/GATE20_CONFIRMATION_LINEAGE_SUCCESSOR_AUTHORIZED_PATHS_R1.json",
+      "operation": "CREATE",
+      "phase": "CONFIRMATION_LINEAGE_SUCCESSOR",
+      "reason": "Finite exact-file confirmation-lineage successor cohort with no wildcard, directory blanket or unrelated user work.",
+      "artifactClass": "CONFIRMATION_LINEAGE_SUCCESSOR",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "governance/historical-architecture/GATE20_CONFIRMATION_LINEAGE_SUCCESSOR_CONSUMPTION_R1.json",
+      "operation": "CREATE",
+      "phase": "CONFIRMATION_LINEAGE_SUCCESSOR",
+      "reason": "Single-use consumption receipt certifying the live confirmation bytes as successor of the previous canonical publication digest.",
+      "artifactClass": "CONFIRMATION_LINEAGE_SUCCESSOR",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "governance/gates/GATE20/state/CURRENT_STATE.json",
+      "operation": "MODIFY",
+      "phase": "CONFIRMATION_LINEAGE_SUCCESSOR",
+      "reason": "Explicit successor recertification of preexisting GATE20 current-state bytes over the previous canonical publication digest, without rewriting those bytes.",
+      "artifactClass": "CONFIRMATION_LINEAGE_SUCCESSOR",
+      "prestate": {
+        "state": "PRESENT",
+        "sha256": "982151887c528ee82ed4ae5d90fa41a7a36cec14ae93910a86238f4055adb518",
+        "byteLength": 300
+      }
+    },
+    {
+      "path": "governance/state/GATE_STATUS_LEDGER.ndjson",
+      "operation": "MODIFY",
+      "phase": "CONFIRMATION_LINEAGE_SUCCESSOR",
+      "reason": "Explicit successor recertification of the confirmed canonical ledger over the previous canonical publication digest, without rewriting those bytes.",
+      "artifactClass": "CONFIRMATION_LINEAGE_SUCCESSOR",
+      "prestate": {
+        "state": "PRESENT",
+        "sha256": "9b8004d15402c47303fdb4641a4d9fee5850fb4af4695f459c38a74d3649c67c",
+        "byteLength": 48265
+      }
+    },
+    {
+      "path": "governance/state/generated/GATE_STATUS_SNAPSHOT.json",
+      "operation": "MODIFY",
+      "phase": "CONFIRMATION_LINEAGE_SUCCESSOR",
+      "reason": "Explicit successor recertification of the confirmed status snapshot over the previous canonical publication digest, without rewriting those bytes.",
+      "artifactClass": "CONFIRMATION_LINEAGE_SUCCESSOR",
+      "prestate": {
+        "state": "PRESENT",
+        "sha256": "babf8cb1c01390651b1727024eca699493ac1aa4ef5cece7d3252af35e00118d",
+        "byteLength": 15754
+      }
+    },
+    {
+      "path": "governance/tools/final-gate-integrity-auditor.mjs",
+      "operation": "MODIFY",
+      "phase": "CONFIRMATION_LINEAGE_SUCCESSOR",
+      "reason": "Generic live-projection generator classification: only governance/tools deterministic generators are checked; no Gate-specific exception.",
+      "artifactClass": "CONFIRMATION_LINEAGE_SUCCESSOR",
+      "prestate": {
+        "state": "PRESENT",
+        "sha256": "357c8144a2fa6b3f42b5e37ed834fae6e452d70883b0943f4978128253384ab6",
+        "byteLength": 50654
+      }
+    },
+    {
+      "path": "governance/tests/final-gate-integrity-auditor.test.mjs",
+      "operation": "MODIFY",
+      "phase": "CONFIRMATION_LINEAGE_SUCCESSOR",
+      "reason": "Targeted hostiles proving tools/ generator drift remains detected and a gate-local implementation helper is not a live projection.",
+      "artifactClass": "CONFIRMATION_LINEAGE_SUCCESSOR",
+      "prestate": {
+        "state": "PRESENT",
+        "sha256": "608dc195c7b6255f4ddc9b439d34a42d91cb2c21e29f9c241dfaf229d724a6e1",
+        "byteLength": 24024
+      }
+    }
+  ]
+}

@@ -1,0 +1,108 @@
+{
+  "documentKind": "POST_FREEZE_MAINTENANCE_AUTHORIZED_PATH_MANIFEST",
+  "schemaVersion": 2,
+  "manifestId": "R6_LEDGER_PUBLICATION_ATOMICITY_AUTHORIZED_PATHS_R1",
+  "programId": "WHEEL_R6_LEDGER_PUBLICATION_ATOMICITY_R1",
+  "prestateSelfExclusion": [
+    {
+      "path": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_R6_LEDGER_PUBLICATION_ATOMICITY_R1.json",
+      "role": "AUTHORITY_DOCUMENT",
+      "reason": "The authority document must already exist for its own evaluator to read it; it stays inside the cohort and is verified byte-for-byte at consumption."
+    },
+    {
+      "path": "governance/historical-architecture/R6_LEDGER_PUBLICATION_ATOMICITY_AUTHORIZED_PATHS_R1.json",
+      "role": "AUTHORIZED_PATH_MANIFEST",
+      "reason": "The manifest must already exist to be digest-pinned by the authority; it stays inside the cohort and is verified byte-for-byte at consumption."
+    }
+  ],
+  "paths": [
+    {
+      "path": "governance/tools/anchor-precontract-consumption.mjs",
+      "operation": "MODIFY",
+      "phase": "R6_LEDGER_PUBLICATION_ATOMICITY",
+      "reason": "The R6 defect itself. This tool ended in a bare fs.appendFileSync, so a failure part-way through the write left a TRUNCATED event in an append-only ledger. Because every reader parses every line, the damage was not confined to the failed call: the next read threw, so even the retry that would have repaired it could not run. Publication now goes through applyCandidate, the same durable transaction the lifecycle already publishes through, which captures the pre-state bytes, journals the intent, writes, verifies what landed against the digest it promised, and restores the exact prior bytes if any step fails. A failure returns BLOCKED/PUBLICATION instead of throwing. No second ledger writer is introduced.",
+      "artifactClass": "R6_LEDGER_PUBLICATION_ATOMICITY",
+      "prestate": {
+        "state": "PRESENT",
+        "sha256": "86455d52e792f4ee5d3266179e14fd1791bfb3123369110a310755c3f59ce47e",
+        "byteLength": 10395
+      }
+    },
+    {
+      "path": "governance/tools/gate-lifecycle-orchestrator.mjs",
+      "operation": "MODIFY",
+      "phase": "R6_LEDGER_PUBLICATION_ATOMICITY",
+      "reason": "applyCandidate discarded its transaction directory on success but kept it after a CLEAN rollback. That residue is not inert: recoverTransaction short-circuits only on COMMITTED, so a surviving ABORTED journal stayed eligible for ROLL_FORWARD_FROM_STAGED_ARTIFACTS and would have re-appended the very ledger event that had just been undone. A cleanly rolled back transaction is now discarded for the same reason a committed one is. A rollback that could NOT restore the pre-state is still kept as RECOVERY_REQUIRED, because that is exactly the case where the journal is the only remaining evidence of what was in flight.",
+      "artifactClass": "R6_LEDGER_PUBLICATION_ATOMICITY",
+      "prestate": {
+        "state": "PRESENT",
+        "sha256": "70ecd6d4969bd86d706f9c7c241fe213132be2c8359cf60144a614b9abc9e4df",
+        "byteLength": 53906
+      }
+    },
+    {
+      "path": "governance/gee-v1/core/post-freeze-maintenance-authority.mjs",
+      "operation": "MODIFY",
+      "phase": "R6_LEDGER_PUBLICATION_ATOMICITY",
+      "reason": "Consumption validation is split into the two halves callers actually need. COHERENCE compares the record against the authority and manifest it cites, both digest-pinned for the life of the program, so it has one correct answer forever. OCCUPANCY compares it against the bytes on disk, which are EXPECTED to drift once a later authorized program lawfully rewrites a certified path. The full evaluator still asks for both and its verdict is unchanged; the coherence half is exported so the cohort can ask for exactly the half that cannot drift, rather than re-implementing it.",
+      "artifactClass": "R6_LEDGER_PUBLICATION_ATOMICITY",
+      "prestate": {
+        "state": "PRESENT",
+        "sha256": "26356b8aeb4736b34bc344cbfdaf5ec84def3be9137989567ad3ac4a954de0b4",
+        "byteLength": 45640
+      }
+    },
+    {
+      "path": "governance/gee-v1/core/canonical-authorized-cohort.mjs",
+      "operation": "MODIFY",
+      "phase": "R6_LEDGER_PUBLICATION_ATOMICITY",
+      "reason": "The G/H defect. This derivation re-checked five header fields of a consumption record by hand and never examined its per-path cohort at all, so a record whose entries contradicted its own digest-pinned manifest was admitted, its paths entered the authorized cohort, and FINAL_GATE_INTEGRITY returned PASS over a program whose canonical validator returned BLOCKED. It now delegates to the canonical coherence validator. Occupancy is deliberately NOT required, so completed programs whose outputs a later authorized program lawfully rewrote remain admitted and the Gate's own history is not refused.",
+      "artifactClass": "R6_LEDGER_PUBLICATION_ATOMICITY",
+      "prestate": {
+        "state": "PRESENT",
+        "sha256": "919529d0890dbb1bc86abeb2d5e31c3f33041915d3ebec8491921f313943aad3",
+        "byteLength": 14097
+      }
+    },
+    {
+      "path": "governance/tests/anchor-publication-atomicity.test.mjs",
+      "operation": "CREATE",
+      "phase": "TARGETED_HOSTILE_TESTS",
+      "reason": "The hostile battery. The R6 hostile lets every validation pass and fails the WRITE ITSELF after a real prefix has landed on disk, and asserts it actually reached that boundary — a hostile that silently stops short is precisely what made the previous attempt prove nothing. The G/H tests assert both directions of the coherence rule: an incoherent consumption is refused by the cohort and denies FGI a PASS, while occupancy drift is still admitted, because a rule that refused drifted history would be as wrong as one that admitted incoherence.",
+      "artifactClass": "R6_LEDGER_PUBLICATION_ATOMICITY",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_R6_LEDGER_PUBLICATION_ATOMICITY_R1.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE_AUTHORITY_RECORDS",
+      "reason": "Single-use LOCAL_EXPLICIT_AUTHORITY for this repair; no already-consumed authority is reused.",
+      "artifactClass": "R6_LEDGER_PUBLICATION_ATOMICITY",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "governance/historical-architecture/R6_LEDGER_PUBLICATION_ATOMICITY_AUTHORIZED_PATHS_R1.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE_AUTHORITY_RECORDS",
+      "reason": "Exact finite eight-path cohort with declared per-path pre-state; no wildcard and no directory blanket.",
+      "artifactClass": "R6_LEDGER_PUBLICATION_ATOMICITY",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "governance/historical-architecture/R6_LEDGER_PUBLICATION_ATOMICITY_CONSUMPTION_R1.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE_AUTHORITY_RECORDS",
+      "reason": "Single-use consumption record binding this authority, its manifest and its transaction.",
+      "artifactClass": "R6_LEDGER_PUBLICATION_ATOMICITY",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    }
+  ]
+}

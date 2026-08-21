@@ -1,0 +1,64 @@
+{
+  "document": "GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY",
+  "schemaVersion": 2,
+  "authorityId": "GATE20_FINAL_POST_CONFIRMATION_REPAIR_R1",
+  "authorityClass": "PROJECT_OWNER_POST_FREEZE_MAINTENANCE_AUTHORITY",
+  "authorityMode": "LOCAL_EXPLICIT_AUTHORITY",
+  "issuedBy": "PROJECT_OWNER",
+  "createdAt": "2026-08-21T01:48:00.000Z",
+  "expiresAt": "2026-12-31T23:59:59.000Z",
+  "targetSystem": "PROJECT_GOVERNANCE",
+  "programId": "GATE20_CONFIRMATION_LINEAGE_SUCCESSOR_R1",
+  "authorityPurpose": "NORMAL_MAINTENANCE",
+  "resumePoint": "GATE20_FINAL_POST_CONFIRMATION_REPAIR",
+  "maxUse": 1,
+  "preState": {
+    "baseHead": "00c019c42fb04b5ba11f1a7cdb62cb4750858db1",
+    "ledgerEventCount": 83,
+    "ledgerPrefixSha256": "0be5bf66253993668569950a9db20271d6f7a3889c4f233e585047d3cae0d173",
+    "gateId": "GATE20",
+    "gateStatus": "COMPLETE_CONFIRMED",
+    "stateRevision": "R0004",
+    "contractRevision": "R0001",
+    "activeGate": "GATE13",
+    "R8ExpectedAbsent": true
+  },
+  "authorizedPathManifestPath": "governance/historical-architecture/GATE20_CONFIRMATION_LINEAGE_SUCCESSOR_AUTHORIZED_PATHS_R1.json",
+  "authorizedPathManifestSha256": "e7c0ef58dab5463afbdc3ca314e91767bd4b0db26e3eaab22c4ff473d8eb6103",
+  "authorizedOperationClasses": [
+    "CONFIRMATION_LINEAGE_SUCCESSOR"
+  ],
+  "commitPolicy": {
+    "maxCommitCount": 1,
+    "allowedGitOperations": [
+      "GIT_ADD_PATHSPEC",
+      "GIT_COMMIT"
+    ],
+    "commitMessage": "governance: bind GATE20 confirmation lineage successor",
+    "thirdCommitAuthorized": false
+  },
+  "pushAuthorized": false,
+  "authorityPredecessor": {
+    "authorityId": "GATE20_INDEPENDENT_EXTERNAL_CONFIRMATION_LOCAL_AUTHORITY_R1",
+    "sha256": "67b3850a8a1034f78c58bdfce6a5526b2366c15c70710a3b0febf79b9c9404bf"
+  },
+  "authorityHeadBinding": {
+    "mode": "BASE_HEAD",
+    "baseHead": "00c019c42fb04b5ba11f1a7cdb62cb4750858db1"
+  },
+  "consumptionRecordPath": "governance/historical-architecture/GATE20_CONFIRMATION_LINEAGE_SUCCESSOR_CONSUMPTION_R1.json",
+  "prohibitedOperations": [
+    "START",
+    "SECOND_START",
+    "AGENT_CLOSURE",
+    "EXTERNAL_CONFIRMATION",
+    "COMPLETE_AGENT",
+    "COMPLETE_CONFIRMED",
+    "ACTIVE_GATE_SWITCH",
+    "GEE_R8",
+    "GIT_PUSH",
+    "HISTORY_REWRITE",
+    "THIRD_COMMIT",
+    "UNRELATED_WRITE"
+  ]
+}

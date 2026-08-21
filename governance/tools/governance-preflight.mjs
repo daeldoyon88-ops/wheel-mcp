@@ -31,7 +31,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
 import { createExecutionAuthorityRegistry, resolveExecutionAuthority } from '../gee-v1/core/work-unit-core.mjs';
-import { createWheelGateAuthoritySource, readActiveGateId } from '../gee-v1/adapters/wheel/gate-authority-source.mjs';
+import { createWheelGateAuthoritySource, readActiveGateId, POST_START_MAINTENANCE_EXECUTION } from '../gee-v1/adapters/wheel/gate-authority-source.mjs';
 import { createWheelGateStartAuthoritySource } from '../gee-v1/adapters/wheel/gate-start-authority-source.mjs';
 import { createGeeMissionAuthoritySource } from '../gee-v1/adapters/gee-mission-authority-source.mjs';
 import { createWheelProjectAdapter } from '../gee-v1/adapters/wheel/wheel-project-adapter.mjs';
@@ -51,6 +51,18 @@ const CONFIGURATION_VALIDATORS = [
 function option(name, fallback = null) {
   const index = process.argv.indexOf(name);
   return index >= 0 && process.argv[index + 1] ? process.argv[index + 1] : fallback;
+}
+
+function options(name) {
+  const values = [];
+  for (let index = 0; index < process.argv.length - 1; index += 1) {
+    if (process.argv[index] === name && process.argv[index + 1]) values.push(process.argv[index + 1]);
+  }
+  return values;
+}
+
+function hasOption(name) {
+  return process.argv.includes(name);
 }
 
 function runConfigurationValidators() {
@@ -84,6 +96,51 @@ function readGitPolicy() {
   }
 }
 
+/**
+ * The ledger, read as a governed OBSERVATION rather than as an assumption.
+ *
+ * THE DEFECT THIS CLOSES. Preflight parsed the ledger inline with a bare
+ * `JSON.parse` per line and no handler. A truncated or malformed ledger — the
+ * exact state a crashed or partially-written append leaves behind — therefore
+ * terminated preflight with an uncaught SyntaxError. That is the worst possible
+ * outcome for a fail-closed gate: the tool whose job is to decide whether the
+ * repository is safe to work in produced a stack trace instead of a verdict, so
+ * there was no governed BLOCK to obey, nothing named the defect, and the only
+ * signal was an exit code that an uncaught throw and a refusal share.
+ *
+ * Fail-closed: an unreadable or unparseable ledger yields no events and a
+ * blocking finding, never an empty list that downstream logic would read as "no
+ * history". `NDJSON_PARSE_ERROR` is the name validate-status-ledger.mjs already
+ * gives this condition; a second name for one defect is how two validators come
+ * to disagree about the same bytes.
+ */
+const LEDGER_RELATIVE_PATH = 'governance/state/GATE_STATUS_LEDGER.ndjson';
+const LEDGER_UNPARSEABLE_FINDING = 'NDJSON_PARSE_ERROR';
+
+function readLedgerEventsFailClosed() {
+  const absolute = path.join(REPO_ROOT, ...LEDGER_RELATIVE_PATH.split('/'));
+  let text;
+  try {
+    text = fs.readFileSync(absolute, 'utf8');
+  } catch (error) {
+    return { events: null, findings: ['LEDGER_READ_ERROR'], detail: { path: LEDGER_RELATIVE_PATH, message: error.message } };
+  }
+  const lines = text.trim().split(/\r?\n/).filter(Boolean);
+  const events = [];
+  for (let index = 0; index < lines.length; index += 1) {
+    try {
+      events.push(JSON.parse(lines[index]));
+    } catch (error) {
+      return {
+        events: null,
+        findings: [LEDGER_UNPARSEABLE_FINDING],
+        detail: { path: LEDGER_RELATIVE_PATH, lineNumber: index + 1, message: error.message }
+      };
+    }
+  }
+  return { events, findings: [], detail: null };
+}
+
 function buildRegistry() {
   const wheelAdapter = createWheelProjectAdapter(REPO_ROOT);
   const sources = [
@@ -98,6 +155,21 @@ function buildRegistry() {
       }
     })
   ];
+  if (workUnitType === POST_START_MAINTENANCE_EXECUTION) {
+    sources.push(createWheelGateAuthoritySource(REPO_ROOT, {
+      projectId: PROJECT_ID,
+      workUnitType: POST_START_MAINTENANCE_EXECUTION,
+      maintenanceAuthorityPath: option('--maintenance-authority'),
+      requestedPaths: options('--requested-path'),
+      requestedOperationClasses: options('--requested-operation-class'),
+      requestedPermissions: {
+        startRequested: hasOption('--request-start'),
+        statusTransitionRequested: hasOption('--request-status-transition'),
+        gate21Requested: hasOption('--request-gate21'),
+        futureBytePermissionRequested: hasOption('--request-future-byte')
+      }
+    }));
+  }
   if (workUnitType === 'GATE_START') {
     sources.push(createWheelGateStartAuthoritySource(REPO_ROOT, { projectId: PROJECT_ID }));
   }
@@ -117,7 +189,11 @@ const explicitWorkUnitId = option('--work-unit-id', null);
 // The legacy pointer supplies a default id for the legacy type ONLY.
 const workUnitId = explicitWorkUnitId || (workUnitType === DEFAULT_WORK_UNIT_TYPE ? activeGate : null);
 
-const configurationFindings = runConfigurationValidators();
+const ledgerObservation = readLedgerEventsFailClosed();
+// The ledger is part of the CONFIGURATION question: a repository whose
+// append-only spine cannot be parsed is not a repository work may proceed in,
+// whatever any other validator says about it.
+const configurationFindings = [...runConfigurationValidators(), ...ledgerObservation.findings];
 const configurationValid = configurationFindings.length === 0;
 
 const registry = buildRegistry();
@@ -132,10 +208,10 @@ const executionAuthorized = configurationValid && workUnitType !== PRECONTRACT_W
 // Preserved verbatim from the pre-repair report so existing consumers keep
 // reading the same fields with the same meaning: these describe the ACTIVE
 // GATE, whatever work unit was requested.
-const activeGateStatus = activeGate
-  ? (fs.readFileSync(path.join(REPO_ROOT, 'governance/state/GATE_STATUS_LEDGER.ndjson'), 'utf8')
-      .trim().split(/\r?\n/).map((line) => JSON.parse(line))
-      .filter((event) => event.gateId === activeGate).at(-1)?.toStatus || 'UNKNOWN')
+// UNKNOWN when the ledger could not be parsed: an unreadable spine must not be
+// reported as a Gate that merely happens to have no status.
+const activeGateStatus = activeGate && ledgerObservation.events
+  ? (ledgerObservation.events.filter((event) => event.gateId === activeGate).at(-1)?.toStatus || 'UNKNOWN')
   : 'UNKNOWN';
 const activeContractPresent = Boolean(activeGate)
   && fs.existsSync(path.join(REPO_ROOT, 'governance', 'gates', activeGate, 'contracts', 'CURRENT_CONTRACT.json'));
@@ -153,6 +229,14 @@ const workUnitReport = {
   proofs: authority.proofs,
   findings: authority.findings
 };
+if (workUnitType === POST_START_MAINTENANCE_EXECUTION) {
+  Object.assign(workUnitReport, {
+    startAuthorized: false,
+    statusTransitionAuthorized: false,
+    gateAuthorizationAuthorized: false,
+    futureBytePermission: false
+  });
+}
 if (workUnitType === PRECONTRACT_WORK_UNIT_TYPE) workUnitReport.bootstrapAuthorized = authority.bootstrapAuthorized === true;
 
 const report = {
@@ -172,6 +256,9 @@ const report = {
   processExitCode: configurationFindings.length ? 2 : 0,
   generatedAt: '2026-08-01T16:00:00.000Z'
 };
+// The diagnostic must name the ledger and the line, or a fail-closed verdict is
+// indistinguishable from every other fail-closed verdict.
+if (ledgerObservation.detail) report.ledgerParseFailure = ledgerObservation.detail;
 if (workUnitType === PRECONTRACT_WORK_UNIT_TYPE) report.bootstrapAuthorized = configurationValid && authority.bootstrapAuthorized === true;
 
 console.log(JSON.stringify(report, null, 2));

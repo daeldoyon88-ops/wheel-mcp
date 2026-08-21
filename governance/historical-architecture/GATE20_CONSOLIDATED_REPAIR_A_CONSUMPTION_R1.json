@@ -1,0 +1,227 @@
+{
+  "documentKind": "POST_FREEZE_MAINTENANCE_AUTHORITY_CONSUMPTION",
+  "schemaVersion": 2,
+  "authorityId": "GATE20_CONSOLIDATED_REPAIR_A_LOCAL_AUTHORITY_R1",
+  "programId": "WHEEL_GATE20_CONSOLIDATED_REPAIR_A_R1",
+  "manifestSha256": "708842752c844abd9b2b331ab86512b4d235d38fa8c4a36646da7b3ece03749b",
+  "baseHead": "00c019c42fb04b5ba11f1a7cdb62cb4750858db1",
+  "consumedUse": 1,
+  "transactionId": "WHEEL_GATE20_CONSOLIDATED_REPAIR_A_R1_TRANSACTION",
+  "recordedAt": "2026-08-17T14:00:00.000Z",
+  "commitMessage": "governance: restore evidence integrity, enforce strict successor sequencing and fail preflight closed",
+  "cohortSelfExclusion": {
+    "path": "governance/historical-architecture/GATE20_CONSOLIDATED_REPAIR_A_CONSUMPTION_R1.json",
+    "reason": "The consumption record cannot hash its own final bytes; its identity is bound by the authority and manifest instead."
+  },
+  "cohortPathCount": 27,
+  "cohort": [
+    {
+      "path": "governance/gee-v1/adapters/wheel/gate-dependency-resolution.mjs",
+      "sha256": "fe4b8689ee1a7aa53689d4b12c3cac204090f518d0d769a729daf8721e65c2ed",
+      "byteLength": 8219,
+      "operation": "MODIFY",
+      "reason": "D-06. The resolver every consumer delegates to. It now asks satisfiesSuccessorClosure instead of its own CLOSED_LEDGER_STATUSES set. CLOSED_LEDGER_STATUSES is deliberately retained, unchanged, for the different question it also answers — whether a Gate is finished enough to serve as a sealed reference work unit — because collapsing the two predicates is what produced the defect.",
+      "artifactClass": "GATE20_CONSOLIDATED_REPAIR_A"
+    },
+    {
+      "path": "governance/gee-v1/core/gate-authorization-authority.mjs",
+      "sha256": "4a6196c9bbf87c2267b3b8c6a234dfabc58e361e8e3d3f41266819453ac639a3",
+      "byteLength": 41434,
+      "operation": "MODIFY",
+      "reason": "D-06. GATE_AUTHORIZATION_TERMINAL_DEPENDENCY_STATUSES carried its own copy of the list including COMPLETE_AGENT. It is now a re-export of the single rule, so existing importers keep the name they use and get the canonical answer.",
+      "artifactClass": "GATE20_CONSOLIDATED_REPAIR_A"
+    },
+    {
+      "path": "governance/gee-v1/core/gate-start-authority.mjs",
+      "sha256": "777d92e2a156f3f9b9e34996c844adbc1ed9df12c651f44670c9b22dbcb50a03",
+      "byteLength": 19669,
+      "operation": "MODIFY",
+      "reason": "D-06. validateDependencyProof compared against an inline literal array including COMPLETE_AGENT. It now calls satisfiesSuccessorClosure, so a START cannot be authorized against a merely agent-closed predecessor.",
+      "artifactClass": "GATE20_CONSOLIDATED_REPAIR_A"
+    },
+    {
+      "path": "governance/gee-v1/core/precontract-authority.mjs",
+      "sha256": "95ec33c57d7052e1072edaf43c61d1679055482e55e43f07ebc4d821ec2e4670",
+      "byteLength": 61799,
+      "operation": "MODIFY",
+      "reason": "D-06. TERMINAL_DEPENDENCY_STATUSES carried its own copy of the list including COMPLETE_AGENT, governing both the bootstrap dependency proof and its permanent re-validation. It is now a re-export of the single rule.",
+      "artifactClass": "GATE20_CONSOLIDATED_REPAIR_A"
+    },
+    {
+      "path": "governance/gee-v1/core/successor-closure.mjs",
+      "sha256": "d158fd7862c87895a280634a567af3728117e0d6ccc3c3f35423c1bf6d40d5cc",
+      "byteLength": 3472,
+      "operation": "CREATE",
+      "reason": "D-06. The single statement of successor closure. The rule lived in four modules and all four listed COMPLETE_AGENT as terminal; four copies that agree are one assumption, not four proofs. Successor closure is now exactly COMPLETE_CONFIRMED or SUPERSEDED, stated once and imported, with the reasoning recorded: COMPLETE_AGENT is the executing agent own report that it finished, so admitting a successor on it lets that agent certify its own work and spend the certification as the next Gate entry condition.",
+      "artifactClass": "GATE20_CONSOLIDATED_REPAIR_A"
+    },
+    {
+      "path": "governance/historical-architecture/GATE20_CONSOLIDATED_REPAIR_A_AUTHORIZED_PATHS_R1.json",
+      "sha256": "708842752c844abd9b2b331ab86512b4d235d38fa8c4a36646da7b3ece03749b",
+      "byteLength": 20018,
+      "operation": "CREATE",
+      "reason": "Exact finite path cohort with a declared per-path pre-state taken from the real bytes immediately before this repair.",
+      "artifactClass": "GATE20_CONSOLIDATED_REPAIR_A"
+    },
+    {
+      "path": "governance/schemas/gate-authorization-authority-request.schema.json",
+      "sha256": "3345445f0a5282b8ecf3ecf8d44260a52c1b191d1155986366b6559c2550b586",
+      "byteLength": 5353,
+      "operation": "MODIFY",
+      "reason": "D-06. The sequencing rule was encoded in the JSON schemas too, and inconsistently: this one and the START request schema listed COMPLETE_AGENT and COMPLETE_CONFIRMED but omitted SUPERSEDED, while three sibling schemas listed all three. GATE19 real records carry SUPERSEDED, so the request schemas already contradicted the bytes the repository holds. All six dependencyProof.status enums are now the canonical pair.",
+      "artifactClass": "GATE20_CONSOLIDATED_REPAIR_A"
+    },
+    {
+      "path": "governance/schemas/gate-authorization-authority.schema.json",
+      "sha256": "4bcd71c665b6985d3b74113c7ef4cf1ece8f6c437346c96d5a8696205b0d87e4",
+      "byteLength": 5456,
+      "operation": "MODIFY",
+      "reason": "D-06. dependencyProof.status enum reconciled to the canonical terminal pair.",
+      "artifactClass": "GATE20_CONSOLIDATED_REPAIR_A"
+    },
+    {
+      "path": "governance/schemas/gate-authorization-record.schema.json",
+      "sha256": "bbb75d8854da8d8baf12af06e01b4c3e0e19fee87a67b6c9d6f9f784dd7880dc",
+      "byteLength": 5695,
+      "operation": "MODIFY",
+      "reason": "D-06. dependencyProof.status enum reconciled to the canonical terminal pair.",
+      "artifactClass": "GATE20_CONSOLIDATED_REPAIR_A"
+    },
+    {
+      "path": "governance/schemas/gate-start-authority-request.schema.json",
+      "sha256": "a8442680b12f0d29f801ec11d58007e1f67d95b69b4099b21b966ae07611cfb9",
+      "byteLength": 4100,
+      "operation": "MODIFY",
+      "reason": "D-06. dependencyProof.status enum reconciled to the canonical terminal pair; also gains SUPERSEDED, which it was missing while real GATE19 records already used it.",
+      "artifactClass": "GATE20_CONSOLIDATED_REPAIR_A"
+    },
+    {
+      "path": "governance/schemas/gate-start-authority.schema.json",
+      "sha256": "c771cb81f798b7003ddb87560706309ee09b1a13a8a205bec8a8ac21e872d7ef",
+      "byteLength": 4185,
+      "operation": "MODIFY",
+      "reason": "D-06. dependencyProof.status enum reconciled to the canonical terminal pair.",
+      "artifactClass": "GATE20_CONSOLIDATED_REPAIR_A"
+    },
+    {
+      "path": "governance/schemas/gate-start-record.schema.json",
+      "sha256": "487a4993931f354cf0cc29fcd6d5eeed937d1a4d158611b0bfdf3e6007366142",
+      "byteLength": 3750,
+      "operation": "MODIFY",
+      "reason": "D-06. dependencyProof.status enum reconciled to the canonical terminal pair.",
+      "artifactClass": "GATE20_CONSOLIDATED_REPAIR_A"
+    },
+    {
+      "path": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_GATE20_CONSOLIDATED_REPAIR_A_R1.json",
+      "sha256": "547f5da87cf1efe03421bfc5a5dd18d270062af0115198e7f55501dda1833067",
+      "byteLength": 2147,
+      "operation": "CREATE",
+      "reason": "Single-use LOCAL_EXPLICIT_AUTHORITY for this repair. No already-consumed authority is reused, no PKI, no signature, no R8, no wildcard and no directory blanket.",
+      "artifactClass": "GATE20_CONSOLIDATED_REPAIR_A"
+    },
+    {
+      "path": "governance/tests/EVIDENCE_SUITE_IDENTITY_BASELINE.json",
+      "sha256": "87f8d70ea3d25779d5065188b3d8869ac53aa4ff34a7eb1645f60f3b4e16138d",
+      "byteLength": 48795,
+      "operation": "CREATE",
+      "reason": "D-05. The declared test population for the evidence suites: 25 suites and 571 identities. It is a committed expectation that only a deliberate human edit can widen or narrow, which is what makes the guard capable of refusing anything.",
+      "artifactClass": "GATE20_CONSOLIDATED_REPAIR_A"
+    },
+    {
+      "path": "governance/tests/evidence-suite-identity-guard.test.mjs",
+      "sha256": "7f376a2e1b7b82fe6f3fac941b602f77506aa941f418533cd458c85a2db147bd",
+      "byteLength": 9444,
+      "operation": "CREATE",
+      "reason": "D-05. The guard is evidence, so it is held to the standard it enforces. Every defect it claims to detect is manufactured, including the exact top-level TAP shape Node emits when a suite throws before registering anything, plus the rename case a count-only guard is blind to by construction, plus the structural check that the committed baseline still describes the suites on disk.",
+      "artifactClass": "GATE20_CONSOLIDATED_REPAIR_A"
+    },
+    {
+      "path": "governance/tests/final-gate-integrity-auditor.test.mjs",
+      "sha256": "608dc195c7b6255f4ddc9b439d34a42d91cb2c21e29f9c241dfaf229d724a6e1",
+      "byteLength": 24024,
+      "operation": "MODIFY",
+      "reason": "D-05. Two literal ledger-length expectations. The benchmark asserted eventCount equal to 73, and the stale-projection case manufactured staleness against the literal 73. Both are now derived: the benchmark asserts a FLOOR at GATE17 closure length, and the staleness case is manufactured relative to the fixture own ledger so it keeps testing projection lag at any length.",
+      "artifactClass": "GATE20_CONSOLIDATED_REPAIR_A"
+    },
+    {
+      "path": "governance/tests/gate-authorization-authority-primitive.test.mjs",
+      "sha256": "6055187a6ded076bb170cb47e882c20f88a869711e4726918f5582ce347e0fc6",
+      "byteLength": 67180,
+      "operation": "MODIFY",
+      "reason": "D-05. Pinned the whole live ledger length and digest at 57 events, asserting that the project had stopped rather than that this mission history was intact. The 57 events are now asserted as a FROZEN PREFIX carrying its recorded digest through the canonical validateLedgerPrefix, and the AUTHORIZATION count and GATE14 status are read from that prefix rather than from live state. D-06 also required its fixture predecessor to become lawfully closed: it ended at COMPLETE_AGENT, so under the strict rule the suite was asserting that an authorization which could never lawfully exist is valid. The predecessor now closes by canonical SUPERSESSION rather than by a fabricated external reinspection report, because inventing a report plus a policy asserting PASS over it would place a hardcoded pass inside the evidence.",
+      "artifactClass": "GATE20_CONSOLIDATED_REPAIR_A"
+    },
+    {
+      "path": "governance/tests/gate-fast-path-control-plane.test.mjs",
+      "sha256": "a883a74feb5cbd285ac8ada75113ae0cadd5e0d18fce4a76b100a8d1ca182a20",
+      "byteLength": 43310,
+      "operation": "MODIFY",
+      "reason": "D-06. FP15 proved that an unclosed predecessor yields READY_WHEN_SEQUENCED, anchored on GATE16 and GATE15 while GATE15 was open. GATE15 has since been confirmed, so the premise evaporated and the case began reporting FAST_PATH_READY: still running, no longer asking its question. The pair is now DERIVED from the registry and the resolver, so whichever Gate currently has an unclosed dependency is the one that demonstrates the property.",
+      "artifactClass": "GATE20_CONSOLIDATED_REPAIR_A"
+    },
+    {
+      "path": "governance/tests/gate-lifecycle-orchestrator.test.mjs",
+      "sha256": "ee4905bcfc5dc9d6bdf380a9489f4b376b580c0d1ff41104453771939fb60fde",
+      "byteLength": 80967,
+      "operation": "MODIFY",
+      "reason": "D-05. Synthetic future-Gate fixtures carried literal recordedAt instants that real history had passed, so the ledger validator refused every candidate with LEDGER_TIMESTAMP_REGRESSION and seven generic lifecycle tamper, rollback and recovery cases aborted during SETUP without failing individually. Instants and validity windows are now derived from the fixture own ledger head. Also replaces a replay assertion that pinned the frontier at GATE17 with the equivalence it was really claiming: a Gate replays to its last recorded toStatus.",
+      "artifactClass": "GATE20_CONSOLIDATED_REPAIR_A"
+    },
+    {
+      "path": "governance/tests/historical-reconciliation-primitive.test.mjs",
+      "sha256": "35e0c57704e80074c64b6ad9d12cecadf93ece7e294c98bebec45d6ef8bf51df",
+      "byteLength": 83672,
+      "operation": "MODIFY",
+      "reason": "D-05. ARCH-06 pinned the live statuses of GATE12, GATE13 and GATE14, which are outside the approved reconciliation cohort. GATE14 has since been lawfully confirmed, breaking the assertion without anything about the cohort changing. The frozen cohort statuses are kept and additionally bound to the toStatus each reconciliation event recorded; the boundary is now asserted structurally as no reconciliation outside the approved twelve.",
+      "artifactClass": "GATE20_CONSOLIDATED_REPAIR_A"
+    },
+    {
+      "path": "governance/tests/precontract-consumption-permanence.test.mjs",
+      "sha256": "3619f7dc50b1f52b54026b611a5461759c6abc4ae454f29b138cd0a398048caa",
+      "byteLength": 56392,
+      "operation": "MODIFY",
+      "reason": "D-05. The same filtering defect, plus depth-4 cases pinned to GATE19 terminal status COMPLETE_AGENT that stopped being true when GATE19 was lawfully confirmed. The rewind is structural and the depth is now derived: the canonical bootstrap-to-closure history is asserted as a PREFIX, so deeper lawful history strengthens the evidence instead of refuting it. 52 intended tests had collapsed to a single top-level failure; all 52 execute again.",
+      "artifactClass": "GATE20_CONSOLIDATED_REPAIR_A"
+    },
+    {
+      "path": "governance/tests/precontract-local-bootstrap-chain.test.mjs",
+      "sha256": "2695dce19e0f4673ebcf4b702f78f0b51da9247120e62e952e962f318a4bd2fb",
+      "byteLength": 27610,
+      "operation": "MODIFY",
+      "reason": "D-05. buildFixture rewound the Gate by FILTERING its events out of the middle of the ledger, which left every later line carrying an ordinal and a previousEventSha256 that no longer described the line above it. Correct while this Gate was the ledger tail; LEDGER_ORDINAL_GAP and LEDGER_CHAIN_BREAK the moment GATE20 appended. The rewind is now a TRUNCATION at the Gate first non-genesis event, so the surviving lines are a genuine canonical prefix. 31 intended tests had collapsed to a single top-level failure; all 31 execute again.",
+      "artifactClass": "GATE20_CONSOLIDATED_REPAIR_A"
+    },
+    {
+      "path": "governance/tests/preflight-fail-closed.test.mjs",
+      "sha256": "a408172c2131ed51c8857e543d99b5c35d77718a403999e6a3a17b43ae435717",
+      "byteLength": 8291,
+      "operation": "CREATE",
+      "reason": "D-07. Hostiles A through F in isolated shared-clone sandboxes that preserve real Git history: truncated final line, malformed middle line, non-JSON bytes, the healthy control that must still PASS unchanged, the partial-pass trap proving no surviving prefix is used, and validator parity proving preflight and validate-status-ledger refuse the same bytes under the same name.",
+      "artifactClass": "GATE20_CONSOLIDATED_REPAIR_A"
+    },
+    {
+      "path": "governance/tests/successor-sequencing-strict.test.mjs",
+      "sha256": "8264f4cc2969cff584ad915c05c1830a515827d5c02cc0d6dd907de1acf4abcc",
+      "byteLength": 12460,
+      "operation": "CREATE",
+      "reason": "D-06. Hostiles A through G. COMPLETE_AGENT, IN_PROGRESS and NOT_STARTED predecessors BLOCK; COMPLETE_CONFIRMED and canonically SUPERSEDED satisfy; forged status scalars and an absent Gate BLOCK; GATE21 cannot reach FAST_PATH_READY while GATE20 is COMPLETE_AGENT. Also proves the rule is ONE rule by asserting object identity across layers, and replays every recorded AUTHORIZATION and START against its own predecessor prefix under the strict rule to show that no lawfully recorded history is retroactively invalidated.",
+      "artifactClass": "GATE20_CONSOLIDATED_REPAIR_A"
+    },
+    {
+      "path": "governance/tools/evidence-suite-identity-guard.mjs",
+      "sha256": "e32073a665f4bc00f26297ccf30f28c8cc5fb17048a59798bbda09910bcbd01f",
+      "byteLength": 10860,
+      "operation": "CREATE",
+      "reason": "D-05. The non-vacuity guard. Aggregate PASS and FAIL totals cannot detect a suite that stopped running: a fixture that throws during module evaluation takes every test in the file out of the run and reports as ONE failure, so 81 hostile identities across two files were being reported as 2 failures. The guard compares TEST IDENTITIES against a declared baseline and fails closed on aborted setup, disappeared identities, shrunken registration and registered-but-unexecuted tests. It never writes the baseline, because a baseline regenerated from the run it checks would agree with any population including an empty one.",
+      "artifactClass": "GATE20_CONSOLIDATED_REPAIR_A"
+    },
+    {
+      "path": "governance/tools/governance-preflight.mjs",
+      "sha256": "ef699c1a1d959f0b7f56bf0bd721714848074400afdc986d35d8abd4a4a8f46c",
+      "byteLength": 11091,
+      "operation": "MODIFY",
+      "reason": "D-07. The ledger was parsed inline with a bare JSON.parse per line and no handler, so a truncated or malformed ledger terminated preflight with an uncaught SyntaxError — a stack trace instead of a verdict, from the tool whose job is deciding whether the repository is safe to work in. The read is now a governed observation that fails closed under NDJSON_PARSE_ERROR, the name validate-status-ledger already gives this condition, and exposes NO events on failure so no partial parse can produce a confident answer from an incomplete ledger.",
+      "artifactClass": "GATE20_CONSOLIDATED_REPAIR_A"
+    }
+  ]
+}

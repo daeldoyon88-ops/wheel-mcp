@@ -50,7 +50,12 @@
  */
 
 import { sha256Hex } from './release-authority.mjs';
-import { CLOSED_REVISION_STATUSES } from './sealed-state-evidence.mjs';
+// The closed-status vocabulary, taken from the leaf module that now owns it. It
+// used to be imported from sealed-state-evidence, and that edge is precisely what
+// prevented sealed-state-evidence from consuming the canonical ledger validator
+// (which imports THIS file) without an import cycle. Same three strings, one
+// layer down — see closed-revision-status.mjs for the full argument.
+import { CLOSED_REVISION_STATUSES } from './closed-revision-status.mjs';
 
 export const POST_FREEZE_MAINTENANCE_V2_SCHEMA_VERSION = 2;
 export const POST_FREEZE_MAINTENANCE_AUTHORITY_CLASS = 'PROJECT_OWNER_POST_FREEZE_MAINTENANCE_AUTHORITY';
@@ -260,8 +265,27 @@ const CONSUMPTION_V1_FIELDS = Object.freeze([
   'baseHead', 'consumedUse', 'transactionId', 'recordedAt', 'commitMessage'
 ]);
 const CONSUMPTION_V2_FIELDS = Object.freeze([
-  ...CONSUMPTION_V1_FIELDS, 'cohortSelfExclusion', 'cohortPathCount', 'cohort'
+  ...CONSUMPTION_V1_FIELDS, 'cohortSelfExclusion', 'cohortPathCount', 'cohort', 'publicationAdmission'
 ]);
+
+/**
+ * THE ADMISSION CITATION A RECEIPT CARRIES.
+ *
+ * A consumption record already says which authority and which manifest a
+ * publication ran under. It could not say who ADMITTED it, so a reader of the
+ * receipt had no way to reach the independent Owner decision that made the
+ * publication lawful — the citation had to be rediscovered by searching, which is
+ * exactly the kind of gap an after-the-fact ratification lives in.
+ *
+ * The citation is three fields and no more: the admission's id, its path and its
+ * file digest. It is OPTIONAL on the record, and that is deliberate rather than
+ * lax — every consumption record already in this repository predates admissions,
+ * and rewriting historical receipts to add a field would be the self-ratification
+ * move this whole primitive exists to prevent. What is NOT optional: a citation
+ * that is present must be exactly shaped, and when the caller supplies the
+ * admission it was published under, it must match that admission exactly.
+ */
+export const PUBLICATION_ADMISSION_CITATION_FIELDS = Object.freeze(['admissionId', 'admissionPath', 'admissionSha256']);
 const CONSUMPTION_SELF_EXCLUSION_FIELDS = Object.freeze(['path', 'reason']);
 const CONSUMPTION_COHORT_FIELDS = Object.freeze([
   'path', 'sha256', 'byteLength', 'operation', 'reason', 'artifactClass'
@@ -531,8 +555,138 @@ export function evaluatePathPrestateBinding({ manifestResult, authority, observe
   }
 }
 
-function validateConsumptionRecord(record, authority, manifest, observed, findings) {
+/**
+ * CONTROL 15 — A PROGRAM MAY NOT CREATE THE DOCUMENTS THAT AUTHORIZE IT.
+ *
+ * THE DEMONSTRATED DEFECT, EXACTLY. The GATE20 Repair-B manifest declares the
+ * Owner documents its own admission chain depends on as
+ *
+ *     prestate: { state: "ABSENT" }
+ *
+ * An ABSENT declaration paired with operation CREATE is a machine-readable claim
+ * that the path does not exist yet and that this publication brings it into being.
+ * Applied to a governing document that is exactly a bootstrap: the publication
+ * writes its own permission slip, and every downstream check then verifies the
+ * program against paperwork the program itself produced.
+ *
+ * THE RULE, AND WHY IT IS DELIBERATELY NARROW. For the exact governing paths of
+ * THIS admission chain — the admitted authority, the admitted manifest, the
+ * publication admission record and the Owner authorization registry — a manifest
+ * may not declare ABSENT, and where it declares PRESENT the digest and length must
+ * be the ones the admission pins. Anything else in the cohort is untouched.
+ *
+ * Generalizing the ABSENT prohibition across all governance paths would be a new
+ * architecture decision, not this repair: CREATE-from-ABSENT is the normal, lawful
+ * shape for every ordinary artifact a maintenance program publishes.
+ *
+ * THE ONE EXEMPTION, AND WHY IT IS NOT A HOLE. The admitted authority and the
+ * admitted manifest may be covered by the existing BOOTSTRAP SELF-EXCLUSION, which
+ * already proves exactly what this rule wants: `evaluatePathPrestateBinding`
+ * requires the excluded AUTHORITY_DOCUMENT entry to BE the document the evaluator
+ * actually loaded from disk, and the AUTHORIZED_PATH_MANIFEST entry to BE the path
+ * whose digest the authority pins and the evaluator re-checks. Both are therefore
+ * demonstrably PRESENT with exact digests before publication, by a canonical
+ * mechanism that predates this rule. The manifest additionally cannot state its own
+ * final digest — a self-referential seal is not computable — so requiring it to do
+ * so would deadlock rather than protect. The exemption is limited to those two
+ * roles, each of which may appear at most once; the admission record and the Owner
+ * registry have no such mechanism and get no such exemption.
+ *
+ * Pure and shape-only: this decides what the MANIFEST may claim. Whether the
+ * governing files are genuinely present with the pinned bytes is decided by the
+ * resolver, against the repository.
+ */
+export function validateGoverningPathPrestateBinding({ manifestResult, governingPaths, findings }) {
+  if (!Array.isArray(governingPaths) || governingPaths.length === 0) {
+    finding(findings, 'GOVERNING_PATH_SET_MISSING');
+    return;
+  }
+  const declared = manifestResult?.prestateByPath instanceof Map ? manifestResult.prestateByPath : new Map();
+  const excluded = manifestResult?.prestateSelfExcluded instanceof Map ? manifestResult.prestateSelfExcluded : new Map();
+  const bootstrapExemptRoles = new Map([
+    ['AUTHORITY_DOCUMENT', 'ADMITTED_AUTHORITY'],
+    ['AUTHORIZED_PATH_MANIFEST', 'ADMITTED_MANIFEST']
+  ]);
+  for (const governing of governingPaths) {
+    if (!governing || typeof governing !== 'object') { finding(findings, 'GOVERNING_PATH_ENTRY_INVALID'); continue; }
+    const entry = declared.get(governing.path);
+    if (!entry) continue; // Not a path this program writes at all: the safest shape.
+
+    const exclusion = excluded.get(governing.path) ?? null;
+    const exemptRole = exclusion ? bootstrapExemptRoles.get(exclusion.role) ?? null : null;
+    if (exemptRole !== null && exemptRole === governing.role) continue;
+
+    if (entry.state !== PRESTATE_PRESENT) {
+      finding(findings, 'GOVERNING_PATH_PRESTATE_ABSENT_NOT_PERMITTED', `${governing.role}:${governing.path}`);
+      continue;
+    }
+    if (typeof governing.sha256 === 'string' && entry.sha256 !== governing.sha256) {
+      finding(findings, 'GOVERNING_PATH_PRESTATE_DIGEST_MISMATCH', `${governing.role}:${governing.path}`);
+      continue;
+    }
+    if (Number.isInteger(governing.byteLength) && entry.byteLength !== governing.byteLength) {
+      finding(findings, 'GOVERNING_PATH_PRESTATE_BYTE_LENGTH_MISMATCH', `${governing.role}:${governing.path}`);
+    }
+  }
+}
+
+/**
+ * The admission citation on a consumption record.
+ *
+ * Absent is permitted, because every historical receipt in this repository predates
+ * admissions and rewriting them would be self-ratification. Present is validated
+ * strictly, and when the caller knows which admission the publication ran under,
+ * the citation must be that admission exactly — a receipt may not cite a decision
+ * other than the one it was published under.
+ */
+export function validatePublicationAdmissionCitation(record, publicationAdmission, findings) {
+  const citation = record?.publicationAdmission ?? null;
+  if (citation === null || citation === undefined) {
+    if (publicationAdmission) finding(findings, 'CONSUMPTION_ADMISSION_CITATION_ABSENT', publicationAdmission.admissionId ?? null);
+    return;
+  }
+  if (typeof citation !== 'object' || Array.isArray(citation)) { finding(findings, 'CONSUMPTION_ADMISSION_CITATION_INVALID'); return; }
+  unknownFields(findings, citation, PUBLICATION_ADMISSION_CITATION_FIELDS, 'CONSUMPTION_ADMISSION_CITATION_UNKNOWN_FIELD');
+  if (!TOKEN_RE.test(citation.admissionId || '')) finding(findings, 'CONSUMPTION_ADMISSION_CITATION_ID_INVALID');
+  if (!isExactMaintenancePath(citation.admissionPath)) finding(findings, 'CONSUMPTION_ADMISSION_CITATION_PATH_INVALID');
+  if (!SHA256_RE.test(citation.admissionSha256 || '')) finding(findings, 'CONSUMPTION_ADMISSION_CITATION_SHA_INVALID');
+  if (!publicationAdmission) return;
+  if (citation.admissionId !== publicationAdmission.admissionId) finding(findings, 'CONSUMPTION_ADMISSION_CITATION_ID_MISMATCH', citation.admissionId ?? null);
+  if (citation.admissionPath !== publicationAdmission.admissionPath) finding(findings, 'CONSUMPTION_ADMISSION_CITATION_PATH_MISMATCH', citation.admissionPath ?? null);
+  if (citation.admissionSha256 !== publicationAdmission.admissionSha256) finding(findings, 'CONSUMPTION_ADMISSION_CITATION_SHA_MISMATCH', citation.admissionPath ?? null);
+}
+
+/**
+ * CONSUMPTION COHERENCE — the half of consumption validation that can never
+ * legitimately drift.
+ *
+ * A consumption record is checked against two different things, and only one of
+ * them is stable over time:
+ *
+ *   COHERENCE  the record against the AUTHORITY and the MANIFEST it cites. Both
+ *              are digest-pinned for the life of the program, so this comparison
+ *              has exactly one correct answer forever. A mismatch here is not
+ *              staleness, it is a record that never described its own program.
+ *
+ *   OCCUPANCY  the record against the bytes currently on disk. This one is
+ *              EXPECTED to drift: a later authorized program may lawfully rewrite
+ *              a path an earlier program certified, which is why completed
+ *              historical programs legitimately report SHA_MISMATCH.
+ *
+ * They are separated because callers need different halves. The full evaluator
+ * wants both. The canonical cohort derivation wants COHERENCE ONLY — it must
+ * refuse a program whose record contradicts its own manifest, while still
+ * admitting completed programs whose outputs were later superseded. Before this
+ * split the cohort re-checked five header fields by hand and so admitted a
+ * program the canonical consumption validator rejected, which is precisely how
+ * FINAL_GATE_INTEGRITY came to PASS over a BLOCKED consumption.
+ *
+ * Exported so there is ONE implementation of "does this record match its
+ * manifest". A second one is what would let the two verdicts diverge again.
+ */
+export function validateConsumptionRecordCoherence(record, authority, manifest, findings, { publicationAdmission = null } = {}) {
   if (!record || typeof record !== 'object' || Array.isArray(record)) { finding(findings, 'CONSUMPTION_RECORD_MISSING'); return; }
+  validatePublicationAdmissionCitation(record, publicationAdmission, findings);
   const consumptionFields = record.schemaVersion === 2 ? CONSUMPTION_V2_FIELDS : CONSUMPTION_V1_FIELDS;
   unknownFields(findings, record, consumptionFields, 'CONSUMPTION_UNKNOWN_FIELD');
   if (record.documentKind !== POST_FREEZE_MAINTENANCE_CONSUMPTION_KIND || ![1, 2].includes(record.schemaVersion)) finding(findings, 'CONSUMPTION_RECORD_INVALID');
@@ -586,6 +740,20 @@ function validateConsumptionRecord(record, authority, manifest, observed, findin
     if (!receiptPaths.includes(expectedPath)) finding(findings, 'CONSUMPTION_COHORT_PATH_MISSING', expectedPath);
   }
   if (record.cohort.length !== expectedPaths.length) finding(findings, 'CONSUMPTION_COHORT_ENTRY_COUNT_MISMATCH');
+}
+
+/**
+ * Coherence, then occupancy. The evaluator needs both halves; splitting them
+ * changes who can ask for which, not what either one decides.
+ */
+function validateConsumptionRecord(record, authority, manifest, observed, findings) {
+  validateConsumptionRecordCoherence(record, authority, manifest, findings);
+  if (!record || typeof record !== 'object' || Array.isArray(record)) return;
+  if (record.schemaVersion !== 2 || !Array.isArray(record.cohort)) return;
+
+  const manifestEntries = Array.isArray(manifest?.paths) ? manifest.paths : [];
+  const selfPath = authority.consumptionRecordPath;
+  const expectedPaths = manifestEntries.map((entry) => entry.path).filter((entryPath) => entryPath !== selfPath);
 
   const observedCohort = Array.isArray(observed.consumptionCohort) ? observed.consumptionCohort : [];
   const observedByPath = new Map();

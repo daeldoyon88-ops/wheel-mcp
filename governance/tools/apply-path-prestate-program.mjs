@@ -43,6 +43,11 @@ import {
   PHASE_AUTHORIZE_PROGRAM_APPLY,
   validateMaintenanceAuthorizedPathManifest
 } from '../gee-v1/core/post-freeze-maintenance-authority.mjs';
+import { evaluateMaintenanceSourceAdmissibility, MODE_PUBLICATION } from '../gee-v1/core/maintenance-publication-admissibility.mjs';
+import { resolveHistoricalIdentityDecision } from '../gee-v1/core/historical-admission-bridge.mjs';
+import { admissionCitation, resolveMaintenancePublicationAdmission } from '../gee-v1/core/maintenance-publication-admission.mjs';
+import { applyCandidate } from './gate-lifecycle-orchestrator.mjs';
+import { MAINTENANCE_PROGRAM_CASE_TYPE } from './transaction-provenance.mjs';
 import { collectPostFreezeMaintenanceObservation, resolveMaintenancePath } from './post-freeze-maintenance-observation.mjs';
 
 export const PUBLISHER_DOCUMENT = 'APPLY_PATH_PRESTATE_PROGRAM';
@@ -53,47 +58,6 @@ const readJson = (file) => JSON.parse(fs.readFileSync(file, 'utf8').replace(/^�
 
 function blocked(stage, findings) {
   return { document: PUBLISHER_DOCUMENT, version: PUBLISHER_VERSION, decision: 'BLOCKED', stage, findings, published: [] };
-}
-
-/**
- * Captures what every target path holds before anything is written, so a
- * rollback can restore absence as faithfully as it restores bytes.
- */
-function captureRollbackJournal(root, relativePaths) {
-  const journal = [];
-  for (const relativePath of relativePaths) {
-    const file = resolveMaintenancePath(root, relativePath);
-    if (!file) throw new Error(`UNSAFE_PATH:${relativePath}`);
-    journal.push(fs.existsSync(file)
-      ? { relativePath, file, existed: true, bytes: fs.readFileSync(file) }
-      : { relativePath, file, existed: false, bytes: null });
-  }
-  return journal;
-}
-
-function rollback(journal) {
-  const failures = [];
-  for (const entry of journal) {
-    try {
-      if (entry.existed) {
-        fs.mkdirSync(path.dirname(entry.file), { recursive: true });
-        fs.writeFileSync(entry.file, entry.bytes);
-      } else if (fs.existsSync(entry.file)) {
-        fs.rmSync(entry.file, { force: true });
-      }
-    } catch (error) {
-      failures.push({ path: entry.relativePath, error: error.message });
-    }
-  }
-  return failures;
-}
-
-/** Write-then-rename, so a partially written file is never visible at the target. */
-function publishOne(file, bytes) {
-  fs.mkdirSync(path.dirname(file), { recursive: true });
-  const temp = `${file}.__publish__${process.pid}`;
-  fs.writeFileSync(temp, bytes);
-  fs.renameSync(temp, file);
 }
 
 /**
@@ -112,8 +76,58 @@ export function applyPathPrestateProgram({
   const manifestFile = resolveMaintenancePath(root, authority.authorizedPathManifestPath);
   if (!manifestFile || !fs.existsSync(manifestFile)) return blocked('MANIFEST', [{ code: 'MANIFEST_ABSENT' }]);
   const manifest = readJson(manifestFile);
+
+  // THE SAME EVALUATION THE COHORT DERIVATION RUNS. This block used to be the
+  // publisher's private opinion of what it would accept, and the cohort had a
+  // different, weaker one — so a program could be ADMITTED into a Gate's
+  // authorized cohort while this function would have refused to run it. Both now
+  // call one primitive. `requireConsumption` is false here for the obvious reason:
+  // at publication time the consumption record is the thing about to be written.
+  // THE PUBLISHER ASKS THE SAME HISTORICAL-IDENTITY QUESTION THE COHORT ASKS.
+  //
+  // Enforcing the reservation only in the cohort derivation would leave the exploit
+  // intact through the other door: an attacker who cannot get a reserved identity
+  // ADMITTED could still get it PUBLISHED, and publication is the stronger act. The
+  // resolver is shared so the two cannot answer differently.
+  const historicalIdentity = resolveHistoricalIdentityDecision({
+    root, gateId: authority.preState?.gateId ?? null, authority,
+    authorityPath: authorityDocumentPath, authoritySha256: sha256(fs.readFileSync(authorityFile)),
+    manifest, manifestSha256: sha256(fs.readFileSync(manifestFile)),
+    consumption: null, consumptionSha256: null
+  });
+  // THE PRE-PUBLICATION ADMISSION, RESOLVED BY THE PUBLISHER THAT WILL PUBLISH.
+  //
+  // The evaluator is pure and does no I/O, so the one component holding the
+  // repository — this one — reads the Owner registry and the admission record and
+  // hands the decision in. There is no second publisher and no second evaluator:
+  // the resolution is an INPUT to the existing admissibility seam, exactly as the
+  // historical-identity decision already is.
+  //
+  // `historicalIdentity` is passed through so a reserved identity is refused by the
+  // resolver too, and not only by the seam. Two components, same answer.
+  const authorityBytes = fs.readFileSync(authorityFile);
+  const manifestBytes = fs.readFileSync(manifestFile);
+  const publicationAdmission = resolveMaintenancePublicationAdmission({
+    root, gateId: authority.preState?.gateId ?? null, authority,
+    authorityPath: authorityDocumentPath, authoritySha256: sha256(authorityBytes), authorityByteLength: authorityBytes.length,
+    manifest, manifestSha256: sha256(manifestBytes), manifestByteLength: manifestBytes.length,
+    historicalIdentity
+  });
+  const admissibility = evaluateMaintenanceSourceAdmissibility({
+    authority, manifest, manifestSha256: sha256(fs.readFileSync(manifestFile)),
+    consumption: null, requireConsumption: false, mode: MODE_PUBLICATION, historicalIdentity,
+    publicationAdmission
+  });
+  if (!admissibility.admissible) return blocked('MANIFEST', [{ code: admissibility.reason, detail: admissibility.detail }]);
   const manifestResult = validateMaintenanceAuthorizedPathManifest(manifest, authority.programId, authority.authorityPurpose);
-  if (!manifestResult.valid) return blocked('MANIFEST', manifestResult.findings);
+
+  // BELT AND BRACES, DELIBERATELY. MODE_PUBLICATION already refuses a manifest
+  // that does not bind pre-state, so this line is redundant — and it stays. This
+  // is the invariant an earlier pass of this repair removed by accident while
+  // routing the publisher through the shared evaluator, and its removal is a
+  // silent loosening of the only secure maintenance publisher: it would let a
+  // brand-new V1 program publish. A redundant local assertion costs nothing and
+  // means the guarantee cannot be lost again by a change made somewhere else.
   if (!manifestResult.bindsPrestate) return blocked('MANIFEST', [{ code: 'MANIFEST_DOES_NOT_BIND_PRESTATE', detail: 'schemaVersion 2 required' }]);
 
   const consumptionPath = authority.consumptionRecordPath;
@@ -180,6 +194,9 @@ export function applyPathPrestateProgram({
     transactionId,
     recordedAt,
     commitMessage: authority.commitPolicy.commitMessage,
+    // The receipt names the independent Owner decision this publication ran under,
+    // so a reader of the record can reach the admission without searching for it.
+    publicationAdmission: admissionCitation(publicationAdmission),
     cohortSelfExclusion: {
       path: consumptionPath,
       reason: 'The consumption record cannot hash its own final bytes; its identity is bound by the authority and manifest instead.'
@@ -189,26 +206,99 @@ export function applyPathPrestateProgram({
   };
 
   /* ---- 3. TRANSACTIONAL PUBLICATION ---------------------------------- */
-  let journal;
-  try {
-    journal = captureRollbackJournal(root, [...targets, consumptionPath]);
-  } catch (error) {
-    return blocked('JOURNAL', [{ code: 'ROLLBACK_JOURNAL_UNAVAILABLE', detail: error.message }]);
+  //
+  // WHAT THIS REPLACED, AND WHY THE OLD SHAPE COULD NOT BE FIXED IN PLACE.
+  //
+  // Publication used to run off an IN-MEMORY rollback journal: the prior bytes of
+  // every target were captured into a local array, and a thrown error walked that
+  // array back. That is failure-atomic against exceptions and worthless against
+  // process death. SIGKILL between two `publishOne` calls left a partial cohort on
+  // canonical paths, no journal anywhere on disk, and nothing for a fresh process
+  // to consume — the retry then failed PRESTATE, because the pre-state it was
+  // bound to had already been half-overwritten. A multi-path governance cohort
+  // that can be left half-published is not a transaction.
+  //
+  // The repair is REUSE, not a second framework. applyCandidate already stages
+  // every candidate byte durably, writes a persistent TRANSACTION.json before any
+  // canonical path moves, refuses to enter COMMITTING without recoverable
+  // provenance, writes through durable whole-file replacement, and is already the
+  // thing `recover-governance-transaction` knows how to roll forward. A
+  // maintenance program is exactly a multi-path candidate with an authority, so it
+  // publishes through that primitive on the same terms as every other publisher.
+  // SORTED BY PATH, because the provenance record's cohort is sorted and the
+  // journal's commitOrder must be the same sequence. `cohortFor` sorts what it
+  // records; if the writes were left in manifest order the two would disagree and
+  // the transaction would be refused as COMMIT_ORDER_MISMATCH — a real refusal,
+  // for a discrepancy that is purely this caller's to avoid. Sorting also makes
+  // the publication order deterministic across platforms, which is what lets the
+  // "progress is a prefix of the cohort" recovery rule mean anything.
+  const candidateWritesForPublication = [
+    ...targets.map((relativePath) => {
+      const bytes = candidates.get(relativePath);
+      return { path: relativePath, bytes, sha256: sha256(bytes), byteLength: bytes.length };
+    }),
+    (() => {
+      const bytes = Buffer.from(`${JSON.stringify(consumptionRecord, null, 2)}\n`, 'utf8');
+      return { path: consumptionPath, bytes, sha256: sha256(bytes), byteLength: bytes.length };
+    })()
+  ].sort((left, right) => left.path.localeCompare(right.path, 'en'));
+
+  // PRE-FLIGHT: every path this program will touch must be readable as a file.
+  //
+  // The durable transaction supersedes the old in-memory rollback journal, but not
+  // this check, which encodes a property worth keeping: if a target's prior state
+  // cannot even be captured — a directory sitting where a file belongs is the real
+  // case — then nothing about the publication is recoverable, and the right moment
+  // to say so is BEFORE a single byte is staged. Discovering it mid-transaction
+  // would leave a prepared journal describing a publication that can never
+  // complete. It is a refusal, not a rollback, precisely because nothing has moved.
+  for (const write of candidateWritesForPublication) {
+    const file = resolveMaintenancePath(root, write.path);
+    if (!file) return blocked('JOURNAL', [{ code: 'ROLLBACK_JOURNAL_UNAVAILABLE', detail: `UNSAFE_PATH:${write.path}` }]);
+    if (!fs.existsSync(file)) continue;
+    try {
+      if (!fs.statSync(file).isFile()) throw new Error(`NOT_A_FILE:${write.path}`);
+      fs.readFileSync(file);
+    } catch (error) {
+      return blocked('JOURNAL', [{ code: 'ROLLBACK_JOURNAL_UNAVAILABLE', detail: error.message }]);
+    }
   }
 
+  const candidate = {
+    eventId: `${authority.programId}_PROGRAM`,
+    gateId: authority.preState?.gateId ?? null,
+    // The operation class the authority actually authorized, so the provenance
+    // validator re-evaluates the same request at recovery time that was evaluated
+    // here — not a synthetic transition type invented for the journal.
+    transitionType: (authority.authorizedOperationClasses ?? [])[0] ?? null,
+    writes: candidateWritesForPublication,
+    event: null,
+    paths: {},
+    caseType: MAINTENANCE_PROGRAM_CASE_TYPE
+  };
+
   try {
-    for (const relativePath of targets) publishOne(resolveMaintenancePath(root, relativePath), candidates.get(relativePath));
-    publishOne(consumptionFile, Buffer.from(`${JSON.stringify(consumptionRecord, null, 2)}\n`, 'utf8'));
-  } catch (error) {
-    const rollbackFailures = rollback(journal);
+    applyCandidate({
+      root, candidate, authorityDocumentPath, authority: { decision: 'AUTHORIZED', observed: observation.observed }
+    });
+  } catch (cause) {
     return {
-      document: PUBLISHER_DOCUMENT, version: PUBLISHER_VERSION, decision: 'ROLLED_BACK', stage: 'PUBLICATION',
-      findings: [{ code: 'PUBLICATION_FAILED', detail: error.message }],
-      rollbackFailures, rollbackClean: rollbackFailures.length === 0, published: []
+      document: PUBLISHER_DOCUMENT, version: PUBLISHER_VERSION,
+      decision: cause.recovered === false ? 'RECOVERY_REQUIRED' : 'ROLLED_BACK', stage: 'PUBLICATION',
+      findings: [{ code: cause.recovered === false ? 'PUBLICATION_RECOVERY_REQUIRED' : 'PUBLICATION_FAILED', detail: cause.message }],
+      rollbackFailures: cause.rollbackFailures ?? [], rollbackClean: (cause.rollbackFailures ?? []).length === 0, published: []
     };
   }
 
   /* ---- 4. POST-VALIDATION -------------------------------------------- */
+  //
+  // The transaction has COMMITTED by the time control reaches here, so this is no
+  // longer a rollback point and must not pretend to be one. Undoing a committed
+  // publication by replaying an in-memory journal is exactly the unrecoverable
+  // shape this repair removed: it would move canonical bytes with no journal on
+  // disk describing the move. A disagreement here means the committed bytes are
+  // not the bytes the receipt certifies, which is a state for an operator to
+  // resolve against the transaction record — reported, never silently undone.
   const postFindings = [];
   for (const entry of cohort) {
     const file = resolveMaintenancePath(root, entry.path);
@@ -216,10 +306,9 @@ export function applyPathPrestateProgram({
     if (actual !== entry.sha256) postFindings.push({ code: 'PUBLISHED_BYTES_DISAGREE_WITH_COHORT', detail: entry.path });
   }
   if (postFindings.length) {
-    const rollbackFailures = rollback(journal);
     return {
-      document: PUBLISHER_DOCUMENT, version: PUBLISHER_VERSION, decision: 'ROLLED_BACK', stage: 'POST_VALIDATION',
-      findings: postFindings, rollbackFailures, rollbackClean: rollbackFailures.length === 0, published: []
+      document: PUBLISHER_DOCUMENT, version: PUBLISHER_VERSION, decision: 'RECOVERY_REQUIRED', stage: 'POST_VALIDATION',
+      findings: postFindings, published: []
     };
   }
 

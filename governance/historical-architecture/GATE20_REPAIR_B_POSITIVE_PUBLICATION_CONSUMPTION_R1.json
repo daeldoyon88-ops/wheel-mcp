@@ -1,0 +1,219 @@
+{
+  "documentKind": "POST_FREEZE_MAINTENANCE_AUTHORITY_CONSUMPTION",
+  "schemaVersion": 2,
+  "authorityId": "GATE20_REPAIR_B_POSITIVE_PUBLICATION_LOCAL_AUTHORITY_R1",
+  "programId": "GATE20_REPAIR_B_POSITIVE_PUBLICATION_R1",
+  "manifestSha256": "1d5832c05feb41d659b5bf13020cd5f4978da6ddcca8a05df2d882d763461b48",
+  "baseHead": "00c019c42fb04b5ba11f1a7cdb62cb4750858db1",
+  "consumedUse": 1,
+  "transactionId": "GATE20_REPAIR_B_POSTHOC_CONSUMPTION_R1_TRANSACTION",
+  "recordedAt": "2026-08-21T00:45:40.738Z",
+  "commitMessage": "governance: authorize bounded GATE20 Repair-B publication",
+  "cohortSelfExclusion": {
+    "path": "governance/historical-architecture/GATE20_REPAIR_B_POSITIVE_PUBLICATION_CONSUMPTION_R1.json",
+    "reason": "The consumption record cannot hash its own final bytes; its identity is bound by the authority and manifest instead."
+  },
+  "cohortPathCount": 26,
+  "cohort": [
+    {
+      "path": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_GATE20_REPAIR_B_POSITIVE_PUBLICATION_R1.json",
+      "sha256": "a10e524fab94fd3bfc58cd618cc712cc1394dae25a9475c95efebee9b2ad7c32",
+      "byteLength": 2250,
+      "operation": "CREATE",
+      "reason": "Single-use positive local authority for the bounded Repair-B publication only.",
+      "artifactClass": "REPAIR_B_POSITIVE_PUBLICATION"
+    },
+    {
+      "path": "governance/historical-architecture/GATE20_REPAIR_B_POSITIVE_PUBLICATION_AUTHORIZED_PATHS_R1.json",
+      "sha256": "1d5832c05feb41d659b5bf13020cd5f4978da6ddcca8a05df2d882d763461b48",
+      "byteLength": 10965,
+      "operation": "CREATE",
+      "reason": "Finite Repair-B cohort, independently declared by the Repair-B authority rather than Git or FGI output.",
+      "artifactClass": "REPAIR_B_POSITIVE_PUBLICATION"
+    },
+    {
+      "path": "governance/authority/historical-bridges/GATE20/PROJECT_OWNER_HISTORICAL_ADMISSION_BRIDGE_GATE20_FOUNDATION_PROJECTION_SYNC_R1.json",
+      "sha256": "094badfa0c7ac5aabc5ab773b215ceb404a6a89993b7ffe3ac0e95208374090f",
+      "byteLength": 2322,
+      "operation": "CREATE",
+      "reason": "Bounded admission bridge for one reserved historical identity; it grants no publication itself.",
+      "artifactClass": "REPAIR_B_HISTORICAL_IDENTITY"
+    },
+    {
+      "path": "governance/authority/historical-ratifications/GATE20/PROJECT_OWNER_HISTORICAL_IDENTITY_RATIFICATION_GATE20_FOUNDATION_PROJECTION_SYNC_R1.json",
+      "sha256": "71e0f1c3b8601bd85ceeb3827cd3e4ccde78438d9e11d458bda79dcac6b294c4",
+      "byteLength": 2860,
+      "operation": "CREATE",
+      "reason": "Owner reservation of one historical identity, expressly distinct from Repair-B publication authority.",
+      "artifactClass": "REPAIR_B_HISTORICAL_IDENTITY"
+    },
+    {
+      "path": "governance/sources/HISTORICAL_IDENTITY_RESERVATION_OWNER_AUTHORIZATION_R1.json",
+      "sha256": "df4d11b23af75078380916b50afef375609a958c11233cad2a503239c61f59b7",
+      "byteLength": 1385,
+      "operation": "CREATE",
+      "reason": "Owner reservation registry consumed by the canonical historical-identity resolver only.",
+      "artifactClass": "REPAIR_B_HISTORICAL_IDENTITY"
+    },
+    {
+      "path": "governance/gee-v1/core/canonical-terminal-proof.mjs",
+      "sha256": "b2db073b1ed19ef1167d17e16717290cc9175791bab91d7123901803bbebb9a8",
+      "byteLength": 14645,
+      "operation": "CREATE",
+      "reason": "Canonical terminal-ledger proof used by Repair-B current-byte lineage evaluation.",
+      "artifactClass": "REPAIR_B_CURRENT_BYTE_AUTHORIZATION"
+    },
+    {
+      "path": "governance/gee-v1/core/closed-revision-status.mjs",
+      "sha256": "a74f555cd9c0116b31da9797e20da5041160176081767fb7e7aa7385d5a4ece4",
+      "byteLength": 2554,
+      "operation": "CREATE",
+      "reason": "Canonical closed-revision status resolver used by Repair-B lineage checks.",
+      "artifactClass": "REPAIR_B_CURRENT_BYTE_AUTHORIZATION"
+    },
+    {
+      "path": "governance/gee-v1/core/current-byte-authorization.mjs",
+      "sha256": "09fcd3fb25dd14a9a720d58ca1eb4de3b42c4c7a1f432e6acefaa0215bb5c4fc",
+      "byteLength": 30555,
+      "operation": "CREATE",
+      "reason": "Canonical current-byte authorization consumer; path permission remains distinct from byte permission.",
+      "artifactClass": "REPAIR_B_CURRENT_BYTE_AUTHORIZATION"
+    },
+    {
+      "path": "governance/gee-v1/core/historical-admission-bridge.mjs",
+      "sha256": "c26c9658cef647d67bf642ada0339f39ef7823f0b426259c29e168a4216faf9b",
+      "byteLength": 44721,
+      "operation": "CREATE",
+      "reason": "Single bounded historical-admission resolver; it rejects generic V1 fallback.",
+      "artifactClass": "REPAIR_B_HISTORICAL_IDENTITY"
+    },
+    {
+      "path": "governance/gee-v1/core/maintenance-publication-admissibility.mjs",
+      "sha256": "573cce2b7cc24d66878e582cf45f0db7d36b9ef49c2d6aa59d15648ccc25cd86",
+      "byteLength": 27591,
+      "operation": "CREATE",
+      "reason": "Shared canonical admission decision prevents publisher and cohort divergence.",
+      "artifactClass": "REPAIR_B_CURRENT_BYTE_AUTHORIZATION"
+    },
+    {
+      "path": "governance/gee-v1/core/verified-ledger-evidence.mjs",
+      "sha256": "7e72af7971342c49abfb3c0e12fdb7b1f8c27e6231db58cc8d386bd4065c3bf4",
+      "byteLength": 9557,
+      "operation": "CREATE",
+      "reason": "Canonical verified-ledger evidence helper for Repair-B lineage binding.",
+      "artifactClass": "REPAIR_B_CURRENT_BYTE_AUTHORIZATION"
+    },
+    {
+      "path": "governance/gee-v1/core/sealed-state-evidence.mjs",
+      "sha256": "bbec2ce4292549fa2d9f0344b18ebdc7dd13b1e2e3d244f1ecd41f2b4fcddd76",
+      "byteLength": 35085,
+      "operation": "MODIFY",
+      "reason": "Extends the canonical sealed-state evidence consumer without changing the authority model.",
+      "artifactClass": "REPAIR_B_CURRENT_BYTE_AUTHORIZATION"
+    },
+    {
+      "path": "governance/tools/apply-path-prestate-program.mjs",
+      "sha256": "eead182bd18dfb2128f2cab0b809b430f63433f1d62c1fda62b9294eaa737e4c",
+      "byteLength": 19526,
+      "operation": "MODIFY",
+      "reason": "The existing canonical publisher is reused for Repair-B; no parallel publisher is introduced.",
+      "artifactClass": "REPAIR_B_CURRENT_BYTE_AUTHORIZATION"
+    },
+    {
+      "path": "governance/tools/apply-precontract-bootstrap.mjs",
+      "sha256": "2279435aabff6c2b70b8f9f24db4e99e2e64f6eb1bf44bae8d4604ab29380f55",
+      "byteLength": 17755,
+      "operation": "MODIFY",
+      "reason": "Preserves canonical bootstrap lineage checks used by current-byte authorization.",
+      "artifactClass": "REPAIR_B_CURRENT_BYTE_AUTHORIZATION"
+    },
+    {
+      "path": "governance/tools/canonical-ledger-authority.mjs",
+      "sha256": "4f5e3dd49ebf8a6308d0c21353b256d6a693205b150a58926b43aeb2fe277e56",
+      "byteLength": 7259,
+      "operation": "CREATE",
+      "reason": "Canonical ledger-authenticity resolver required by Repair-B proof consumers.",
+      "artifactClass": "REPAIR_B_CURRENT_BYTE_AUTHORIZATION"
+    },
+    {
+      "path": "governance/tools/validate-status-ledger.mjs",
+      "sha256": "71a868fbf8b17f44866163b6b5f3e676258328852c8a57828e60685b6782554b",
+      "byteLength": 172884,
+      "operation": "MODIFY",
+      "reason": "Extends the existing canonical ledger validator without adding a second ledger validator.",
+      "artifactClass": "REPAIR_B_CURRENT_BYTE_AUTHORIZATION"
+    },
+    {
+      "path": "governance/tests/closed-seal-fixture.mjs",
+      "sha256": "a61f602cc6870685d2c5f7f6dbb204869048cce40ebbe8bba07da59174df6cf6",
+      "byteLength": 11617,
+      "operation": "CREATE",
+      "reason": "Shared fixture for closed-seal boundary hostile tests.",
+      "artifactClass": "REPAIR_B_HOSTILE_EVIDENCE"
+    },
+    {
+      "path": "governance/tests/closed-state-seal-ledger-authenticity.test.mjs",
+      "sha256": "86f84e4c4131dd53eb22319a81ac2a7518e580e08640dd892acc733dc12e8c4d",
+      "byteLength": 21745,
+      "operation": "CREATE",
+      "reason": "Hostile proof that a coherent ledger chain alone is not authorized history.",
+      "artifactClass": "REPAIR_B_HOSTILE_EVIDENCE"
+    },
+    {
+      "path": "governance/tests/closed-state-seal-trust-boundary.test.mjs",
+      "sha256": "ed397f917154fc3ce35da056b17507d0c84a470baf293e4edc000caabddc25bf",
+      "byteLength": 15416,
+      "operation": "CREATE",
+      "reason": "Hostile proof of closed-state trust-boundary enforcement.",
+      "artifactClass": "REPAIR_B_HOSTILE_EVIDENCE"
+    },
+    {
+      "path": "governance/tests/current-state-bootstrap-lineage.test.mjs",
+      "sha256": "deffc03e51e37732eaf78d622e3ff1df65420e3093ddc8fb04d30fdcc120944d",
+      "byteLength": 23165,
+      "operation": "CREATE",
+      "reason": "Hostile proof that bootstrap lineage cannot be supplied by current working-tree bytes.",
+      "artifactClass": "REPAIR_B_HOSTILE_EVIDENCE"
+    },
+    {
+      "path": "governance/tests/fixtures/gate14-start-r2-fixture.json.gz",
+      "sha256": "f0640c239f97479546295383eca72deb48a0cee7972a5225ec67c6d9eb0e5092",
+      "byteLength": 112752,
+      "operation": "CREATE",
+      "reason": "Binary fixture for the existing Gate-start current-state lineage hostile case.",
+      "artifactClass": "REPAIR_B_HOSTILE_EVIDENCE"
+    },
+    {
+      "path": "governance/tests/gate-authorization-current-state-lineage.test.mjs",
+      "sha256": "441f0f78a396543327b4f5902df7f3f36c2c6c55f3bbb72b37c2c54185ff0e4c",
+      "byteLength": 13152,
+      "operation": "CREATE",
+      "reason": "Hostile proof that an authority path without authorized current bytes is refused.",
+      "artifactClass": "REPAIR_B_HOSTILE_EVIDENCE"
+    },
+    {
+      "path": "governance/tests/helpers/current-state-bootstrap-lineage-fixture.mjs",
+      "sha256": "b0acdddea9cd8dc5285b3008b7f148bee1a51dbb7b1eac180d467ed48102ff5d",
+      "byteLength": 15354,
+      "operation": "CREATE",
+      "reason": "Fixture helper for canonical bootstrap lineage hostile cases.",
+      "artifactClass": "REPAIR_B_HOSTILE_EVIDENCE"
+    },
+    {
+      "path": "governance/tests/historical-identity-reservation.test.mjs",
+      "sha256": "eb15bffffb8f79d96b123aede760bacc6ee38e110a3171f8103ea2f3568ea36c",
+      "byteLength": 20580,
+      "operation": "CREATE",
+      "reason": "Hostile proof that a reserved historical identity is admission-only and cannot publish.",
+      "artifactClass": "REPAIR_B_HOSTILE_EVIDENCE"
+    },
+    {
+      "path": "governance/tests/gate20-repair-b-positive-publication-authority.test.mjs",
+      "sha256": "fb5c9157664afb151c138a9e7acb8df7553eff4e7b095fe30c0706ddf57a25dd",
+      "byteLength": 6399,
+      "operation": "CREATE",
+      "reason": "Targeted canonical-consumer and hostile coverage for the bounded Repair-B publication authority.",
+      "artifactClass": "REPAIR_B_HOSTILE_EVIDENCE"
+    }
+  ]
+}

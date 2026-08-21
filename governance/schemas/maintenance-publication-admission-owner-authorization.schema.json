@@ -1,0 +1,92 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "maintenance-publication-admission-owner-authorization.schema.json",
+  "title": "Project-owner maintenance publication admission authorization",
+  "description": "Owner registry enumerating which maintenance publications have been admitted, by (projectId, gateId, programId) identity and by the admission record's identity digest. It is a SEPARATE document from the admission record so that a record can never authorize itself: this registry decides WHICH admissions exist, the record carries the exact bound bytes, and the two bind mutually — the registry pins the record's identity digest (a content digest that excludes the back-reference, so the binding is not recursive) while the record pins this file's SHA-256. This registry is an index and never a grant: it authorizes no re-execution, no future bytes and no generic V1 admission, asserted as explicit false fields. It follows the existing unsigned governance/sources PROJECT_OWNER LOCAL_EXPLICIT_AUTHORITY convention and introduces no key, signature, witness or external trust mechanism. Enforced at runtime by governance/gee-v1/core/maintenance-publication-admission.mjs, whose accepted field set is identical to this schema's so that schema validity and runtime trust cannot drift apart.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "document",
+    "schemaVersion",
+    "authorityId",
+    "authorityClass",
+    "authorityMode",
+    "issuedBy",
+    "issuedAtUtc",
+    "decisionId",
+    "purpose",
+    "reexecutionAuthorized",
+    "grantsFutureBytePermission",
+    "genericV1Admission",
+    "admittedPublications",
+    "registryDigest"
+  ],
+  "properties": {
+    "document": { "const": "MAINTENANCE_PUBLICATION_ADMISSION_OWNER_AUTHORIZATION" },
+    "schemaVersion": { "const": 1 },
+    "authorityId": {
+      "type": "string",
+      "pattern": "^[A-Z][A-Z0-9_-]*$"
+    },
+    "authorityClass": { "const": "PROJECT_OWNER_MAINTENANCE_PUBLICATION_ADMISSION_AUTHORITY" },
+    "authorityMode": {
+      "const": "LOCAL_EXPLICIT_AUTHORITY",
+      "description": "No PKI. Authority is the exact agreement between this document, the admission record it names, and the repository state the record pins."
+    },
+    "issuedBy": { "const": "PROJECT_OWNER" },
+    "issuedAtUtc": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]{3})?Z$",
+      "description": "UTC instant of the owner decision. The explicit pattern (not only format) is what makes runtime validation and schema validation exactly equivalent, since the canonical repository schema validator enforces pattern but not format."
+    },
+    "decisionId": {
+      "type": "string",
+      "pattern": "^[A-Z][A-Z0-9_-]*$",
+      "description": "The owner decision this registry records, so an auditor can tie every admitted publication back to one deliberation."
+    },
+    "purpose": { "type": "string", "minLength": 1 },
+    "reexecutionAuthorized": {
+      "const": false,
+      "description": "Admitting a publication never authorizes re-running it. maxUse is 1 on the record and there is no replay route here."
+    },
+    "grantsFutureBytePermission": {
+      "const": false,
+      "description": "PATH AUTHORIZED IS NOT CURRENT BYTES AUTHORIZED. A later publication over changed bytes requires a new authority, a new pre-state and a new admission."
+    },
+    "genericV1Admission": {
+      "const": false,
+      "description": "No admission here widens legacy V1 maintenance admission. Reserved historical identities remain governed solely by the historical admission bridge."
+    },
+    "admittedPublications": {
+      "type": "array",
+      "description": "The exact publications the Project Owner has admitted. Duplicate admissionId, or two rows for one (projectId, gateId, programId) identity, invalidates the whole registry rather than resolving by order.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["admissionId", "projectId", "gateId", "programId", "admissionPath", "admissionDigest"],
+        "properties": {
+          "admissionId": { "type": "string", "pattern": "^[A-Z][A-Z0-9_-]*$" },
+          "projectId": { "type": "string", "minLength": 1 },
+          "gateId": { "type": "string", "pattern": "^GATE[0-9]{2}$" },
+          "programId": { "type": "string", "pattern": "^[A-Z][A-Z0-9_-]*$" },
+          "admissionPath": {
+            "type": "string",
+            "pattern": "^governance/[A-Za-z0-9._/-]+$",
+            "description": "Repo-relative path of the admission record. Exact, never a wildcard or a directory."
+          },
+          "admissionDigest": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$",
+            "description": "The record's IDENTITY digest, never its file hash. A file hash here would be circular, since the record pins this registry's file hash as its back-reference."
+          }
+        }
+      }
+    },
+    "registryDigest": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$",
+      "description": "Canonical digest over the admitted publications only, so the list of WHAT is admitted cannot be lengthened, shortened or repointed without the registry failing its own recomputation."
+    }
+  }
+}

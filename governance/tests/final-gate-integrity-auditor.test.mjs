@@ -33,6 +33,16 @@ import { sha256Bytes, sha256Canonical, canonicalize } from '../tools/canonical-j
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 const LEDGER = 'governance/state/GATE_STATUS_LEDGER.ndjson';
 
+/**
+ * The ledger length at the instant GATE17's EXTERNAL_CONFIRMATION closed it.
+ *
+ * It is a FLOOR, never an equality. The ledger is append-only, so every Gate
+ * that runs afterwards lengthens it; asserting the exact number turned "GATE17's
+ * history is intact" into "nothing has happened since GATE17", which stopped
+ * being true the moment GATE19 ran and took the assertion down with it.
+ */
+const GATE17_CLOSURE_EVENT_COUNT = 73;
+
 function scratchRoot(label) {
   const root = fs.mkdtempSync(path.join(fs.realpathSync(os.tmpdir()), `final-audit-${label}-`));
   fs.cpSync(path.join(REPO_ROOT, 'governance'), path.join(root, 'governance'), { recursive: true });
@@ -92,7 +102,13 @@ test('the benchmark independently establishes GATE17 lifecycle facts, not just a
   assert.equal(observations.state.currentStateRevision, 'R0004');
   assert.deepEqual(observations.state.revisions, ['R0001', 'R0002', 'R0003', 'R0004']);
   assert.equal(observations.state.revisionValidatorValid, true);
-  assert.equal(observations.ledger.eventCount, 73);
+  // GATE17's own lifecycle is frozen, so it is pinned above. The LEDGER is not:
+  // it is append-only and every later Gate lengthens it, so a literal count here
+  // asserted that no Gate had run since GATE17 rather than anything about GATE17.
+  // What the auditor must still establish is that GATE17's history sits intact
+  // inside whatever the ledger has become.
+  assert.ok(observations.ledger.eventCount >= GATE17_CLOSURE_EVENT_COUNT,
+    'append-only history may grow, never shrink');
 });
 
 test('the benchmark verifies real sealed-member bytes rather than counting declarations', () => {
@@ -332,19 +348,71 @@ test('EVIDENCE: real GATE17 evidence is confirmed present by its actual bytes', 
   }
 });
 
+test('GENERATED: a tools/ generator drift is still classified as live projection drift', () => {
+  const root = scratchRoot('tools-gen-drift');
+  try {
+    const reportPath = 'governance/generated/FOUNDATION_REPORT.md';
+    writeText(root, reportPath, `${readText(root, reportPath)}\n<!-- hostile stale projection -->\n`);
+    const report = audit(root);
+    assert.equal(report.FINAL_GATE_INTEGRITY, 'FAIL');
+    assert.ok(classes(report).includes('GENERATED_PROJECTION_DRIFT'));
+    const finding = report.findings.find((item) => item.defectClass === 'GENERATED_PROJECTION_DRIFT');
+    assert.equal(finding.path, 'governance/tools/generate-foundation-report.mjs');
+    assert.equal(finding.affectedFrontier, 'GENERATED');
+    assert.equal(finding.path.includes('GATE20'), false);
+  } finally { discard(root); }
+});
+
+test('GENERATED: a gate-local implementation helper matching the generator role is not a live projection', () => {
+  const root = scratchRoot('impl-helper');
+  try {
+    const helperPath = 'governance/gates/GATE17/implementation/not-a-live-projection-generator.mjs';
+    writeText(root, helperPath, `#!/usr/bin/env node\nif (process.argv.includes('--check')) process.exit(2);\nprocess.exit(0);\n`);
+    const contractPath = 'governance/gates/GATE17/contracts/EXECUTION_CONTRACT_R0001.json';
+    const contract = readJson(root, contractPath);
+    contract.requiredOutputs.push({
+      ordinal: 99,
+      path: helperPath,
+      role: 'Deterministic closure verdict and freeze-manifest generator'
+    });
+    writeJson(root, contractPath, contract);
+    const report = audit(root);
+    const drift = report.findings.filter((item) => item.defectClass === 'GENERATED_PROJECTION_DRIFT');
+    assert.equal(drift.some((item) => item.path === helperPath), false, JSON.stringify(drift, null, 2));
+    assert.equal(drift.some((item) => (item.path ?? '').includes('GATE20')), false);
+  } finally { discard(root); }
+});
+
+test('GENERATED: contractProjectionGenerators has no Gate-specific exception', () => {
+  const source = fs.readFileSync(path.join(REPO_ROOT, 'governance', 'tools', 'final-gate-integrity-auditor.mjs'), 'utf8');
+  const start = source.indexOf('function contractProjectionGenerators');
+  const end = source.indexOf('function checkProjectionGenerator');
+  assert.ok(start >= 0 && end > start);
+  const fn = source.slice(start, end);
+  assert.equal(/GATE20/.test(fn), false);
+  assert.equal(/gateId\s*===\s*['"]GATE/.test(fn), false);
+  assert.match(fn, /startsWith\('governance\/tools\/'\)/);
+});
+
 test('GENERATED: a stale projection is detected after a final ledger mutation', () => {
   const root = scratchRoot('generated');
   try {
+    // The staleness is manufactured RELATIVE to the fixture's own ledger, so the
+    // case keeps testing "the projection lags the ledger" however long the ledger
+    // has grown. A literal pair only described the ledger of the day it was
+    // written, and inverted into a false expectation as soon as it grew.
     const snapshotPath = 'governance/state/generated/GATE_STATUS_SNAPSHOT.json';
+    const ledgerEventCount = readText(root, LEDGER).split('\n').filter(Boolean).length;
+    const staleCount = ledgerEventCount - 2;
     const snapshot = readJson(root, snapshotPath);
-    snapshot.ledgerEventCount = 71;
+    snapshot.ledgerEventCount = staleCount;
     writeJson(root, snapshotPath, snapshot);
     const report = audit(root);
     assert.equal(report.FINAL_GATE_INTEGRITY, 'FAIL');
     assert.ok(classes(report).includes('GENERATED_PROJECTION_STALE'));
     const finding = report.findings.find((item) => item.defectClass === 'GENERATED_PROJECTION_STALE');
-    assert.equal(finding.expected, 73);
-    assert.equal(finding.actual, 71);
+    assert.equal(finding.expected, ledgerEventCount);
+    assert.equal(finding.actual, staleCount);
   } finally { discard(root); }
 });
 

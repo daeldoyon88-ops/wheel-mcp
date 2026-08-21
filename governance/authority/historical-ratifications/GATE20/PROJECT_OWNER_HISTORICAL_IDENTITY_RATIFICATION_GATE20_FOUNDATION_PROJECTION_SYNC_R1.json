@@ -1,0 +1,61 @@
+{
+  "documentKind": "PROJECT_OWNER_HISTORICAL_IDENTITY_RATIFICATION",
+  "schemaVersion": 1,
+  "authorityMode": "LOCAL_EXPLICIT_AUTHORITY",
+  "authorityId": "GATE20_FOUNDATION_PROJECTION_SYNC_HISTORICAL_IDENTITY_RATIFICATION_R1",
+  "decisionId": "GATE20_REPAIR_B_B05_HISTORICAL_IDENTITY_RATIFICATION_R1",
+  "issuedBy": "PROJECT_OWNER",
+  "issuedAtUtc": "2026-08-17T00:00:00.000Z",
+  "expiresAtUtc": null,
+  "projectId": "WHEEL",
+  "repositoryId": "WHEEL_MCP_CANONICAL",
+  "gateId": "GATE20",
+  "programId": "GATE20_FOUNDATION_PROJECTION_SYNC_R1",
+  "purpose": "HISTORICAL_IDENTITY_RATIFICATION",
+  "ratificationStatement": "The Project Owner ratifies NOW that these exact recovered bytes are the historical identity to preserve for this program. This is not a claim that they were ratified when written; the repository cannot prove that, and the recovered Git dangling blobs are evidence the bytes existed, never a trust root.",
+  "ratificationOnly": true,
+  "reservesHistoricalIdentity": true,
+  "maxUse": 1,
+  "grantsPublicationPermission": false,
+  "grantsExecutionPermission": false,
+  "grantsStartPermission": false,
+  "grantsStatusTransitionPermission": false,
+  "grantsFutureBytePermission": false,
+  "genericV1Admission": false,
+  "prohibitedOperations": [
+    "PUBLICATION",
+    "EXECUTION",
+    "START",
+    "SECOND_START",
+    "STATUS_TRANSITION",
+    "AGENT_CLOSURE",
+    "EXTERNAL_CONFIRMATION",
+    "ACTIVE_GATE_SWITCH",
+    "GEE_R8",
+    "GIT_PUSH",
+    "HISTORY_REWRITE",
+    "GENERIC_V1_ADMISSION"
+  ],
+  "historicalAuthority": {
+    "path": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_GATE20_FOUNDATION_PROJECTION_SYNC_R1.json",
+    "sha256": "10bfbe159abf75bfe72fb41d9150b97e82fab761cc8638297c116c9701f987d8",
+    "byteLength": 2114,
+    "schemaVersion": 2
+  },
+  "historicalManifest": {
+    "path": "governance/historical-architecture/GATE20_FOUNDATION_PROJECTION_SYNC_AUTHORIZED_PATHS_R1.json",
+    "sha256": "35af0892eadebafdc3fb8c6c7745f50de72a0d3f0879a4569a34e4ca9e0e96f1",
+    "byteLength": 1933,
+    "schemaVersion": 1
+  },
+  "historicalConsumption": {
+    "path": "governance/historical-architecture/GATE20_FOUNDATION_PROJECTION_SYNC_CONSUMPTION_R1.json",
+    "sha256": "dd9ccd772bd015a171b1c0876408ee34ae8a220df1f3d7aa9be7811370f56f19",
+    "byteLength": 2474,
+    "schemaVersion": 2
+  },
+  "successorRequirement": "Any future evolution of this work must use a NEW programId with its own authority, exact prestate, exact candidate, durable publication and consumption. This reserved identity is never a shortcut.",
+  "ratificationDigest": "46e9df13a32a04eae33211a9424e4b7ad1ddeec4f18025a3a94e212c30d8f164",
+  "ownerAuthorizationPath": "governance/sources/HISTORICAL_IDENTITY_RESERVATION_OWNER_AUTHORIZATION_R1.json",
+  "ownerAuthorizationSha256": "df4d11b23af75078380916b50afef375609a958c11233cad2a503239c61f59b7"
+}

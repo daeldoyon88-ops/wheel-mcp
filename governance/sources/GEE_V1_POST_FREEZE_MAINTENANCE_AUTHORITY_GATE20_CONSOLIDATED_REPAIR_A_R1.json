@@ -1,0 +1,61 @@
+{
+  "document": "GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY",
+  "schemaVersion": 2,
+  "authorityId": "GATE20_CONSOLIDATED_REPAIR_A_LOCAL_AUTHORITY_R1",
+  "authorityClass": "PROJECT_OWNER_POST_FREEZE_MAINTENANCE_AUTHORITY",
+  "authorityMode": "LOCAL_EXPLICIT_AUTHORITY",
+  "issuedBy": "PROJECT_OWNER",
+  "createdAt": "2026-08-17T10:00:00.000Z",
+  "expiresAt": "2026-12-31T23:59:59.000Z",
+  "targetSystem": "PROJECT_GOVERNANCE",
+  "programId": "WHEEL_GATE20_CONSOLIDATED_REPAIR_A_R1",
+  "authorityPurpose": "NORMAL_MAINTENANCE",
+  "resumePoint": "CP-GATE20-CONSOLIDATED-REPAIR-A-R1",
+  "maxUse": 1,
+  "preState": {
+    "baseHead": "00c019c42fb04b5ba11f1a7cdb62cb4750858db1",
+    "ledgerEventCount": 82,
+    "ledgerPrefixSha256": "9b8004d15402c47303fdb4641a4d9fee5850fb4af4695f459c38a74d3649c67c",
+    "gateId": "GATE20",
+    "gateStatus": "COMPLETE_AGENT",
+    "stateRevision": "R0003",
+    "contractRevision": "R0001",
+    "activeGate": "GATE13",
+    "R8ExpectedAbsent": true
+  },
+  "authorizedPathManifestPath": "governance/historical-architecture/GATE20_CONSOLIDATED_REPAIR_A_AUTHORIZED_PATHS_R1.json",
+  "authorizedPathManifestSha256": "708842752c844abd9b2b331ab86512b4d235d38fa8c4a36646da7b3ece03749b",
+  "authorizedOperationClasses": [
+    "GATE20_CONSOLIDATED_REPAIR_A"
+  ],
+  "commitPolicy": {
+    "maxCommitCount": 1,
+    "allowedGitOperations": [
+      "GIT_ADD_PATHSPEC",
+      "GIT_COMMIT"
+    ],
+    "commitMessage": "governance: restore evidence integrity, enforce strict successor sequencing and fail preflight closed",
+    "thirdCommitAuthorized": false
+  },
+  "pushAuthorized": false,
+  "authorityPredecessor": null,
+  "authorityHeadBinding": {
+    "mode": "BASE_HEAD",
+    "baseHead": "00c019c42fb04b5ba11f1a7cdb62cb4750858db1"
+  },
+  "consumptionRecordPath": "governance/historical-architecture/GATE20_CONSOLIDATED_REPAIR_A_CONSUMPTION_R1.json",
+  "prohibitedOperations": [
+    "START",
+    "SECOND_START",
+    "AGENT_CLOSURE",
+    "EXTERNAL_CONFIRMATION",
+    "COMPLETE_AGENT",
+    "COMPLETE_CONFIRMED",
+    "ACTIVE_GATE_SWITCH",
+    "GEE_R8",
+    "GIT_PUSH",
+    "HISTORY_REWRITE",
+    "THIRD_COMMIT",
+    "UNRELATED_WRITE"
+  ]
+}

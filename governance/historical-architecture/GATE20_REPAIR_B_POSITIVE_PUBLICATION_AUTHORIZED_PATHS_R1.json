@@ -1,0 +1,228 @@
+{
+  "documentKind": "POST_FREEZE_MAINTENANCE_AUTHORIZED_PATH_MANIFEST",
+  "schemaVersion": 2,
+  "manifestId": "GATE20_REPAIR_B_POSITIVE_PUBLICATION_AUTHORIZED_PATHS_R1",
+  "programId": "GATE20_REPAIR_B_POSITIVE_PUBLICATION_R1",
+  "prestateSelfExclusion": [
+    {
+      "path": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_GATE20_REPAIR_B_POSITIVE_PUBLICATION_R1.json",
+      "role": "AUTHORITY_DOCUMENT",
+      "reason": "The authority must exist for the canonical consumer to load it before publication."
+    },
+    {
+      "path": "governance/historical-architecture/GATE20_REPAIR_B_POSITIVE_PUBLICATION_AUTHORIZED_PATHS_R1.json",
+      "role": "AUTHORIZED_PATH_MANIFEST",
+      "reason": "The manifest must exist for the authority to pin its exact digest before publication."
+    }
+  ],
+  "paths": [
+    {
+      "path": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_GATE20_REPAIR_B_POSITIVE_PUBLICATION_R1.json",
+      "operation": "CREATE",
+      "phase": "REPAIR_B_POSITIVE_PUBLICATION",
+      "reason": "Single-use positive local authority for the bounded Repair-B publication only.",
+      "artifactClass": "REPAIR_B_POSITIVE_PUBLICATION",
+      "prestate": { "state": "ABSENT" }
+    },
+    {
+      "path": "governance/historical-architecture/GATE20_REPAIR_B_POSITIVE_PUBLICATION_AUTHORIZED_PATHS_R1.json",
+      "operation": "CREATE",
+      "phase": "REPAIR_B_POSITIVE_PUBLICATION",
+      "reason": "Finite Repair-B cohort, independently declared by the Repair-B authority rather than Git or FGI output.",
+      "artifactClass": "REPAIR_B_POSITIVE_PUBLICATION",
+      "prestate": { "state": "ABSENT" }
+    },
+    {
+      "path": "governance/historical-architecture/GATE20_REPAIR_B_POSITIVE_PUBLICATION_CONSUMPTION_R1.json",
+      "operation": "CREATE",
+      "phase": "REPAIR_B_POSITIVE_PUBLICATION",
+      "reason": "Future single-use consumption receipt; it is absent until a separately authorized publication.",
+      "artifactClass": "REPAIR_B_POSITIVE_PUBLICATION",
+      "prestate": { "state": "ABSENT" }
+    },
+    {
+      "path": "governance/authority/historical-bridges/GATE20/PROJECT_OWNER_HISTORICAL_ADMISSION_BRIDGE_GATE20_FOUNDATION_PROJECTION_SYNC_R1.json",
+      "operation": "CREATE",
+      "phase": "REPAIR_B_HISTORICAL_IDENTITY",
+      "reason": "Bounded admission bridge for one reserved historical identity; it grants no publication itself.",
+      "artifactClass": "REPAIR_B_HISTORICAL_IDENTITY",
+      "prestate": { "state": "ABSENT" }
+    },
+    {
+      "path": "governance/authority/historical-ratifications/GATE20/PROJECT_OWNER_HISTORICAL_IDENTITY_RATIFICATION_GATE20_FOUNDATION_PROJECTION_SYNC_R1.json",
+      "operation": "CREATE",
+      "phase": "REPAIR_B_HISTORICAL_IDENTITY",
+      "reason": "Owner reservation of one historical identity, expressly distinct from Repair-B publication authority.",
+      "artifactClass": "REPAIR_B_HISTORICAL_IDENTITY",
+      "prestate": { "state": "ABSENT" }
+    },
+    {
+      "path": "governance/sources/HISTORICAL_IDENTITY_RESERVATION_OWNER_AUTHORIZATION_R1.json",
+      "operation": "CREATE",
+      "phase": "REPAIR_B_HISTORICAL_IDENTITY",
+      "reason": "Owner reservation registry consumed by the canonical historical-identity resolver only.",
+      "artifactClass": "REPAIR_B_HISTORICAL_IDENTITY",
+      "prestate": { "state": "ABSENT" }
+    },
+    {
+      "path": "governance/gee-v1/core/canonical-terminal-proof.mjs",
+      "operation": "CREATE",
+      "phase": "REPAIR_B_CURRENT_BYTE_AUTHORIZATION",
+      "reason": "Canonical terminal-ledger proof used by Repair-B current-byte lineage evaluation.",
+      "artifactClass": "REPAIR_B_CURRENT_BYTE_AUTHORIZATION",
+      "prestate": { "state": "ABSENT" }
+    },
+    {
+      "path": "governance/gee-v1/core/closed-revision-status.mjs",
+      "operation": "CREATE",
+      "phase": "REPAIR_B_CURRENT_BYTE_AUTHORIZATION",
+      "reason": "Canonical closed-revision status resolver used by Repair-B lineage checks.",
+      "artifactClass": "REPAIR_B_CURRENT_BYTE_AUTHORIZATION",
+      "prestate": { "state": "ABSENT" }
+    },
+    {
+      "path": "governance/gee-v1/core/current-byte-authorization.mjs",
+      "operation": "CREATE",
+      "phase": "REPAIR_B_CURRENT_BYTE_AUTHORIZATION",
+      "reason": "Canonical current-byte authorization consumer; path permission remains distinct from byte permission.",
+      "artifactClass": "REPAIR_B_CURRENT_BYTE_AUTHORIZATION",
+      "prestate": { "state": "ABSENT" }
+    },
+    {
+      "path": "governance/gee-v1/core/historical-admission-bridge.mjs",
+      "operation": "CREATE",
+      "phase": "REPAIR_B_HISTORICAL_IDENTITY",
+      "reason": "Single bounded historical-admission resolver; it rejects generic V1 fallback.",
+      "artifactClass": "REPAIR_B_HISTORICAL_IDENTITY",
+      "prestate": { "state": "ABSENT" }
+    },
+    {
+      "path": "governance/gee-v1/core/maintenance-publication-admissibility.mjs",
+      "operation": "CREATE",
+      "phase": "REPAIR_B_CURRENT_BYTE_AUTHORIZATION",
+      "reason": "Shared canonical admission decision prevents publisher and cohort divergence.",
+      "artifactClass": "REPAIR_B_CURRENT_BYTE_AUTHORIZATION",
+      "prestate": { "state": "ABSENT" }
+    },
+    {
+      "path": "governance/gee-v1/core/verified-ledger-evidence.mjs",
+      "operation": "CREATE",
+      "phase": "REPAIR_B_CURRENT_BYTE_AUTHORIZATION",
+      "reason": "Canonical verified-ledger evidence helper for Repair-B lineage binding.",
+      "artifactClass": "REPAIR_B_CURRENT_BYTE_AUTHORIZATION",
+      "prestate": { "state": "ABSENT" }
+    },
+    {
+      "path": "governance/gee-v1/core/sealed-state-evidence.mjs",
+      "operation": "MODIFY",
+      "phase": "REPAIR_B_CURRENT_BYTE_AUTHORIZATION",
+      "reason": "Extends the canonical sealed-state evidence consumer without changing the authority model.",
+      "artifactClass": "REPAIR_B_CURRENT_BYTE_AUTHORIZATION",
+      "prestate": { "state": "PRESENT", "sha256": "f254d80633557b4f99cd7f420679c11002ee5089757b1404758554b4f15dc0bb", "byteLength": 14848 }
+    },
+    {
+      "path": "governance/tools/apply-path-prestate-program.mjs",
+      "operation": "MODIFY",
+      "phase": "REPAIR_B_CURRENT_BYTE_AUTHORIZATION",
+      "reason": "The existing canonical publisher is reused for Repair-B; no parallel publisher is introduced.",
+      "artifactClass": "REPAIR_B_CURRENT_BYTE_AUTHORIZATION",
+      "prestate": { "state": "PRESENT", "sha256": "832dc34efc844097d37aad1d77563b575a6b8088189326e248aeee2358c7f88d", "byteLength": 12532 }
+    },
+    {
+      "path": "governance/tools/apply-precontract-bootstrap.mjs",
+      "operation": "MODIFY",
+      "phase": "REPAIR_B_CURRENT_BYTE_AUTHORIZATION",
+      "reason": "Preserves canonical bootstrap lineage checks used by current-byte authorization.",
+      "artifactClass": "REPAIR_B_CURRENT_BYTE_AUTHORIZATION",
+      "prestate": { "state": "PRESENT", "sha256": "f5c46bba63c1d158d9e6c26227f4a12210567e087e67c77201a5d5998d59e814", "byteLength": 13010 }
+    },
+    {
+      "path": "governance/tools/canonical-ledger-authority.mjs",
+      "operation": "CREATE",
+      "phase": "REPAIR_B_CURRENT_BYTE_AUTHORIZATION",
+      "reason": "Canonical ledger-authenticity resolver required by Repair-B proof consumers.",
+      "artifactClass": "REPAIR_B_CURRENT_BYTE_AUTHORIZATION",
+      "prestate": { "state": "ABSENT" }
+    },
+    {
+      "path": "governance/tools/validate-status-ledger.mjs",
+      "operation": "MODIFY",
+      "phase": "REPAIR_B_CURRENT_BYTE_AUTHORIZATION",
+      "reason": "Extends the existing canonical ledger validator without adding a second ledger validator.",
+      "artifactClass": "REPAIR_B_CURRENT_BYTE_AUTHORIZATION",
+      "prestate": { "state": "PRESENT", "sha256": "fe40be6a36cc822211e67a3007bad5078da32eb8e001b3d0e6986597fe90cd1d", "byteLength": 174033 }
+    },
+    {
+      "path": "governance/tests/closed-seal-fixture.mjs",
+      "operation": "CREATE",
+      "phase": "REPAIR_B_HOSTILE_EVIDENCE",
+      "reason": "Shared fixture for closed-seal boundary hostile tests.",
+      "artifactClass": "REPAIR_B_HOSTILE_EVIDENCE",
+      "prestate": { "state": "ABSENT" }
+    },
+    {
+      "path": "governance/tests/closed-state-seal-ledger-authenticity.test.mjs",
+      "operation": "CREATE",
+      "phase": "REPAIR_B_HOSTILE_EVIDENCE",
+      "reason": "Hostile proof that a coherent ledger chain alone is not authorized history.",
+      "artifactClass": "REPAIR_B_HOSTILE_EVIDENCE",
+      "prestate": { "state": "ABSENT" }
+    },
+    {
+      "path": "governance/tests/closed-state-seal-trust-boundary.test.mjs",
+      "operation": "CREATE",
+      "phase": "REPAIR_B_HOSTILE_EVIDENCE",
+      "reason": "Hostile proof of closed-state trust-boundary enforcement.",
+      "artifactClass": "REPAIR_B_HOSTILE_EVIDENCE",
+      "prestate": { "state": "ABSENT" }
+    },
+    {
+      "path": "governance/tests/current-state-bootstrap-lineage.test.mjs",
+      "operation": "CREATE",
+      "phase": "REPAIR_B_HOSTILE_EVIDENCE",
+      "reason": "Hostile proof that bootstrap lineage cannot be supplied by current working-tree bytes.",
+      "artifactClass": "REPAIR_B_HOSTILE_EVIDENCE",
+      "prestate": { "state": "ABSENT" }
+    },
+    {
+      "path": "governance/tests/fixtures/gate14-start-r2-fixture.json.gz",
+      "operation": "CREATE",
+      "phase": "REPAIR_B_HOSTILE_EVIDENCE",
+      "reason": "Binary fixture for the existing Gate-start current-state lineage hostile case.",
+      "artifactClass": "REPAIR_B_HOSTILE_EVIDENCE",
+      "prestate": { "state": "ABSENT" }
+    },
+    {
+      "path": "governance/tests/gate-authorization-current-state-lineage.test.mjs",
+      "operation": "CREATE",
+      "phase": "REPAIR_B_HOSTILE_EVIDENCE",
+      "reason": "Hostile proof that an authority path without authorized current bytes is refused.",
+      "artifactClass": "REPAIR_B_HOSTILE_EVIDENCE",
+      "prestate": { "state": "ABSENT" }
+    },
+    {
+      "path": "governance/tests/helpers/current-state-bootstrap-lineage-fixture.mjs",
+      "operation": "CREATE",
+      "phase": "REPAIR_B_HOSTILE_EVIDENCE",
+      "reason": "Fixture helper for canonical bootstrap lineage hostile cases.",
+      "artifactClass": "REPAIR_B_HOSTILE_EVIDENCE",
+      "prestate": { "state": "ABSENT" }
+    },
+    {
+      "path": "governance/tests/historical-identity-reservation.test.mjs",
+      "operation": "CREATE",
+      "phase": "REPAIR_B_HOSTILE_EVIDENCE",
+      "reason": "Hostile proof that a reserved historical identity is admission-only and cannot publish.",
+      "artifactClass": "REPAIR_B_HOSTILE_EVIDENCE",
+      "prestate": { "state": "ABSENT" }
+    },
+    {
+      "path": "governance/tests/gate20-repair-b-positive-publication-authority.test.mjs",
+      "operation": "CREATE",
+      "phase": "REPAIR_B_HOSTILE_EVIDENCE",
+      "reason": "Targeted canonical-consumer and hostile coverage for the bounded Repair-B publication authority.",
+      "artifactClass": "REPAIR_B_HOSTILE_EVIDENCE",
+      "prestate": { "state": "ABSENT" }
+    }
+  ]
+}

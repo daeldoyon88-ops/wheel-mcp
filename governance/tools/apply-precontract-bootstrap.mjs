@@ -60,6 +60,8 @@ import {
 } from '../gee-v1/core/precontract-authority.mjs';
 import { createWheelPrecontractAuthoritySource } from '../gee-v1/adapters/wheel/precontract-authority-source.mjs';
 import { applyCandidate, LEDGER_PATH } from './gate-lifecycle-orchestrator.mjs';
+import { durableReplaceFileSync } from './durable-write.mjs';
+import { PRECONTRACT_BOOTSTRAP_CASE_TYPE } from './transaction-provenance.mjs';
 
 export const BOOTSTRAP_APPLIER_DOCUMENT = 'PRECONTRACT_BOOTSTRAP_APPLICATION';
 
@@ -72,12 +74,36 @@ function isExactRelativePath(value) {
 }
 
 /**
+ * An absolute path expressed the way the transaction journal names paths, or
+ * `null` if it cannot be — because it escapes the root, or because it resolves to
+ * the root itself.
+ *
+ * The result is re-checked with `isExactRelativePath`, the same predicate this
+ * tool already applies to authorized paths, so a path this function accepts is a
+ * path the journal's own resolver will accept too. Agreeing by construction beats
+ * agreeing by coincidence: the alternative is a provenance record written under
+ * one notion of "inside the root" and re-resolved at recovery under another.
+ */
+function toRootRelativePosix(absoluteRoot, candidatePath) {
+  if (typeof candidatePath !== 'string' || !candidatePath) return null;
+  const relative = path.relative(absoluteRoot, path.resolve(absoluteRoot, candidatePath));
+  if (!relative || relative.startsWith('..') || path.isAbsolute(relative)) return null;
+  const posix = relative.split(path.sep).join('/');
+  return isExactRelativePath(posix) ? posix : null;
+}
+
+/**
  * @param {string} options.stagedRoot  Directory holding the candidate bytes at
  *   the same relative paths they will occupy in the repository.
  */
 export function applyPrecontractBootstrap({
   root, authorityPath, stagedRoot, apply = false, recordedAt = new Date().toISOString(), now = new Date(),
-  writeFile = fs.writeFileSync, rollbackWriteFile = fs.writeFileSync, rollbackRemoveFile = fs.rmSync
+  // Durable by default for the same reason the orchestrator is: this publisher
+  // hands its writer straight to applyCandidate, so a plain truncate-and-stream
+  // default here silently disabled the durable primitive underneath it. The
+  // parameter stays injectable because the permanence suite needs to fail a write
+  // mid-cohort on purpose, but a caller that says nothing now gets the safe one.
+  writeFile = durableReplaceFileSync, rollbackWriteFile = durableReplaceFileSync, rollbackRemoveFile = fs.rmSync
 }) {
   const findings = [];
   const absoluteRoot = path.resolve(root);
@@ -88,6 +114,33 @@ export function applyPrecontractBootstrap({
 
   const gateId = authority.gateId;
   const source = createWheelPrecontractAuthoritySource(absoluteRoot, { authorityPath, now });
+
+  // THE PROVENANCE RECORD NAMES THE AUTHORITY THE WAY RECOVERY WILL LOOK FOR IT.
+  //
+  // This entry point takes an ABSOLUTE authority path — it reads the document with
+  // it above, and every caller, live and fixture alike, passes one. The transaction
+  // journal cannot store that. A journal is re-read by a DIFFERENT process, on a
+  // repository that may sit at a different absolute location, so it records paths
+  // relative to the governed root, and its resolver rejects anything absolute,
+  // drive-lettered or backslashed rather than guessing what it meant.
+  //
+  // Handing the absolute path straight through therefore did not produce a wrong
+  // provenance record — it produced NO provenance record, and with recoverable
+  // provenance now mandatory the whole bootstrap was refused as
+  // PROVENANCE_ABSENT_OR_INVALID. The conversion belongs here, at the boundary
+  // between an absolute-path API and a root-relative journal.
+  //
+  // An authority outside the root is refused outright instead of being recorded
+  // under some approximation of its location: recovery would have to re-prove it
+  // from bytes it cannot name, and an authority a fresh process cannot find again
+  // is not an authority a durable transaction may rely on.
+  const authorityDocumentPath = toRootRelativePosix(absoluteRoot, authorityPath);
+  if (!authorityDocumentPath) {
+    return {
+      document: BOOTSTRAP_APPLIER_DOCUMENT, verdict: 'BLOCKED', phase: 'AUTHORITY_LOCATION', gateId,
+      written: [], findings: [{ code: 'AUTHORITY_OUTSIDE_GOVERNED_ROOT', detail: String(authorityPath) }]
+    };
+  }
 
   // ---- 1. the live repository must still be the bound pre-state -----------
   const authorize = source.resolvePrecontractAuthority(gateId);
@@ -129,10 +182,17 @@ export function applyPrecontractBootstrap({
   const consumptionBytes = Buffer.from(`${JSON.stringify(buildPrecontractConsumptionRecord({
     authority, ledgerPrefixSha256: prefix.sha256, ledgerEventCount: prefix.eventCount, recordedAt
   }), null, 2)}\n`, 'utf8');
+  // Sorted by path, because the journal's commit order is: `prepareLifecycleTransaction`
+  // sorts what it commits, and the provenance records the cohort in the order the
+  // candidate supplied it. Two orderings of the same set are not a disagreement about
+  // WHAT is published, but the validator cannot tell that from a journal alone and
+  // correctly refuses the mismatch. Sorting at the source removes the divergence
+  // instead of teaching the validator to tolerate it — a tolerance that would also
+  // accept a journal whose commit order really had been rewritten.
   const candidateWrites = [
     ...plan.map((target) => ({ path: target.path, bytes: target.bytes, sha256: target.sha256, byteLength: target.byteLength })),
     { path: authority.consumptionRecordPath, bytes: consumptionBytes, sha256: sha256(consumptionBytes), byteLength: consumptionBytes.length }
-  ];
+  ].sort((left, right) => left.path.localeCompare(right.path, 'en'));
   const candidateOverlay = Object.fromEntries(candidateWrites.map((write) => [write.path, write.bytes]));
 
   // The consumption proof, on the candidate, through the same primitive that
@@ -155,13 +215,27 @@ export function applyPrecontractBootstrap({
   }
 
   // ---- 5. atomic publication, on the existing durable transaction ----------
+  // `transitionType` is what binds this transaction to the PRECONTRACT_LOCAL
+  // evaluator: the validator refuses a precontract binding claimed by any other
+  // transition, so leaving it undefined here did not select a weaker check — it
+  // selected none, and the publication was refused. It is stated rather than
+  // defaulted, so a future case type cannot inherit this one's evaluator by
+  // forgetting to declare its own.
   const candidate = {
     eventId: `${gateId}_PRECONTRACT_BOOTSTRAP`, gateId, writes: candidateWrites,
-    event: null, paths: {}, caseType: 'PRECONTRACT_BOOTSTRAP'
+    event: null, paths: {}, caseType: PRECONTRACT_BOOTSTRAP_CASE_TYPE, transitionType: PRECONTRACT_BOOTSTRAP_CASE_TYPE
   };
   let written;
   try {
-    written = applyCandidate({ root: absoluteRoot, candidate, authorityDocumentPath: authorityPath, authority, writeFile, rollbackWriteFile, rollbackRemoveFile });
+    // `authorization` is the EVALUATED result from step 1, not the authority
+    // document. applyCandidate builds the provenance from it, because only the
+    // primitive knows the exact pre-state cohort the journal has to pin. Passing
+    // the raw document here — which is what this call used to do — silently
+    // produced `provenance: null`, and the publication armed COMMITTING anyway.
+    written = applyCandidate({
+      root: absoluteRoot, candidate, authorityDocumentPath, authority,
+      authorization: authorize, writeFile, rollbackWriteFile, rollbackRemoveFile
+    });
   } catch (cause) {
     return {
       document: BOOTSTRAP_APPLIER_DOCUMENT,

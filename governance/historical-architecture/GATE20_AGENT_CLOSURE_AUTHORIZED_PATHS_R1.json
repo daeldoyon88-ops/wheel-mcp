@@ -1,0 +1,71 @@
+{
+  "documentKind": "POST_FREEZE_MAINTENANCE_AUTHORIZED_PATH_MANIFEST",
+  "schemaVersion": 1,
+  "manifestId": "GATE20_AGENT_CLOSURE_AUTHORIZED_PATHS_R1",
+  "programId": "GATE20_FINAL_GOVERNED_CLOSURE_R1",
+  "paths": [
+    {
+      "path": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_GATE20_FINAL_CLOSURE_R1.json",
+      "operation": "CREATE",
+      "phase": "AGENT_CLOSURE",
+      "reason": "Single-use LOCAL_EXPLICIT_AUTHORITY bound to the exact GATE20 closure pre-state.",
+      "artifactClass": "AGENT_CLOSURE"
+    },
+    {
+      "path": "governance/historical-architecture/GATE20_AGENT_CLOSURE_AUTHORIZED_PATHS_R1.json",
+      "operation": "CREATE",
+      "phase": "AGENT_CLOSURE",
+      "reason": "Finite exact-file GATE20 closure cohort with no wildcard or directory blanket.",
+      "artifactClass": "AGENT_CLOSURE"
+    },
+    {
+      "path": "governance/historical-architecture/GATE20_AGENT_CLOSURE_CONSUMPTION_R1.json",
+      "operation": "CREATE",
+      "phase": "AGENT_CLOSURE",
+      "reason": "Single-use consumption record binding the GATE20 authority, manifest and transaction.",
+      "artifactClass": "AGENT_CLOSURE"
+    },
+    {
+      "path": "governance/gates/GATE20/state/revisions/R0003/CHECKPOINT.json",
+      "operation": "CREATE",
+      "phase": "AGENT_CLOSURE",
+      "reason": "New GATE20 closure checkpoint after the exact AGENT_CLOSURE transition.",
+      "artifactClass": "AGENT_CLOSURE"
+    },
+    {
+      "path": "governance/gates/GATE20/state/revisions/R0003/OPEN_DEFECTS.json",
+      "operation": "CREATE",
+      "phase": "AGENT_CLOSURE",
+      "reason": "Derived GATE20 closure defect projection preserving the zero-defect state.",
+      "artifactClass": "AGENT_CLOSURE"
+    },
+    {
+      "path": "governance/gates/GATE20/state/revisions/R0003/STATE_SEAL.json",
+      "operation": "CREATE",
+      "phase": "AGENT_CLOSURE",
+      "reason": "Native GATE20 state seal chained from R0002 and pinned by the AGENT_CLOSURE event.",
+      "artifactClass": "AGENT_CLOSURE"
+    },
+    {
+      "path": "governance/gates/GATE20/state/CURRENT_STATE.json",
+      "operation": "MODIFY",
+      "phase": "AGENT_CLOSURE",
+      "reason": "Advance the canonical GATE20 state pointer to R0003 COMPLETE_AGENT.",
+      "artifactClass": "AGENT_CLOSURE"
+    },
+    {
+      "path": "governance/state/GATE_STATUS_LEDGER.ndjson",
+      "operation": "MODIFY",
+      "phase": "AGENT_CLOSURE",
+      "reason": "Append exactly one canonical GATE20 AGENT_CLOSURE event; every earlier event stays byte-identical.",
+      "artifactClass": "AGENT_CLOSURE"
+    },
+    {
+      "path": "governance/state/generated/GATE_STATUS_SNAPSHOT.json",
+      "operation": "MODIFY",
+      "phase": "AGENT_CLOSURE",
+      "reason": "Regenerate the derived status projection from the post-closure canonical ledger.",
+      "artifactClass": "AGENT_CLOSURE"
+    }
+  ]
+}

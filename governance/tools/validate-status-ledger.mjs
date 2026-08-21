@@ -54,12 +54,42 @@ import {
 } from '../gee-v1/core/gate-start-authority.mjs';
 import { evaluatePrecontractConsumptionAnchorBinding } from '../gee-v1/core/precontract-authority.mjs';
 import { resolveGateDependencyProofFromEvents } from '../gee-v1/adapters/wheel/gate-dependency-resolution.mjs';
+import {
+  STATUSES,
+  TRANSITIONS,
+  NORMAL_EXECUTION_TRANSITION_TYPES,
+  HISTORICAL_RECONCILIATION_TRANSITION_TYPE,
+  HISTORICAL_RECONCILIATION_TRANSITIONS,
+  CONTRACT_SUCCESSION_TRANSITION_TYPE,
+  CONTRACT_SUCCESSION_TRANSITIONS,
+  PRECONTRACT_CONSUMPTION_ANCHOR_TRANSITION_TYPE,
+  PRECONTRACT_CONSUMPTION_ANCHOR_TRANSITIONS
+} from '../gee-v1/core/canonical-terminal-proof.mjs';
 
-export const STATUSES = [
-  'NOT_STARTED', 'AUTHORIZED_NOT_STARTED', 'IN_PROGRESS', 'REPAIR_REQUIRED',
-  'BLOCKED_GOVERNANCE', 'INTERRUPTED_RESUMABLE', 'COMPLETE_AGENT',
-  'COMPLETE_CONFIRMED', 'SUPERSEDED', 'REOPENED_AUTHORIZED'
-];
+/**
+ * THE TRANSITION TABLES NOW LIVE IN core/canonical-terminal-proof.mjs.
+ *
+ * They were moved, not copied. The dependency resolver has to judge transition
+ * legality to prove a terminal status canonical, and this file already imports
+ * that resolver — so the resolver cannot import this file back. Extracting the
+ * tables downward is what lets both sides share ONE normative copy instead of
+ * holding two that can drift.
+ *
+ * They are re-exported unchanged so every existing importer of
+ * validate-status-ledger keeps working, and so the public surface of this module
+ * is exactly what it was.
+ */
+export {
+  STATUSES,
+  TRANSITIONS,
+  NORMAL_EXECUTION_TRANSITION_TYPES,
+  HISTORICAL_RECONCILIATION_TRANSITION_TYPE,
+  HISTORICAL_RECONCILIATION_TRANSITIONS,
+  CONTRACT_SUCCESSION_TRANSITION_TYPE,
+  CONTRACT_SUCCESSION_TRANSITIONS,
+  PRECONTRACT_CONSUMPTION_ANCHOR_TRANSITION_TYPE,
+  PRECONTRACT_CONSUMPTION_ANCHOR_TRANSITIONS
+};
 
 // This is the single normative implementation of the 21 transitions extracted from I2.
 // NORMAL_EXECUTION_TRANSITION class. Nothing below has been added to, removed from or relaxed in
@@ -67,48 +97,14 @@ export const STATUSES = [
 // (HISTORICAL_RECONCILIATION_TRANSITIONS) and its own mandatory proof obligations. The two tables
 // are never consulted interchangeably, so a reconciliation can never impersonate an execution
 // transition and an execution transition can never borrow reconciliation permissions.
-export const TRANSITIONS = [
-  [null, 'NOT_STARTED', 'GENESIS_IMPORT'],
-  [null, 'AUTHORIZED_NOT_STARTED', 'GENESIS_IMPORT'],
-  [null, 'COMPLETE_CONFIRMED', 'GENESIS_IMPORT'],
-  [null, 'IN_PROGRESS', 'GENESIS_IMPORT'],
-  [null, 'BLOCKED_GOVERNANCE', 'GENESIS_IMPORT'],
-  ['NOT_STARTED', 'AUTHORIZED_NOT_STARTED', 'AUTHORIZATION'],
-  ['AUTHORIZED_NOT_STARTED', 'IN_PROGRESS', 'START'],
-  ['IN_PROGRESS', 'INTERRUPTED_RESUMABLE', 'INTERRUPTION'],
-  ['INTERRUPTED_RESUMABLE', 'IN_PROGRESS', 'RESUME'],
-  ['IN_PROGRESS', 'REPAIR_REQUIRED', 'DEFECT_OPENED'],
-  ['REPAIR_REQUIRED', 'IN_PROGRESS', 'REPAIR_ACCEPTED'],
-  ['IN_PROGRESS', 'BLOCKED_GOVERNANCE', 'GOVERNANCE_BLOCK'],
-  ['REPAIR_REQUIRED', 'BLOCKED_GOVERNANCE', 'GOVERNANCE_BLOCK'],
-  ['BLOCKED_GOVERNANCE', 'IN_PROGRESS', 'GOVERNANCE_UNBLOCK'],
-  ['IN_PROGRESS', 'COMPLETE_AGENT', 'AGENT_CLOSURE'],
-  ['COMPLETE_AGENT', 'COMPLETE_CONFIRMED', 'EXTERNAL_CONFIRMATION'],
-  ['COMPLETE_AGENT', 'REPAIR_REQUIRED', 'EXTERNAL_REJECTION'],
-  ['COMPLETE_CONFIRMED', 'REOPENED_AUTHORIZED', 'AUTHORIZED_REOPEN'],
-  ['REOPENED_AUTHORIZED', 'IN_PROGRESS', 'RESUME_AFTER_REOPEN'],
-  ['COMPLETE_CONFIRMED', 'SUPERSEDED', 'SUPERSESSION'],
-  ['COMPLETE_AGENT', 'SUPERSEDED', 'SUPERSESSION']
-];
+// (the 21-entry NORMAL_EXECUTION table now lives in core/canonical-terminal-proof.mjs)
 
-export const NORMAL_EXECUTION_TRANSITION_TYPES = [
-  'GENESIS_IMPORT', 'AUTHORIZATION', 'START', 'INTERRUPTION', 'RESUME', 'DEFECT_OPENED',
-  'REPAIR_ACCEPTED', 'GOVERNANCE_BLOCK', 'GOVERNANCE_UNBLOCK', 'AGENT_CLOSURE',
-  'EXTERNAL_CONFIRMATION', 'EXTERNAL_REJECTION', 'AUTHORIZED_REOPEN', 'RESUME_AFTER_REOPEN',
-  'SUPERSESSION'
-];
 
-export const HISTORICAL_RECONCILIATION_TRANSITION_TYPE = 'HISTORICAL_RECONCILIATION';
 
 // HISTORICAL_RECONCILIATION class. Deliberately only two entries, both starting from the
 // conservative genesis fallback status. There is no entry to COMPLETE_CONFIRMED, no entry from
 // IN_PROGRESS, and no entry that could substitute for AUTHORIZATION, START or AGENT_CLOSURE.
-export const HISTORICAL_RECONCILIATION_TRANSITIONS = [
-  ['NOT_STARTED', 'COMPLETE_AGENT', 'HISTORICAL_RECONCILIATION'],
-  ['NOT_STARTED', 'INTERRUPTED_RESUMABLE', 'HISTORICAL_RECONCILIATION']
-];
 
-export const CONTRACT_SUCCESSION_TRANSITION_TYPE = 'CONTRACT_SUCCESSION';
 
 /**
  * CONTRACT_SUCCESSION class — a THIRD class, following the precedent this file
@@ -137,11 +133,7 @@ export const CONTRACT_SUCCESSION_TRANSITION_TYPE = 'CONTRACT_SUCCESSION';
  * never impersonate an execution transition or a reconciliation, and neither can
  * borrow succession's permissions.
  */
-export const CONTRACT_SUCCESSION_TRANSITIONS = [
-  ['IN_PROGRESS', 'IN_PROGRESS', 'CONTRACT_SUCCESSION']
-];
 
-export const PRECONTRACT_CONSUMPTION_ANCHOR_TRANSITION_TYPE = 'PRECONTRACT_CONSUMPTION_ANCHOR';
 
 /**
  * PRECONTRACT_CONSUMPTION_ANCHOR class — a FOURTH class, for exactly the reason
@@ -173,10 +165,6 @@ export const PRECONTRACT_CONSUMPTION_ANCHOR_TRANSITION_TYPE = 'PRECONTRACT_CONSU
  *
  * The four tables are never consulted interchangeably.
  */
-export const PRECONTRACT_CONSUMPTION_ANCHOR_TRANSITIONS = [
-  ['NOT_STARTED', 'NOT_STARTED', 'PRECONTRACT_CONSUMPTION_ANCHOR'],
-  ['COMPLETE_AGENT', 'COMPLETE_AGENT', 'PRECONTRACT_CONSUMPTION_ANCHOR']
-];
 export const PRECONTRACT_CONSUMPTION_ANCHOR_AUTHORITY_KIND = 'GATE_PRECONTRACT_CONSUMPTION_ANCHOR_LOCAL_AUTHORITY';
 
 /**

@@ -86,6 +86,8 @@ import { computeSealedMembersDigest, validateStateSeal } from './validate-state-
 import { validateStateRevision } from './validate-state-revision.mjs';
 import { collectClosedStateSealMembers } from '../gee-v1/core/sealed-state-evidence.mjs';
 import { deriveCanonicalAuthorizedCohort } from '../gee-v1/core/canonical-authorized-cohort.mjs';
+import { deriveCurrentByteAuthorizationProofs, STATUS_AUTHORIZED } from '../gee-v1/core/current-byte-authorization.mjs';
+import { evaluatePrecontractAnchorEnforcement } from './precontract-anchor-enforcement.mjs';
 import { resolveDurableLifecycleRoot } from '../gee-v1/runtime/run-root-lifecycle.mjs';
 
 export const AUDITOR_DOCUMENT = 'FINAL_GATE_INTEGRITY_AUDITOR';
@@ -168,6 +170,7 @@ function contractProjectionGenerators(root, gateId) {
   const contract = readJsonOrNull(root, contractPath);
   return (Array.isArray(contract?.requiredOutputs) ? contract.requiredOutputs : [])
     .filter((output) => typeof output?.path === 'string' && output.path.startsWith('governance/')
+      && output.path.startsWith('governance/tools/')
       && output.path.endsWith('.mjs') && /deterministic.*generator/i.test(output.role ?? ''))
     .map((output) => output.path);
 }
@@ -623,6 +626,32 @@ export function auditFinalGateIntegrity({
     }
   }
 
+  /* ---- AUTHORITY: precontract consumption must still be anchored --------- */
+  //
+  // WHY A FINAL AUDIT HAS TO ASK THIS. Every other authority obligation in this
+  // family is checked against bytes that stand still. A precontract receipt is
+  // different: it was proven against the pre-state its bootstrap ran at, and the
+  // Gate's own lifecycle then moves that pre-state. Anchoring the receipt in the
+  // append-only ledger is what makes the proof survive its own Gate; without the
+  // anchor the receipt silently stops verifying while every stationary check
+  // still passes. That is exactly the state this repository was in — FGI PASS
+  // over a Gate whose VERIFY_CONSUMPTION said BLOCKED — and a final audit that
+  // can hold that combination is reporting the wrong answer, not a lenient one.
+  //
+  // The verdict is NOT recomputed here. It is delegated to the same canonical
+  // consumer the standalone validator uses, so this auditor cannot drift into a
+  // second, more forgiving definition of "anchored" than the one that blocks.
+  const precontractAnchor = evaluatePrecontractAnchorEnforcement({ root, gateId });
+  if (precontractAnchor.applicable && !precontractAnchor.anchored) {
+    blocking('AUTHORITY', precontractAnchor.findings[0]?.code ?? 'PRECONTRACT_CONSUMPTION_NOT_ANCHORED', {
+      path: precontractAnchor.authorityPath,
+      expected: 'VERIFY_CONSUMPTION reports CONSUMED for the anchored receipt',
+      actual: JSON.stringify(precontractAnchor.findings[0]?.detail ?? []),
+      message: `${gateId} consumed a precontract receipt that is not anchored in the append-only ledger; remediate with ${precontractAnchor.remediation}`,
+      affectedFrontier: 'AUTHORITY'
+    });
+  }
+
   /* ---- PRESTATE / SUCCESSOR sealed-member classification ---------------- */
   const closedInventory = collectClosedStateSealMembers(root);
   const closedByPath = new Map();
@@ -844,6 +873,41 @@ export function auditFinalGateIntegrity({
         affectedFrontier: 'GIT_COHORT'
       });
     }
+
+    // A PATH BEING AUTHORIZED IS NOT THE SAME AS ITS CURRENT BYTES BEING AUTHORIZED.
+    //
+    // Everything above proves set membership: the delta is a subset of the paths
+    // some authority permitted a program to touch. That was the whole proof, and it
+    // silently granted every previously-authorized path a PERMANENT licence — write
+    // anything to it afterwards, under no authority at all, and the audit still
+    // passed because the path was still in the cohort.
+    //
+    // The second half of the proof is asked here: for each path that actually
+    // changed, do the bytes it holds RIGHT NOW correspond to the applicable
+    // authorized publication that binds exactly those bytes? The two questions are
+    // kept separate on purpose — the cohort remains a useful bounded path set, and
+    // this adds the byte-level obligation on top of it rather than replacing it.
+    //
+    // Only paths inside the cohort are asked. One outside it has already blocked as
+    // UNEXPECTED_GIT_DELTA, and reporting it twice would say nothing new.
+    const changedInsideCohort = [...actuallyChanged].filter((entry) => canonicalCohort.includes(entry)).sort();
+    const currentByte = deriveCurrentByteAuthorizationProofs({ root, gateId, paths: changedInsideCohort });
+    gitAudit.currentByteAuthorization = {
+      algorithmVersion: currentByte.algorithmVersion,
+      examined: changedInsideCohort.length,
+      authorized: currentByte.proofs.filter((proof) => proof.status === STATUS_AUTHORIZED).length,
+      blocked: currentByte.blocked.length
+    };
+    for (const proof of currentByte.blocked) {
+      blocking('GIT_COHORT', 'UNAUTHORIZED_CURRENT_BYTES', {
+        path: proof.path,
+        expected: proof.candidateSha256
+          ? `bytes certified by the applicable authorized publication (${proof.candidateSha256})`
+          : 'an authorized publication binding these exact bytes',
+        actual: `${proof.reason}${proof.currentSha256 ? ` (${proof.currentSha256})` : ''}`,
+        affectedFrontier: 'GIT_COHORT'
+      });
+    }
   }
 
   /* ---- TEMP: no durable dependency on ephemeral run roots --------------- */
@@ -916,6 +980,7 @@ export function auditFinalGateIntegrity({
       seals: sealAudits
     },
     authority: authorityAudits,
+    precontractAnchor,
     evidence: { required: evidenceAudits, staleReuseClaims },
     generated: generatedAudit,
     git: gitAudit,

@@ -98,18 +98,43 @@ function gateEvents(root, gateId = GATE) {
 // Depths 1-3: a real chain in a disposable fixture.
 // ---------------------------------------------------------------------------
 
-/** A disposable governed tree with GATE rewound to genesis, in a real Git repo. */
+/**
+ * Rewinds a copied ledger to the instant before `gateId` first left genesis, and
+ * names every Gate whose own history the rewind discarded.
+ *
+ * The rewind is TRUNCATION, not filtering. Lifting a Gate's events out of the
+ * MIDDLE of the ledger leaves every later line carrying an ordinal and a
+ * previousEventSha256 that no longer describe the line above it, so a filter
+ * that was correct while this Gate was the tail decays into LEDGER_ORDINAL_GAP
+ * and LEDGER_CHAIN_BREAK the moment any later Gate appends. Cutting at the
+ * Gate's first non-genesis event keeps a genuine PREFIX of canonical history
+ * instead: the surviving lines are the canonical BYTES, so their ordinals and
+ * their hash chain are the canonical ones however far the live ledger advances
+ * afterwards — which is exactly what reconstructLedgerPrefix is asked to prove.
+ */
+function rewindToGenesisOf(root, gateId) {
+  const ledgerPath = absolute(root, LEDGER);
+  const lines = fs.readFileSync(ledgerPath, 'utf8').split(/\r?\n/).filter(Boolean);
+  const events = lines.map((line) => JSON.parse(line));
+  const cut = events.findIndex((event) => event.gateId === gateId && event.transitionType !== 'GENESIS_IMPORT');
+  assert.notEqual(cut, -1, `the fixture needs at least one non-genesis ${gateId} event to rewind`);
+  fs.writeFileSync(ledgerPath, `${lines.slice(0, cut).join('\n')}\n`);
+  return [...new Set(events.slice(cut).map((event) => event.gateId))];
+}
+
+/**
+ * A disposable governed tree with GATE rewound to genesis, in a real Git repo.
+ * Every Gate the rewind discarded loses its on-disk artifacts too, or the tree
+ * would claim execution the ledger no longer records.
+ */
 function buildFixture() {
   const root = fs.mkdtempSync(path.join(fs.realpathSync(os.tmpdir()), 'consumption-permanence-'));
   fs.cpSync(path.join(REPO_ROOT, 'governance'), path.join(root, 'governance'), { recursive: true });
 
-  const ledgerPath = absolute(root, LEDGER);
-  const kept = fs.readFileSync(ledgerPath, 'utf8').split(/\r?\n/).filter(Boolean)
-    .map((line) => JSON.parse(line))
-    .filter((event) => !(event.gateId === GATE && event.transitionType !== 'GENESIS_IMPORT'));
-  fs.writeFileSync(ledgerPath, `${kept.map((event) => JSON.stringify(event)).join('\n')}\n`);
-  for (const directory of [`governance/gates/${GATE}`, `governance/authority/authorizations/${GATE}`, `governance/authority/precontract/${GATE}`]) {
-    fs.rmSync(absolute(root, directory), { recursive: true, force: true });
+  for (const gate of rewindToGenesisOf(root, GATE)) {
+    for (const directory of [`governance/gates/${gate}`, `governance/authority/authorizations/${gate}`, `governance/authority/precontract/${gate}`]) {
+      fs.rmSync(absolute(root, directory), { recursive: true, force: true });
+    }
   }
   const snapshot = spawnSync(process.execPath, [absolute(root, 'governance/tools/generate-status-snapshot.mjs'), '--root', root], { cwd: root, encoding: 'utf8' });
   assert.equal(snapshot.status, 0, snapshot.stdout + snapshot.stderr);
@@ -273,6 +298,30 @@ function buildLiveMirror() {
 const live = buildLiveMirror();
 const liveAuthority = readJson(live, AUTHORITY_RELATIVE);
 
+/**
+ * The canonical bootstrap-to-closure history a locally bootstrapped Gate must
+ * show, in order.
+ *
+ * It is asserted as a PREFIX, and the Gate's depth is read rather than pinned,
+ * because the property under test is that the receipt survives EVERY subsequent
+ * lawful transition. A fixture that pins the tail refutes itself the first time
+ * the Gate lawfully advances — which is precisely what happened here: these
+ * cases were written while COMPLETE_AGENT was GATE19's terminal status, and
+ * stopped executing the moment GATE19 was externally confirmed. Deeper live
+ * history makes this evidence stronger, so it must never make it fail.
+ */
+const BOOTSTRAP_TO_CLOSURE = ['GENESIS_IMPORT', 'AUTHORIZATION', 'START', 'AGENT_CLOSURE', 'PRECONTRACT_CONSUMPTION_ANCHOR'];
+const CLOSED_STATUSES = ['COMPLETE_AGENT', 'COMPLETE_CONFIRMED'];
+
+/** The Gate's live terminal status, having proven it is genuinely closed. */
+function assertClosedAtOrBeyondAgentClosure(root) {
+  const events = gateEvents(root);
+  assert.deepEqual(events.map((event) => event.transitionType).slice(0, BOOTSTRAP_TO_CLOSURE.length), BOOTSTRAP_TO_CLOSURE);
+  const status = events.at(-1).toStatus;
+  assert.ok(CLOSED_STATUSES.includes(status), `${GATE} must be closed, not ${status}`);
+  return status;
+}
+
 /** Tamper, judge, restore byte-exactly — even if the assertion throws. */
 function withTamper(relative, mutate, assertions) {
   const target = absolute(live, relative);
@@ -292,12 +341,12 @@ const tamperJson = (mutateDocument) => (target) => {
 };
 
 test('C4 MANDATORY: consumption is valid on the final GATE19 bytes at COMPLETE_AGENT', () => {
-  // This is the exact case the independent audit reproduced.
-  assert.equal(gateEvents(live).at(-1).toStatus, 'COMPLETE_AGENT');
-  // The anchor is a self-transition appended after closure, so the Gate's status
-  // is unchanged and its execution history reads exactly as it did.
-  assert.deepEqual(gateEvents(live).map((event) => event.transitionType),
-    ['GENESIS_IMPORT', 'AUTHORIZATION', 'START', 'AGENT_CLOSURE', 'PRECONTRACT_CONSUMPTION_ANCHOR']);
+  // This is the exact case the independent audit reproduced. The anchor is a
+  // self-transition appended after closure, so the Gate's execution history
+  // still reads exactly as it did; the audit saw COMPLETE_AGENT as the terminal
+  // status, and whatever lawful depth the Gate has reached since must not
+  // weaken the receipt.
+  assertClosedAtOrBeyondAgentClosure(live);
 
   const result = verifyConsumption(live);
   assert.deepEqual(codes(result), [], JSON.stringify(result.findings));
@@ -625,7 +674,7 @@ test('T10 replay after expiry is still BLOCKED', () => {
 });
 
 test('T11 ESSENTIAL: final GATE19 bytes at COMPLETE_AGENT verify under a clock past expiry', () => {
-  assert.equal(gateEvents(live).at(-1).toStatus, 'COMPLETE_AGENT');
+  assertClosedAtOrBeyondAgentClosure(live);
   assert.ok(Date.parse(liveAuthority.expiresAtUtc) < LONG_AFTER_EXPIRY.getTime(), 'the clock must genuinely be past expiry');
 
   const result = verifyConsumption(live, { when: LONG_AFTER_EXPIRY });

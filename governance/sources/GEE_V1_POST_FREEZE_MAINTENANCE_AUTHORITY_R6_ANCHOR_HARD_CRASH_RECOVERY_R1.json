@@ -1,0 +1,61 @@
+{
+  "document": "GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY",
+  "schemaVersion": 2,
+  "authorityId": "R6_ANCHOR_HARD_CRASH_RECOVERY_LOCAL_AUTHORITY_R1",
+  "authorityClass": "PROJECT_OWNER_POST_FREEZE_MAINTENANCE_AUTHORITY",
+  "authorityMode": "LOCAL_EXPLICIT_AUTHORITY",
+  "issuedBy": "PROJECT_OWNER",
+  "createdAt": "2026-08-17T01:10:00.000Z",
+  "expiresAt": "2026-12-31T23:59:59.000Z",
+  "targetSystem": "PROJECT_GOVERNANCE",
+  "programId": "WHEEL_R6_ANCHOR_HARD_CRASH_RECOVERY_R1",
+  "authorityPurpose": "NORMAL_MAINTENANCE",
+  "resumePoint": "CP-R6-ANCHOR-HARD-CRASH-RECOVERY-R1",
+  "maxUse": 1,
+  "preState": {
+    "baseHead": "00c019c42fb04b5ba11f1a7cdb62cb4750858db1",
+    "ledgerEventCount": 82,
+    "ledgerPrefixSha256": "9b8004d15402c47303fdb4641a4d9fee5850fb4af4695f459c38a74d3649c67c",
+    "gateId": "GATE20",
+    "gateStatus": "COMPLETE_AGENT",
+    "stateRevision": "R0003",
+    "contractRevision": "R0001",
+    "activeGate": "GATE13",
+    "R8ExpectedAbsent": true
+  },
+  "authorizedPathManifestPath": "governance/historical-architecture/R6_ANCHOR_HARD_CRASH_RECOVERY_AUTHORIZED_PATHS_R1.json",
+  "authorizedPathManifestSha256": "7dd531db515f01c9eb609d987eb12c9312b510633334c8da1c32848d44b3e338",
+  "authorizedOperationClasses": [
+    "R6_ANCHOR_HARD_CRASH_RECOVERY"
+  ],
+  "commitPolicy": {
+    "maxCommitCount": 1,
+    "allowedGitOperations": [
+      "GIT_ADD_PATHSPEC",
+      "GIT_COMMIT"
+    ],
+    "commitMessage": "governance: make anchor publication survive a hard crash and bind its transaction provenance",
+    "thirdCommitAuthorized": false
+  },
+  "pushAuthorized": false,
+  "authorityPredecessor": null,
+  "authorityHeadBinding": {
+    "mode": "BASE_HEAD",
+    "baseHead": "00c019c42fb04b5ba11f1a7cdb62cb4750858db1"
+  },
+  "consumptionRecordPath": "governance/historical-architecture/R6_ANCHOR_HARD_CRASH_RECOVERY_CONSUMPTION_R1.json",
+  "prohibitedOperations": [
+    "START",
+    "SECOND_START",
+    "AGENT_CLOSURE",
+    "EXTERNAL_CONFIRMATION",
+    "COMPLETE_AGENT",
+    "COMPLETE_CONFIRMED",
+    "ACTIVE_GATE_SWITCH",
+    "GEE_R8",
+    "GIT_PUSH",
+    "HISTORY_REWRITE",
+    "THIRD_COMMIT",
+    "UNRELATED_WRITE"
+  ]
+}

@@ -35,7 +35,7 @@
       "required": ["gateId", "status", "authorityPath", "authoritySha256"],
       "properties": {
         "gateId": { "type": "string", "minLength": 1 },
-        "status": { "enum": ["COMPLETE_AGENT", "COMPLETE_CONFIRMED", "SUPERSEDED"] },
+        "status": { "enum": ["COMPLETE_CONFIRMED", "SUPERSEDED"] },
         "authorityPath": { "type": "string", "minLength": 1 },
         "authoritySha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
       }

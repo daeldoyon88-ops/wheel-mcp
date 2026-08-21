@@ -1,0 +1,64 @@
+{
+  "document": "GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY",
+  "schemaVersion": 2,
+  "authorityId": "GATE20_REPAIR_B_POSITIVE_PUBLICATION_LOCAL_AUTHORITY_R1",
+  "authorityClass": "PROJECT_OWNER_POST_FREEZE_MAINTENANCE_AUTHORITY",
+  "authorityMode": "LOCAL_EXPLICIT_AUTHORITY",
+  "issuedBy": "PROJECT_OWNER",
+  "createdAt": "2026-08-18T00:00:00.000Z",
+  "expiresAt": "2026-12-31T23:59:59.000Z",
+  "targetSystem": "PROJECT_GOVERNANCE",
+  "programId": "GATE20_REPAIR_B_POSITIVE_PUBLICATION_R1",
+  "authorityPurpose": "NORMAL_MAINTENANCE",
+  "resumePoint": "CP-GATE20-REPAIR-B-POSITIVE-PUBLICATION-R1",
+  "maxUse": 1,
+  "preState": {
+    "baseHead": "00c019c42fb04b5ba11f1a7cdb62cb4750858db1",
+    "ledgerEventCount": 82,
+    "ledgerPrefixSha256": "9b8004d15402c47303fdb4641a4d9fee5850fb4af4695f459c38a74d3649c67c",
+    "gateId": "GATE20",
+    "gateStatus": "COMPLETE_AGENT",
+    "stateRevision": "R0003",
+    "contractRevision": "R0001",
+    "activeGate": "GATE13",
+    "R8ExpectedAbsent": true
+  },
+  "authorizedPathManifestPath": "governance/historical-architecture/GATE20_REPAIR_B_POSITIVE_PUBLICATION_AUTHORIZED_PATHS_R1.json",
+  "authorizedPathManifestSha256": "1d5832c05feb41d659b5bf13020cd5f4978da6ddcca8a05df2d882d763461b48",
+  "authorizedOperationClasses": [
+    "REPAIR_B_POSITIVE_PUBLICATION",
+    "REPAIR_B_HISTORICAL_IDENTITY",
+    "REPAIR_B_CURRENT_BYTE_AUTHORIZATION",
+    "REPAIR_B_HOSTILE_EVIDENCE"
+  ],
+  "commitPolicy": {
+    "maxCommitCount": 1,
+    "allowedGitOperations": [
+      "GIT_ADD_PATHSPEC",
+      "GIT_COMMIT"
+    ],
+    "commitMessage": "governance: authorize bounded GATE20 Repair-B publication",
+    "thirdCommitAuthorized": false
+  },
+  "pushAuthorized": false,
+  "authorityPredecessor": null,
+  "authorityHeadBinding": {
+    "mode": "BASE_HEAD",
+    "baseHead": "00c019c42fb04b5ba11f1a7cdb62cb4750858db1"
+  },
+  "consumptionRecordPath": "governance/historical-architecture/GATE20_REPAIR_B_POSITIVE_PUBLICATION_CONSUMPTION_R1.json",
+  "prohibitedOperations": [
+    "START",
+    "SECOND_START",
+    "AGENT_CLOSURE",
+    "EXTERNAL_CONFIRMATION",
+    "COMPLETE_AGENT",
+    "COMPLETE_CONFIRMED",
+    "ACTIVE_GATE_SWITCH",
+    "GEE_R8",
+    "GIT_PUSH",
+    "HISTORY_REWRITE",
+    "THIRD_COMMIT",
+    "UNRELATED_WRITE"
+  ]
+}

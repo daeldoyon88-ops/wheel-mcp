@@ -1,0 +1,75 @@
+{
+  "documentKind": "POST_FREEZE_MAINTENANCE_AUTHORITY_CONSUMPTION",
+  "schemaVersion": 2,
+  "authorityId": "GATE20_FINAL_POST_CONFIRMATION_REPAIR_R1",
+  "programId": "GATE20_CONFIRMATION_LINEAGE_SUCCESSOR_R1",
+  "manifestSha256": "e7c0ef58dab5463afbdc3ca314e91767bd4b0db26e3eaab22c4ff473d8eb6103",
+  "baseHead": "00c019c42fb04b5ba11f1a7cdb62cb4750858db1",
+  "consumedUse": 1,
+  "transactionId": "GATE20_CONFIRMATION_LINEAGE_SUCCESSOR_R1_TRANSACTION",
+  "recordedAt": "2026-08-21T01:48:00.000Z",
+  "commitMessage": "governance: bind GATE20 confirmation lineage successor",
+  "cohortSelfExclusion": {
+    "path": "governance/historical-architecture/GATE20_CONFIRMATION_LINEAGE_SUCCESSOR_CONSUMPTION_R1.json",
+    "reason": "The consumption record cannot hash its own final bytes; its identity is bound by the authority and manifest instead."
+  },
+  "cohortPathCount": 8,
+  "cohort": [
+    {
+      "path": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_GATE20_CONFIRMATION_LINEAGE_SUCCESSOR_R1.json",
+      "sha256": "9098a78de3327dfa1397822bfbab846afb2562b6ab35b79d661253d49cde1867",
+      "byteLength": 2287,
+      "operation": "CREATE",
+      "reason": "Single-use LOCAL_EXPLICIT_AUTHORITY that binds the already-recorded GATE20 confirmation as an explicit publication successor; it grants no START, GATE21, EXTERNAL_CONFIRMATION, or future-byte permission.",
+      "artifactClass": "CONFIRMATION_LINEAGE_SUCCESSOR"
+    },
+    {
+      "path": "governance/historical-architecture/GATE20_CONFIRMATION_LINEAGE_SUCCESSOR_AUTHORIZED_PATHS_R1.json",
+      "sha256": "e7c0ef58dab5463afbdc3ca314e91767bd4b0db26e3eaab22c4ff473d8eb6103",
+      "byteLength": 5032,
+      "operation": "CREATE",
+      "reason": "Finite exact-file confirmation-lineage successor cohort with no wildcard, directory blanket or unrelated user work.",
+      "artifactClass": "CONFIRMATION_LINEAGE_SUCCESSOR"
+    },
+    {
+      "path": "governance/gates/GATE20/state/CURRENT_STATE.json",
+      "sha256": "2135e8a71ff8d8787a6f349f670a797a110869e158f77291e2d1f8a0b4bf9f02",
+      "byteLength": 308,
+      "operation": "MODIFY",
+      "reason": "Explicit successor recertification of preexisting GATE20 current-state bytes over the previous canonical publication digest, without rewriting those bytes.",
+      "artifactClass": "CONFIRMATION_LINEAGE_SUCCESSOR"
+    },
+    {
+      "path": "governance/state/GATE_STATUS_LEDGER.ndjson",
+      "sha256": "0be5bf66253993668569950a9db20271d6f7a3889c4f233e585047d3cae0d173",
+      "byteLength": 48973,
+      "operation": "MODIFY",
+      "reason": "Explicit successor recertification of the confirmed canonical ledger over the previous canonical publication digest, without rewriting those bytes.",
+      "artifactClass": "CONFIRMATION_LINEAGE_SUCCESSOR"
+    },
+    {
+      "path": "governance/state/generated/GATE_STATUS_SNAPSHOT.json",
+      "sha256": "23edfb15d63f0429bd540dbd62c38a410544506b2d3d6a5f1cd1a136f081f100",
+      "byteLength": 15733,
+      "operation": "MODIFY",
+      "reason": "Explicit successor recertification of the confirmed status snapshot over the previous canonical publication digest, without rewriting those bytes.",
+      "artifactClass": "CONFIRMATION_LINEAGE_SUCCESSOR"
+    },
+    {
+      "path": "governance/tools/final-gate-integrity-auditor.mjs",
+      "sha256": "66e0af9181224576a1dd8272df1b5ddd59157f6b9b6f19e35e39026472ca2d36",
+      "byteLength": 50707,
+      "operation": "MODIFY",
+      "reason": "Generic live-projection generator classification: only governance/tools deterministic generators are checked; no Gate-specific exception.",
+      "artifactClass": "CONFIRMATION_LINEAGE_SUCCESSOR"
+    },
+    {
+      "path": "governance/tests/final-gate-integrity-auditor.test.mjs",
+      "sha256": "7096968aeff33c081435f22b059aec8dfe2b977f321909d06af7b2958f4bed0c",
+      "byteLength": 26545,
+      "operation": "MODIFY",
+      "reason": "Targeted hostiles proving tools/ generator drift remains detected and a gate-local implementation helper is not a live projection.",
+      "artifactClass": "CONFIRMATION_LINEAGE_SUCCESSOR"
+    }
+  ]
+}

@@ -27,7 +27,7 @@
     "preCurrentStateSha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
     "preStateSealSha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
     "readinessDigest": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
-    "dependencyProof": { "type": "object", "additionalProperties": false, "required": ["gateId", "status", "authorityPath", "authoritySha256"], "properties": { "gateId": { "type": "string", "minLength": 1 }, "status": { "enum": ["COMPLETE_AGENT", "COMPLETE_CONFIRMED"] }, "authorityPath": { "type": "string", "minLength": 1 }, "authoritySha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" } } },
+    "dependencyProof": { "type": "object", "additionalProperties": false, "required": ["gateId", "status", "authorityPath", "authoritySha256"], "properties": { "gateId": { "type": "string", "minLength": 1 }, "status": { "enum": ["COMPLETE_CONFIRMED", "SUPERSEDED"] }, "authorityPath": { "type": "string", "minLength": 1 }, "authoritySha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" } } },
     "activeGatePreState": { "type": "object", "additionalProperties": false, "required": ["activeGate", "sha256", "byteLength"], "properties": { "activeGate": { "type": "string", "minLength": 1 }, "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" }, "byteLength": { "type": "integer", "minimum": 0 } } },
     "authorizedStartWritePaths": { "type": "array", "minItems": 10, "uniqueItems": true, "items": { "type": "string", "minLength": 1, "pattern": "^[^\\\\/*?]+(?:/[^\\\\/*?]+)*$" } },
     "functionalExecutionScope": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "type": "string", "minLength": 1, "pattern": "^[^\\\\/*?]+(?:/[^\\\\/*?]+)*$" } },

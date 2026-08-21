@@ -73,7 +73,14 @@ import { collectClosedStateSealMembers } from '../gee-v1/core/sealed-state-evide
 import { WHEEL_EXTERNAL_AUTHORITY_POLICY } from '../gee-v1/adapters/wheel/external-authority-policy.mjs';
 import { collectPostFreezeMaintenanceObservation } from './post-freeze-maintenance-observation.mjs';
 import { recoverTransaction } from './recover-governance-transaction.mjs';
-import { createLifecycleTransactionProvenance } from './transaction-provenance.mjs';
+import {
+  createLifecycleTransactionProvenance,
+  createGateLifecycleTransactionProvenance,
+  createPrecontractBootstrapTransactionProvenance,
+  validateLifecycleTransactionProvenance,
+  LEDGER_SILENT_CASE_TYPES
+} from './transaction-provenance.mjs';
+import { durableReplaceFileSync, sweepPublicationResidue } from './durable-write.mjs';
 
 export const ORCHESTRATOR_DOCUMENT = 'GATE_LIFECYCLE_ORCHESTRATOR';
 export const ORCHESTRATOR_VERSION = 'R1';
@@ -107,25 +114,44 @@ const TRANSACTION_ROOT = 'governance/transactions';
 function transactionIdFor(candidate) { return `${candidate.eventId}_TRANSACTION`; }
 function transactionDirectory(candidate) { return `${TRANSACTION_ROOT}/TXN_${candidate.eventId}`; }
 function transactionFile(candidate) { return `${transactionDirectory(candidate)}/TRANSACTION.json`; }
-function writeTransaction(root, relative, value) { const target = repoPath(root, relative); fs.mkdirSync(path.dirname(target), { recursive: true }); fs.writeFileSync(target, governedBytes(value)); }
+// The journal is written durably for the same reason the artifacts are: a
+// half-written TRANSACTION.json is the one file recovery cannot do without, and
+// truncating it in place is how a crash turns a recoverable transaction into an
+// unreadable one.
+function writeTransaction(root, relative, value) { const target = repoPath(root, relative); fs.mkdirSync(path.dirname(target), { recursive: true }); durableReplaceFileSync(target, governedBytes(value)); }
 
 function prepareLifecycleTransaction({ root, candidate, before, provenance }) {
   const transactionId = transactionIdFor(candidate);
   const directory = transactionDirectory(candidate);
   const stagedArtifacts = candidate.writes.map((write, index) => {
     const sourcePath = `${directory}/staged/${String(index).padStart(3, '0')}.bin`;
-    const source = repoPath(root, sourcePath); fs.mkdirSync(path.dirname(source), { recursive: true }); fs.writeFileSync(source, write.bytes);
+    const source = repoPath(root, sourcePath); fs.mkdirSync(path.dirname(source), { recursive: true }); durableReplaceFileSync(source, write.bytes);
     return { sourcePath, targetPath: write.path, sha256: write.sha256, byteLength: write.byteLength };
   });
   const transaction = {
-    schemaVersion: 1, transactionId, transactionState: 'PREPARED', caseType: 'STATUS_TRANSITION', gateId: candidate.gateId,
+    schemaVersion: 1, transactionId, transactionState: 'PREPARED',
+    // A publisher that appends no ledger event declares its own case so recovery
+    // knows not to append one for it. Everything else about the journal is
+    // identical, which is the point: one journal format, one recovery path.
+    //
+    // The set is consulted rather than one member being special-cased. Naming only
+    // MAINTENANCE_PROGRAM here silently rewrote the precontract bootstrap's case to
+    // STATUS_TRANSITION, and the validator then — quite rightly — demanded of it a
+    // ledger event it never had and must never have.
+    //
+    // An unrecognised case type still falls through to STATUS_TRANSITION, and that
+    // is the fail-closed direction: STATUS_TRANSITION is the branch that REQUIRES a
+    // matching ledger event, so a publisher that misdeclares itself is refused
+    // rather than excused from appending.
+    caseType: LEDGER_SILENT_CASE_TYPES.includes(candidate.caseType) ? candidate.caseType : 'STATUS_TRANSITION',
+    gateId: candidate.gateId,
     stagedArtifacts, expectedHashes: candidate.writes.map((write) => ({ targetPath: write.path, sha256: write.sha256, byteLength: write.byteLength })),
     oldPointers: [], newPointers: [], commitOrder: candidate.writes.map((write) => write.path),
     rollbackPlan: candidate.writes.map((write) => ({ targetPath: write.path })), recoveryPlan: { mode: 'ROLL_FORWARD_FROM_STAGED_ARTIFACTS' },
-    idempotencyKeys: [candidate.eventId], ledgerEvent: candidate.event, provenance, preparedAt: new Date().toISOString()
+    idempotencyKeys: [candidate.eventId], ledgerEvent: candidate.event ?? null, provenance, preparedAt: new Date().toISOString()
   };
   writeTransaction(root, transactionFile(candidate), transaction);
-  fs.writeFileSync(repoPath(root, `${directory}/PREPARED`), '');
+  durableReplaceFileSync(repoPath(root, `${directory}/PREPARED`), '');
   return { transaction, directory };
 }
 
@@ -133,7 +159,7 @@ function setTransactionState(root, candidate, transaction, state) {
   const next = { ...transaction, transactionState: state };
   if (state === 'COMMITTED') next.committedAt = new Date().toISOString();
   writeTransaction(root, transactionFile(candidate), next);
-  if (state === 'COMMITTED') fs.writeFileSync(repoPath(root, `${transactionDirectory(candidate)}/COMMITTED`), '');
+  if (state === 'COMMITTED') durableReplaceFileSync(repoPath(root, `${transactionDirectory(candidate)}/COMMITTED`), '');
   if (state === 'ABORTED') fs.rmSync(repoPath(root, `${transactionDirectory(candidate)}/PREPARED`), { force: true });
   return next;
 }
@@ -144,18 +170,25 @@ function discardTerminalTransaction(root, directory) {
   if (fs.existsSync(base) && fs.readdirSync(base).length === 0) fs.rmdirSync(base);
 }
 
-function recoverPendingLifecycleTransactions(root) {
+export function recoverPendingLifecycleTransactions(root) {
   const base = repoPath(root, TRANSACTION_ROOT);
   if (!fs.existsSync(base)) return { recovered: [] };
   const recovered = [];
   for (const entry of fs.readdirSync(base, { withFileTypes: true })) {
     if (!entry.isDirectory() || !entry.name.startsWith('TXN_')) continue;
     const transactionPath = path.join(base, entry.name, 'TRANSACTION.json');
-    if (!fs.existsSync(transactionPath) || fs.existsSync(path.join(base, entry.name, 'COMMITTED'))) continue;
+    if (!fs.existsSync(transactionPath)) continue;
+    // A transaction that already carries its COMMITTED marker is not skipped, it
+    // is DISCARDED. A process killed between the marker and the cleanup used to
+    // leave its directory behind for good: recoverTransaction short-circuits on
+    // COMMITTED and the sweep above stepped over it, so the residue survived
+    // every later recovery. It is terminal for exactly the reason a successful
+    // apply discards its own — the marker is only ever written after the
+    // canonical bytes have landed.
     const result = recoverTransaction({ root, transactionPath, apply: true });
     if (!result.valid) return { recovered, blocked: result };
     discardTerminalTransaction(root, `${TRANSACTION_ROOT}/${entry.name}`);
-    recovered.push(result.transactionId);
+    if (result.recoveryAction !== 'NONE') recovered.push(result.transactionId);
   }
   return { recovered };
 }
@@ -923,16 +956,63 @@ export function evaluateTransitionAuthority({ root, candidate, authorityDocument
  * Writes the validated candidate. Reached ONLY after the staged candidate has
  * validated clean, so this function contains no validation, no repair and no
  * fallback: by the time control arrives here the decision has already been made.
+ *
+ * WHAT `requireRecoverableProvenance` CLOSES. The journal this function writes is
+ * the only thing a fresh process has to work from after a hard crash, and
+ * `recoverTransaction` refuses a journal whose provenance it cannot re-prove. A
+ * publisher that prepared a transaction with provenance the recovery validator
+ * would reject was therefore arming a state nothing could resolve: COMMITTING,
+ * staged artifact present, provenance unusable. Callers that publish under a
+ * durable-recovery contract set this flag, and the check is run WITH THE VERY
+ * VALIDATOR RECOVERY USES — not a second model of it — before the transaction is
+ * allowed to leave PREPARED. A transaction that cannot be recovered is refused
+ * before it can need recovering.
+ *
+ * `writeFile` defaults to a durable atomic replacement rather than a plain
+ * truncate-and-stream, so a process killed mid-publication leaves each canonical
+ * path holding either its pre-state bytes or the candidate bytes — the dichotomy
+ * the recovery validator has always assumed and that `fs.writeFileSync` never
+ * actually provided.
  */
-export function applyCandidate({ root, candidate, authorityDocumentPath = null, authority = null, writeFile = fs.writeFileSync, rollbackWriteFile = fs.writeFileSync, rollbackRemoveFile = fs.rmSync }) {
+export function applyCandidate({
+  root, candidate, authorityDocumentPath = null, authority = null, authorization = null, provenance = null,
+  requireRecoverableProvenance = true,
+  writeFile = durableReplaceFileSync, rollbackWriteFile = durableReplaceFileSync, rollbackRemoveFile = fs.rmSync
+}) {
   const before = candidate.writes.map((write) => {
     const target = repoPath(root, write.path);
     const existed = fs.existsSync(target);
     return { write, target, existed, bytes: existed ? fs.readFileSync(target) : null };
   });
-  const provenance = createLifecycleTransactionProvenance({ root, candidate, before, authorityDocumentPath, authority });
-  const prepared = prepareLifecycleTransaction({ root, candidate, before, provenance });
+  // WHICH AUTHORITY GOVERNS THIS TRANSITION IS DERIVED, NOT REMEMBERED. Requiring
+  // each caller to construct the right provenance is what produced the defect:
+  // three publishers simply did not, and passed `provenance: null` into a
+  // requirement that was opt-in. The class is resolved here from the transition
+  // itself, so a publisher cannot arm an unrecoverable transaction by omission —
+  // and a transition whose authority genuinely cannot be resolved gets null, which
+  // the invariant below turns into a refusal rather than into a silent proceed.
+  const resolvedProvenance = provenance
+    ?? createLifecycleTransactionProvenance({ root, candidate, before, authorityDocumentPath, authority })
+    ?? createGateLifecycleTransactionProvenance({ root, candidate, before })
+    ?? createPrecontractBootstrapTransactionProvenance({ root, candidate, before, authorityDocumentPath, authorization });
+  const prepared = prepareLifecycleTransaction({ root, candidate, before, provenance: resolvedProvenance });
   let transaction = prepared.transaction;
+  if (requireRecoverableProvenance) {
+    const recoverable = validateLifecycleTransactionProvenance({ root, transaction });
+    if (!recoverable.valid) {
+      // Nothing canonical has moved yet: only the journal and its staged copy
+      // exist, and both are discarded here. The refusal is therefore free of
+      // consequence, which is exactly why it belongs at this instant.
+      setTransactionState(root, candidate, transaction, 'ABORTED');
+      discardTerminalTransaction(root, prepared.directory);
+      const error = new Error(`CANDIDATE_APPLY_PROVENANCE_UNRECOVERABLE:${recoverable.findings.map((item) => item.detail ? item.code+"("+item.detail+")" : item.code).join(',')}`);
+      error.recovered = true;
+      error.provenanceFindings = recoverable.findings;
+      error.rollbackFailures = [];
+      error.verificationFailures = [];
+      throw error;
+    }
+  }
   const written = [];
   try {
     transaction = setTransactionState(root, candidate, transaction, 'COMMITTING');
@@ -959,6 +1039,11 @@ export function applyCandidate({ root, candidate, authorityDocumentPath = null, 
         }
       } catch (rollbackError) { rollbackFailures.push({ path: entry.write.path, error: rollbackError.message }); }
     }
+    // A publication that died between its temp write and its rename leaves that
+    // temp behind. It is not canonical and nothing reads it, but unattributable
+    // residue is how a repository stops being auditable, so it is swept with the
+    // bytes it belonged to.
+    sweepPublicationResidue(before.map((entry) => entry.target));
     const revisionDirectory = candidate.paths?.revisionDirectory && repoPath(root, candidate.paths.revisionDirectory);
     if (revisionDirectory && !fs.existsSync(revisionDirectory)) {
       // Nothing to remove; keeping this branch documents the expected normal case.
@@ -972,6 +1057,15 @@ export function applyCandidate({ root, candidate, authorityDocumentPath = null, 
     }).map((entry) => entry.write.path);
     const recovered = rollbackFailures.length === 0 && verificationFailures.length === 0;
     setTransactionState(root, candidate, transaction, recovered ? 'ABORTED' : 'RECOVERY_REQUIRED');
+    // A transaction that rolled back CLEANLY has nothing left to recover, and
+    // leaving its directory behind is not inert: recoverTransaction short-circuits
+    // only on COMMITTED, so a surviving ABORTED journal is eligible for
+    // ROLL_FORWARD_FROM_STAGED_ARTIFACTS and would re-apply — re-appending its
+    // ledger event — the very operation that was just undone. It is discarded for
+    // the same reason a committed one is. A transaction that did NOT roll back
+    // cleanly is RECOVERY_REQUIRED and is kept, because that is exactly the case
+    // where the journal is the only remaining evidence of what was in flight.
+    if (recovered) discardTerminalTransaction(root, prepared.directory);
     const error = new Error(`${recovered ? 'CANDIDATE_APPLY_FAILED_ROLLED_BACK' : 'CANDIDATE_APPLY_RECOVERY_REQUIRED'}:${cause.message}`);
     error.cause = cause;
     error.recovered = recovered;
@@ -996,8 +1090,15 @@ export function runLifecycleTransition({
   now = new Date(),
   authorityDocumentPath = null,
   baseline = null,
-  writeFile = fs.writeFileSync,
-  rollbackWriteFile = fs.writeFileSync,
+  // DURABLE BY DEFAULT, AT EVERY LAYER. applyCandidate has defaulted to a durable
+  // atomic replacement since the R6 repair, but a default is only reached when the
+  // caller stays silent — and this function did not: it declared its own
+  // fs.writeFileSync defaults and passed them down on every call. The durable
+  // primitive was therefore live in exactly one publisher (the anchor) and dead in
+  // the entire normal lifecycle, which is the opposite of what the repair claimed.
+  // A default that a wrapper silently overrides is not a default; it is a comment.
+  writeFile = durableReplaceFileSync,
+  rollbackWriteFile = durableReplaceFileSync,
   rollbackRemoveFile = fs.rmSync,
   policy = WHEEL_EXTERNAL_AUTHORITY_POLICY,
   projectionPolicyModulePath = null,

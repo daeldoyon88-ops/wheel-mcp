@@ -1,0 +1,43 @@
+{
+  "document": "GEE_V1_HISTORICAL_MAINTENANCE_ADMISSION_BRIDGE",
+  "schemaVersion": 1,
+  "bridgeId": "GATE20_FOUNDATION_PROJECTION_SYNC_HISTORICAL_ADMISSION_BRIDGE_R1",
+  "authorityClass": "PROJECT_OWNER_HISTORICAL_ADMISSION_BRIDGE",
+  "authorityMode": "LOCAL_EXPLICIT_AUTHORITY",
+  "issuedBy": "PROJECT_OWNER",
+  "createdAt": "2026-08-17T00:00:00.000Z",
+  "projectId": "WHEEL",
+  "gateId": "GATE20",
+  "programId": "GATE20_FOUNDATION_PROJECTION_SYNC_R1",
+  "bridgePurpose": "Admit one exact historical GATE20 projection-sync publication whose schemaVersion-1 manifest no current canonical publisher can produce, WITHOUT rewriting the historical documents into a shape they never had.",
+  "historicalPublicationClass": "LEGACY_V1_NORMAL_MAINTENANCE",
+  "admissionClass": "HISTORICAL_PREDECESSOR_ADMITTED",
+  "maxUse": 1,
+  "historicalAuthority": {
+    "path": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_GATE20_FOUNDATION_PROJECTION_SYNC_R1.json",
+    "sha256": "10bfbe159abf75bfe72fb41d9150b97e82fab761cc8638297c116c9701f987d8",
+    "schemaVersion": 2
+  },
+  "historicalManifest": {
+    "path": "governance/historical-architecture/GATE20_FOUNDATION_PROJECTION_SYNC_AUTHORIZED_PATHS_R1.json",
+    "sha256": "35af0892eadebafdc3fb8c6c7745f50de72a0d3f0879a4569a34e4ca9e0e96f1",
+    "schemaVersion": 1
+  },
+  "historicalConsumption": {
+    "path": "governance/historical-architecture/GATE20_FOUNDATION_PROJECTION_SYNC_CONSUMPTION_R1.json",
+    "sha256": "dd9ccd772bd015a171b1c0876408ee34ae8a220df1f3d7aa9be7811370f56f19",
+    "schemaVersion": 2
+  },
+  "supersededBy": "The paths this historical program certified are re-published under the Repair-B authority; this bridge admits the predecessor only and licenses no publication.",
+  "bridgeDigest": "4f8994c0e44f9c88f60818b8cb9eb987e295dfd8fabc05dfedcdd1d885197bec",
+  "ratification": {
+    "path": "governance/authority/historical-ratifications/GATE20/PROJECT_OWNER_HISTORICAL_IDENTITY_RATIFICATION_GATE20_FOUNDATION_PROJECTION_SYNC_R1.json",
+    "sha256": "71e0f1c3b8601bd85ceeb3827cd3e4ccde78438d9e11d458bda79dcac6b294c4"
+  },
+  "grantsPublicationPermission": false,
+  "grantsExecutionPermission": false,
+  "grantsStartPermission": false,
+  "grantsStatusTransitionPermission": false,
+  "grantsFutureBytePermission": false,
+  "genericV1Admission": false
+}

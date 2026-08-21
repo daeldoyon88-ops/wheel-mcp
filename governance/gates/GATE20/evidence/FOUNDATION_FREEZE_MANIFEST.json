@@ -1,0 +1,79 @@
+{
+  "document": "FOUNDATION_FREEZE_MANIFEST",
+  "schemaVersion": 1,
+  "gateId": "GATE20",
+  "generatedAt": "2026-08-17T00:28:10.968Z",
+  "derivation": "Every member identity is recomputed from the current repository bytes; this manifest is evidence, not authority.",
+  "predecessor": {
+    "gateId": "GATE19",
+    "finalIntegrity": "PASS"
+  },
+  "members": [
+    {
+      "path": "governance/GATE_REGISTRY_00_40.json",
+      "sha256": "aaa9efcded9c58ccb0f26578bc67ba8b50143e6a94426965772d8731fcada9c7",
+      "byteLength": 113118
+    },
+    {
+      "path": "governance/sources/GATE16_40_OWNER_RATIFICATION_R2.json",
+      "sha256": "bf7859ef8d0992c2ea0169af48d7762c11ee5f5a8490922588026150a92031cc",
+      "byteLength": 67534
+    },
+    {
+      "path": "governance/gates/GATE19/state/CURRENT_STATE.json",
+      "sha256": "4a1d15a0ef3e03c6c59aa2f15c1c0440b3d980f5a2a87ae4403a105a35d217c9",
+      "byteLength": 308
+    },
+    {
+      "path": "governance/gates/GATE19/evidence/FOUNDATION_BUNDLE_20260815T120000Z.zip",
+      "sha256": "db0740d9c6ec57b85323bcdcbd1c1775d63e0033d7e1552bb809a86fd9287db3",
+      "byteLength": 132795
+    },
+    {
+      "path": "governance/gates/GATE19/evidence/BUNDLE_MANIFEST.json",
+      "sha256": "65f02559a7fe4cfe16a112c46ff5f801b437a63670d26226b2bd120e9e4d8565",
+      "byteLength": 2049
+    },
+    {
+      "path": "governance/gates/GATE19/evidence/FINAL_ZIP_SELFTEST.json",
+      "sha256": "a06774377f0e4a0dcc4a8041b15f1abcdc3348c0d213b900289ba1d4182b13cd",
+      "byteLength": 395
+    },
+    {
+      "path": "governance/gates/GATE19/evidence/DETACHED_TERMINAL_VERIFICATION_RECEIPT.json",
+      "sha256": "47b864ad7f549d1cd6a4fb7f39a164a68f2e95b97fabfb141607deb9d5bc6cbb",
+      "byteLength": 680
+    },
+    {
+      "path": "governance/gates/GATE20/contracts/EXECUTION_CONTRACT_R0001.json",
+      "sha256": "01657721562933ff7765d7cd35ecf4d1d8013afabc9a0ece38dab1dee9e0dd06",
+      "byteLength": 7564
+    },
+    {
+      "path": "governance/gates/GATE20/contracts/CURRENT_CONTRACT.json",
+      "sha256": "5529a3d5861c8b4bdbee2720d9e820831ff8663b4817d436fbf97815bcdb9ced",
+      "byteLength": 281
+    },
+    {
+      "path": "governance/state/GATE_STATUS_LEDGER.ndjson",
+      "sha256": "9b8004d15402c47303fdb4641a4d9fee5850fb4af4695f459c38a74d3649c67c",
+      "byteLength": 48265
+    },
+    {
+      "path": "governance/active/ACTIVE_GATE.json",
+      "sha256": "34fcbfd9bb068cf2adfd973a73db4c4da297e9300242c1d04c08571968a417b9",
+      "byteLength": 305
+    }
+  ],
+  "functionalScope": [
+    "governance/gates/GATE20/evidence/FOUNDATION_CLOSURE_VERDICT.json",
+    "governance/gates/GATE20/evidence/FOUNDATION_FREEZE_MANIFEST.json",
+    "governance/gates/GATE20/evidence/GIT_FINALIZATION_RECEIPT.json",
+    "governance/gates/GATE20/implementation/final-git-and-verdict.mjs",
+    "governance/gates/GATE20/tests/gate20-final-git-and-verdict.test.mjs"
+  ],
+  "r7Mode": "LIGHT",
+  "r7HeavyTrigger": false,
+  "gate21Authorization": false,
+  "externalConfirmation": "NOT_CREATED_BY_MISSION_A"
+}

@@ -27,7 +27,11 @@ import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
-import { ledgerLineBytes, LEDGER_PATH, readLedgerEvents, replayGateStatus } from './gate-lifecycle-orchestrator.mjs';
+import {
+  applyCandidate, ledgerLineBytes, LEDGER_PATH, readLedgerEvents, replayGateStatus,
+  recoverPendingLifecycleTransactions
+} from './gate-lifecycle-orchestrator.mjs';
+import { createAnchorTransactionProvenance } from './transaction-provenance.mjs';
 import { sha256Canonical } from './canonical-json.mjs';
 
 export const ANCHOR_TOOL_DOCUMENT = 'PRECONTRACT_CONSUMPTION_ANCHOR_APPLICATION';
@@ -121,6 +125,25 @@ export function anchorPrecontractConsumption({ root, authorityPath, recordedAt, 
   }
   if (findings.length) return blocked('BINDING');
 
+  // A PUBLICATION IN FLIGHT IS RESOLVED BEFORE A NEW ONE IS CONSIDERED.
+  //
+  // A previous attempt killed by a hard crash leaves a COMMITTING journal whose
+  // staged artifact is the fully validated ledger. Deriving a fresh candidate on
+  // top of that state would compute a pre-state that the pending transaction is
+  // about to invalidate, and preparing the new transaction would overwrite the
+  // pending journal — destroying the only evidence of what was in flight — since
+  // both are named after the same event. The pending transaction is therefore
+  // driven to a terminal state first, using the same canonical recovery the
+  // lifecycle runs at its own entry, and the ledger is re-read afterwards so
+  // idempotence is decided against the settled state.
+  if (apply) {
+    const recovery = recoverPendingLifecycleTransactions(absoluteRoot);
+    if (recovery.blocked) {
+      push('ANCHOR_PENDING_TRANSACTION_UNRESOLVED', recovery.blocked.recoveryAction ?? 'RECOVERY_REQUIRED');
+      return blocked('PENDING_TRANSACTION');
+    }
+  }
+
   const events = readLedgerEvents(absoluteRoot);
   if (events.some((event) => event.gateId === gateId && event.transitionType === ANCHOR_TRANSITION_TYPE)) {
     push('ANCHOR_ALREADY_PRESENT', gateId);
@@ -174,7 +197,67 @@ export function anchorPrecontractConsumption({ root, authorityPath, recordedAt, 
   if (!apply) {
     return { document: ANCHOR_TOOL_DOCUMENT, verdict: 'CANDIDATE_VALID', phase: 'CANDIDATE', gateId, findings: [], appended: event };
   }
-  fs.appendFileSync(repoFile(absoluteRoot, LEDGER_PATH), ledgerLineBytes(event));
+  // PUBLICATION GOES THROUGH THE DURABLE TRANSACTION, NOT A BARE APPEND.
+  //
+  // A raw appendFileSync cannot be undone. A failure part-way through the write —
+  // ENOSPC, EIO, a killed process — leaves a TRUNCATED event in an append-only
+  // ledger, and because every reader parses every line, the damage is not
+  // confined to the failed operation: the next read throws, so even the retry
+  // that would have repaired it cannot run. The ledger is the one structure in
+  // this project a later edit must not be able to revise, so a half-written line
+  // is the worst possible outcome and it was the one nothing prevented.
+  //
+  // applyCandidate is the primitive the lifecycle already publishes through. It
+  // captures the pre-state bytes, journals the intent, writes, verifies what
+  // landed against the digest it promised, and restores the exact prior bytes if
+  // any step fails. The ledger therefore either advances by one whole event or is
+  // byte-identical to what it held on entry; there is no third outcome. Reusing
+  // it is also what keeps a second ledger writer from existing.
+  //
+  // AND THE JOURNAL CARRIES ITS AUTHORITY, BECAUSE A CRASH IS NOT AN EXCEPTION.
+  //
+  // Surviving a caught I/O error only required the rollback above. Surviving a
+  // PROCESS DEATH requires the journal left on disk to be one a fresh process can
+  // act on, and `recoverTransaction` refuses any journal whose provenance it
+  // cannot re-prove from bytes. Publishing with `provenance: null` — which is what
+  // calling applyCandidate without an authority produced — armed exactly the state
+  // nothing could resolve: COMMITTING, staged artifact present, provenance
+  // unusable, PENDING_TRANSACTION_PROVENANCE_INVALID forever. The anchor authority
+  // this tool has already verified above is therefore bound into the transaction,
+  // and publication is refused outright if the resulting journal would not
+  // recover.
+  const ledgerFile = repoFile(absoluteRoot, LEDGER_PATH);
+  const nextLedger = Buffer.concat([fs.readFileSync(ledgerFile), ledgerLineBytes(event)]);
+  const candidate = {
+    eventId: event.eventId,
+    gateId,
+    event,
+    paths: {},
+    caseType: ANCHOR_TRANSITION_TYPE,
+    transitionType: ANCHOR_TRANSITION_TYPE,
+    writes: [{ path: LEDGER_PATH, bytes: nextLedger, sha256: sha256(nextLedger), byteLength: nextLedger.length }]
+  };
+  const before = [{ write: candidate.writes[0], existed: true, bytes: fs.readFileSync(ledgerFile) }];
+  const provenance = createAnchorTransactionProvenance({
+    root: absoluteRoot, candidate, before, authorityDocumentPath: authorityRelative
+  });
+  if (!provenance) {
+    push('ANCHOR_TRANSACTION_PROVENANCE_UNAVAILABLE', authorityRelative);
+    return blocked('PUBLICATION_PROVENANCE');
+  }
+  try {
+    applyCandidate({ root: absoluteRoot, candidate, provenance, requireRecoverableProvenance: true });
+  } catch (cause) {
+    // Three outcomes, three codes. Provenance that would not recover is refused
+    // before a byte moves; a clean rollback restored the pre-state; anything else
+    // left something to recover.
+    if (Array.isArray(cause.provenanceFindings)) {
+      push('ANCHOR_TRANSACTION_PROVENANCE_UNRECOVERABLE', cause.provenanceFindings.map((item) => item.code).join(','));
+      return { ...blocked('PUBLICATION_PROVENANCE'), rolledBack: true };
+    }
+    push(cause.recovered === true ? 'ANCHOR_PUBLICATION_FAILED_ROLLED_BACK' : 'ANCHOR_PUBLICATION_RECOVERY_REQUIRED', cause.message);
+    return { ...blocked('PUBLICATION'), rolledBack: cause.recovered === true };
+  }
   return { document: ANCHOR_TOOL_DOCUMENT, verdict: 'ANCHORED', phase: 'APPLIED', gateId, findings: [], appended: event };
 }
 

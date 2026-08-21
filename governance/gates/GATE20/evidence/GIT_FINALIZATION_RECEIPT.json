@@ -1,0 +1,268 @@
+{
+  "document": "GIT_FINALIZATION_RECEIPT",
+  "schemaVersion": 1,
+  "gateId": "GATE20",
+  "generatedAt": "2026-08-17T00:28:10.968Z",
+  "authoritative": false,
+  "baseHead": "00c019c42fb04b5ba11f1a7cdb62cb4750858db1",
+  "branch": "main",
+  "actualDelta": [
+    {
+      "code": " M",
+      "path": "governance/gee-v1/core/canonical-authorized-cohort.mjs"
+    },
+    {
+      "code": " M",
+      "path": "governance/gee-v1/core/precontract-authority.mjs"
+    },
+    {
+      "code": " M",
+      "path": "governance/generated/ACTIVE_GATE_CONTEXT.json"
+    },
+    {
+      "code": " M",
+      "path": "governance/generated/FOUNDATION_REPORT.md"
+    },
+    {
+      "code": " M",
+      "path": "governance/generated/FOUNDATION_REPORT_PROVENANCE.json"
+    },
+    {
+      "code": " M",
+      "path": "governance/state/GATE_STATUS_LEDGER.ndjson"
+    },
+    {
+      "code": " M",
+      "path": "governance/state/generated/GATE_STATUS_SNAPSHOT.json"
+    },
+    {
+      "code": " M",
+      "path": "governance/tests/fgi-canonical-cohort.test.mjs"
+    },
+    {
+      "code": " M",
+      "path": "governance/tools/final-gate-integrity-auditor.mjs"
+    },
+    {
+      "code": " M",
+      "path": "governance/tools/gate-fast-path-control-plane.mjs"
+    },
+    {
+      "code": "??",
+      "path": "governance/authority/authorizations/GATE20/GATE_AUTHORIZATION_RECORD.json"
+    },
+    {
+      "code": "??",
+      "path": "governance/authority/authorizations/GATE20/GATE_START_RECORD.json"
+    },
+    {
+      "code": "??",
+      "path": "governance/authority/authorizations/GATE20/PROJECT_OWNER_GATE_AUTHORIZATION_AUTHORITY.json"
+    },
+    {
+      "code": "??",
+      "path": "governance/authority/authorizations/GATE20/PROJECT_OWNER_GATE_START_AUTHORITY.json"
+    },
+    {
+      "code": "??",
+      "path": "governance/authority/precontract/GATE20/PRECONTRACT_CONSUMPTION_ANCHOR_AUTHORITY_R1.json"
+    },
+    {
+      "code": "??",
+      "path": "governance/authority/precontract/GATE20/PROJECT_OWNER_LOCAL_PRECONTRACT_AUTHORITY.json"
+    },
+    {
+      "code": "??",
+      "path": "governance/gates/GATE20/contracts/CURRENT_CONTRACT.json"
+    },
+    {
+      "code": "??",
+      "path": "governance/gates/GATE20/contracts/EXECUTION_CONTRACT_R0001.json"
+    },
+    {
+      "code": "??",
+      "path": "governance/gates/GATE20/contracts/PRECONTRACT_AUTHORITY_CONSUMPTION_R1.json"
+    },
+    {
+      "code": "??",
+      "path": "governance/gates/GATE20/evidence/FOUNDATION_CLOSURE_VERDICT.json"
+    },
+    {
+      "code": "??",
+      "path": "governance/gates/GATE20/evidence/FOUNDATION_FREEZE_MANIFEST.json"
+    },
+    {
+      "code": "??",
+      "path": "governance/gates/GATE20/evidence/GIT_FINALIZATION_RECEIPT.json"
+    },
+    {
+      "code": "??",
+      "path": "governance/gates/GATE20/implementation/final-git-and-verdict.mjs"
+    },
+    {
+      "code": "??",
+      "path": "governance/gates/GATE20/state/CURRENT_STATE.json"
+    },
+    {
+      "code": "??",
+      "path": "governance/gates/GATE20/state/revisions/R0001/CHECKPOINT.json"
+    },
+    {
+      "code": "??",
+      "path": "governance/gates/GATE20/state/revisions/R0001/OPEN_DEFECTS.json"
+    },
+    {
+      "code": "??",
+      "path": "governance/gates/GATE20/state/revisions/R0001/STATE_SEAL.json"
+    },
+    {
+      "code": "??",
+      "path": "governance/gates/GATE20/state/revisions/R0002/CHECKPOINT.json"
+    },
+    {
+      "code": "??",
+      "path": "governance/gates/GATE20/state/revisions/R0002/OPEN_DEFECTS.json"
+    },
+    {
+      "code": "??",
+      "path": "governance/gates/GATE20/state/revisions/R0002/STATE_SEAL.json"
+    },
+    {
+      "code": "??",
+      "path": "governance/gates/GATE20/state/revisions/R0003/CHECKPOINT.json"
+    },
+    {
+      "code": "??",
+      "path": "governance/gates/GATE20/state/revisions/R0003/OPEN_DEFECTS.json"
+    },
+    {
+      "code": "??",
+      "path": "governance/gates/GATE20/state/revisions/R0003/STATE_SEAL.json"
+    },
+    {
+      "code": "??",
+      "path": "governance/gates/GATE20/tests/gate20-final-git-and-verdict.test.mjs"
+    },
+    {
+      "code": "??",
+      "path": "governance/historical-architecture/GATE20_AGENT_CLOSURE_AUTHORIZED_PATHS_R1.json"
+    },
+    {
+      "code": "??",
+      "path": "governance/historical-architecture/GATE20_AGENT_CLOSURE_CONSUMPTION_R1.json"
+    },
+    {
+      "code": "??",
+      "path": "governance/historical-architecture/GATE20_FOUNDATION_PROJECTION_SYNC_AUTHORIZED_PATHS_R1.json"
+    },
+    {
+      "code": "??",
+      "path": "governance/historical-architecture/GATE20_FOUNDATION_PROJECTION_SYNC_CONSUMPTION_R1.json"
+    },
+    {
+      "code": "??",
+      "path": "governance/historical-architecture/LIFECYCLE_AUTHORITY_COHORT_DERIVATION_AUTHORIZED_PATHS_R1.json"
+    },
+    {
+      "code": "??",
+      "path": "governance/historical-architecture/LIFECYCLE_AUTHORITY_COHORT_DERIVATION_CONSUMPTION_R1.json"
+    },
+    {
+      "code": "??",
+      "path": "governance/historical-architecture/PRECONTRACT_ANCHOR_ENFORCEMENT_AUTHORIZED_PATHS_R1.json"
+    },
+    {
+      "code": "??",
+      "path": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_GATE20_FINAL_CLOSURE_R1.json"
+    },
+    {
+      "code": "??",
+      "path": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_GATE20_FOUNDATION_PROJECTION_SYNC_R1.json"
+    },
+    {
+      "code": "??",
+      "path": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_LIFECYCLE_AUTHORITY_COHORT_DERIVATION_R1.json"
+    },
+    {
+      "code": "??",
+      "path": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_PRECONTRACT_ANCHOR_ENFORCEMENT_R1.json"
+    },
+    {
+      "code": "??",
+      "path": "governance/tests/precontract-anchor-enforcement.test.mjs"
+    },
+    {
+      "code": "??",
+      "path": "governance/tools/precontract-anchor-enforcement.mjs"
+    }
+  ],
+  "functionalDelta": [
+    "governance/gates/GATE20/evidence/FOUNDATION_CLOSURE_VERDICT.json",
+    "governance/gates/GATE20/evidence/FOUNDATION_FREEZE_MANIFEST.json",
+    "governance/gates/GATE20/evidence/GIT_FINALIZATION_RECEIPT.json",
+    "governance/gates/GATE20/implementation/final-git-and-verdict.mjs",
+    "governance/gates/GATE20/tests/gate20-final-git-and-verdict.test.mjs"
+  ],
+  "outsideFunctionalScope": [
+    "governance/authority/authorizations/GATE20/GATE_AUTHORIZATION_RECORD.json",
+    "governance/authority/authorizations/GATE20/GATE_START_RECORD.json",
+    "governance/authority/authorizations/GATE20/PROJECT_OWNER_GATE_AUTHORIZATION_AUTHORITY.json",
+    "governance/authority/authorizations/GATE20/PROJECT_OWNER_GATE_START_AUTHORITY.json",
+    "governance/authority/precontract/GATE20/PRECONTRACT_CONSUMPTION_ANCHOR_AUTHORITY_R1.json",
+    "governance/authority/precontract/GATE20/PROJECT_OWNER_LOCAL_PRECONTRACT_AUTHORITY.json",
+    "governance/gates/GATE20/contracts/CURRENT_CONTRACT.json",
+    "governance/gates/GATE20/contracts/EXECUTION_CONTRACT_R0001.json",
+    "governance/gates/GATE20/contracts/PRECONTRACT_AUTHORITY_CONSUMPTION_R1.json",
+    "governance/gates/GATE20/state/CURRENT_STATE.json",
+    "governance/gates/GATE20/state/revisions/R0001/CHECKPOINT.json",
+    "governance/gates/GATE20/state/revisions/R0001/OPEN_DEFECTS.json",
+    "governance/gates/GATE20/state/revisions/R0001/STATE_SEAL.json",
+    "governance/gates/GATE20/state/revisions/R0002/CHECKPOINT.json",
+    "governance/gates/GATE20/state/revisions/R0002/OPEN_DEFECTS.json",
+    "governance/gates/GATE20/state/revisions/R0002/STATE_SEAL.json",
+    "governance/gates/GATE20/state/revisions/R0003/CHECKPOINT.json",
+    "governance/gates/GATE20/state/revisions/R0003/OPEN_DEFECTS.json",
+    "governance/gates/GATE20/state/revisions/R0003/STATE_SEAL.json",
+    "governance/gee-v1/core/canonical-authorized-cohort.mjs",
+    "governance/gee-v1/core/precontract-authority.mjs",
+    "governance/generated/ACTIVE_GATE_CONTEXT.json",
+    "governance/generated/FOUNDATION_REPORT.md",
+    "governance/generated/FOUNDATION_REPORT_PROVENANCE.json",
+    "governance/historical-architecture/GATE20_AGENT_CLOSURE_AUTHORIZED_PATHS_R1.json",
+    "governance/historical-architecture/GATE20_AGENT_CLOSURE_CONSUMPTION_R1.json",
+    "governance/historical-architecture/GATE20_FOUNDATION_PROJECTION_SYNC_AUTHORIZED_PATHS_R1.json",
+    "governance/historical-architecture/GATE20_FOUNDATION_PROJECTION_SYNC_CONSUMPTION_R1.json",
+    "governance/historical-architecture/LIFECYCLE_AUTHORITY_COHORT_DERIVATION_AUTHORIZED_PATHS_R1.json",
+    "governance/historical-architecture/LIFECYCLE_AUTHORITY_COHORT_DERIVATION_CONSUMPTION_R1.json",
+    "governance/historical-architecture/PRECONTRACT_ANCHOR_ENFORCEMENT_AUTHORIZED_PATHS_R1.json",
+    "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_GATE20_FINAL_CLOSURE_R1.json",
+    "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_GATE20_FOUNDATION_PROJECTION_SYNC_R1.json",
+    "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_LIFECYCLE_AUTHORITY_COHORT_DERIVATION_R1.json",
+    "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_PRECONTRACT_ANCHOR_ENFORCEMENT_R1.json",
+    "governance/state/GATE_STATUS_LEDGER.ndjson",
+    "governance/state/generated/GATE_STATUS_SNAPSHOT.json",
+    "governance/tests/fgi-canonical-cohort.test.mjs",
+    "governance/tests/precontract-anchor-enforcement.test.mjs",
+    "governance/tools/final-gate-integrity-auditor.mjs",
+    "governance/tools/gate-fast-path-control-plane.mjs",
+    "governance/tools/precontract-anchor-enforcement.mjs"
+  ],
+  "functionalAuthorizedCohort": [
+    "governance/gates/GATE20/evidence/FOUNDATION_CLOSURE_VERDICT.json",
+    "governance/gates/GATE20/evidence/FOUNDATION_FREEZE_MANIFEST.json",
+    "governance/gates/GATE20/evidence/GIT_FINALIZATION_RECEIPT.json",
+    "governance/gates/GATE20/implementation/final-git-and-verdict.mjs",
+    "governance/gates/GATE20/tests/gate20-final-git-and-verdict.test.mjs"
+  ],
+  "cohortDerivation": "Contract authorizedPaths only; lifecycle authority and state artifacts remain separately governed.",
+  "requestedOperations": [],
+  "commitPerformed": false,
+  "pushPerformed": false,
+  "maxCommitCount": 0,
+  "freezeManifestSha256": "4d07ca708e0e6fde1b979f1c264acd21046b266ae21b72080ab9bcea064dbf00",
+  "closureVerdictSha256": "9f973e9ed234134d94bd1cdeaba423e117d2db6fb415b2076d0b497638f9bc9b",
+  "cohortSelfExclusion": {
+    "path": "governance/gates/GATE20/evidence/GIT_FINALIZATION_RECEIPT.json",
+    "reason": "The receipt cannot hash its own final bytes."
+  }
+}

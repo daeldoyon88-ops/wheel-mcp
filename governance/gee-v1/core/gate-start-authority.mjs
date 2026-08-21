@@ -7,6 +7,7 @@
  */
 
 import { canonicalize, sha256Hex, verifyOwnerSignature, authorizationSigningPayload } from './release-authority.mjs';
+import { satisfiesSuccessorClosure } from './successor-closure.mjs';
 import {
   LEGACY_SIGNED_AUTHORITY_MODE,
   POST_FREEZE_MAINTENANCE_AUTHORITY_MODE,
@@ -115,7 +116,7 @@ function validateDependencyProof(value, findings) {
   unknownFields(value, fields, findings, 'DEPENDENCY_PROOF_UNKNOWN_FIELD');
   missingFields(value, fields, findings, 'DEPENDENCY_PROOF_FIELD_MISSING');
   if (!isString(value.gateId)) findings.push({ code: 'DEPENDENCY_GATE_INVALID' });
-  if (!['COMPLETE_AGENT', 'COMPLETE_CONFIRMED', 'SUPERSEDED'].includes(value.status)) findings.push({ code: 'DEPENDENCY_STATUS_NON_TERMINAL' });
+  if (!satisfiesSuccessorClosure(value.status)) findings.push({ code: 'DEPENDENCY_STATUS_NON_TERMINAL' });
   if (!exactPath(value.authorityPath) && !isString(value.authorityPath)) findings.push({ code: 'DEPENDENCY_AUTHORITY_INVALID' });
   if (!isSha(value.authoritySha256)) findings.push({ code: 'DEPENDENCY_AUTHORITY_SHA_INVALID' });
 }

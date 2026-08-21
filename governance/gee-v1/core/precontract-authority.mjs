@@ -72,6 +72,7 @@
  */
 
 import { canonicalize, sha256Hex, verifyOwnerSignature } from './release-authority.mjs';
+import { SUCCESSOR_CLOSURE_STATUSES } from './successor-closure.mjs';
 import {
   LEGACY_SIGNED_AUTHORITY_MODE,
   POST_FREEZE_MAINTENANCE_AUTHORITY_MODE,
@@ -86,7 +87,8 @@ export const PRECONTRACT_PURPOSE = 'BOOTSTRAP_CONTRACT_CANONICALIZATION';
 export const PRECONTRACT_OPERATION = 'BOOTSTRAP_CONTRACT_CANONICALIZATION';
 export const PRECONTRACT_STATUS = 'NOT_STARTED';
 export const PRECONTRACT_MAX_USE = 1;
-export const TERMINAL_DEPENDENCY_STATUSES = Object.freeze(['COMPLETE_AGENT', 'COMPLETE_CONFIRMED', 'SUPERSEDED']);
+/** Re-exported, never restated: one sequencing rule for the whole engine. */
+export const TERMINAL_DEPENDENCY_STATUSES = SUCCESSOR_CLOSURE_STATUSES;
 
 /** Reused, not redefined: one authority-mode vocabulary for the whole system. */
 export const PRECONTRACT_LOCAL_AUTHORITY_MODE = POST_FREEZE_MAINTENANCE_AUTHORITY_MODE;
@@ -101,6 +103,22 @@ export const PRECONTRACT_CONSUMPTION_ANCHOR_TRANSITION_TYPE = 'PRECONTRACT_CONSU
 export const PRECONTRACT_CONSUMPTION_ANCHOR_AUTHORITY_KIND = 'GATE_PRECONTRACT_CONSUMPTION_ANCHOR_LOCAL_AUTHORITY';
 export const PRECONTRACT_CONSUMPTION_ANCHOR_AUTHORITY_MODE = POST_FREEZE_MAINTENANCE_AUTHORITY_MODE;
 export const PRECONTRACT_CONSUMPTION_ANCHOR_AUTHORITY_MAX_USE = 1;
+
+export const PRECONTRACT_AUTHORITY_ROOT = 'governance/authority/precontract';
+
+/**
+ * The deterministic in-repo location of a Gate's local precontract authority.
+ *
+ * Its siblings — gateAuthorizationRecordPath, gateStartRecordPath and their owner
+ * snapshot paths — already existed on their own primitives, so every consumer
+ * located those through the primitive that owns them. This one was only ever
+ * spelled as a literal at the call site, which is how a consumer came to disagree
+ * with the primitive about where the document lives. It is exported here so the
+ * path has exactly one definition, like the other three.
+ */
+export function precontractLocalAuthorityPath(gateId) {
+  return `${PRECONTRACT_AUTHORITY_ROOT}/${gateId}/PROJECT_OWNER_LOCAL_PRECONTRACT_AUTHORITY.json`;
+}
 
 const REQUEST_FIELDS = Object.freeze([
   'schemaVersion', 'documentKind', 'requestId', 'projectId', 'gateId', 'purpose', 'operation',

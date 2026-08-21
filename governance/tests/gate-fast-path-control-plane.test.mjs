@@ -38,6 +38,7 @@ import {
 import { checkExistingWorkIndex, buildExistingWorkIndex } from '../tools/governance-existing-work-index.mjs';
 import { compareRegressionIdentities, establishComparability, parseTapFailureIdentities, resolveSuiteManifest } from '../tools/regression-identity-delta.mjs';
 import { runPreexecutionReuseCheck } from '../tools/gate-preexecution-reuse-check.mjs';
+import { resolveGateDependencyProof } from '../gee-v1/adapters/wheel/gate-dependency-resolution.mjs';
 
 import { createContentAddressedStore } from '../gee-v1/cas/content-addressed-store.mjs';
 import { createSnapshot, compareSnapshots } from '../gee-v1/delta/delta-engine.mjs';
@@ -595,8 +596,43 @@ test('FP27 an incompatible durable lifecycle checkpoint blocks instead of becomi
 /* 15-16  sequencing is not a defect                                         */
 /* ------------------------------------------------------------------------ */
 
-test('FP15 GATE16 is READY_WHEN_SEQUENCED because GATE15 is not closed', async () => {
-  const report = await runFastPathControlPlane({ root: REPO_ROOT, gateId: 'GATE16', phase: 'READINESS' });
+test('FP15 a NOT_STARTED successor of an unclosed predecessor is READY_WHEN_SEQUENCED', async () => {
+  // The Gate under test is DERIVED, not named — and the derivation itself has now
+  // been wrong twice, in opposite directions.
+  //
+  // FIRST the case was anchored on GATE16/GATE15 by NAME. GATE15 was confirmed,
+  // the premise evaporated, and the assertion began reporting FAST_PATH_READY:
+  // still running, no longer asking its question.
+  //
+  // THEN it was derived as "the first registry Gate with an unsatisfied
+  // dependency" — which was correct only while COMPLETE_AGENT still counted as
+  // closure. Strict successor closure made COMPLETE_AGENT non-closing, so every
+  // historical Gate from GATE01 onward suddenly has an "unsatisfied" predecessor,
+  // and the selector landed on GATE01: a Gate that is finished, whose fast path
+  // is not a sequencing question at all. The case ran, and asked nothing.
+  //
+  // A SEQUENCING question needs BOTH halves to be true at once: the subject must
+  // be genuinely un-started, and its predecessor must genuinely not be closed.
+  // Selecting on the predecessor alone was what let an already-closed subject
+  // satisfy the search. Both are required here, so the case can only ever land on
+  // a real future successor, and it fails loudly rather than drifting if no such
+  // Gate exists.
+  const registry = JSON.parse(fs.readFileSync(path.join(REPO_ROOT, 'governance/GATE_REGISTRY_00_40.json'), 'utf8'));
+  const events = fs.readFileSync(path.join(REPO_ROOT, 'governance/state/GATE_STATUS_LEDGER.ndjson'), 'utf8')
+    .split('\n').filter(Boolean).map((line) => JSON.parse(line));
+  const statusByGate = new Map();
+  for (const event of events) statusByGate.set(event.gateId, event.toStatus);
+
+  const blocked = registry.gates.find((gate) => {
+    if ((statusByGate.get(gate.gateId) ?? 'NOT_STARTED') !== 'NOT_STARTED') return false;
+    const dependencies = gate.dependencies ?? [];
+    return dependencies.length > 0 && dependencies.some((dependency) =>
+      resolveGateDependencyProof({ root: REPO_ROOT, gateId: dependency }).satisfied === false);
+  });
+  assert.ok(blocked, 'the property needs a NOT_STARTED Gate whose declared dependency is not closed');
+  assert.equal(statusByGate.get(blocked.gateId) ?? 'NOT_STARTED', 'NOT_STARTED');
+
+  const report = await runFastPathControlPlane({ root: REPO_ROOT, gateId: blocked.gateId, phase: 'READINESS' });
   assert.equal(report.verdict, 'READY_WHEN_SEQUENCED');
   assert.deepEqual(report.blockingFacts, []);
   assert.equal(report.dependencies.satisfied, false);

@@ -10,13 +10,37 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 
-export const CLOSED_REVISION_STATUSES = Object.freeze([
-  'COMPLETE_AGENT',
-  'COMPLETE_CONFIRMED',
-  'CLOSED'
-]);
+import { validateStateSeal } from '../../tools/validate-state-seal.mjs';
+import { authenticateCanonicalLedgerHistory } from '../../tools/canonical-ledger-authority.mjs';
+import { verifyLedgerText } from './verified-ledger-evidence.mjs';
+import {
+  resolveStateRevisionLineage,
+  ANCHOR_LEDGER,
+  LEGACY_ERA_MAX_ORDINAL
+} from './state-revision-resolver.mjs';
+import { validateLegacyStateBindingsDocument } from './legacy-state-binding.mjs';
+import {
+  CLOSED_REVISION_STATUSES,
+  CLOSED_REVISION_STATUS_SET
+} from './closed-revision-status.mjs';
 
-const CLOSED_STATUS_SET = new Set(CLOSED_REVISION_STATUSES);
+/**
+ * The closed-status vocabulary now lives in its own leaf module, and is
+ * re-exported here UNCHANGED.
+ *
+ * This module has always been the published home of `CLOSED_REVISION_STATUSES`
+ * (see checkpoints/CP-GFG-A-BASELINE-PLAN-FROZEN.json, which records that exact
+ * export), so the name stays on this module's public surface and every existing
+ * importer keeps working. What moved is only WHERE the three strings are defined:
+ * post-freeze-maintenance-authority imported them from here, and the canonical
+ * ledger validator imports post-freeze-maintenance-authority — so that edge is
+ * what made `validate-status-ledger` unreachable from this file without an import
+ * cycle. Authenticating a seal lineage against canonically authorized ledger
+ * history requires precisely that import. See closed-revision-status.mjs.
+ */
+export { CLOSED_REVISION_STATUSES };
+
+const CLOSED_STATUS_SET = CLOSED_REVISION_STATUS_SET;
 const SAFE_RELATIVE_RE = /^[^\\/][^\\]*$/;
 
 export const EXACT_SEALED_BYTE_RESTORATION = 'EXACT_SEALED_BYTE_RESTORATION';
@@ -361,5 +385,388 @@ export function findClosedStateSealMember(root, repoRelativePath) {
   return {
     ...inventory,
     matches: inventory.members.filter((member) => member.repoRelativePath === repoRelativePath)
+  };
+}
+
+/* ========================================================================== *
+ * AUTHENTICATED closed-state seal inventory.
+ *
+ * WHY A SECOND INVENTORY EXISTS, AND WHY IT MUST.
+ *
+ * `collectClosedStateSealMembers` above answers a REFUSAL question: "might this
+ * path be sealed?" Its only consumer duty is to stop a publisher from mutating a
+ * sealed member, so its correct failure direction is INCLUSIVE — a seal-shaped
+ * document that names a path is reason enough to refuse, and narrowing it would
+ * weaken the SEALED_MEMBER_MUTATION guard. It is deliberately left unchanged.
+ *
+ * This function answers the OPPOSITE question: "may this seal PROVE the bytes a
+ * path holds right now?" That is an authorization question, and its correct
+ * failure direction is EXCLUSIVE. Feeding the refusal inventory to an authorizer
+ * inverted the trust direction of every check in it, and produced exactly one
+ * defect class:
+ *
+ *     a path reported BLOCKED / NO_APPLICABLE_AUTHORITY became
+ *     AUTHORIZED_CURRENT_BYTES as soon as ANY file appeared at
+ *     governance/gates/<G>/state/revisions/<Rxxxx>/STATE_SEAL.json whose payload
+ *     contained a closed-looking string anywhere and whose sealedMembers named
+ *     the path at its CURRENT digest.
+ *
+ * Nothing in that document had to be true. It needed no payloadSha256, no
+ * sealedMembersDigest, no seal chain, no ledger, no gate that exists. Writing the
+ * file was the whole proof. A "seal" that certifies whatever it is handed is not
+ * evidence about bytes; it is a restatement of them.
+ *
+ * WHAT AUTHENTICATION MEANS HERE. Four independent canonical primitives, each
+ * already the repository's single definition of its own question, and none of
+ * them re-implemented:
+ *
+ *   verifyLedgerText              are the ledger bytes an intact canonical chain?
+ *   validateLegacyStateBindingsDocument   is the legacy interpretation record sound?
+ *   resolveStateRevisionLineage   which revisions does that ledger actually bind,
+ *                                 and is this gate ledger-anchored at all?
+ *   validateStateSeal             is this exact seal canonically valid — schema,
+ *                                 payloadSha256, sealedMembersDigest, canonical
+ *                                 location, revision-directory identity, member
+ *                                 bytes, and previous-seal chain?
+ *
+ * A seal contributes members only where ALL of them agree. There is no local
+ * notion of "valid state seal" in this module and none may be added: every
+ * verdict below is a verdict one of those four returned.
+ *
+ * THE LEDGER ANCHOR IS THE LOAD-BEARING PART. Canonical seal validity alone is
+ * NOT sufficient and must not be mistaken for sufficiency. `validateStateSeal`
+ * verifies a seal against the bytes on disk, so anyone able to write files can
+ * manufacture a seal that passes it: create R000N+1 with its own CHECKPOINT and
+ * OPEN_DEFECTS, link previousStateSealSha256 to the real predecessor, recompute
+ * both digests, and name any path at its current digest. Self-consistency is
+ * cheap. What cannot be manufactured is the append-only ledger's pin of the seal
+ * bytes. So eligibility is restricted to revisions on the lineage that
+ * `resolveStateRevisionLineage` resolves from the LEDGER (ANCHOR_LEDGER): the
+ * head seal's digest is pinned by an event, and every predecessor is pinned
+ * cryptographically by the successor's previousStateSealSha256. A planted
+ * revision is not on that chain — it is reported as an orphan — and therefore
+ * proves nothing.
+ *
+ * A gate in the PRE-BINDING era (its events never bound a revision and no legacy
+ * record claims one) resolves its head from the seal chain alone. That chain is
+ * self-certifying and a planted successor can extend it, so such a gate is
+ * refused as a source of current-byte authorization rather than admitted on a
+ * weaker claim it cannot carry. Its seals keep every other role they have.
+ *
+ * CLOSED STATE IS READ FROM THE SEAL'S OWN STATUS FIELD, not by scanning the
+ * payload for a closed-looking string. The recursive scan used by the refusal
+ * inventory is right for refusal — err toward "this might be sealed" — and wrong
+ * here: it classified GATE12's R0001/R0002 as CLOSED because an unrelated payload
+ * field happened to hold the text 'COMPLETE_CONFIRMED', when neither seal
+ * declares a closed execution status at all. Under authorization that is a
+ * fabricated closed status, so `payload.executionStatus` is required to BE one of
+ * CLOSED_REVISION_STATUSES.
+ *
+ * HISTORICAL MUTABLE PROJECTIONS ARE NOT PROMOTED. `validateStateSeal` verifies a
+ * superseded revision's CURRENT_STATE / CURRENT_CONTRACT members for SHAPE only —
+ * correctly, since a pointer's sealed digest is a historical fact and its current
+ * bytes are supposed to have moved on. Those digests are therefore not something
+ * the validator proved about the bytes there now, and MODEL D forbids pinning a
+ * MUTABLE_PROJECTION permanently in any case. They are contributed only by the
+ * seal of the revision the ledger resolves as CURRENT, where the validator does
+ * compare real bytes.
+ *
+ * CONFLICTS DROP THE PATH. Two authenticated seals naming one path at different
+ * digests is a contradiction between two governed records. The path contributes
+ * NOTHING — never the first one found.
+ * ========================================================================== */
+
+export const AUTHENTICATED_CLOSED_STATE_SEAL_INVENTORY = 'AUTHENTICATED_CLOSED_STATE_SEAL_INVENTORY';
+
+const LEDGER_RELATIVE_PATH = 'governance/state/GATE_STATUS_LEDGER.ndjson';
+const LEGACY_BINDINGS_RELATIVE_PATH = 'governance/historical-architecture/LEGACY_STATE_BINDINGS.json';
+
+/**
+ * The two gate-local pointer paths a state seal may name. Same paths
+ * `validate-state-seal.mjs` treats as mutable projections, expressed the way the
+ * rest of core already expresses them (see canonical-authorized-cohort.mjs). This
+ * is a path template, not a second opinion about seal validity.
+ */
+function gateLocalProjectionPaths(gateId) {
+  return new Set([
+    `governance/gates/${gateId}/state/CURRENT_STATE.json`,
+    `governance/gates/${gateId}/contracts/CURRENT_CONTRACT.json`
+  ]);
+}
+
+function readFileTextOrNull(file) {
+  try { return fs.readFileSync(file, 'utf8'); } catch { return null; }
+}
+
+function sealIdentityMap(revisionsRoot) {
+  const seals = new Map();
+  const presentRevisions = [];
+  let entries;
+  try {
+    entries = fs.readdirSync(revisionsRoot, { withFileTypes: true })
+      .filter((entry) => entry.isDirectory() && /^R[0-9]{4}$/.test(entry.name));
+  } catch { return { seals, presentRevisions }; }
+  for (const entry of entries) {
+    presentRevisions.push(entry.name);
+    const file = path.join(revisionsRoot, entry.name, 'STATE_SEAL.json');
+    let bytes;
+    try { bytes = fs.readFileSync(file); } catch { continue; }
+    let parsed;
+    try { parsed = JSON.parse(bytes.toString('utf8').replace(/^﻿/, '')); } catch { continue; }
+    seals.set(entry.name, {
+      sha256: sha256Buffer(bytes),
+      gateId: parsed.gateId,
+      stateRevision: parsed.stateRevision,
+      previousStateSealSha256: parsed.previousStateSealSha256
+    });
+  }
+  return { seals, presentRevisions };
+}
+
+function untrustedInventory(findings, refusals = []) {
+  return {
+    document: AUTHENTICATED_CLOSED_STATE_SEAL_INVENTORY,
+    authenticated: false,
+    members: [],
+    findings,
+    refusals
+  };
+}
+
+/**
+ * Every closed-state seal member whose seal is provably part of the governed,
+ * ledger-anchored history AND canonically valid, and whose bytes that validation
+ * actually compared.
+ *
+ * @returns {{ document: string, authenticated: boolean,
+ *   members: Array<{repoRelativePath: string, sha256: string, byteLength: number,
+ *                   gateId: string, stateRevision: string, sealPath: string}>,
+ *   findings: Array<{code: string, detail?: unknown}>,
+ *   refusals: Array<{code: string, detail?: unknown}> }}
+ *
+ * `authenticated === false` means the trust source itself could not be
+ * established. Members are empty in that case and a consumer must not fall back
+ * to the refusal inventory to fill the gap.
+ */
+export function collectAuthenticatedClosedStateSealMembers(root) {
+  const findings = [];
+  const refusals = [];
+
+  /* ---- 1. The ledger must be an intact canonical chain ------------------ */
+  const ledgerText = readFileTextOrNull(path.join(root, ...LEDGER_RELATIVE_PATH.split('/')));
+  if (ledgerText === null) {
+    return untrustedInventory([finding('AUTHENTICATED_CLOSED_STATE_SEAL_LEDGER_UNAVAILABLE', LEDGER_RELATIVE_PATH)]);
+  }
+  const ledger = verifyLedgerText(ledgerText);
+  if (!ledger.verified) {
+    return untrustedInventory([finding(
+      'AUTHENTICATED_CLOSED_STATE_SEAL_LEDGER_EVIDENCE_INVALID',
+      [...new Set(ledger.findings.map((entry) => entry.code))].sort().join(',')
+    )]);
+  }
+
+  /* ---- 1b. ...AND that chain must be a CANONICALLY AUTHORIZED history ---- */
+  //
+  // THE DEFECT THIS CLAUSE CLOSES, STATED AS THE REPRODUCED ATTACK.
+  //
+  // Step 1 above proves CHAIN INTEGRITY and nothing else. Every digest it checks
+  // is computed by whoever writes the file, so an author who controls the ledger
+  // controls them too:
+  //
+  //     SELF-HASH IS NOT AUTHENTICITY.
+  //     A COHERENT HASH CHAIN IS NOT A CANONICALLY AUTHORIZED HISTORY.
+  //
+  // Reproduced from live bytes in a disposable clone: take a path reported
+  // BLOCKED / NO_APPLICABLE_AUTHORITY, mint a state-binding event pinning a new
+  // revision, RECHAIN the whole ledger so every ordinal and digest is correct,
+  // and plant a STATE_SEAL for that revision naming the path at its CURRENT
+  // digest. `verifyLedgerText` returned verified, `validateStateSeal` returned
+  // valid, `resolveStateRevisionLineage` reported the planted revision as
+  // LEDGER-ANCHORED — because the ledger really did pin it — and the path became
+  // AUTHORIZED_CURRENT_BYTES. Meanwhile the canonical ledger validator reported
+  // the transition as unauthorized. The repository held two answers over one set
+  // of bytes, and the one gating byte authorization had checked no authority.
+  //
+  // The comment block above still says the ledger's pin "cannot be manufactured".
+  // That was the load-bearing assumption and it was false: it is true only of a
+  // ledger somebody has actually validated. So the pin is now required to come
+  // from a history the CANONICAL VALIDATOR accepts.
+  //
+  // NO SECOND VALIDATOR. `authenticateCanonicalLedgerHistory` calls the very
+  // `validateLedger` the validate-status-ledger CLI calls, with the same project
+  // policy, in LEDGER_INTEGRITY mode ("was this history validly written?" — not
+  // "do today's mutable projections agree?", which is a different question and
+  // whose fusion with this one is itself a recorded defect). Transition legality,
+  // authority binding, anchor clauses, authorization/start replay and successor
+  // rules are consulted in their single normative implementation; none of them is
+  // restated here.
+  //
+  // NO FALLBACK. If canonical authority cannot be established there is no such
+  // thing as a proven seal member below this root, so the inventory is refused
+  // whole. Reading the chain-only result "anyway" is precisely the defect.
+  const ledgerAuthority = authenticateCanonicalLedgerHistory({ root });
+  if (!ledgerAuthority.authorized) {
+    return untrustedInventory([finding(
+      'AUTHENTICATED_CLOSED_STATE_SEAL_LEDGER_AUTHORITY_INVALID',
+      `${ledgerAuthority.reason}:${ledgerAuthority.detail ?? ''}`
+    )]);
+  }
+  // Both layers must be describing the SAME artifact. They read the file
+  // independently, so a disagreement about how many events it holds means one of
+  // them is reasoning about bytes the other never saw; that is never resolved by
+  // preferring either answer.
+  if (ledgerAuthority.eventCount !== ledger.eventCount) {
+    return untrustedInventory([finding(
+      'AUTHENTICATED_CLOSED_STATE_SEAL_LEDGER_AUTHORITY_DISAGREEMENT',
+      `${ledger.eventCount}!=${ledgerAuthority.eventCount}`
+    )]);
+  }
+
+  /* ---- 2. Legacy interpretation records, if any ------------------------- */
+  //
+  // Absent is fine — most gates never needed one. PRESENT BUT INVALID is not:
+  // the era boundary would then rest on a record nothing had checked, so the
+  // whole inventory is refused rather than resolved without it.
+  let legacyBindings = [];
+  let legacyEraMaxOrdinal = LEGACY_ERA_MAX_ORDINAL;
+  const legacyFile = path.join(root, ...LEGACY_BINDINGS_RELATIVE_PATH.split('/'));
+  if (fs.existsSync(legacyFile)) {
+    const legacyDocument = readJson(legacyFile);
+    const legacyReport = validateLegacyStateBindingsDocument(legacyDocument);
+    if (!legacyReport.valid) {
+      return untrustedInventory([finding(
+        'AUTHENTICATED_CLOSED_STATE_SEAL_LEGACY_BINDINGS_INVALID',
+        [...new Set(legacyReport.findings.map((entry) => entry.code))].sort().join(',')
+      )]);
+    }
+    legacyBindings = legacyDocument.bindings;
+    legacyEraMaxOrdinal = legacyDocument.legacyEraMaxOrdinal;
+  }
+
+  /* ---- 3. Per gate: ledger-anchored lineage, then canonical seal validity */
+  const members = [];
+  const gatesRoot = path.join(root, 'governance', 'gates');
+  let gates;
+  try {
+    gates = fs.readdirSync(gatesRoot, { withFileTypes: true }).filter((entry) => entry.isDirectory());
+  } catch (error) {
+    return untrustedInventory([finding('AUTHENTICATED_CLOSED_STATE_SEAL_INVENTORY_UNAVAILABLE', error?.message || String(error))]);
+  }
+
+  for (const gate of gates.sort((a, b) => a.name.localeCompare(b.name))) {
+    const gateId = gate.name;
+    const revisionsRoot = path.join(gatesRoot, gateId, 'state', 'revisions');
+    const { seals, presentRevisions } = sealIdentityMap(revisionsRoot);
+    if (seals.size === 0) continue;
+
+    // The events come from the CANONICALLY AUTHORIZED report, not from the
+    // chain-only verification. Both parsed the same file, but only one of them
+    // established that these events were lawfully written, and the positive trust
+    // chain must descend from that one.
+    const lineage = resolveStateRevisionLineage({
+      gateId, events: ledgerAuthority.events, legacyBindings, legacyEraMaxOrdinal, seals, presentRevisions
+    });
+
+    // A gate whose revisions the ledger never bound cannot lend authorization
+    // weight to anything. Reported, never silently skipped.
+    if (lineage.anchorState !== ANCHOR_LEDGER) {
+      refusals.push(finding('AUTHENTICATED_CLOSED_STATE_SEAL_LINEAGE_NOT_LEDGER_ANCHORED', gateId));
+      continue;
+    }
+    // Orphan revisions, forks, rollbacks, broken or cross-gate chains: any one of
+    // them means "which seals belong to this gate's history" is not knowable, and
+    // a planted revision is exactly what an orphan finding reports.
+    if (lineage.findings.length > 0) {
+      findings.push(finding(
+        'AUTHENTICATED_CLOSED_STATE_SEAL_LINEAGE_INVALID',
+        `${gateId}:${[...new Set(lineage.findings.map((entry) => entry.code))].sort().join(',')}`
+      ));
+      continue;
+    }
+
+    const projections = gateLocalProjectionPaths(gateId);
+    for (const stateRevision of lineage.sealChain) {
+      const sealFile = path.join(revisionsRoot, stateRevision, 'STATE_SEAL.json');
+      const sealPath = path.relative(root, sealFile).replaceAll('\\', '/');
+      const sealId = `${gateId}/${stateRevision}`;
+
+      // THE canonical seal validator. `currentRevision` is supplied from the
+      // ledger-anchored lineage resolved above so the two layers cannot form two
+      // opinions about which revision is current.
+      const report = validateStateSeal({ root, sealPath: sealFile, currentRevision: lineage.resolved });
+      if (!report.valid) {
+        findings.push(finding(
+          'AUTHENTICATED_CLOSED_STATE_SEAL_NOT_CANONICALLY_VALID',
+          `${sealPath}:${[...new Set(report.findings.map((entry) => entry.detectorId))].sort().join(',')}`
+        ));
+        continue;
+      }
+
+      const seal = readJson(sealFile);
+      if (!seal) {
+        findings.push(finding('AUTHENTICATED_CLOSED_STATE_SEAL_UNREADABLE', sealPath));
+        continue;
+      }
+      // Identity is taken from the LOCATION and required to equal the claim.
+      // validateStateSeal already blocks a relocated or misdeclared seal; this
+      // states the same invariant at the point the member record is built, so a
+      // member can never carry an identity the location does not support.
+      if (seal.gateId !== gateId || seal.stateRevision !== stateRevision) {
+        findings.push(finding('AUTHENTICATED_CLOSED_STATE_SEAL_IDENTITY_MISMATCH', sealPath));
+        continue;
+      }
+      // Closed state, from the seal's own execution status. Not closed is an
+      // ordinary fact about most revisions, so it is a refusal, not a finding.
+      if (!CLOSED_STATUS_SET.has(seal.payload?.executionStatus)) {
+        refusals.push(finding('AUTHENTICATED_CLOSED_STATE_SEAL_NOT_CLOSED', sealId));
+        continue;
+      }
+
+      const contributed = [];
+      let sealUsable = true;
+      for (const [index, member] of (seal.sealedMembers ?? []).entries()) {
+        const memberPath = member?.repoRelativePath;
+        if (!safeRelativePath(memberPath) || !validSha256(member?.sha256) || !validByteLength(member?.byteLength)) {
+          // Unreachable while the seal is canonically valid; if it ever is
+          // reached the two layers disagree, and the seal is dropped whole.
+          findings.push(finding('AUTHENTICATED_CLOSED_STATE_SEAL_MEMBER_INVALID', `${sealId}/sealedMembers/${index}`));
+          sealUsable = false;
+          break;
+        }
+        if (projections.has(memberPath) && stateRevision !== lineage.resolved) {
+          refusals.push(finding('AUTHENTICATED_CLOSED_STATE_SEAL_HISTORICAL_PROJECTION_NOT_PROMOTED', `${sealId}:${memberPath}`));
+          continue;
+        }
+        contributed.push({
+          repoRelativePath: memberPath,
+          sha256: member.sha256,
+          byteLength: member.byteLength,
+          gateId,
+          stateRevision,
+          sealPath
+        });
+      }
+      if (sealUsable) members.push(...contributed);
+    }
+  }
+
+  /* ---- 4. Contradiction between two governed records drops the path ----- */
+  const byPath = new Map();
+  const conflicted = new Set();
+  for (const member of members) {
+    const prior = byPath.get(member.repoRelativePath);
+    if (prior && (prior.sha256 !== member.sha256 || prior.byteLength !== member.byteLength)) {
+      findings.push(finding('AUTHENTICATED_CLOSED_STATE_SEAL_MEMBER_CONFLICT', member.repoRelativePath));
+      conflicted.add(member.repoRelativePath);
+    }
+    if (!prior) byPath.set(member.repoRelativePath, member);
+  }
+
+  return {
+    document: AUTHENTICATED_CLOSED_STATE_SEAL_INVENTORY,
+    authenticated: true,
+    members: members.filter((member) => !conflicted.has(member.repoRelativePath)),
+    findings,
+    refusals
   };
 }

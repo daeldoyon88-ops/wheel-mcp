@@ -1,0 +1,28 @@
+{
+  "documentKind": "GATE_PRECONTRACT_CONSUMPTION_ANCHOR_LOCAL_AUTHORITY",
+  "schemaVersion": 1,
+  "authorityId": "PRECONTRACT_CONSUMPTION_ANCHOR_GATE20_LOCAL_R1",
+  "authorityMode": "LOCAL_EXPLICIT_AUTHORITY",
+  "issuedBy": "PROJECT_OWNER",
+  "issuedAtUtc": "2026-08-16T17:05:00.000Z",
+  "projectId": "WHEEL",
+  "gateId": "GATE20",
+  "precontractAuthorityPath": "governance/authority/precontract/GATE20/PROJECT_OWNER_LOCAL_PRECONTRACT_AUTHORITY.json",
+  "precontractAuthorityId": "PRECONTRACT_BOOTSTRAP_GATE20_LOCAL_R1",
+  "consumptionRecordPath": "governance/gates/GATE20/contracts/PRECONTRACT_AUTHORITY_CONSUMPTION_R1.json",
+  "consumptionRecordSha256": "a0aef4ba1e0f1e3758efc2bbddb4e82ac5ab1f8088385b2968fc5483a93a55c7",
+  "maxUse": 1,
+  "reason": "Anchor the exact bytes of GATE20's already-consumed precontract receipt in the append-only ledger. The bootstrap was lawful at its own pre-state — 78 ledger events, GATE20 NOT_STARTED — but the anchor that makes that proof future-permanent was never appended, so the receipt's validity did not survive the Gate's own lifecycle progression. The anchor is appended rather than carried by a lifecycle event: no historical event is edited, and the Gate's status is restated, never changed.",
+  "prohibitedOperations": [
+    "START",
+    "AGENT_CLOSURE",
+    "EXTERNAL_CONFIRMATION",
+    "COMPLETE_CONFIRMED",
+    "STATUS_CHANGE",
+    "ARBITRARY_LEDGER_TRANSITION",
+    "OTHER_GATE",
+    "GIT_PUSH",
+    "HISTORY_REWRITE",
+    "ARBITRARY_GOVERNANCE_WRITE"
+  ]
+}

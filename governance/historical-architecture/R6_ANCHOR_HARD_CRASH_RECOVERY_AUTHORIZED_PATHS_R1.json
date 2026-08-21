@@ -1,0 +1,142 @@
+{
+  "documentKind": "POST_FREEZE_MAINTENANCE_AUTHORIZED_PATH_MANIFEST",
+  "schemaVersion": 2,
+  "manifestId": "R6_ANCHOR_HARD_CRASH_RECOVERY_AUTHORIZED_PATHS_R1",
+  "programId": "WHEEL_R6_ANCHOR_HARD_CRASH_RECOVERY_R1",
+  "prestateSelfExclusion": [
+    {
+      "path": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_R6_ANCHOR_HARD_CRASH_RECOVERY_R1.json",
+      "role": "AUTHORITY_DOCUMENT",
+      "reason": "The authority document must already exist for its own evaluator to read it; it stays inside the cohort and is verified byte-for-byte at consumption."
+    },
+    {
+      "path": "governance/historical-architecture/R6_ANCHOR_HARD_CRASH_RECOVERY_AUTHORIZED_PATHS_R1.json",
+      "role": "AUTHORIZED_PATH_MANIFEST",
+      "reason": "The manifest must already exist to be digest-pinned by the authority; it stays inside the cohort and is verified byte-for-byte at consumption."
+    }
+  ],
+  "paths": [
+    {
+      "path": "governance/tools/anchor-precontract-consumption.mjs",
+      "operation": "MODIFY",
+      "phase": "ANCHOR_TRANSACTION_PROVENANCE",
+      "reason": "The open blocker. Publication went through applyCandidate but called it with no authority at all, so createLifecycleTransactionProvenance answered null and the journal was written with provenance: null. A process killed mid-publication therefore left transactionState COMMITTING, a staged artifact on disk and a provenance recoverTransaction refuses — PENDING_TRANSACTION_PROVENANCE_INVALID / PROVENANCE_ABSENT_OR_INVALID — with no path forward. The single-use anchor authority this tool already verifies is now bound into the transaction, publication is refused outright if the resulting journal would not recover, and any transaction still in flight from an earlier crash is driven to a terminal state before a new candidate is derived.",
+      "artifactClass": "R6_ANCHOR_HARD_CRASH_RECOVERY",
+      "prestate": {
+        "state": "PRESENT",
+        "sha256": "375824f299ca444708117ac51cbd9711bac96053c8ef0b20cf44b0dbef9f9f9d",
+        "byteLength": 12338
+      }
+    },
+    {
+      "path": "governance/tools/transaction-provenance.mjs",
+      "operation": "MODIFY",
+      "phase": "ANCHOR_TRANSACTION_PROVENANCE",
+      "reason": "One provenance format and one validator now cover both authority classes the project actually has. The record names its authorityBinding, and an unnamed binding is refused rather than defaulted so a forged journal cannot pick the cheaper evaluator by omission. The anchor branch re-proves its authority through evaluatePrecontractConsumptionAnchorBinding — the same clause set validate-status-ledger uses on the published event — plus the receipt bytes themselves, and confines an anchor transaction structurally to the ledger, since an anchor authority carries no path manifest.",
+      "artifactClass": "R6_ANCHOR_HARD_CRASH_RECOVERY",
+      "prestate": {
+        "state": "PRESENT",
+        "sha256": "a83b57b42d1dd233267e624202ccb58cf927dded13e83ae7e1dd121071809330",
+        "byteLength": 11152
+      }
+    },
+    {
+      "path": "governance/tools/durable-write.mjs",
+      "operation": "CREATE",
+      "phase": "ANCHOR_TRANSACTION_PROVENANCE",
+      "reason": "The physical half of the defect. The transaction layer decides recovery on a dichotomy — every canonical path holds either its pre-state bytes or the candidate bytes — that fs.writeFileSync never actually provided: it truncates the target and streams into it, so a process killed mid-write left a prefix of the candidate in the append-only ledger, and because every reader parses every line, even the retry that would have repaired it could not run. Bytes are now filled into a temp file beside the target and moved in by a single rename, so no observer can see a partial canonical file whatever kills the process.",
+      "artifactClass": "R6_ANCHOR_HARD_CRASH_RECOVERY",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "governance/tools/gate-lifecycle-orchestrator.mjs",
+      "operation": "MODIFY",
+      "phase": "ANCHOR_TRANSACTION_PROVENANCE",
+      "reason": "applyCandidate publishes and journals durably, and accepts a caller-built provenance plus requireRecoverableProvenance: when a publisher declares a durable-recovery contract, the prepared journal is checked WITH THE VERY VALIDATOR RECOVERY USES before the transaction may leave PREPARED, so a transaction that could not be recovered is refused before it can need recovering. The pending-transaction sweep also discards a journal that already carries its COMMITTED marker: a process killed between that marker and the cleanup used to leave its directory behind for good, because recoverTransaction short-circuits on COMMITTED and the sweep stepped over it.",
+      "artifactClass": "R6_ANCHOR_HARD_CRASH_RECOVERY",
+      "prestate": {
+        "state": "PRESENT",
+        "sha256": "dc0df1a2cd830a6d07005aa06085b56ecd565cdc80c2c0bf772d9ac137a39a33",
+        "byteLength": 54623
+      }
+    },
+    {
+      "path": "governance/tools/recover-governance-transaction.mjs",
+      "operation": "MODIFY",
+      "phase": "ANCHOR_TRANSACTION_PROVENANCE",
+      "reason": "Recovery is made survivable in its own right. A journal that will not parse is a BLOCK carrying TRANSACTION_JOURNAL_UNPARSEABLE rather than a throw — recovery dying on the tampered file it was called to judge leaves nobody to report the problem. Its writes are durable for the same reason the publisher is, the ledger is replaced whole instead of appended so a killed roll-forward cannot truncate it, and a completed recovery sweeps the half-moved bytes the interrupted publication left beside its target.",
+      "artifactClass": "R6_ANCHOR_HARD_CRASH_RECOVERY",
+      "prestate": {
+        "state": "PRESENT",
+        "sha256": "88830fb80242919c910bdb7e270f8a3c52ebc5d111e811f67f369f95b38e92a2",
+        "byteLength": 6717
+      }
+    },
+    {
+      "path": "governance/tools/post-freeze-maintenance-observation.mjs",
+      "operation": "MODIFY",
+      "phase": "ANCHOR_TRANSACTION_PROVENANCE",
+      "reason": "The seven pre-state fields are extracted into observeCanonicalPreState and consumed by both the maintenance observation and the anchor provenance receipt. A transaction that recorded its pre-state under one definition and was recovered under another would be comparing two different facts and calling the difference tampering.",
+      "artifactClass": "R6_ANCHOR_HARD_CRASH_RECOVERY",
+      "prestate": {
+        "state": "PRESENT",
+        "sha256": "84867906a00f70d535dfb5665e583c29467f78a666d9b7e58a2b44f9484eb64c",
+        "byteLength": 9473
+      }
+    },
+    {
+      "path": "governance/tests/anchor-hard-crash-recovery.test.mjs",
+      "operation": "CREATE",
+      "phase": "TARGETED_HOSTILE_TESTS",
+      "reason": "The hostile battery the previous one could not be. A child node process is killed with SIGKILL from inside each write boundary — after PREPARED, after COMMITTING, mid-ledger-write, after the rename, and after the COMMITTED marker — so no handler runs and no rollback executes, and recovery is then invoked from a third process that never saw the publisher. Every boundary writes a durable marker outside the repository recording what it reached, because a hostile that silently stops short is exactly what made the earlier attempt prove less than it looked. Forged, missing, mis-bound and mis-pre-stated provenance, tampered staged bytes, a rewritten receipt, a truncated ledger and an unparseable journal are each required to BLOCK.",
+      "artifactClass": "R6_ANCHOR_HARD_CRASH_RECOVERY",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "governance/tests/anchor-publication-atomicity.test.mjs",
+      "operation": "MODIFY",
+      "phase": "TARGETED_HOSTILE_TESTS",
+      "reason": "The caught-exception hostile is re-aimed at the boundary that can now fail part-way — the temp fill — and still asserts a real prefix reached stable storage before the failure. What it claims is unchanged: a publication that fails mid-write leaves the canonical ledger byte-identical, parseable and retryable. It is now true for a stronger reason, and the hard-crash battery proves that reason holds when the process does not survive to catch anything.",
+      "artifactClass": "R6_ANCHOR_HARD_CRASH_RECOVERY",
+      "prestate": {
+        "state": "PRESENT",
+        "sha256": "33a9ab925d849efa26c553576f08b31aabfdadf7d4655cb7eec11f7069342715",
+        "byteLength": 17124
+      }
+    },
+    {
+      "path": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_R6_ANCHOR_HARD_CRASH_RECOVERY_R1.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE_AUTHORITY_RECORDS",
+      "reason": "Single-use LOCAL_EXPLICIT_AUTHORITY for this repair; no already-consumed authority is reused.",
+      "artifactClass": "R6_ANCHOR_HARD_CRASH_RECOVERY",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "governance/historical-architecture/R6_ANCHOR_HARD_CRASH_RECOVERY_AUTHORIZED_PATHS_R1.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE_AUTHORITY_RECORDS",
+      "reason": "Exact finite eleven-path cohort with declared per-path pre-state; no wildcard and no directory blanket.",
+      "artifactClass": "R6_ANCHOR_HARD_CRASH_RECOVERY",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "governance/historical-architecture/R6_ANCHOR_HARD_CRASH_RECOVERY_CONSUMPTION_R1.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE_AUTHORITY_RECORDS",
+      "reason": "Single-use consumption record binding this authority, its manifest and its transaction.",
+      "artifactClass": "R6_ANCHOR_HARD_CRASH_RECOVERY",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    }
+  ]
+}

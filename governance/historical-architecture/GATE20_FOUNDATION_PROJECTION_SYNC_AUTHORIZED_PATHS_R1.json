@@ -1,0 +1,43 @@
+{
+  "documentKind": "POST_FREEZE_MAINTENANCE_AUTHORIZED_PATH_MANIFEST",
+  "schemaVersion": 1,
+  "manifestId": "GATE20_FOUNDATION_PROJECTION_SYNC_AUTHORIZED_PATHS_R1",
+  "programId": "GATE20_FOUNDATION_PROJECTION_SYNC_R1",
+  "paths": [
+    {
+      "path": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_GATE20_FOUNDATION_PROJECTION_SYNC_R1.json",
+      "operation": "CREATE",
+      "phase": "DERIVED_PROJECTION_GENERATION",
+      "reason": "Single-use LOCAL_EXPLICIT_AUTHORITY for the two projections invalidated by the final GATE20 ledger.",
+      "artifactClass": "DERIVED_PROJECTION_GENERATION"
+    },
+    {
+      "path": "governance/historical-architecture/GATE20_FOUNDATION_PROJECTION_SYNC_AUTHORIZED_PATHS_R1.json",
+      "operation": "CREATE",
+      "phase": "DERIVED_PROJECTION_GENERATION",
+      "reason": "Finite exact-file projection-sync cohort with no wildcard or directory blanket.",
+      "artifactClass": "DERIVED_PROJECTION_GENERATION"
+    },
+    {
+      "path": "governance/historical-architecture/GATE20_FOUNDATION_PROJECTION_SYNC_CONSUMPTION_R1.json",
+      "operation": "CREATE",
+      "phase": "DERIVED_PROJECTION_GENERATION",
+      "reason": "Single-use consumption record binding the projection-sync authority and manifest.",
+      "artifactClass": "DERIVED_PROJECTION_GENERATION"
+    },
+    {
+      "path": "governance/generated/FOUNDATION_REPORT.md",
+      "operation": "MODIFY",
+      "phase": "DERIVED_PROJECTION_GENERATION",
+      "reason": "Canonical foundation report regenerated from the post-closure ledger.",
+      "artifactClass": "DERIVED_PROJECTION_GENERATION"
+    },
+    {
+      "path": "governance/generated/FOUNDATION_REPORT_PROVENANCE.json",
+      "operation": "MODIFY",
+      "phase": "DERIVED_PROJECTION_GENERATION",
+      "reason": "Canonical foundation report provenance regenerated with the report bytes.",
+      "artifactClass": "DERIVED_PROJECTION_GENERATION"
+    }
+  ]
+}

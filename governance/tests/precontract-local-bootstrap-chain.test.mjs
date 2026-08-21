@@ -60,22 +60,44 @@ const writeJson = (root, relative, value) => {
 const git = (cwd, args) => spawnSync('git', args, { cwd, encoding: 'utf8' });
 
 /**
+ * Rewinds a copied ledger to the instant before `gateId` first left genesis, and
+ * names every Gate whose own history the rewind discarded.
+ *
+ * The rewind is TRUNCATION, not filtering. Lifting a Gate's events out of the
+ * MIDDLE of the ledger leaves every later line carrying an ordinal and a
+ * previousEventSha256 that no longer describe the line above it, so a filter
+ * that was correct while this Gate was the tail decays into LEDGER_ORDINAL_GAP
+ * and LEDGER_CHAIN_BREAK the moment any later Gate appends. Cutting at the
+ * Gate's first non-genesis event keeps a genuine PREFIX of canonical history
+ * instead: the surviving lines are the canonical BYTES, so their ordinals and
+ * their hash chain are the canonical ones however far the live ledger advances
+ * afterwards. Re-serialising them would be a second risk for no benefit, so the
+ * original lines are written back untouched.
+ */
+function rewindToGenesisOf(root, gateId) {
+  const ledgerPath = path.join(root, ...LEDGER.split('/'));
+  const lines = fs.readFileSync(ledgerPath, 'utf8').split(/\r?\n/).filter(Boolean);
+  const events = lines.map((line) => JSON.parse(line));
+  const cut = events.findIndex((event) => event.gateId === gateId && event.transitionType !== 'GENESIS_IMPORT');
+  assert.notEqual(cut, -1, `the fixture needs at least one non-genesis ${gateId} event to rewind`);
+  fs.writeFileSync(ledgerPath, `${lines.slice(0, cut).join('\n')}\n`);
+  return [...new Set(events.slice(cut).map((event) => event.gateId))];
+}
+
+/**
  * A disposable governed tree with `GATE` rewound to genesis: no contract, no
- * authorization documents, no lifecycle events. The truncation only removes the
- * Gate's own tail events, so the append-only hash chain of everything before it
- * is untouched and still replays.
+ * authorization documents, no lifecycle events. Every Gate the rewind discarded
+ * loses its on-disk artifacts too, or the tree would claim execution the ledger
+ * no longer records.
  */
 function buildFixture() {
   const root = fs.mkdtempSync(path.join(fs.realpathSync(os.tmpdir()), 'bootstrap-chain-'));
   fs.cpSync(path.join(REPO_ROOT, 'governance'), path.join(root, 'governance'), { recursive: true });
 
-  const ledgerPath = path.join(root, ...LEDGER.split('/'));
-  const kept = fs.readFileSync(ledgerPath, 'utf8').split(/\r?\n/).filter(Boolean)
-    .map((line) => JSON.parse(line))
-    .filter((event) => !(event.gateId === GATE && event.transitionType !== 'GENESIS_IMPORT'));
-  fs.writeFileSync(ledgerPath, `${kept.map((event) => JSON.stringify(event)).join('\n')}\n`);
-  for (const directory of [`governance/gates/${GATE}`, `governance/authority/authorizations/${GATE}`, `governance/authority/precontract/${GATE}`]) {
-    fs.rmSync(path.join(root, ...directory.split('/')), { recursive: true, force: true });
+  for (const gate of rewindToGenesisOf(root, GATE)) {
+    for (const directory of [`governance/gates/${gate}`, `governance/authority/authorizations/${gate}`, `governance/authority/precontract/${gate}`]) {
+      fs.rmSync(path.join(root, ...directory.split('/')), { recursive: true, force: true });
+    }
   }
   const snapshot = spawnSync(process.execPath, [path.join(root, 'governance/tools/generate-status-snapshot.mjs'), '--root', root], { cwd: root, encoding: 'utf8' });
   assert.equal(snapshot.status, 0, snapshot.stdout + snapshot.stderr);

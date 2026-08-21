@@ -1,0 +1,51 @@
+{
+  "documentKind": "POST_FREEZE_MAINTENANCE_AUTHORITY_CONSUMPTION",
+  "schemaVersion": 2,
+  "authorityId": "GATE20_REPAIR_A1_AUTHORITY_ENVELOPE_CORRECTION_LOCAL_AUTHORITY_R1",
+  "programId": "WHEEL_GATE20_REPAIR_A1_AUTHORITY_ENVELOPE_CORRECTION_R1",
+  "manifestSha256": "95238cbb4d3deb040b5638a1d0c69237fb7a5bd8787de7340ba1b0a60a015efa",
+  "baseHead": "00c019c42fb04b5ba11f1a7cdb62cb4750858db1",
+  "consumedUse": 1,
+  "transactionId": "WHEEL_GATE20_REPAIR_A1_AUTHORITY_ENVELOPE_CORRECTION_R1_TRANSACTION",
+  "recordedAt": "2026-08-17T16:30:00.000Z",
+  "commitMessage": "governance: correct the Repair A authority envelope to the canonical prohibited-operation set",
+  "cohortSelfExclusion": {
+    "path": "governance/historical-architecture/GATE20_REPAIR_A1_CONSUMPTION_R1.json",
+    "reason": "The consumption record cannot hash its own final bytes; its identity is bound by the authority and manifest instead."
+  },
+  "cohortPathCount": 5,
+  "cohort": [
+    {
+      "path": "governance/historical-architecture/GATE20_CONSOLIDATED_REPAIR_A_CONSUMPTION_R1.json",
+      "sha256": "73fce67cf136a542d5b26548b988c98938e9f84e3e4f62896531a56cea44037b",
+      "byteLength": 17715,
+      "operation": "MODIFY",
+      "reason": "A.1. The single dependent binding. This record pins the final bytes of every path in the Repair A cohort, including the authority document itself, so correcting the authority necessarily moves one cohort entry sha256 and byteLength. Nothing else in the record is touched: the other twenty-five entries, the manifest digest, the base head and the consumed use all stay exactly as Repair A recorded them.",
+      "artifactClass": "GATE20_REPAIR_A1_AUTHORITY_ENVELOPE_CORRECTION"
+    },
+    {
+      "path": "governance/historical-architecture/GATE20_REPAIR_A1_AUTHORIZED_PATHS_R1.json",
+      "sha256": "95238cbb4d3deb040b5638a1d0c69237fb7a5bd8787de7340ba1b0a60a015efa",
+      "byteLength": 4522,
+      "operation": "CREATE",
+      "reason": "A.1. Exact two-path functional cohort with per-path pre-states taken from the live bytes immediately before the correction. No wildcard, no directory blanket, no unrelated path.",
+      "artifactClass": "GATE20_REPAIR_A1_AUTHORITY_ENVELOPE_CORRECTION"
+    },
+    {
+      "path": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_GATE20_CONSOLIDATED_REPAIR_A_R1.json",
+      "sha256": "547f5da87cf1efe03421bfc5a5dd18d270062af0115198e7f55501dda1833067",
+      "byteLength": 2147,
+      "operation": "MODIFY",
+      "reason": "A.1. The Repair A authority declared fourteen prohibitedOperations: the twelve canonical values plus LEDGER_APPEND and GATE21_START. The canonical set is CLOSED-WORLD — the evaluator compares it by exact set equality — so two additions intended as extra restraint made the whole authority refusable, and VERIFY_PROGRAM_CONSUMPTION returned BLOCKED with PROHIBITED_OPERATIONS_INVALID. The two values are removed and nothing else in the document changes. The restraint they were meant to express is not lost: LEDGER_APPEND and GATE21_START were never permitted by this authority in the first place, because a maintenance program may only touch the exact paths its manifest names, and no ledger or GATE21 path appears there.",
+      "artifactClass": "GATE20_REPAIR_A1_AUTHORITY_ENVELOPE_CORRECTION"
+    },
+    {
+      "path": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_GATE20_REPAIR_A1_R1.json",
+      "sha256": "3b5ff462c4b9f016b93ce20dfd92afc9d07948e1e0c2493a23aebd0341e20474",
+      "byteLength": 2157,
+      "operation": "CREATE",
+      "reason": "A.1. Single-use LOCAL_EXPLICIT_AUTHORITY for this correction. Editing an already-consumed authority document without an authority of its own would be precisely the self-authorization this framework exists to prevent.",
+      "artifactClass": "GATE20_REPAIR_A1_AUTHORITY_ENVELOPE_CORRECTION"
+    }
+  ]
+}

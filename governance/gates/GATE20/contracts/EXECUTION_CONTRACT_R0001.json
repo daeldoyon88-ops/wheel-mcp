@@ -1,0 +1,95 @@
+{
+  "gateId": "GATE20",
+  "contractRevision": "R0001",
+  "strategicRegistryReference": {
+    "registryPath": "governance/GATE_REGISTRY_00_40.json",
+    "registrySha256": "aaa9efcded9c58ccb0f26578bc67ba8b50143e6a94426965772d8731fcada9c7",
+    "gateId": "GATE20",
+    "canonicalObjectiveSha256": "53964f243413d3c7f2195cebc2e98f4c37fda970629350c9f236910f8859085c"
+  },
+  "canonicalRequirements": [
+    { "requirementId": "G20-VERDICT-01", "statement": "Recalculate the foundation closure verdict from actual state, evidence, manifests and validator output.", "normativeSource": "governance/GATE_REGISTRY_00_40.json#/gates/20/exitConditions" },
+    { "requirementId": "G20-VERDICT-02", "statement": "Derive every recorded digest and Git path from current bytes; never trust an asserted PASS or cohort.", "normativeSource": "governance/sources/GATE16_40_OWNER_RATIFICATION_R2.json#/gates/GATE20/evidenceRequirements" },
+    { "requirementId": "G20-GIT-01", "statement": "Keep actual Git delta and authority-derived cohort separate and reject unexpected paths.", "normativeSource": "governance/GATE_REGISTRY_00_40.json#/gates/20/exitConditions" },
+    { "requirementId": "G20-LIFECYCLE-01", "statement": "Close Mission A at COMPLETE_AGENT and leave independent confirmation and GATE21 outside this mission.", "normativeSource": "GATE20 Mission A owner decision" }
+  ],
+  "requiredInputs": [
+    { "path": "governance/GATE_REGISTRY_00_40.json", "role": "STRATEGIC_REGISTRY" },
+    { "path": "governance/sources/GATE16_40_OWNER_RATIFICATION_R2.json", "role": "CANONICAL_MANDATE" },
+    { "path": "governance/gates/GATE19/state/CURRENT_STATE.json", "role": "CLOSED_PREDECESSOR_STATE" },
+    { "path": "governance/gates/GATE19/evidence/FOUNDATION_BUNDLE_20260815T120000Z.zip", "role": "PREDECESSOR_BUNDLE" },
+    { "path": "governance/gates/GATE19/evidence/BUNDLE_MANIFEST.json", "role": "PREDECESSOR_MANIFEST" },
+    { "path": "governance/gates/GATE19/evidence/FINAL_ZIP_SELFTEST.json", "role": "PREDECESSOR_SELFTEST" },
+    { "path": "governance/gates/GATE19/evidence/DETACHED_TERMINAL_VERIFICATION_RECEIPT.json", "role": "PREDECESSOR_RECEIPT" },
+    { "path": "governance/tools/final-gate-integrity-auditor.mjs", "role": "CANONICAL_FINAL_AUDITOR" },
+    { "path": "governance/tools/generate-release-request.mjs", "role": "CANONICAL_RELEASE_PRIMITIVE" },
+    { "path": "governance/state/GATE_STATUS_LEDGER.ndjson", "role": "CANONICAL_LEDGER" }
+  ],
+  "requiredOutputs": [
+    { "ordinal": 1, "path": "governance/gates/GATE20/implementation/final-git-and-verdict.mjs", "role": "Deterministic closure verdict and freeze-manifest generator" },
+    { "ordinal": 2, "path": "governance/gates/GATE20/evidence/FOUNDATION_CLOSURE_VERDICT.json", "role": "Recalculated foundation closure verdict" },
+    { "ordinal": 3, "path": "governance/gates/GATE20/evidence/FOUNDATION_FREEZE_MANIFEST.json", "role": "Exact-byte foundation freeze manifest" },
+    { "ordinal": 4, "path": "governance/gates/GATE20/evidence/GIT_FINALIZATION_RECEIPT.json", "role": "Canonical equivalent of the non-authoritative release request" },
+    { "ordinal": 5, "path": "governance/gates/GATE20/tests/gate20-final-git-and-verdict.test.mjs", "role": "Positive, negative and counter Git/verdict tests" }
+  ],
+  "validators": [
+    "node governance/tools/gate-preexecution-reuse-check.mjs --root . --gate GATE20",
+    "node governance/tools/gate-fast-path-control-plane.mjs --root . --gate GATE20 --phase READINESS",
+    "node governance/gee-v1/tools/evaluate-work-unit-readiness.mjs --work-unit GATE20",
+    "node governance/tools/validate-gate-contract.mjs --contract governance/gates/GATE20/contracts/EXECUTION_CONTRACT_R0001.json --pointer governance/gates/GATE20/contracts/CURRENT_CONTRACT.json",
+    "node governance/tools/validate-gate-registry.mjs",
+    "node governance/tools/final-gate-integrity-auditor.mjs --root . --gate GATE20",
+    "node governance/gates/GATE20/implementation/final-git-and-verdict.mjs --root . --check",
+    "node governance/gates/GATE20/tests/gate20-final-git-and-verdict.test.mjs"
+  ],
+  "positiveTests": [
+    { "testId": "G20-POS-01", "case": "recalculated predecessor integrity and closure inputs", "expected": "PASS" },
+    { "testId": "G20-POS-02", "case": "byte-derived freeze manifest", "expected": "PASS" },
+    { "testId": "G20-POS-03", "case": "repeat generation byte identity", "expected": "PASS" }
+  ],
+  "negativeTests": [
+    { "testId": "G20-NEG-01", "case": "unexpected Git path outside the exact cohort", "expected": "BLOCKED" },
+    { "testId": "G20-NEG-02", "case": "future GATE21 authorization or START claim", "expected": "BLOCKED" },
+    { "testId": "G20-NEG-03", "case": "tampered output digest", "expected": "BLOCKED" }
+  ],
+  "countertests": [
+    { "testId": "G20-CTR-01", "case": "asserted PASS with a failing recomputation", "expected": "BLOCKED" },
+    { "testId": "G20-CTR-02", "case": "release request semantics without commit or push", "expected": "PASS" }
+  ],
+  "reuseRules": [
+    "Reuse the verified GATE19 bundle, manifest, self-test and detached receipt by exact byte identity.",
+    "Reuse the canonical LOCAL_EXPLICIT_AUTHORITY, START and R6 transaction primitives.",
+    "Reuse Generic Fast Gate R2-R7 and run only the LIGHT R7 guard because no HEAVY trigger is present."
+  ],
+  "invalidationRules": [
+    "Any predecessor evidence byte change invalidates the closure verdict.",
+    "Any output digest mismatch invalidates the freeze manifest.",
+    "Any Git path outside the canonical cohort invalidates finalization."
+  ],
+  "forbiddenReplays": ["GATE18 reconstruction", "GATE18 START", "R8", "history rewrite", "GATE21 START", "EXTERNAL_CONFIRMATION", "git add .", "git add -A", "git commit", "git push"],
+  "closureConditions": [
+    "Every required foundation work unit has an explicit truthful disposition.",
+    "The final verdict is recalculated and never read from an asserted field.",
+    "State, manifests and digests are recomputed from actual bytes.",
+    "Unresolved blocking defects equal zero.",
+    "Git operations are exact and path-contained.",
+    "Automatic push is absent.",
+    "Mission A stops at COMPLETE_AGENT; independent confirmation remains a separate Mission B.",
+    "GATE21 is not automatically authorized."
+  ],
+  "nextGateAuthorizationConditions": ["GATE20 Mission A is COMPLETE_AGENT and has a separately verifiable closure package."],
+  "performanceBudget": { "targetMinutes": 5, "expectedMaximumMinutes": 20, "closeoutStartMinutes": 10, "absoluteMaximumMinutes": 60 },
+  "checkpointPolicy": { "resume": "R6 durable checkpoint", "reuse": "R2-R7 checkpoint unless invalidated", "independentConfirmation": "separate Mission B" },
+  "authorizedPaths": [
+    "governance/gates/GATE20/implementation/final-git-and-verdict.mjs",
+    "governance/gates/GATE20/evidence/FOUNDATION_CLOSURE_VERDICT.json",
+    "governance/gates/GATE20/evidence/FOUNDATION_FREEZE_MANIFEST.json",
+    "governance/gates/GATE20/evidence/GIT_FINALIZATION_RECEIPT.json",
+    "governance/gates/GATE20/tests/gate20-final-git-and-verdict.test.mjs"
+  ],
+  "requiredPolicyIds": ["AUTHORIZED_PATHS_ONLY", "NO_HARDCODED_PASS", "NO_CIRCULAR_VALIDATION", "DETERMINISTIC_OPERATIONS_LOCAL", "NO_FUTURE_LEAKAGE", "GIT_WRITES_FORBIDDEN_BY_DEFAULT"],
+  "sourceReferences": [
+    { "sourcePath": "governance/GATE_REGISTRY_00_40.json", "sourceLocation": "/gates/20", "field": "canonicalObjective" },
+    { "sourcePath": "governance/sources/GATE16_40_OWNER_RATIFICATION_R2.json", "sourceLocation": "/gates/GATE20", "field": "requiredOutputs" }
+  ]
+}

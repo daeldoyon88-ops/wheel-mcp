@@ -1,0 +1,73 @@
+{
+  "document": "EXTERNAL_REINSPECTION_REPORT",
+  "schemaVersion": 1,
+  "reportId": "GATE20_INDEPENDENT_EXTERNAL_CONFIRMATION_R1_EXTERNAL_REINSPECTION_REPORT",
+  "gateId": "GATE20",
+  "programId": "GATE20_INDEPENDENT_EXTERNAL_CONFIRMATION_R1",
+  "verifierId": "GATE20_INDEPENDENT_EXTERNAL_CONFIRMATION_R1",
+  "independentSession": true,
+  "verdict": "PASS",
+  "reinspectionBasis": "Independent external confirmation of GATE20 COMPLETE_AGENT. Recaptured FINAL_GATE_INTEGRITY=PASS findingCount=0 familiesNotRun=[]. Live ledger 82 events SHA256 9b8004d15402c47303fdb4641a4d9fee5850fb4af4695f459c38a74d3649c67c. GATE20 COMPLETE_AGENT. GATE21 NOT_STARTED. residue 0. Repair-B consumption 8ba39840aa36acf75561a58098ebd3013a43b0ad23f881a00286796c548af2c0/10759. GEE post-hoc manifest 318e96ede6f90232363da888351dbba576a99df88aa158798c123cd19131654b/23893. GEE post-hoc authority ab7a9c65b342afc3f9845f365701fc1b83a7e30ae14b1e6e4a7cae70385721ad/2165. GEE post-hoc consumption b461f27527b83abbcbd1d32bfefab9acd00084384d9e473c87e04542bbd4fe8d/21353.",
+  "preState": {
+    "baseHead": "00c019c42fb04b5ba11f1a7cdb62cb4750858db1",
+    "ledgerEventCount": 82,
+    "ledgerPrefixSha256": "9b8004d15402c47303fdb4641a4d9fee5850fb4af4695f459c38a74d3649c67c",
+    "gateStatus": "COMPLETE_AGENT",
+    "stateRevision": "R0003",
+    "contractRevision": "R0001",
+    "activeGate": "GATE13",
+    "R8ExpectedAbsent": true
+  },
+  "independentChecks": [
+    {
+      "check": "FINAL_GATE_INTEGRITY",
+      "result": "PASS",
+      "findingCount": 0,
+      "familiesNotRun": []
+    },
+    {
+      "check": "LEDGER",
+      "eventCount": 82,
+      "sha256": "9b8004d15402c47303fdb4641a4d9fee5850fb4af4695f459c38a74d3649c67c"
+    },
+    {
+      "check": "GATE20_STATUS",
+      "result": "COMPLETE_AGENT"
+    },
+    {
+      "check": "GATE21_STATUS",
+      "result": "NOT_STARTED"
+    },
+    {
+      "check": "RESIDUE",
+      "result": 0
+    },
+    {
+      "check": "REPAIR_B_CONSUMPTION",
+      "sha256": "8ba39840aa36acf75561a58098ebd3013a43b0ad23f881a00286796c548af2c0",
+      "byteLength": 10759
+    },
+    {
+      "check": "GEE_POSTHOC_MANIFEST",
+      "sha256": "318e96ede6f90232363da888351dbba576a99df88aa158798c123cd19131654b",
+      "byteLength": 23893
+    },
+    {
+      "check": "GEE_POSTHOC_AUTHORITY",
+      "sha256": "ab7a9c65b342afc3f9845f365701fc1b83a7e30ae14b1e6e4a7cae70385721ad",
+      "byteLength": 2165
+    },
+    {
+      "check": "GEE_POSTHOC_CONSUMPTION",
+      "sha256": "b461f27527b83abbcbd1d32bfefab9acd00084384d9e473c87e04542bbd4fe8d",
+      "byteLength": 21353
+    }
+  ],
+  "closureDisposition": {
+    "requiredTransition": "EXTERNAL_CONFIRMATION",
+    "resultingStatus": "COMPLETE_CONFIRMED",
+    "exactlyOneEvent": true,
+    "GATE21RemainNotStarted": true
+  },
+  "createdAt": "2026-08-21T01:16:00.000Z"
+}

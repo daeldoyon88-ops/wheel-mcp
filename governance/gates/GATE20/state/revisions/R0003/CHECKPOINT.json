@@ -1,0 +1,13 @@
+{
+  "gateId": "GATE20",
+  "stateRevision": "R0003",
+  "milestone": "GATE20_AGENT_CLOSURE",
+  "resumePoint": "COMPLETE_AGENT",
+  "completedTasks": [],
+  "openTasks": [],
+  "reusableEvidence": [],
+  "invalidatedEvidence": [],
+  "requiredNextActions": [],
+  "protectedHashes": [],
+  "createdAt": "2026-08-16T23:01:00.000Z"
+}

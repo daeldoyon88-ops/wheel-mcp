@@ -1,0 +1,403 @@
+{
+  "documentKind": "POST_FREEZE_MAINTENANCE_AUTHORITY_CONSUMPTION",
+  "schemaVersion": 2,
+  "authorityId": "GATE20_POSTHOC_CURRENT_BYTE_RATIFICATION_LOCAL_AUTHORITY_R1",
+  "programId": "GATE20_POSTHOC_CURRENT_BYTE_RATIFICATION_R1",
+  "manifestSha256": "318e96ede6f90232363da888351dbba576a99df88aa158798c123cd19131654b",
+  "baseHead": "00c019c42fb04b5ba11f1a7cdb62cb4750858db1",
+  "consumedUse": 1,
+  "transactionId": "GATE20_POSTHOC_CURRENT_BYTE_RATIFICATION_R1_TRANSACTION",
+  "recordedAt": "2026-08-21T00:53:03.564Z",
+  "commitMessage": "governance: ratify GATE20 preexisting current bytes post-hoc",
+  "cohortSelfExclusion": {
+    "path": "governance/historical-architecture/GATE20_POSTHOC_CURRENT_BYTE_RATIFICATION_CONSUMPTION_R1.json",
+    "reason": "The consumption record cannot hash its own final bytes; its identity is bound by the authority and manifest instead."
+  },
+  "cohortPathCount": 49,
+  "cohort": [
+    {
+      "path": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_GATE20_POSTHOC_CURRENT_BYTE_RATIFICATION_R1.json",
+      "sha256": "ab7a9c65b342afc3f9845f365701fc1b83a7e30ae14b1e6e4a7cae70385721ad",
+      "byteLength": 2165,
+      "operation": "CREATE",
+      "reason": "Single-use local authority that ratifies preexisting GATE20 current bytes post-hoc; it grants no START, GATE21, or future-byte permission.",
+      "artifactClass": "POSTHOC_CURRENT_BYTE_RATIFICATION"
+    },
+    {
+      "path": "governance/historical-architecture/GATE20_POSTHOC_CURRENT_BYTE_RATIFICATION_AUTHORIZED_PATHS_R1.json",
+      "sha256": "318e96ede6f90232363da888351dbba576a99df88aa158798c123cd19131654b",
+      "byteLength": 23893,
+      "operation": "CREATE",
+      "reason": "Finite post-hoc current-byte cohort independently declared by this authority rather than Git or FGI output.",
+      "artifactClass": "POSTHOC_CURRENT_BYTE_RATIFICATION"
+    },
+    {
+      "path": "governance/authority/publication-admissions/GATE20/GATE20_REPAIR_B_PUBLICATION_ADMISSION_R1.json",
+      "sha256": "45bef3ec5deed36c42d3a6590246ce8499f788a5e463842d97c29e1586658a1e",
+      "byteLength": 3076,
+      "operation": "CREATE",
+      "reason": "Post-hoc ratification of a preexisting GATE20 working-tree root that had no previous canonical current-byte binding.",
+      "artifactClass": "POSTHOC_CURRENT_BYTE_RATIFICATION"
+    },
+    {
+      "path": "governance/gee-v1/core/maintenance-publication-admission.mjs",
+      "sha256": "daaead78166b2df9cbfb4b2bb6d02e22298aec7c0a8c6472d4c23b7e05b7b404",
+      "byteLength": 42557,
+      "operation": "CREATE",
+      "reason": "Post-hoc ratification of a preexisting GATE20 working-tree root that had no previous canonical current-byte binding.",
+      "artifactClass": "POSTHOC_CURRENT_BYTE_RATIFICATION"
+    },
+    {
+      "path": "governance/gee-v1/core/owner-present-byte-bootstrap.mjs",
+      "sha256": "7e410578da251796aa0830f742eb08ba8084f554f3c48005b28251024e73d429",
+      "byteLength": 22184,
+      "operation": "CREATE",
+      "reason": "Post-hoc ratification of a preexisting GATE20 working-tree root that had no previous canonical current-byte binding.",
+      "artifactClass": "POSTHOC_CURRENT_BYTE_RATIFICATION"
+    },
+    {
+      "path": "governance/schemas/maintenance-publication-admission-owner-authorization.schema.json",
+      "sha256": "7e817f148503a456fe018fb65c60314ce798734b656b693ae5e536268cd729f5",
+      "byteLength": 5333,
+      "operation": "CREATE",
+      "reason": "Post-hoc ratification of a preexisting GATE20 working-tree root that had no previous canonical current-byte binding.",
+      "artifactClass": "POSTHOC_CURRENT_BYTE_RATIFICATION"
+    },
+    {
+      "path": "governance/schemas/maintenance-publication-admission.schema.json",
+      "sha256": "3957efef08e3a341ce4c13a16b733ea691ff1dd845159987c328f2fa7729a37e",
+      "byteLength": 11154,
+      "operation": "CREATE",
+      "reason": "Post-hoc ratification of a preexisting GATE20 working-tree root that had no previous canonical current-byte binding.",
+      "artifactClass": "POSTHOC_CURRENT_BYTE_RATIFICATION"
+    },
+    {
+      "path": "governance/schemas/owner-present-byte-bootstrap-authority-v1.schema.json",
+      "sha256": "8924c072b7825b33dc0725abbb56c276e766b83977dd2abc94a93a66896aaf46",
+      "byteLength": 847,
+      "operation": "CREATE",
+      "reason": "Post-hoc ratification of a preexisting GATE20 working-tree root that had no previous canonical current-byte binding.",
+      "artifactClass": "POSTHOC_CURRENT_BYTE_RATIFICATION"
+    },
+    {
+      "path": "governance/sources/MAINTENANCE_PUBLICATION_ADMISSION_OWNER_AUTHORIZATION_R1.json",
+      "sha256": "17bd975477186a2839ce11b17ea3cec38b379186193130588f5e6593a2cf9b68",
+      "byteLength": 1119,
+      "operation": "CREATE",
+      "reason": "Post-hoc ratification of a preexisting GATE20 working-tree root that had no previous canonical current-byte binding.",
+      "artifactClass": "POSTHOC_CURRENT_BYTE_RATIFICATION"
+    },
+    {
+      "path": "governance/tests/fixtures/owner-present-byte-bootstrap-c-source.mjs",
+      "sha256": "957686fdc25e65f81decf363630a12b358fc5ca15bafd44535ae8dceceebbf63",
+      "byteLength": 16423,
+      "operation": "CREATE",
+      "reason": "Post-hoc ratification of a preexisting GATE20 working-tree root that had no previous canonical current-byte binding.",
+      "artifactClass": "POSTHOC_CURRENT_BYTE_RATIFICATION"
+    },
+    {
+      "path": "governance/tests/maintenance-publication-admission.test.mjs",
+      "sha256": "61185dbc95d89bb1f0e9d2a3e51529106f4bd7452142b13bcb7d5db0034f4f99",
+      "byteLength": 44709,
+      "operation": "CREATE",
+      "reason": "Post-hoc ratification of a preexisting GATE20 working-tree root that had no previous canonical current-byte binding.",
+      "artifactClass": "POSTHOC_CURRENT_BYTE_RATIFICATION"
+    },
+    {
+      "path": "governance/tests/owner-present-byte-bootstrap.test.mjs",
+      "sha256": "cdf791b15522a7c691f52b4ec9036f71b6f4a89c8a6be0ad306c5d44fa05f165",
+      "byteLength": 22608,
+      "operation": "CREATE",
+      "reason": "Post-hoc ratification of a preexisting GATE20 working-tree root that had no previous canonical current-byte binding.",
+      "artifactClass": "POSTHOC_CURRENT_BYTE_RATIFICATION"
+    },
+    {
+      "path": "governance/authority/authorizations/GATE20/GATE_AUTHORIZATION_RECORD.json",
+      "sha256": "2d9bf4c838e998fa689c99b22111d11ba5dfd565cd541e087992f7f2509364a6",
+      "byteLength": 3131,
+      "operation": "CREATE",
+      "reason": "Post-hoc ratification of a preexisting GATE20 root whose current bytes had no applicable publication binding.",
+      "artifactClass": "POSTHOC_CURRENT_BYTE_RATIFICATION"
+    },
+    {
+      "path": "governance/authority/authorizations/GATE20/GATE_START_RECORD.json",
+      "sha256": "012bfb0ec8ba66e07d07eed3da3e1c3e44e98d6d9b6370fe29ac7633f9e583cd",
+      "byteLength": 3191,
+      "operation": "CREATE",
+      "reason": "Post-hoc ratification of a preexisting GATE20 root whose current bytes had no applicable publication binding.",
+      "artifactClass": "POSTHOC_CURRENT_BYTE_RATIFICATION"
+    },
+    {
+      "path": "governance/authority/authorizations/GATE20/PROJECT_OWNER_GATE_AUTHORIZATION_AUTHORITY.json",
+      "sha256": "7290ccd588ef605e5d000584dc7bad73ffe187121c0732470ebc189c132c98ad",
+      "byteLength": 3570,
+      "operation": "CREATE",
+      "reason": "Post-hoc ratification of a preexisting GATE20 root whose current bytes had no applicable publication binding.",
+      "artifactClass": "POSTHOC_CURRENT_BYTE_RATIFICATION"
+    },
+    {
+      "path": "governance/authority/authorizations/GATE20/PROJECT_OWNER_GATE_START_AUTHORITY.json",
+      "sha256": "613972401255e2087e0b2be71eec8d5babd38962be4a1bd7657846fed51d1188",
+      "byteLength": 3474,
+      "operation": "CREATE",
+      "reason": "Post-hoc ratification of a preexisting GATE20 root whose current bytes had no applicable publication binding.",
+      "artifactClass": "POSTHOC_CURRENT_BYTE_RATIFICATION"
+    },
+    {
+      "path": "governance/authority/precontract/GATE20/PROJECT_OWNER_LOCAL_PRECONTRACT_AUTHORITY.json",
+      "sha256": "4de7b3aa8a9f58726186edfb554afef6454cb53ec261d158f5edb659cf488ed6",
+      "byteLength": 2278,
+      "operation": "CREATE",
+      "reason": "Post-hoc ratification of a preexisting GATE20 root whose current bytes had no applicable publication binding.",
+      "artifactClass": "POSTHOC_CURRENT_BYTE_RATIFICATION"
+    },
+    {
+      "path": "governance/gates/GATE20/contracts/EXECUTION_CONTRACT_R0001.json",
+      "sha256": "01657721562933ff7765d7cd35ecf4d1d8013afabc9a0ece38dab1dee9e0dd06",
+      "byteLength": 7564,
+      "operation": "CREATE",
+      "reason": "Post-hoc ratification of a preexisting GATE20 root whose current bytes had no applicable publication binding.",
+      "artifactClass": "POSTHOC_CURRENT_BYTE_RATIFICATION"
+    },
+    {
+      "path": "governance/gates/GATE20/contracts/PRECONTRACT_AUTHORITY_CONSUMPTION_R1.json",
+      "sha256": "a0aef4ba1e0f1e3758efc2bbddb4e82ac5ab1f8088385b2968fc5483a93a55c7",
+      "byteLength": 1066,
+      "operation": "CREATE",
+      "reason": "Post-hoc ratification of a preexisting GATE20 root whose current bytes had no applicable publication binding.",
+      "artifactClass": "POSTHOC_CURRENT_BYTE_RATIFICATION"
+    },
+    {
+      "path": "governance/gates/GATE20/evidence/FOUNDATION_CLOSURE_VERDICT.json",
+      "sha256": "9f973e9ed234134d94bd1cdeaba423e117d2db6fb415b2076d0b497638f9bc9b",
+      "byteLength": 1077,
+      "operation": "CREATE",
+      "reason": "Post-hoc ratification of a preexisting GATE20 root whose current bytes had no applicable publication binding.",
+      "artifactClass": "POSTHOC_CURRENT_BYTE_RATIFICATION"
+    },
+    {
+      "path": "governance/gates/GATE20/evidence/FOUNDATION_FREEZE_MANIFEST.json",
+      "sha256": "4d07ca708e0e6fde1b979f1c264acd21046b266ae21b72080ab9bcea064dbf00",
+      "byteLength": 3015,
+      "operation": "CREATE",
+      "reason": "Post-hoc ratification of a preexisting GATE20 root whose current bytes had no applicable publication binding.",
+      "artifactClass": "POSTHOC_CURRENT_BYTE_RATIFICATION"
+    },
+    {
+      "path": "governance/gates/GATE20/evidence/GIT_FINALIZATION_RECEIPT.json",
+      "sha256": "41bf6bcfdd4db6e0ef065cc21c2ab98a904efdcfa51f542484ff7ae1a49f2f25",
+      "byteLength": 10426,
+      "operation": "CREATE",
+      "reason": "Post-hoc ratification of a preexisting GATE20 root whose current bytes had no applicable publication binding.",
+      "artifactClass": "POSTHOC_CURRENT_BYTE_RATIFICATION"
+    },
+    {
+      "path": "governance/gates/GATE20/implementation/final-git-and-verdict.mjs",
+      "sha256": "480d5e7d8dec4f6927e98952ccb0696d28c33d52fd6ad2b101d3fed782ae7ff3",
+      "byteLength": 13357,
+      "operation": "CREATE",
+      "reason": "Post-hoc ratification of a preexisting GATE20 root whose current bytes had no applicable publication binding.",
+      "artifactClass": "POSTHOC_CURRENT_BYTE_RATIFICATION"
+    },
+    {
+      "path": "governance/gates/GATE20/state/revisions/R0002/CHECKPOINT.json",
+      "sha256": "18d1ca3f0397997a211d62909b98876caffac9fbe8881111645c9d1a5ff42311",
+      "byteLength": 311,
+      "operation": "CREATE",
+      "reason": "Post-hoc ratification of a preexisting GATE20 root whose current bytes had no applicable publication binding.",
+      "artifactClass": "POSTHOC_CURRENT_BYTE_RATIFICATION"
+    },
+    {
+      "path": "governance/gates/GATE20/state/revisions/R0002/OPEN_DEFECTS.json",
+      "sha256": "fbf19d3f7731cef2eb40f2329262c884405c946652eba731996582b25e98b6c6",
+      "byteLength": 70,
+      "operation": "CREATE",
+      "reason": "Post-hoc ratification of a preexisting GATE20 root whose current bytes had no applicable publication binding.",
+      "artifactClass": "POSTHOC_CURRENT_BYTE_RATIFICATION"
+    },
+    {
+      "path": "governance/gates/GATE20/state/revisions/R0002/STATE_SEAL.json",
+      "sha256": "dd3d87e402d7684add7c5caa0b9d8c405cd6c87721438feae35067fe96efb0ff",
+      "byteLength": 1352,
+      "operation": "CREATE",
+      "reason": "Post-hoc ratification of a preexisting GATE20 root whose current bytes had no applicable publication binding.",
+      "artifactClass": "POSTHOC_CURRENT_BYTE_RATIFICATION"
+    },
+    {
+      "path": "governance/gates/GATE20/tests/gate20-final-git-and-verdict.test.mjs",
+      "sha256": "a29363127790bb33cf07f34944f1e1ffe135209f482ad8597bf0afc807c1e5c5",
+      "byteLength": 3290,
+      "operation": "CREATE",
+      "reason": "Post-hoc ratification of a preexisting GATE20 root whose current bytes had no applicable publication binding.",
+      "artifactClass": "POSTHOC_CURRENT_BYTE_RATIFICATION"
+    },
+    {
+      "path": "governance/gee-v1/adapters/wheel/gate-dependency-resolution.mjs",
+      "sha256": "c0b6360ffc204907a484e5fa74e1deb85ecf2df48d1b6efe71c6d13b67f23430",
+      "byteLength": 13682,
+      "operation": "MODIFY",
+      "reason": "Post-hoc successor ratification of preexisting GATE20 current bytes over the previous canonical publication digest.",
+      "artifactClass": "POSTHOC_CURRENT_BYTE_RATIFICATION"
+    },
+    {
+      "path": "governance/gee-v1/core/canonical-authorized-cohort.mjs",
+      "sha256": "53f7bc03b0c06a94fb87b289e4a865e327ad1c16b16796fb579231b941fe48e0",
+      "byteLength": 18609,
+      "operation": "MODIFY",
+      "reason": "Post-hoc successor ratification of preexisting GATE20 current bytes over the previous canonical publication digest.",
+      "artifactClass": "POSTHOC_CURRENT_BYTE_RATIFICATION"
+    },
+    {
+      "path": "governance/gee-v1/core/gate-authorization-authority.mjs",
+      "sha256": "1809c5f99f7210ad02a4f43482fa2fdd06c48859107db97bb82fba9c42bcf17a",
+      "byteLength": 44000,
+      "operation": "MODIFY",
+      "reason": "Post-hoc successor ratification of preexisting GATE20 current bytes over the previous canonical publication digest.",
+      "artifactClass": "POSTHOC_CURRENT_BYTE_RATIFICATION"
+    },
+    {
+      "path": "governance/gee-v1/core/post-freeze-maintenance-authority.mjs",
+      "sha256": "d8bfeacc19e308a7e202e1cabdc964feaf2676ec13a1e95d653e142390544fab",
+      "byteLength": 55748,
+      "operation": "MODIFY",
+      "reason": "Post-hoc successor ratification of preexisting GATE20 current bytes over the previous canonical publication digest.",
+      "artifactClass": "POSTHOC_CURRENT_BYTE_RATIFICATION"
+    },
+    {
+      "path": "governance/generated/ACTIVE_GATE_CONTEXT.json",
+      "sha256": "7ec6639c4b7ed8e8fd74e7f861399623ae1cdf547a32574880dd0de9eb15adf1",
+      "byteLength": 1138,
+      "operation": "CREATE",
+      "reason": "Post-hoc ratification of a preexisting GATE20 root whose current bytes had no applicable publication binding.",
+      "artifactClass": "POSTHOC_CURRENT_BYTE_RATIFICATION"
+    },
+    {
+      "path": "governance/generated/FOUNDATION_REPORT.md",
+      "sha256": "fbc2d5111282f7c8492d263fe7fa006b49550f6e2015dcffdc2f0414834006f6",
+      "byteLength": 5548,
+      "operation": "MODIFY",
+      "reason": "Post-hoc successor ratification of preexisting GATE20 current bytes over the previous canonical publication digest.",
+      "artifactClass": "POSTHOC_CURRENT_BYTE_RATIFICATION"
+    },
+    {
+      "path": "governance/generated/FOUNDATION_REPORT_PROVENANCE.json",
+      "sha256": "cd65f26227b8b69b17d4384da9851b1e3ad17a8ed19f1b5174efaacb1a6c026c",
+      "byteLength": 6140,
+      "operation": "MODIFY",
+      "reason": "Post-hoc successor ratification of preexisting GATE20 current bytes over the previous canonical publication digest.",
+      "artifactClass": "POSTHOC_CURRENT_BYTE_RATIFICATION"
+    },
+    {
+      "path": "governance/state/GATE_STATUS_LEDGER.ndjson",
+      "sha256": "9b8004d15402c47303fdb4641a4d9fee5850fb4af4695f459c38a74d3649c67c",
+      "byteLength": 48265,
+      "operation": "MODIFY",
+      "reason": "Post-hoc successor ratification of preexisting GATE20 current bytes over the previous canonical publication digest.",
+      "artifactClass": "POSTHOC_CURRENT_BYTE_RATIFICATION"
+    },
+    {
+      "path": "governance/state/generated/GATE_STATUS_SNAPSHOT.json",
+      "sha256": "babf8cb1c01390651b1727024eca699493ac1aa4ef5cece7d3252af35e00118d",
+      "byteLength": 15754,
+      "operation": "MODIFY",
+      "reason": "Post-hoc successor ratification of preexisting GATE20 current bytes over the previous canonical publication digest.",
+      "artifactClass": "POSTHOC_CURRENT_BYTE_RATIFICATION"
+    },
+    {
+      "path": "governance/tests/EVIDENCE_SUITE_IDENTITY_BASELINE.json",
+      "sha256": "f9a775d9cc73a36683ffbed8bf232ceba9214e4018f50200c33e72a3970af1d5",
+      "byteLength": 55563,
+      "operation": "MODIFY",
+      "reason": "Post-hoc successor ratification of preexisting GATE20 current bytes over the previous canonical publication digest.",
+      "artifactClass": "POSTHOC_CURRENT_BYTE_RATIFICATION"
+    },
+    {
+      "path": "governance/tests/anchor-hard-crash-recovery.test.mjs",
+      "sha256": "403085adb3879049d545d66d831db2d1c231884cc8e3ad4355e9595aa4d83ada",
+      "byteLength": 33696,
+      "operation": "MODIFY",
+      "reason": "Post-hoc successor ratification of preexisting GATE20 current bytes over the previous canonical publication digest.",
+      "artifactClass": "POSTHOC_CURRENT_BYTE_RATIFICATION"
+    },
+    {
+      "path": "governance/tests/fgi-canonical-cohort.test.mjs",
+      "sha256": "c870a81c110c82e0701e2a916450950bc7b186de3ade40dc994d615dca49cbe0",
+      "byteLength": 17578,
+      "operation": "MODIFY",
+      "reason": "Post-hoc successor ratification of preexisting GATE20 current bytes over the previous canonical publication digest.",
+      "artifactClass": "POSTHOC_CURRENT_BYTE_RATIFICATION"
+    },
+    {
+      "path": "governance/tests/gate-fast-path-control-plane.test.mjs",
+      "sha256": "3ea91dbc475fee0f5583d7ff856ebc8e960bdc46761b13fd279617b83c2c9af0",
+      "byteLength": 44661,
+      "operation": "MODIFY",
+      "reason": "Post-hoc successor ratification of preexisting GATE20 current bytes over the previous canonical publication digest.",
+      "artifactClass": "POSTHOC_CURRENT_BYTE_RATIFICATION"
+    },
+    {
+      "path": "governance/tests/gate-lifecycle-orchestrator.test.mjs",
+      "sha256": "761f24375729fd4dcfa099f346a7e6f6d370eb4840128840b3a3ca25e0c1b7be",
+      "byteLength": 82057,
+      "operation": "MODIFY",
+      "reason": "Post-hoc successor ratification of preexisting GATE20 current bytes over the previous canonical publication digest.",
+      "artifactClass": "POSTHOC_CURRENT_BYTE_RATIFICATION"
+    },
+    {
+      "path": "governance/tests/successor-sequencing-strict.test.mjs",
+      "sha256": "45ae2977128a61780bad7daa9abd665895c949b10860c32332b023690027ebac",
+      "byteLength": 16967,
+      "operation": "MODIFY",
+      "reason": "Post-hoc successor ratification of preexisting GATE20 current bytes over the previous canonical publication digest.",
+      "artifactClass": "POSTHOC_CURRENT_BYTE_RATIFICATION"
+    },
+    {
+      "path": "governance/tools/final-gate-integrity-auditor.mjs",
+      "sha256": "357c8144a2fa6b3f42b5e37ed834fae6e452d70883b0943f4978128253384ab6",
+      "byteLength": 50654,
+      "operation": "MODIFY",
+      "reason": "Post-hoc successor ratification of preexisting GATE20 current bytes over the previous canonical publication digest.",
+      "artifactClass": "POSTHOC_CURRENT_BYTE_RATIFICATION"
+    },
+    {
+      "path": "governance/tools/gate-lifecycle-orchestrator.mjs",
+      "sha256": "a6152f95d2ee761f8898546413650ae860ac93ca4cdcd630f9a54108bf850ed6",
+      "byteLength": 60420,
+      "operation": "MODIFY",
+      "reason": "Post-hoc successor ratification of preexisting GATE20 current bytes over the previous canonical publication digest.",
+      "artifactClass": "POSTHOC_CURRENT_BYTE_RATIFICATION"
+    },
+    {
+      "path": "governance/tools/governance-preflight.mjs",
+      "sha256": "e4409b5831bdf87ad48179a0dc816575839f6f7c49a40ed88415872400bc38a2",
+      "byteLength": 12379,
+      "operation": "MODIFY",
+      "reason": "Post-hoc successor ratification of preexisting GATE20 current bytes over the previous canonical publication digest.",
+      "artifactClass": "POSTHOC_CURRENT_BYTE_RATIFICATION"
+    },
+    {
+      "path": "governance/tools/post-freeze-maintenance-observation.mjs",
+      "sha256": "3ed9b545bcca0b85dde05b41cb85e08fe079a5d6c2113eb9fd90c1a887848c9b",
+      "byteLength": 17088,
+      "operation": "MODIFY",
+      "reason": "Post-hoc successor ratification of preexisting GATE20 current bytes over the previous canonical publication digest.",
+      "artifactClass": "POSTHOC_CURRENT_BYTE_RATIFICATION"
+    },
+    {
+      "path": "governance/tools/recover-governance-transaction.mjs",
+      "sha256": "46d79a4320f9e07099963aa4e515f661b6b6cfa60e0eefd605775b972014600c",
+      "byteLength": 10307,
+      "operation": "MODIFY",
+      "reason": "Post-hoc successor ratification of preexisting GATE20 current bytes over the previous canonical publication digest.",
+      "artifactClass": "POSTHOC_CURRENT_BYTE_RATIFICATION"
+    },
+    {
+      "path": "governance/tools/transaction-provenance.mjs",
+      "sha256": "844244b2611f9139e969fea18cdefe49a55822b194564369033c51b78510d694",
+      "byteLength": 48058,
+      "operation": "MODIFY",
+      "reason": "Post-hoc successor ratification of preexisting GATE20 current bytes over the previous canonical publication digest.",
+      "artifactClass": "POSTHOC_CURRENT_BYTE_RATIFICATION"
+    }
+  ]
+}

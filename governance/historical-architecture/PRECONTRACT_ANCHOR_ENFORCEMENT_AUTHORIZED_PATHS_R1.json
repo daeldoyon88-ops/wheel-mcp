@@ -1,0 +1,92 @@
+{
+  "documentKind": "POST_FREEZE_MAINTENANCE_AUTHORIZED_PATH_MANIFEST",
+  "schemaVersion": 2,
+  "manifestId": "PRECONTRACT_ANCHOR_ENFORCEMENT_AUTHORIZED_PATHS_R1",
+  "programId": "WHEEL_PRECONTRACT_ANCHOR_ENFORCEMENT_R1",
+  "prestateSelfExclusion": [
+    {
+      "path": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_PRECONTRACT_ANCHOR_ENFORCEMENT_R1.json",
+      "role": "AUTHORITY_DOCUMENT",
+      "reason": "The authority document must already exist for its own evaluator to read it; it stays inside the cohort and is verified byte-for-byte at consumption."
+    },
+    {
+      "path": "governance/historical-architecture/PRECONTRACT_ANCHOR_ENFORCEMENT_AUTHORIZED_PATHS_R1.json",
+      "role": "AUTHORIZED_PATH_MANIFEST",
+      "reason": "The manifest must already exist to be digest-pinned by the authority; it stays inside the cohort and is verified byte-for-byte at consumption."
+    }
+  ],
+  "paths": [
+    {
+      "path": "governance/authority/precontract/GATE20/PRECONTRACT_CONSUMPTION_ANCHOR_AUTHORITY_R1.json",
+      "operation": "CREATE",
+      "phase": "PRECONTRACT_ANCHOR_ENFORCEMENT",
+      "reason": "GATE20's single-use local anchor authority. Its bootstrap was lawful at its own pre-state — 78 ledger events, GATE20 NOT_STARTED — but no PRECONTRACT_CONSUMPTION_ANCHOR was ever appended, so the receipt stopped verifying the moment the Gate's own AUTHORIZATION, START and AGENT_CLOSURE moved the ledger underneath it. This authority states exactly what may be anchored: the Gate, the precontract authority and its id, the receipt path, and the receipt's exact bytes. It authorizes no status change, and the existing anchor primitive refuses anything it does not name.",
+      "artifactClass": "PRECONTRACT_ANCHOR_ENFORCEMENT",
+      "prestate": { "state": "ABSENT" }
+    },
+    {
+      "path": "governance/tools/precontract-anchor-enforcement.mjs",
+      "operation": "CREATE",
+      "phase": "PRECONTRACT_ANCHOR_ENFORCEMENT",
+      "reason": "The single decision both enforcement sites delegate to. anchor-precontract-consumption.mjs existed and worked but had NO CALLER anywhere in the engine, so anchoring was something an agent had to remember between a bootstrap and the Gate's first lifecycle event. This module owns no rule of its own: it locates the Gate's precontract authority through precontractLocalAuthorityPath — the primitive that defines that location — and returns the verdict of the canonical consumer verifyPrecontractConsumption verbatim. Writing the rule twice is precisely what produced FGI PASS alongside VERIFY_CONSUMPTION BLOCKED, so it is written once and imported.",
+      "artifactClass": "PRECONTRACT_ANCHOR_ENFORCEMENT",
+      "prestate": { "state": "ABSENT" }
+    },
+    {
+      "path": "governance/tools/gate-fast-path-control-plane.mjs",
+      "operation": "MODIFY",
+      "phase": "PRECONTRACT_ANCHOR_ENFORCEMENT",
+      "reason": "Generic Fast Gate enforcement. The normal fast path allowed precontract consumption, AUTHORIZATION, START and AGENT_CLOSURE to proceed without ever requiring the consumption to be anchored first. A blocking fact is now raised while an applicable consumption is unanchored, which makes the plan unable to reach FAST_PATH_READY and therefore makes AUTHORIZATION and START unreachable. Blocking is what replaces remembering: forgetting the anchor now fails closed instead of silently spending the proof. No Gate is named and no Gate is exempted; applicability is decided by whether the Gate has a local precontract authority at its canonical path.",
+      "artifactClass": "PRECONTRACT_ANCHOR_ENFORCEMENT",
+      "prestate": {
+        "state": "PRESENT",
+        "sha256": "9298de91f4defc4b34bc2c3109dc59727d25f51401ad39c0da7e5b9f79fd6684",
+        "byteLength": 62015
+      }
+    },
+    {
+      "path": "governance/tools/final-gate-integrity-auditor.mjs",
+      "operation": "MODIFY",
+      "phase": "PRECONTRACT_ANCHOR_ENFORCEMENT",
+      "reason": "FGI enforcement. The auditor imported the anchor transition table only to admit an anchor event's from/to/type tuple when one existed; nothing detected a MISSING anchor, which is why a final audit could return PASS over a Gate whose canonical consumer returned BLOCKED. The AUTHORITY family now asks the question generically, and asks it by delegating to the shared decision rather than by reimplementing VERIFY_CONSUMPTION — a second implementation is what would let the two verdicts drift apart again.",
+      "artifactClass": "PRECONTRACT_ANCHOR_ENFORCEMENT",
+      "prestate": {
+        "state": "PRESENT",
+        "sha256": "eee108d14a2e2c1b61526b05da91a3f446981a039e9630179685d6fac038d0c4",
+        "byteLength": 46633
+      }
+    },
+    {
+      "path": "governance/tests/precontract-anchor-enforcement.test.mjs",
+      "operation": "CREATE",
+      "phase": "TARGETED_HOSTILE_TESTS",
+      "reason": "Hostiles A through R plus the contradiction test. The decision battery binds the anchor to Gate, authority, receipt path and receipt bytes, proves it survives future ledger appends, descendant HEADs and a future clock, and refuses replay and partial publication. The wiring battery proves both consumers block on the same fact and asserts the implication FGI PASS => VERIFY_CONSUMPTION not BLOCKED directly. Fixtures are a local clone outside the repository rather than a bare directory copy, because a copy without Git history returns HISTORICAL_BASE_COMMIT_UNKNOWN for every verdict and would let a tamper test pass without the tamper doing anything.",
+      "artifactClass": "PRECONTRACT_ANCHOR_ENFORCEMENT",
+      "prestate": { "state": "ABSENT" }
+    },
+    {
+      "path": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_PRECONTRACT_ANCHOR_ENFORCEMENT_R1.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE_AUTHORITY_RECORDS",
+      "reason": "Single-use LOCAL_EXPLICIT_AUTHORITY for this enforcement repair; no already-consumed authority is reused.",
+      "artifactClass": "PRECONTRACT_ANCHOR_ENFORCEMENT",
+      "prestate": { "state": "ABSENT" }
+    },
+    {
+      "path": "governance/historical-architecture/PRECONTRACT_ANCHOR_ENFORCEMENT_AUTHORIZED_PATHS_R1.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE_AUTHORITY_RECORDS",
+      "reason": "Exact finite eight-path cohort with declared per-path pre-state; no wildcard and no directory blanket.",
+      "artifactClass": "PRECONTRACT_ANCHOR_ENFORCEMENT",
+      "prestate": { "state": "ABSENT" }
+    },
+    {
+      "path": "governance/historical-architecture/PRECONTRACT_ANCHOR_ENFORCEMENT_CONSUMPTION_R1.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE_AUTHORITY_RECORDS",
+      "reason": "Single-use consumption record binding this authority, its manifest and its transaction.",
+      "artifactClass": "PRECONTRACT_ANCHOR_ENFORCEMENT",
+      "prestate": { "state": "ABSENT" }
+    }
+  ]
+}

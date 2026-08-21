@@ -1,0 +1,99 @@
+{
+  "documentKind": "POST_FREEZE_MAINTENANCE_AUTHORITY_CONSUMPTION",
+  "schemaVersion": 2,
+  "authorityId": "GATE20_INDEPENDENT_EXTERNAL_CONFIRMATION_LOCAL_AUTHORITY_R1",
+  "programId": "GATE20_INDEPENDENT_EXTERNAL_CONFIRMATION_R1",
+  "manifestSha256": "a16670acb73dd4d010bb4b7b222cbddb70f7d90f5ef29d22a6a9f4c20a2b4c88",
+  "baseHead": "00c019c42fb04b5ba11f1a7cdb62cb4750858db1",
+  "consumedUse": 1,
+  "transactionId": "GATE20_EXTERNAL_CONFIRMATION_R1_TRANSACTION",
+  "recordedAt": "2026-08-21T01:16:00.000Z",
+  "commitMessage": "governance: confirm GATE20 with independent confirmation",
+  "cohortSelfExclusion": {
+    "path": "governance/historical-architecture/GATE20_EXTERNAL_CONFIRMATION_CONSUMPTION_R1.json",
+    "reason": "The consumption record cannot hash its own final bytes; its identity is bound by the authority and manifest instead."
+  },
+  "cohortPathCount": 11,
+  "cohort": [
+    {
+      "path": "governance/sources/GATE20_INDEPENDENT_EXTERNAL_CONFIRMATION_R1_EXTERNAL_REINSPECTION_REPORT.json",
+      "sha256": "9dc8b6978fae888a45301545628721fc8ac8719397022db6d9aded7eb646c0e4",
+      "byteLength": 2799,
+      "operation": "CREATE",
+      "reason": "Independent external reinspection report bound to the GATE20 COMPLETE_AGENT pre-state and recaptured final evidence identities.",
+      "artifactClass": "EXTERNAL_CONFIRMATION"
+    },
+    {
+      "path": "governance/gee-v1/adapters/wheel/external-authority-policy.mjs",
+      "sha256": "7acae6cc04652eeabb52bf1ca9fffec45fd0eda74bf5bb06988095585815ec45",
+      "byteLength": 6585,
+      "operation": "MODIFY",
+      "reason": "Registers the existing standard external-reinspection declaration for the GATE20 logical authority.",
+      "artifactClass": "EXTERNAL_CONFIRMATION"
+    },
+    {
+      "path": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_GATE20_EXTERNAL_CONFIRMATION_R1.json",
+      "sha256": "67b3850a8a1034f78c58bdfce6a5526b2366c15c70710a3b0febf79b9c9404bf",
+      "byteLength": 2513,
+      "operation": "CREATE",
+      "reason": "Single-use LOCAL_EXPLICIT_AUTHORITY bound to the exact GATE20 COMPLETE_AGENT pre-state.",
+      "artifactClass": "EXTERNAL_CONFIRMATION"
+    },
+    {
+      "path": "governance/historical-architecture/GATE20_EXTERNAL_CONFIRMATION_AUTHORIZED_PATHS_R1.json",
+      "sha256": "a16670acb73dd4d010bb4b7b222cbddb70f7d90f5ef29d22a6a9f4c20a2b4c88",
+      "byteLength": 3828,
+      "operation": "CREATE",
+      "reason": "Finite exact-file confirmation cohort with no wildcard, directory blanket or unrelated user work.",
+      "artifactClass": "EXTERNAL_CONFIRMATION"
+    },
+    {
+      "path": "governance/gates/GATE20/state/revisions/R0004/CHECKPOINT.json",
+      "sha256": "14b8427b5f8916d4be7cce18040fc1536999b807baa9bf7d764767e2b9e8692b",
+      "byteLength": 334,
+      "operation": "CREATE",
+      "reason": "Immutable successor checkpoint consuming the R0003 COMPLETE_AGENT handoff.",
+      "artifactClass": "EXTERNAL_CONFIRMATION"
+    },
+    {
+      "path": "governance/gates/GATE20/state/revisions/R0004/OPEN_DEFECTS.json",
+      "sha256": "eb907666a10b9a8dddd179aaf9b7a6436b35c628289bb680e1adb97042b7dd8a",
+      "byteLength": 70,
+      "operation": "CREATE",
+      "reason": "Closed-world R0004 defect projection for the independently confirmed terminal state.",
+      "artifactClass": "EXTERNAL_CONFIRMATION"
+    },
+    {
+      "path": "governance/gates/GATE20/state/revisions/R0004/STATE_SEAL.json",
+      "sha256": "c81cfb15b06b087d3b4a2e8240b6ac8ccc2a822b53528dfd123926f96b8d4e31",
+      "byteLength": 1359,
+      "operation": "CREATE",
+      "reason": "Native R0004 state seal chained from R0003 and pinned by the confirmation event.",
+      "artifactClass": "EXTERNAL_CONFIRMATION"
+    },
+    {
+      "path": "governance/gates/GATE20/state/CURRENT_STATE.json",
+      "sha256": "2135e8a71ff8d8787a6f349f670a797a110869e158f77291e2d1f8a0b4bf9f02",
+      "byteLength": 308,
+      "operation": "MODIFY",
+      "reason": "Advances the canonical GATE20 state pointer to COMPLETE_CONFIRMED R0004.",
+      "artifactClass": "EXTERNAL_CONFIRMATION"
+    },
+    {
+      "path": "governance/state/GATE_STATUS_LEDGER.ndjson",
+      "sha256": "0be5bf66253993668569950a9db20271d6f7a3889c4f233e585047d3cae0d173",
+      "byteLength": 48973,
+      "operation": "MODIFY",
+      "reason": "Appends exactly one GATE20 EXTERNAL_CONFIRMATION event after the immutable 82-event prefix.",
+      "artifactClass": "EXTERNAL_CONFIRMATION"
+    },
+    {
+      "path": "governance/state/generated/GATE_STATUS_SNAPSHOT.json",
+      "sha256": "23edfb15d63f0429bd540dbd62c38a410544506b2d3d6a5f1cd1a136f081f100",
+      "byteLength": 15733,
+      "operation": "MODIFY",
+      "reason": "Regenerates the derived status projection from the confirmed canonical ledger.",
+      "artifactClass": "EXTERNAL_CONFIRMATION"
+    }
+  ]
+}

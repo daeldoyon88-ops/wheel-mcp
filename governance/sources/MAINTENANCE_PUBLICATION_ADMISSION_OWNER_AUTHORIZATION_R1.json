@@ -1,0 +1,25 @@
+{
+  "document": "MAINTENANCE_PUBLICATION_ADMISSION_OWNER_AUTHORIZATION",
+  "schemaVersion": 1,
+  "authorityId": "GATE20_REPAIR_B_PUBLICATION_OWNER_AUTHORIZATION_R1",
+  "authorityClass": "PROJECT_OWNER_MAINTENANCE_PUBLICATION_ADMISSION_AUTHORITY",
+  "authorityMode": "LOCAL_EXPLICIT_AUTHORITY",
+  "issuedBy": "PROJECT_OWNER",
+  "issuedAtUtc": "2026-08-20T00:00:00.000Z",
+  "decisionId": "GATE20_REPAIR_B_PUBLICATION_OWNER_DECISION_R1",
+  "purpose": "MAINTENANCE_PUBLICATION_ADMISSION",
+  "reexecutionAuthorized": false,
+  "grantsFutureBytePermission": false,
+  "genericV1Admission": false,
+  "admittedPublications": [
+    {
+      "admissionId": "GATE20_REPAIR_B_PUBLICATION_ADMISSION_R1",
+      "projectId": "WHEEL",
+      "gateId": "GATE20",
+      "programId": "GATE20_REPAIR_B_POSITIVE_PUBLICATION_R1",
+      "admissionPath": "governance/authority/publication-admissions/GATE20/GATE20_REPAIR_B_PUBLICATION_ADMISSION_R1.json",
+      "admissionDigest": "6d1ec7db414805e11975db4a3faa281374584e80bb328f723b6efec3722ef386"
+    }
+  ],
+  "registryDigest": "18f3f6608c4ddff5b0c0ebcf0135bf0b4c7fa3183edabbf03910ac82c1575630"
+}

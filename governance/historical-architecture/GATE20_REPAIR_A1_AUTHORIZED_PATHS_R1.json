@@ -1,0 +1,74 @@
+{
+  "documentKind": "POST_FREEZE_MAINTENANCE_AUTHORIZED_PATH_MANIFEST",
+  "schemaVersion": 2,
+  "manifestId": "GATE20_REPAIR_A1_AUTHORIZED_PATHS_R1",
+  "programId": "WHEEL_GATE20_REPAIR_A1_AUTHORITY_ENVELOPE_CORRECTION_R1",
+  "prestateSelfExclusion": [
+    {
+      "path": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_GATE20_REPAIR_A1_R1.json",
+      "role": "AUTHORITY_DOCUMENT",
+      "reason": "The authority document must already exist for its own evaluator to read it; it stays inside the cohort and is verified byte-for-byte at consumption."
+    },
+    {
+      "path": "governance/historical-architecture/GATE20_REPAIR_A1_AUTHORIZED_PATHS_R1.json",
+      "role": "AUTHORIZED_PATH_MANIFEST",
+      "reason": "The manifest must already exist to be digest-pinned by the authority; it stays inside the cohort and is verified byte-for-byte at consumption."
+    }
+  ],
+  "paths": [
+    {
+      "path": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_GATE20_CONSOLIDATED_REPAIR_A_R1.json",
+      "operation": "MODIFY",
+      "phase": "AUTHORITY_ENVELOPE_CORRECTION",
+      "reason": "A.1. The Repair A authority declared fourteen prohibitedOperations: the twelve canonical values plus LEDGER_APPEND and GATE21_START. The canonical set is CLOSED-WORLD — the evaluator compares it by exact set equality — so two additions intended as extra restraint made the whole authority refusable, and VERIFY_PROGRAM_CONSUMPTION returned BLOCKED with PROHIBITED_OPERATIONS_INVALID. The two values are removed and nothing else in the document changes. The restraint they were meant to express is not lost: LEDGER_APPEND and GATE21_START were never permitted by this authority in the first place, because a maintenance program may only touch the exact paths its manifest names, and no ledger or GATE21 path appears there.",
+      "artifactClass": "GATE20_REPAIR_A1_AUTHORITY_ENVELOPE_CORRECTION",
+      "prestate": {
+        "state": "PRESENT",
+        "sha256": "073a47c13e847370c49324a1d8825d8344a18b21e18855315bc3b4013f3f927b",
+        "byteLength": 2188
+      }
+    },
+    {
+      "path": "governance/historical-architecture/GATE20_CONSOLIDATED_REPAIR_A_CONSUMPTION_R1.json",
+      "operation": "MODIFY",
+      "phase": "AUTHORITY_ENVELOPE_CORRECTION",
+      "reason": "A.1. The single dependent binding. This record pins the final bytes of every path in the Repair A cohort, including the authority document itself, so correcting the authority necessarily moves one cohort entry sha256 and byteLength. Nothing else in the record is touched: the other twenty-five entries, the manifest digest, the base head and the consumed use all stay exactly as Repair A recorded them.",
+      "artifactClass": "GATE20_REPAIR_A1_AUTHORITY_ENVELOPE_CORRECTION",
+      "prestate": {
+        "state": "PRESENT",
+        "sha256": "4e2edbb113b16f60822124c61e379338e4d0a63f2529692923347a32c59b0116",
+        "byteLength": 17715
+      }
+    },
+    {
+      "path": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_GATE20_REPAIR_A1_R1.json",
+      "operation": "CREATE",
+      "phase": "AUTHORITY_ENVELOPE_CORRECTION",
+      "reason": "A.1. Single-use LOCAL_EXPLICIT_AUTHORITY for this correction. Editing an already-consumed authority document without an authority of its own would be precisely the self-authorization this framework exists to prevent.",
+      "artifactClass": "GATE20_REPAIR_A1_AUTHORITY_ENVELOPE_CORRECTION",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "governance/historical-architecture/GATE20_REPAIR_A1_AUTHORIZED_PATHS_R1.json",
+      "operation": "CREATE",
+      "phase": "AUTHORITY_ENVELOPE_CORRECTION",
+      "reason": "A.1. Exact two-path functional cohort with per-path pre-states taken from the live bytes immediately before the correction. No wildcard, no directory blanket, no unrelated path.",
+      "artifactClass": "GATE20_REPAIR_A1_AUTHORITY_ENVELOPE_CORRECTION",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "governance/historical-architecture/GATE20_REPAIR_A1_CONSUMPTION_R1.json",
+      "operation": "CREATE",
+      "phase": "AUTHORITY_ENVELOPE_CORRECTION",
+      "reason": "A.1. The consumption record for this correction. It is an authorized path in its own right and is excluded only from its own cohort digest, because it cannot hash its own final bytes.",
+      "artifactClass": "GATE20_REPAIR_A1_AUTHORITY_ENVELOPE_CORRECTION",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    }
+  ]
+}

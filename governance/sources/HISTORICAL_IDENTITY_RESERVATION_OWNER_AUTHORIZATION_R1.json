@@ -1,0 +1,24 @@
+{
+  "document": "HISTORICAL_IDENTITY_RESERVATION_OWNER_AUTHORIZATION",
+  "schemaVersion": 1,
+  "authorityId": "HISTORICAL_IDENTITY_RESERVATION_OWNER_AUTHORIZATION_R1",
+  "authorityClass": "PROJECT_OWNER_HISTORICAL_IDENTITY_RESERVATION_AUTHORITY",
+  "authorityMode": "LOCAL_EXPLICIT_AUTHORITY",
+  "issuedBy": "PROJECT_OWNER",
+  "issuedAtUtc": "2026-08-17T00:00:00.000Z",
+  "decisionId": "GATE20_REPAIR_B_B05_HISTORICAL_IDENTITY_RATIFICATION_R1",
+  "purpose": "Enumerate the historical program identities the Project Owner has reserved. A reserved identity may be recognised ONLY through its bounded historical admission path; it is never publishable and never falls through to ordinary V2 admission.",
+  "reexecutionAuthorized": false,
+  "publicationAuthorized": false,
+  "reservedHistoricalIdentities": [
+    {
+      "reservationId": "HISTORICAL_IDENTITY_RESERVATION_GATE20_FOUNDATION_PROJECTION_SYNC_R1",
+      "projectId": "WHEEL",
+      "gateId": "GATE20",
+      "programId": "GATE20_FOUNDATION_PROJECTION_SYNC_R1",
+      "ratificationPath": "governance/authority/historical-ratifications/GATE20/PROJECT_OWNER_HISTORICAL_IDENTITY_RATIFICATION_GATE20_FOUNDATION_PROJECTION_SYNC_R1.json",
+      "ratificationDigest": "46e9df13a32a04eae33211a9424e4b7ad1ddeec4f18025a3a94e212c30d8f164"
+    }
+  ],
+  "registryDigest": "ba53ab1c1969306fc34e023f83c6b9d60bb6dd79fcb87bc55097b63e9ad55022"
+}

@@ -39,6 +39,8 @@
  */
 
 import { canonicalize, sha256Hex, verifyOwnerSignature, authorizationSigningPayload } from './release-authority.mjs';
+import { IMMUTABLE_VERSIONED_ARTIFACT, MUTABLE_PROJECTION } from './artifact-classification.mjs';
+import { SUCCESSOR_CLOSURE_STATUSES } from './successor-closure.mjs';
 import {
   LEGACY_SIGNED_AUTHORITY_MODE,
   POST_FREEZE_MAINTENANCE_AUTHORITY_MODE,
@@ -89,20 +91,75 @@ export const GATE_AUTHORIZATION_REQUIRED_PROHIBITIONS = Object.freeze([
   'GEE_REVISION_CREATION'
 ]);
 
-/** Terminal predecessor statuses that may satisfy an immediate dependency. */
-export const GATE_AUTHORIZATION_TERMINAL_DEPENDENCY_STATUSES = Object.freeze(['COMPLETE_AGENT', 'COMPLETE_CONFIRMED', 'SUPERSEDED']);
+/**
+ * Terminal predecessor statuses that may satisfy an immediate dependency.
+ *
+ * RE-EXPORTED, never restated. This constant used to carry its own copy of the
+ * list, and the copy included COMPLETE_AGENT. Existing importers keep the name
+ * they already use; what they get is now the single canonical rule.
+ */
+export const GATE_AUTHORIZATION_TERMINAL_DEPENDENCY_STATUSES = SUCCESSOR_CLOSURE_STATUSES;
 
 // --------------------------------------------------------------------------
 // Canonical cohorts. Generic over gateId; no Gate literal anywhere.
 // --------------------------------------------------------------------------
 
 /**
- * The Gate's own first sealed state revision. These four files are IMMUTABLE
- * once sealed, so their bytes are pinned permanently by the ledger.
+ * The Gate's own first sealed state revision. Three of these four files are
+ * IMMUTABLE once sealed, so their bytes are pinned permanently by the ledger.
+ * CURRENT_STATE is not one of them — see the role classification below.
  */
 export const GATE_AUTHORIZATION_STATE_COHORT_ROLES = Object.freeze([
   'CURRENT_STATE', 'CHECKPOINT', 'OPEN_DEFECTS', 'STATE_SEAL'
 ]);
+
+/**
+ * WHAT EACH STATE-COHORT ROLE *IS*, in MODEL D terms. Not a new opinion: this
+ * states, in one place, the classification the rest of the system already acts
+ * on, so that consumers stop rediscovering it — inconsistently — one at a time.
+ *
+ * CHECKPOINT / OPEN_DEFECTS / STATE_SEAL are pinned at a REVISION-SCOPED path
+ * (`state/revisions/R0001/...`). A revision never changes, so neither may they.
+ * Their authorization-time digest is a permanent obligation, and the ledger
+ * validator enforces exactly that.
+ *
+ * CURRENT_STATE is pinned at a REVISION-INDEPENDENT path (`state/CURRENT_STATE`).
+ * It is the pointer that SAYS which revision is current, so advancing it is its
+ * job, not its corruption. `validate-status-ledger` already encodes this
+ * precisely: the exact-byte comparison against the authorization pin is skipped
+ * for `cohortRole === 'CURRENT_STATE'`, and the pin is re-imposed only while the
+ * pointer still names the authorization-time revision
+ * (GATE_AUTHORIZATION_CURRENT_STATE_R0001_BYTES_CHANGED). Once it has advanced,
+ * the pointer is proved through its TARGET'S LINEAGE instead — which is the only
+ * ground MODEL D permits a MUTABLE_PROJECTION to terminate on.
+ *
+ * The consequence any consumer must respect: an authorization-time CURRENT_STATE
+ * digest is an INITIAL-STATE binding, never a permanent terminal publication
+ * root. Treating it as the latter is what MODEL D names
+ * MUTABLE_PROJECTION_PERMANENTLY_BYTE_PINNED — it freezes something the
+ * architecture defines as movable.
+ */
+export const GATE_AUTHORIZATION_STATE_COHORT_ROLE_CLASSES = Object.freeze({
+  CURRENT_STATE: MUTABLE_PROJECTION,
+  CHECKPOINT: IMMUTABLE_VERSIONED_ARTIFACT,
+  OPEN_DEFECTS: IMMUTABLE_VERSIONED_ARTIFACT,
+  STATE_SEAL: IMMUTABLE_VERSIONED_ARTIFACT
+});
+
+/**
+ * The MODEL D class of one state-cohort role, or null for a role this module
+ * does not classify.
+ *
+ * Null is deliberately NOT a synonym for "mutable". A caller relaxing an
+ * obligation must do so only on a POSITIVE classification, so that an
+ * unrecognised role keeps the strict treatment rather than inheriting the
+ * loosest one by accident.
+ */
+export function gateAuthorizationStateCohortRoleClass(cohortRole) {
+  return Object.hasOwn(GATE_AUTHORIZATION_STATE_COHORT_ROLE_CLASSES, cohortRole)
+    ? GATE_AUTHORIZATION_STATE_COHORT_ROLE_CLASSES[cohortRole]
+    : null;
+}
 
 /**
  * Ledger-derived generated views (OWNER DECISION A). The AUTHORIZATION ledger

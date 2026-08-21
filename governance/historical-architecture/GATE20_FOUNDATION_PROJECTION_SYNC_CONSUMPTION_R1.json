@@ -1,0 +1,51 @@
+{
+  "documentKind": "POST_FREEZE_MAINTENANCE_AUTHORITY_CONSUMPTION",
+  "schemaVersion": 2,
+  "authorityId": "GATE20_FOUNDATION_PROJECTION_SYNC_LOCAL_AUTHORITY_R1",
+  "programId": "GATE20_FOUNDATION_PROJECTION_SYNC_R1",
+  "manifestSha256": "35af0892eadebafdc3fb8c6c7745f50de72a0d3f0879a4569a34e4ca9e0e96f1",
+  "baseHead": "00c019c42fb04b5ba11f1a7cdb62cb4750858db1",
+  "consumedUse": 1,
+  "transactionId": "GATE20_FOUNDATION_PROJECTION_SYNC_R1_TRANSACTION",
+  "recordedAt": "2026-08-16T23:14:00.000Z",
+  "commitMessage": "governance: bind GATE20 foundation projection sync",
+  "cohortSelfExclusion": {
+    "path": "governance/historical-architecture/GATE20_FOUNDATION_PROJECTION_SYNC_CONSUMPTION_R1.json",
+    "reason": "The consumption record cannot hash its own final bytes; its identity is bound by the authority and manifest instead."
+  },
+  "cohortPathCount": 5,
+  "cohort": [
+    {
+      "path": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_GATE20_FOUNDATION_PROJECTION_SYNC_R1.json",
+      "sha256": "10bfbe159abf75bfe72fb41d9150b97e82fab761cc8638297c116c9701f987d8",
+      "byteLength": 2114,
+      "operation": "CREATE",
+      "reason": "Single-use LOCAL_EXPLICIT_AUTHORITY for the two projections invalidated by the final GATE20 ledger.",
+      "artifactClass": "DERIVED_PROJECTION_GENERATION"
+    },
+    {
+      "path": "governance/historical-architecture/GATE20_FOUNDATION_PROJECTION_SYNC_AUTHORIZED_PATHS_R1.json",
+      "sha256": "35af0892eadebafdc3fb8c6c7745f50de72a0d3f0879a4569a34e4ca9e0e96f1",
+      "byteLength": 1933,
+      "operation": "CREATE",
+      "reason": "Finite exact-file projection-sync cohort with no wildcard or directory blanket.",
+      "artifactClass": "DERIVED_PROJECTION_GENERATION"
+    },
+    {
+      "path": "governance/generated/FOUNDATION_REPORT.md",
+      "sha256": "944f36b38a77ceddc0912ef2d453980dddb28959b1716961a8042dcc2a92c53e",
+      "byteLength": 5548,
+      "operation": "MODIFY",
+      "reason": "Canonical foundation report regenerated from the post-closure ledger.",
+      "artifactClass": "DERIVED_PROJECTION_GENERATION"
+    },
+    {
+      "path": "governance/generated/FOUNDATION_REPORT_PROVENANCE.json",
+      "sha256": "87f5e814da08c027c94bff57796a2f819b18ce93b7632b45122bf6f6df2306ba",
+      "byteLength": 6140,
+      "operation": "MODIFY",
+      "reason": "Canonical foundation report provenance regenerated with the report bytes.",
+      "artifactClass": "DERIVED_PROJECTION_GENERATION"
+    }
+  ]
+}

@@ -1,9 +1,40 @@
+/**
+ * GATE14 CURRENT_STATE LINEAGE, against the ledger validator.
+ *
+ * WHAT THIS SUITE IS FOR. `validate-status-ledger` treats the four
+ * AUTHORIZATION state-cohort roles differently on purpose: CHECKPOINT,
+ * OPEN_DEFECTS and STATE_SEAL are byte-pinned forever, while CURRENT_STATE is a
+ * MUTABLE_PROJECTION whose pin is re-imposed only while the pointer still names
+ * the authorization-time revision. P01 proves the pointer may advance; CS-H01..03
+ * prove the immutable members may not move; the rest fence the lineage.
+ *
+ * TWO DEFECTS IN THE PREDECESSOR OF THIS FILE, both now repaired.
+ *
+ * 1. THE FIXTURE WAS NOT SELF-CONTAINED. It cloned an absolute path outside the
+ *    repository, so the evidence could not be reproduced anywhere else and was
+ *    silently coupled to bytes nobody versioned. The same snapshot now lives in
+ *    the repository as a single archive and is expanded per test.
+ *
+ * 2. EVERY POSITIVE CONTROL WAS FAILING, AND SILENTLY. `run` overrode the policy
+ *    to verify the START authority with `TEST_GATE_START_KEY.json`. That key is
+ *    not what signed this fixture's START authority — the real PROJECT_OWNER key
+ *    is — but it carries THE SAME `keyId`, so the key-identity check passed and
+ *    verification failed one step later as a bare "signature invalid". P01, P02,
+ *    CS-H13 and CS-H14 had therefore been failing while the twelve hostile cases
+ *    still "passed", which is the exact shape of a suite that refuses everything
+ *    and proves nothing. The override is gone; the default owner key is used, and
+ *    the archive no longer carries the colliding TEST key at all.
+ *
+ * TEST IDENTITIES ARE UNCHANGED. All sixteen keep their names and their subjects;
+ * only the fixture source and the verification key were repaired.
+ */
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import zlib from 'node:zlib';
 
 import { validateLedger } from '../tools/validate-status-ledger.mjs';
 import { validateStateRevision } from '../tools/validate-state-revision.mjs';
@@ -11,8 +42,14 @@ import { validateStateSeal } from '../tools/validate-state-seal.mjs';
 import { sha256Canonical, sha256Bytes } from '../tools/canonical-json.mjs';
 import { WHEEL_EXTERNAL_AUTHORITY_POLICY } from '../gee-v1/adapters/wheel/external-authority-policy.mjs';
 
-const ROOT = path.resolve(import.meta.dirname, '../..');
-const FUTURE_SOURCE = 'C:/Users/melan/AppData/Local/WheelGovernanceAuthorizations/GATE14_START_R2/isolated-future-repo';
+/**
+ * The governed repository as it stood at the GATE14 START R2 boundary — ledger
+ * ordinal 58 — stored as one gzipped path-to-content archive. Data only: no
+ * validators and no tests are carried, so this snapshot can never be mistaken
+ * for a second copy of the code under test.
+ */
+const FIXTURE_ARCHIVE = path.resolve(import.meta.dirname, 'fixtures/gate14-start-r2-fixture.json.gz');
+const FIXTURE_FILE_COUNT = 97;
 const GATE = 'GATE14';
 const LEDGER = 'governance/state/GATE_STATUS_LEDGER.ndjson';
 const CURRENT = 'governance/gates/GATE14/state/CURRENT_STATE.json';
@@ -20,12 +57,18 @@ const R1 = 'governance/gates/GATE14/state/revisions/R0001';
 const R2 = 'governance/gates/GATE14/state/revisions/R0002';
 
 function cloneFuture() {
-  assert.equal(fs.existsSync(FUTURE_SOURCE), true, 'the deterministic GATE14_START_R2 candidate is required');
+  assert.equal(fs.existsSync(FIXTURE_ARCHIVE), true, 'the GATE14_START_R2 fixture archive is required');
+  const archive = JSON.parse(zlib.gunzipSync(fs.readFileSync(FIXTURE_ARCHIVE)).toString('utf8'));
+  assert.equal(archive.documentKind, 'GATE14_CURRENT_STATE_LINEAGE_FIXTURE_ARCHIVE');
+  // The archive must expand completely. A truncated expansion would make every
+  // hostile case "block" for want of files rather than for the invariant.
+  assert.equal(Object.keys(archive.files).length, FIXTURE_FILE_COUNT, 'fixture archive is incomplete');
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'gate14-current-state-lineage-'));
-  fs.cpSync(FUTURE_SOURCE, root, { recursive: true });
-  // Event 57 is signed by the real owner key; START is verified with the isolated
-  // TEST key through the explicit policy override below.
-  fs.copyFileSync(path.join(ROOT, 'governance/authority/PROJECT_OWNER_RELEASE_KEY.json'), path.join(root, 'governance/authority/PROJECT_OWNER_RELEASE_KEY.json'));
+  for (const [relative, contents] of Object.entries(archive.files)) {
+    const file = path.join(root, ...relative.split('/'));
+    fs.mkdirSync(path.dirname(file), { recursive: true });
+    fs.writeFileSync(file, contents, 'utf8');
+  }
   return root;
 }
 
@@ -35,11 +78,9 @@ function readJson(root, relative) { return JSON.parse(fs.readFileSync(absolute(r
 function writeJson(root, relative, value) { fs.writeFileSync(absolute(root, relative), `${JSON.stringify(value, null, 2)}\n`); }
 function fileSha(root, relative) { return sha256Bytes(fs.readFileSync(absolute(root, relative))); }
 function run(root) {
-  return validateLedger({
-    root,
-    ledgerPath: absolute(root, LEDGER),
-    policy: { ...WHEEL_EXTERNAL_AUTHORITY_POLICY, gateStartOwnerKeyPath: 'governance/authority/TEST_GATE_START_KEY.json' }
-  });
+  // The canonical policy, unmodified. The fixture's authorities are signed by the
+  // real PROJECT_OWNER key, so that is the key that must verify them.
+  return validateLedger({ root, ledgerPath: absolute(root, LEDGER), policy: WHEEL_EXTERNAL_AUTHORITY_POLICY });
 }
 function blockingIds(report) { return report.findings.filter((finding) => finding.severity === 'BLOCKING').map((finding) => finding.detectorId); }
 function assertBlocked(root, expected, label) {

@@ -1,0 +1,213 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "maintenance-publication-admission.schema.json",
+  "title": "Maintenance publication admission record",
+  "description": "One bounded, causally prior Project-Owner admission of ONE exact maintenance publication. A schemaVersion-2 maintenance authority binds base HEAD, the ledger, the Gate pre-state and its manifest digest — but every one of those facts is declared by the authority itself, so the chain terminates in the document being judged. This record is the independent half: it is written before the publication, lives outside the authority it admits, and pins the authority's exact bytes, the manifest's exact bytes, the exact nine-facet pre-state, the Gate, the purpose and the operation classes. An authority therefore cannot self-admit — it would have to know its own digest before it existed, and any later edit breaks admittedAuthority.sha256. Authority to admit originates from the Owner registry named in ownerAuthorizationPath, which must list this record by path and identity digest; this record pins that registry's file hash in return, giving a mutual binding that is not recursive because admissionDigest excludes the back-reference. The record grants nothing beyond one publication: future bytes, gate authorization, START, status transition, generic V1 admission and historical-admission widening are all explicit false fields inside the sealed digest, and the record is never derived from the Git delta or from FINAL_GATE_INTEGRITY findings, both of which remain independent comparators rather than trust roots. Enforced at runtime by governance/gee-v1/core/maintenance-publication-admission.mjs, whose accepted field set is identical to this schema's so that schema validity and runtime trust cannot drift apart.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "documentKind",
+    "schemaVersion",
+    "authorityMode",
+    "issuedBy",
+    "admissionId",
+    "decisionId",
+    "issuedAtUtc",
+    "expiresAtUtc",
+    "projectId",
+    "repositoryId",
+    "gateId",
+    "programId",
+    "purpose",
+    "publicationClass",
+    "authorityPurpose",
+    "maxUse",
+    "admissionStatement",
+    "admittedAuthority",
+    "admittedManifest",
+    "admittedPrestate",
+    "admittedOperationClasses",
+    "grantsFutureBytePermission",
+    "grantsGateAuthorizationPermission",
+    "grantsStartPermission",
+    "grantsStatusTransitionPermission",
+    "grantsHistoricalAdmissionWidening",
+    "genericV1Admission",
+    "derivedFromGitDelta",
+    "derivedFromFinalGateIntegrityFindings",
+    "prohibitedOperations",
+    "successorRequirement",
+    "admissionDigest",
+    "ownerAuthorizationPath",
+    "ownerAuthorizationSha256"
+  ],
+  "definitions": {
+    "boundObject": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "sha256", "byteLength", "schemaVersion", "documentId"],
+      "properties": {
+        "path": {
+          "type": "string",
+          "pattern": "^governance/[A-Za-z0-9._/-]+$",
+          "description": "Exact repo-relative path. No wildcards, no directory recursion, no parent traversal."
+        },
+        "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+        "byteLength": { "type": "integer", "minimum": 0 },
+        "schemaVersion": { "type": "integer" },
+        "documentId": {
+          "type": "string",
+          "pattern": "^[A-Z][A-Z0-9_-]*$",
+          "description": "The bound document's own declared id (authorityId or manifestId), so a byte-identical copy filed under a different identity is still refused."
+        }
+      }
+    }
+  },
+  "properties": {
+    "documentKind": { "const": "MAINTENANCE_PUBLICATION_ADMISSION" },
+    "schemaVersion": { "const": 1 },
+    "authorityMode": {
+      "const": "LOCAL_EXPLICIT_AUTHORITY",
+      "description": "No PKI, no signature material. Authority is exhaustive digest and pre-state binding, which proves what state a decision is valid against — the property a signature never carried."
+    },
+    "issuedBy": { "const": "PROJECT_OWNER" },
+    "admissionId": { "type": "string", "pattern": "^[A-Z][A-Z0-9_-]*$" },
+    "decisionId": { "type": "string", "pattern": "^[A-Z][A-Z0-9_-]*$" },
+    "issuedAtUtc": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]{3})?Z$",
+      "description": "UTC instant of the owner decision. The explicit pattern (not only format) keeps runtime and schema validation exactly equivalent."
+    },
+    "expiresAtUtc": {
+      "type": ["string", "null"],
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]{3})?Z$",
+      "description": "Null is permitted because the pre-state binding already bounds the admission far more tightly than a clock could: the admitted state ceases to exist the moment HEAD or the ledger moves."
+    },
+    "projectId": { "type": "string", "minLength": 1 },
+    "repositoryId": { "type": "string", "minLength": 1 },
+    "gateId": {
+      "type": "string",
+      "pattern": "^GATE[0-9]{2}$",
+      "description": "Exact Gate. It must equal admittedPrestate.gateId and the Gate the admitted authority binds, so an admission for one Gate can never authorize a program on another."
+    },
+    "programId": { "type": "string", "pattern": "^[A-Z][A-Z0-9_-]*$" },
+    "purpose": { "const": "MAINTENANCE_PUBLICATION_ADMISSION" },
+    "publicationClass": {
+      "const": "PATH_PRESTATE_PROGRAM_PUBLISHER",
+      "description": "The only publisher an admission governs. Lifecycle-transition publications are published by the orchestrator under ledger semantics and are not admitted here."
+    },
+    "authorityPurpose": {
+      "const": "NORMAL_MAINTENANCE",
+      "description": "The only authority purpose the pre-state publisher governs."
+    },
+    "maxUse": {
+      "const": 1,
+      "description": "One admission, one publication. An open-ended count would be a standing licence, which is what this primitive exists to make impossible."
+    },
+    "admissionStatement": { "type": "string", "minLength": 1 },
+    "admittedAuthority": {
+      "allOf": [{ "$ref": "#/definitions/boundObject" }],
+      "description": "The exact maintenance authority bytes admitted. schemaVersion must be 2."
+    },
+    "admittedManifest": {
+      "allOf": [{ "$ref": "#/definitions/boundObject" }],
+      "description": "The exact authorized-path manifest bytes admitted. schemaVersion must be 2: a V1 manifest is never admissible, since admitting one would be a generic legacy escape hatch wearing an Owner document as a disguise."
+    },
+    "admittedPrestate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "baseHead",
+        "ledgerEventCount",
+        "ledgerPrefixSha256",
+        "gateId",
+        "gateStatus",
+        "stateRevision",
+        "contractRevision",
+        "activeGate",
+        "R8ExpectedAbsent"
+      ],
+      "description": "The exact repository state this publication is admitted against — every facet the authority binds, compared field by field. A stale admission replayed against a moved repository fails on the exact facet that moved.",
+      "properties": {
+        "baseHead": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
+        "ledgerEventCount": { "type": "integer", "minimum": 0 },
+        "ledgerPrefixSha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+        "gateId": { "type": "string", "pattern": "^GATE[0-9]{2}$" },
+        "gateStatus": { "type": ["string", "null"], "minLength": 1 },
+        "stateRevision": { "type": ["string", "null"], "minLength": 1 },
+        "contractRevision": { "type": ["string", "null"], "minLength": 1 },
+        "activeGate": { "type": ["string", "null"], "minLength": 1 },
+        "R8ExpectedAbsent": { "type": "boolean" }
+      }
+    },
+    "admittedOperationClasses": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "description": "Set equality with the authority's authorizedOperationClasses is required in BOTH directions: an authority may not exercise a class the Owner did not admit, and an admission naming a class the authority does not claim describes some other program.",
+      "items": { "type": "string", "pattern": "^[A-Z][A-Z0-9_-]*$" }
+    },
+    "grantsFutureBytePermission": {
+      "const": false,
+      "description": "PATH AUTHORIZED IS NOT CURRENT BYTES AUTHORIZED. This admission covers one publication of one candidate lineage against one pre-state, and nothing later."
+    },
+    "grantsGateAuthorizationPermission": {
+      "const": false,
+      "description": "An admission can never authorize a Gate. A successor Gate's publication needs its own Owner admission."
+    },
+    "grantsStartPermission": { "const": false },
+    "grantsStatusTransitionPermission": { "const": false },
+    "grantsHistoricalAdmissionWidening": {
+      "const": false,
+      "description": "No admission widens an existing historical admission bridge or reservation."
+    },
+    "genericV1Admission": { "const": false },
+    "derivedFromGitDelta": {
+      "const": false,
+      "description": "Git remains the independent comparator, never the trust root. An admission derived from the observed delta would authorize whatever happened to be on disk."
+    },
+    "derivedFromFinalGateIntegrityFindings": {
+      "const": false,
+      "description": "FINAL_GATE_INTEGRITY audits the result; it never supplies the authority that made the result lawful."
+    },
+    "prohibitedOperations": {
+      "type": "array",
+      "uniqueItems": true,
+      "minItems": 11,
+      "maxItems": 11,
+      "description": "Named explicitly so a widened copy invalidates itself rather than silently gaining reach. Must be exactly this set.",
+      "items": {
+        "enum": [
+          "START",
+          "SECOND_START",
+          "GATE_AUTHORIZATION",
+          "STATUS_TRANSITION",
+          "ACTIVE_GATE_SWITCH",
+          "GEE_R8",
+          "GIT_PUSH",
+          "HISTORY_REWRITE",
+          "GENERIC_V1_ADMISSION",
+          "HISTORICAL_ADMISSION_WIDENING",
+          "SELF_ADMISSION"
+        ]
+      }
+    },
+    "successorRequirement": { "type": "string", "minLength": 1 },
+    "admissionDigest": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$",
+      "description": "Canonical digest over the admitted identity, the bound objects, the exact pre-state, the operation classes and every denied permission — never over prose, issuance metadata or the registry back-reference. A copy that quietly flips one denial fails its own recomputation."
+    },
+    "ownerAuthorizationPath": {
+      "type": "string",
+      "pattern": "^(?!.*(?:^|/)\\.\\.?/)(?!.*//)governance/sources/[A-Za-z0-9._/-]+$",
+      "description": "The Owner registry this record derives its authority from. A self-sealed record proves internal consistency and nothing more."
+    },
+    "ownerAuthorizationSha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$",
+      "description": "The registry's FILE hash. Outside admissionDigest by construction, so the mutual binding is not recursive."
+    }
+  }
+}

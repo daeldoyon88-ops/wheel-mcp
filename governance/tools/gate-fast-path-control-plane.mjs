@@ -42,6 +42,7 @@ import { sha256Canonical } from './canonical-json.mjs';
 import { runPreexecutionReuseCheck } from './gate-preexecution-reuse-check.mjs';
 import { checkExistingWorkIndex } from './governance-existing-work-index.mjs';
 import { establishComparability, resolveSuiteManifest } from './regression-identity-delta.mjs';
+import { evaluatePrecontractAnchorEnforcement } from './precontract-anchor-enforcement.mjs';
 
 import { compileContext } from '../gee-v1/context/compile-context.mjs';
 import { createWheelContextAdapter } from '../gee-v1/adapters/wheel/context-wheel-adapter.mjs';
@@ -952,6 +953,29 @@ async function planFastPath({
     blockingFacts.push({ code: 'CONTROL_ARTIFACT_ABSENT', detail: freshness.absentArtifacts });
   }
 
+  // ---- precontract consumption must be anchored before the Gate advances ----
+  //
+  // A bootstrap proves its receipt against the pre-state it ran at. That proof
+  // stops holding the moment the Gate's own lifecycle appends an event, unless
+  // the receipt was anchored in the append-only ledger first. The anchor tool
+  // existed and worked but had no caller, so "anchor it" was something an agent
+  // had to REMEMBER — and the first time one did not, a Gate reached
+  // COMPLETE_AGENT carrying a receipt that no longer verified.
+  //
+  // Blocking here is what replaces remembering. The plan cannot be READY while
+  // an applicable consumption is unanchored, so AUTHORIZATION and START are
+  // unreachable until it is: forgetting now fails closed instead of silently
+  // spending the proof. The verdict itself comes from the canonical consumer
+  // (see precontract-anchor-enforcement.mjs) rather than from a second
+  // implementation of the same rule living here.
+  const precontractAnchor = evaluatePrecontractAnchorEnforcement({ root, gateId });
+  if (precontractAnchor.applicable && !precontractAnchor.lifecycleProgressionAuthorized) {
+    blockingFacts.push({
+      code: precontractAnchor.findings[0]?.code ?? 'PRECONTRACT_CONSUMPTION_NOT_ANCHORED',
+      detail: { gateId, consumerFindings: precontractAnchor.findings[0]?.detail ?? [], remediation: precontractAnchor.remediation }
+    });
+  }
+
   if (lifecycleStoreRoot && durable.status !== 'BLOCKED' && blockingFacts.length === 0) {
     lifecyclePersistence = persistFastPathLifecycleState({
       durable, gateId, phase, sourceHead: currentHead, chain, recoveryBundle,
@@ -1060,6 +1084,7 @@ async function planFastPath({
     },
     regression,
     freshness,
+    precontractAnchor,
     runtime: {
       ephemeralRunRoot: { runId: runRoot.runId, path: runRoot.path, namespace: runRoot.runsRoot, class: 'EPHEMERAL' },
       durableLifecycleRoot: durableResolution

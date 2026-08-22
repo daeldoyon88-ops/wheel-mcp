@@ -1,0 +1,99 @@
+{
+  "document": "GATE21_PREREQUISITE_THIN_CONTRACTS_R0",
+  "schemaVersion": 1,
+  "authorityId": "GATE21_PREREQUISITE_THIN_CONTRACTS_R0",
+  "issuedBy": "PROJECT_OWNER",
+  "issuedAtUtc": "2026-08-21T22:46:00.000Z",
+  "canonical": true,
+  "ratificationOnly": true,
+  "executionAuthorized": false,
+  "startAuthorized": false,
+  "functionalImplementationAuthorized": false,
+  "controlPlane": false,
+  "geeRevision": false,
+  "isGate": false,
+  "purpose": "Minimum prerequisite transverse contracts required before GATE21 precontract. These are thin contracts/invariants, not Gates, not a GEE revision, and not a new control plane.",
+  "appliesTo": ["GATE21"],
+  "PORTABILITY_AND_MIGRATION": {
+    "contractId": "PORTABILITY_AND_MIGRATION",
+    "kind": "THIN_CONTRACT",
+    "configurableRoots": [
+      "PROJECT_ROOT",
+      "DATA_ROOT",
+      "CACHE_ROOT",
+      "MODEL_ROOT",
+      "PORTFOLIO_ROOT"
+    ],
+    "gate21RequiredNow": ["PROJECT_ROOT", "DATA_ROOT", "CACHE_ROOT"],
+    "reservedUnusedInGate21": ["MODEL_ROOT", "PORTFOLIO_ROOT"],
+    "rules": [
+      "New GATE21 artifacts MUST resolve through these roots or explicit test fixtures.",
+      "No new hard-coded machine-home paths such as C:\\Users\\melan\\...",
+      "Existing constitution canonicalPath remains MACHINE_SPECIFIC and is not amended by GATE21.",
+      "Classify artifacts as PORTABLE_PERSISTENT, RECONSTRUCTIBLE, or MACHINE_SPECIFIC.",
+      "Full EXPORT → COPY/MOVE → RESTORE → REBIND → INTEGRITY CHECK → SMOKE TEST remains GATE40, not GATE21 implementation.",
+      "GATE21 must prove a relocated DATA_ROOT still replays the same snapshot digest."
+    ]
+  },
+  "FREE_DATA_SOURCE_POLICY": {
+    "contractId": "FREE_DATA_SOURCE_POLICY",
+    "kind": "THIN_CONTRACT",
+    "default": "ALL NEW FUTURE DATA REQUIRED BY WHEEL/JARVISE MUST BE FREE BY DEFAULT.",
+    "requiredSourceFields": [
+      "SOURCE",
+      "COST_CLASS",
+      "RATE_LIMIT",
+      "HISTORICAL_DEPTH",
+      "FRESHNESS",
+      "RELIABILITY",
+      "ACCESS_TERMS",
+      "FREE_FALLBACK"
+    ],
+    "requiredV1CostClass": "FREE",
+    "forbiddenAsRequiredV1Dependency": [
+      "paid subscription",
+      "paid API",
+      "paid historical dataset",
+      "paid licence",
+      "mandatory paid tier",
+      "premium-only provider"
+    ],
+    "ifNoReliableFreeSource": [
+      "omit from required V1, or mark UNAVAILABLE / OPTIONAL_FUTURE / DEGRADED",
+      "do not fabricate",
+      "do not silently approximate",
+      "do not introduce a paid dependency"
+    ],
+    "ibkrTwsExistingPath": "KEEP as MACHINE_SPECIFIC existing read-only path; not a required GATE21 source; not a new paid API."
+  },
+  "STORAGE_HYGIENE_INVARIANT": {
+    "contractId": "STORAGE_HYGIENE_INVARIANT",
+    "kind": "THIN_INVARIANT",
+    "reuse": "governance/gee-v1/runtime/run-root-lifecycle.mjs",
+    "cycle": [
+      "CREATE TEMP WORKSPACE",
+      "RUN TEST / HOSTILE / REPLAY",
+      "CAPTURE REQUIRED CANONICAL EVIDENCE",
+      "CLOSE TEST",
+      "DELETE REPRODUCIBLE TEMP WORKSPACE"
+    ],
+    "closureFieldsIfEphemeralAllocated": [
+      "TEMP_WORKSPACE_DECLARATION",
+      "TEMP_ARTIFACT_CLASSIFICATION",
+      "CANONICAL_EVIDENCE_CAPTURED",
+      "EPHEMERAL_ARTIFACT_CLEANUP_ATTEMPTED",
+      "LOCKED_OR_FAILED_CLEANUP_RECORDED",
+      "UNKNOWN_HUMAN_WORK_PRESERVED",
+      "POST_RUN_STORAGE_MEASUREMENT"
+    ],
+    "rules": [
+      "Declare one workspace, one manifest, delete one exact path.",
+      "No glob or broad-delete of unknown Temp data.",
+      "Never delete unknown dirty human work.",
+      "Retain canonical evidence.",
+      "Fail safely on locked/active files; report cleanup failures.",
+      "Cleanup must not alter canonical history and should be idempotent where practical.",
+      "GATE21 does not clean historical leftover directories such as d03-hostile-* or gate-start-future-*."
+    ]
+  }
+}

@@ -1,0 +1,61 @@
+{
+  "document": "GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY",
+  "schemaVersion": 2,
+  "authorityId": "GATE21_POST_START_BUILD_ACTIVATION_CONSUMER_REPAIR_AUTHORITY_R1",
+  "authorityClass": "PROJECT_OWNER_POST_FREEZE_MAINTENANCE_AUTHORITY",
+  "authorityMode": "LOCAL_EXPLICIT_AUTHORITY",
+  "issuedBy": "PROJECT_OWNER",
+  "createdAt": "2026-08-22T12:20:00.000Z",
+  "expiresAt": "2026-12-31T23:59:59.000Z",
+  "targetSystem": "PROJECT_GOVERNANCE",
+  "programId": "GATE21_POST_START_BUILD_ACTIVATION_CONSUMER_REPAIR_R1",
+  "authorityPurpose": "NORMAL_MAINTENANCE",
+  "resumePoint": "CP-GATE21-POST-START-BUILD-ACTIVATION-CONSUMER-REPAIR-R1",
+  "maxUse": 1,
+  "preState": {
+    "baseHead": "e19507db9304b6e1088b1b4a983498ba412dacf5",
+    "ledgerEventCount": 87,
+    "ledgerPrefixSha256": "28f5e61b5325f720c1e4eb172bbe540e30d448e8ebc68528732f5fa521041b94",
+    "gateId": "GATE21",
+    "gateStatus": "IN_PROGRESS",
+    "stateRevision": "R0003",
+    "contractRevision": "R0002",
+    "activeGate": "GATE13",
+    "R8ExpectedAbsent": true
+  },
+  "authorizedPathManifestPath": "governance/historical-architecture/GATE21_POST_START_BUILD_ACTIVATION_CONSUMER_REPAIR_AUTHORIZED_PATHS_R1.json",
+  "authorizedPathManifestSha256": "750d170ef35cecc7fe8b39103d852b81bb324edb842e79f662b202a8cf87ead5",
+  "authorizedOperationClasses": [
+    "MAINTENANCE"
+  ],
+  "commitPolicy": {
+    "maxCommitCount": 1,
+    "allowedGitOperations": [
+      "GIT_ADD_PATHSPEC",
+      "GIT_COMMIT"
+    ],
+    "commitMessage": "governance: repair GATE21 post-START build-activation consumer",
+    "thirdCommitAuthorized": false
+  },
+  "pushAuthorized": false,
+  "authorityPredecessor": null,
+  "authorityHeadBinding": {
+    "mode": "BASE_HEAD",
+    "baseHead": "e19507db9304b6e1088b1b4a983498ba412dacf5"
+  },
+  "consumptionRecordPath": "governance/historical-architecture/GATE21_POST_START_BUILD_ACTIVATION_CONSUMER_REPAIR_CONSUMPTION_R1.json",
+  "prohibitedOperations": [
+    "START",
+    "SECOND_START",
+    "AGENT_CLOSURE",
+    "EXTERNAL_CONFIRMATION",
+    "COMPLETE_AGENT",
+    "COMPLETE_CONFIRMED",
+    "ACTIVE_GATE_SWITCH",
+    "GEE_R8",
+    "GIT_PUSH",
+    "HISTORY_REWRITE",
+    "THIRD_COMMIT",
+    "UNRELATED_WRITE"
+  ]
+}

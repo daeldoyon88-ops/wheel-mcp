@@ -37,13 +37,119 @@ function ledgerEvents(root) {
   return info.bytes.toString('utf8').trim().split(/\r?\n/).filter(Boolean).map((line) => JSON.parse(line));
 }
 function contractView(root, gateId) {
-  const pointerPath = `governance/gates/${gateId}/contracts/CURRENT_CONTRACT.json`;
-  const pointer = fileInfo(root, pointerPath);
-  if (!pointer) return null;
-  const pointerJson = JSON.parse(pointer.bytes.toString('utf8'));
-  const contract = fileInfo(root, pointerJson.contractPath);
-  if (!contract) return null;
-  return { pointer, pointerJson, contract, contractJson: JSON.parse(contract.bytes.toString('utf8')) };
+  try {
+    const pointerPath = `governance/gates/${gateId}/contracts/CURRENT_CONTRACT.json`;
+    const pointer = fileInfo(root, pointerPath);
+    if (!pointer) return null;
+    const pointerJson = JSON.parse(pointer.bytes.toString('utf8'));
+    const contract = typeof pointerJson.contractPath === 'string' ? fileInfo(root, pointerJson.contractPath) : null;
+    if (!contract) return null;
+    return { pointer, pointerJson, contract, contractJson: JSON.parse(contract.bytes.toString('utf8')) };
+  } catch {
+    return null;
+  }
+}
+
+function startBoundContractView(root, gateId, record) {
+  const relativePath = `governance/gates/${gateId}/contracts/EXECUTION_CONTRACT_R0001.json`;
+  const info = fileInfo(root, relativePath);
+  if (!info) return { findings: [{ code: 'START_BOUND_CONTRACT_ABSENT' }], contractJson: null };
+  const findings = [];
+  if (typeof record?.contractSha256 !== 'string' || info.sha256 !== record.contractSha256) {
+    findings.push({ code: 'START_HISTORICAL_CONTRACT_HASH_MISMATCH' });
+  }
+  let contractJson;
+  try { contractJson = JSON.parse(info.bytes.toString('utf8')); }
+  catch { return { findings: [...findings, { code: 'START_BOUND_CONTRACT_MALFORMED' }], contractJson: null }; }
+  if (!contractJson || !Array.isArray(contractJson.authorizedPaths)) {
+    findings.push({ code: 'START_BOUND_CONTRACT_INVALID' });
+    return { findings, contractJson: null };
+  }
+  return { findings, contractJson };
+}
+
+function loadGateSealsByDigest(root, gateId) {
+  const byDigest = new Map();
+  const revisionsRoot = path.join(root, 'governance', 'gates', gateId, 'state', 'revisions');
+  let entries;
+  try {
+    entries = fs.readdirSync(revisionsRoot, { withFileTypes: true })
+      .filter((entry) => entry.isDirectory() && /^R[0-9]{4}$/.test(entry.name));
+  } catch {
+    return { byDigest, findings: [{ code: 'START_REVISIONS_UNREADABLE' }] };
+  }
+  const findings = [];
+  for (const entry of entries) {
+    const info = fileInfo(root, `governance/gates/${gateId}/state/revisions/${entry.name}/STATE_SEAL.json`);
+    if (!info) continue;
+    try {
+      const parsed = JSON.parse(info.bytes.toString('utf8'));
+      byDigest.set(info.sha256, { sha256: info.sha256, parsed, revision: entry.name });
+    } catch {
+      findings.push({ code: 'START_STATE_SEAL_MALFORMED', detail: entry.name });
+    }
+  }
+  return { byDigest, findings };
+}
+
+function proveCurrentDescendsFromStartPostState(root, gateId, currentSealSha256, startPostSealSha256) {
+  if (typeof currentSealSha256 !== 'string' || typeof startPostSealSha256 !== 'string') {
+    return { findings: [{ code: 'START_STATE_NOT_DESCENDANT' }] };
+  }
+  const loaded = loadGateSealsByDigest(root, gateId);
+  const findings = [...loaded.findings];
+  let cursor = loaded.byDigest.get(currentSealSha256);
+  if (!cursor) return { findings: [...findings, { code: 'START_STATE_NOT_DESCENDANT' }] };
+  const visited = new Set();
+  while (cursor) {
+    if (visited.has(cursor.sha256)) {
+      findings.push({ code: 'START_STATE_SEAL_CHAIN_CYCLE' });
+      return { findings };
+    }
+    visited.add(cursor.sha256);
+    if (cursor.sha256 === startPostSealSha256) return { findings };
+    const previous = cursor.parsed?.previousStateSealSha256;
+    if (previous === null || previous === undefined) break;
+    if (typeof previous !== 'string') {
+      findings.push({ code: 'START_STATE_SEAL_CHAIN_BROKEN' });
+      return { findings };
+    }
+    const next = loaded.byDigest.get(previous);
+    if (!next) {
+      findings.push({ code: 'START_STATE_SEAL_CHAIN_BROKEN', detail: previous });
+      return { findings };
+    }
+    cursor = next;
+  }
+  findings.push({ code: 'START_STATE_NOT_DESCENDANT' });
+  return { findings };
+}
+
+function resolveStartPostStateSeal(root, gateId, record, startEvent) {
+  const pinnedRevision = typeof startEvent?.stateRevision === 'string' ? startEvent.stateRevision : null;
+  const pinnedSha = typeof startEvent?.stateRevisionSealSha256 === 'string' ? startEvent.stateRevisionSealSha256 : null;
+  if (pinnedRevision && pinnedSha) {
+    const info = fileInfo(root, `governance/gates/${gateId}/state/revisions/${pinnedRevision}/STATE_SEAL.json`);
+    if (!info) return { findings: [{ code: 'START_PINNED_POST_STATE_SEAL_ABSENT' }], sha256: null };
+    try {
+      const seal = JSON.parse(info.bytes.toString('utf8'));
+      const findings = [];
+      if (info.sha256 !== pinnedSha) findings.push({ code: 'START_POST_STATE_SEAL_HASH_MISMATCH' });
+      if (seal.previousStateSealSha256 !== record.preStateSealSha256) findings.push({ code: 'START_PRE_STATE_SEAL_CHAIN_MISMATCH' });
+      if (seal.payload?.executionStatus !== 'IN_PROGRESS') findings.push({ code: 'START_POST_STATE_NOT_IN_PROGRESS' });
+      return { findings, sha256: pinnedSha };
+    } catch {
+      return { findings: [{ code: 'START_POST_STATE_SEAL_MALFORMED' }], sha256: null };
+    }
+  }
+  const loaded = loadGateSealsByDigest(root, gateId);
+  const matches = [...loaded.byDigest.values()].filter((item) => item.parsed?.previousStateSealSha256 === record.preStateSealSha256);
+  if (matches.length === 0) return { findings: [...loaded.findings, { code: 'START_PRE_STATE_SEAL_CHAIN_MISMATCH' }], sha256: null };
+  if (matches.length > 1) return { findings: [...loaded.findings, { code: 'START_POST_STATE_SEAL_NOT_UNIQUE' }], sha256: null };
+  const match = matches[0];
+  const findings = [...loaded.findings];
+  if (match.parsed?.payload?.executionStatus !== 'IN_PROGRESS') findings.push({ code: 'START_POST_STATE_NOT_IN_PROGRESS' });
+  return { findings, sha256: match.sha256 };
 }
 
 function predecessorGateId(root, gateId) {
@@ -90,7 +196,7 @@ function findAppliedModernStart(root, gateId) {
   return result;
 }
 
-function checkPostStartState(root, gateId, record) {
+function checkPostStartState(root, gateId, record, startEvent) {
   const findings = [];
   const currentStateInfo = fileInfo(root, `governance/gates/${gateId}/state/CURRENT_STATE.json`);
   if (!currentStateInfo) return [{ code: 'START_CURRENT_STATE_ABSENT' }];
@@ -106,10 +212,14 @@ function checkPostStartState(root, gateId, record) {
   else {
     try {
       const seal = JSON.parse(sealInfo.bytes.toString('utf8'));
-      if (seal.previousStateSealSha256 !== record.preStateSealSha256) findings.push({ code: 'START_PRE_STATE_SEAL_CHAIN_MISMATCH' });
       if (seal.payload?.executionStatus !== 'IN_PROGRESS') findings.push({ code: 'START_POST_STATE_NOT_IN_PROGRESS' });
       if (currentState.stateSealSha256 !== sealInfo.sha256) findings.push({ code: 'START_CURRENT_STATE_SEAL_HASH_MISMATCH' });
     } catch { findings.push({ code: 'START_POST_STATE_SEAL_MALFORMED' }); }
+  }
+  const startPost = resolveStartPostStateSeal(root, gateId, record, startEvent);
+  findings.push(...startPost.findings);
+  if (startPost.sha256) {
+    findings.push(...proveCurrentDescendsFromStartPostState(root, gateId, currentState.stateSealSha256, startPost.sha256).findings);
   }
   return findings;
 }
@@ -199,8 +309,13 @@ export function createWheelGateStartAuthoritySource(repoRoot, { projectId = 'WHE
       if (!facts.status && !facts.contractJson) return null;
       const authority = loadModernAuthority(root, workUnitId);
       const appliedStart = facts.status === 'IN_PROGRESS' ? findAppliedModernStart(root, workUnitId) : { event: null, findings: [] };
-      const scopeExact = authority.valid && exactSamePaths(authority.authority.functionalExecutionScope, facts.contractJson?.authorizedPaths);
-      const findings = [...authority.findings, ...appliedStart.findings];
+      const startBound = authority.record ? startBoundContractView(root, workUnitId, authority.record) : { findings: [], contractJson: null };
+      const historicalScopeExact = authority.valid
+        && startBound.findings.length === 0
+        && startBound.contractJson
+        && exactSamePaths(authority.authority.functionalExecutionScope, startBound.contractJson.authorizedPaths);
+      const currentContractValid = Boolean(facts.contractJson) && Array.isArray(facts.contractJson.authorizedPaths) && facts.contractJson.authorizedPaths.length > 0;
+      const findings = [...authority.findings, ...appliedStart.findings, ...startBound.findings];
       if (facts.status === 'IN_PROGRESS' && appliedStart.event) {
         const expectedRecordPath = gateStartRecordPath(workUnitId);
         if (appliedStart.event.authorityPath !== expectedRecordPath) findings.push({ code: 'START_EVENT_AUTHORITY_PATH_MISMATCH' });
@@ -212,15 +327,18 @@ export function createWheelGateStartAuthoritySource(repoRoot, { projectId = 'WHE
         }
         if (record?.preStartLedgerSha256 !== appliedStart.prefixSha256) findings.push({ code: 'START_RECORD_PRE_LEDGER_HASH_MISMATCH' });
         if (record?.previousEventSha256 !== appliedStart.previousEventSha256) findings.push({ code: 'START_RECORD_PREVIOUS_EVENT_HASH_MISMATCH' });
-        findings.push(...checkPostStartState(root, workUnitId, record));
+        findings.push(...checkPostStartState(root, workUnitId, record, event));
       }
-      if (authority.valid && !scopeExact) findings.push({ code: 'FUNCTIONAL_SCOPE_NOT_EXACT' });
-      const postStartExecutable = facts.status === 'IN_PROGRESS' && authority.valid && scopeExact && findings.length === 0;
+      if (authority.valid && startBound.findings.length === 0 && startBound.contractJson && !historicalScopeExact) {
+        findings.push({ code: 'FUNCTIONAL_SCOPE_NOT_EXACT' });
+      }
+      if (facts.status === 'IN_PROGRESS' && !currentContractValid) findings.push({ code: 'CURRENT_CONTRACT_INVALID' });
+      const postStartExecutable = facts.status === 'IN_PROGRESS' && authority.valid && historicalScopeExact && currentContractValid && findings.length === 0;
       return {
         workUnitId, workUnitType: 'GATE_START', status: facts.status,
         executionAuthorized: postStartExecutable,
         startAuthorized: authority.valid,
-        authorizedPaths: scopeExact ? facts.contractJson.authorizedPaths : [],
+        authorizedPaths: postStartExecutable ? facts.contractJson.authorizedPaths : [],
         contract: facts.contractJson,
         facts,
         findings,

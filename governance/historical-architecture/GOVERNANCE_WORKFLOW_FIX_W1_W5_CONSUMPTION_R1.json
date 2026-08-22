@@ -1,0 +1,112 @@
+{
+  "documentKind": "POST_FREEZE_MAINTENANCE_AUTHORITY_CONSUMPTION",
+  "schemaVersion": 2,
+  "authorityId": "WHEEL_GOVERNANCE_WORKFLOW_FIX_W1_W5_LOCAL_AUTHORITY_R1",
+  "programId": "WHEEL_GOVERNANCE_WORKFLOW_FIX_W1_W5_R1",
+  "manifestSha256": "738b60772891ad267cd98149d77681899c1fd695405dc85f768f3d97b13c9b5d",
+  "baseHead": "e19507db9304b6e1088b1b4a983498ba412dacf5",
+  "consumedUse": 1,
+  "transactionId": "WHEEL_GOVERNANCE_WORKFLOW_FIX_W1_W5_R1_TRANSACTION",
+  "recordedAt": "2026-08-22T03:02:04.313Z",
+  "commitMessage": "governance: repair W1-W5 workflow",
+  "publicationAdmission": {
+    "admissionId": "WHEEL_GOVERNANCE_WORKFLOW_FIX_W1_W5_PUBLICATION_ADMISSION_R1",
+    "admissionPath": "governance/authority/publication-admissions/GATE20/WHEEL_GOVERNANCE_WORKFLOW_FIX_W1_W5_PUBLICATION_ADMISSION_R1.json",
+    "admissionSha256": "8f7887d721fe02961378180d3c831dc7444256ed183fde3ae827a7db758b43e5"
+  },
+  "cohortSelfExclusion": {
+    "path": "governance/historical-architecture/GOVERNANCE_WORKFLOW_FIX_W1_W5_CONSUMPTION_R1.json",
+    "reason": "The consumption record cannot hash its own final bytes; its identity is bound by the authority and manifest instead."
+  },
+  "cohortPathCount": 12,
+  "cohort": [
+    {
+      "path": "governance/gee-v1/adapters/gee-mission-authority-source.mjs",
+      "sha256": "fce514efdc1e11e58a5eae8547294582a9356c98fda05698e8aea6daa54de53c",
+      "byteLength": 21966,
+      "operation": "MODIFY",
+      "reason": "W1 thin V2 observer wiring.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "governance/tools/post-freeze-maintenance-observation.mjs",
+      "sha256": "8a2f74131505d1a1ae56e981f14e79616bf4b83a6f00c2bbde56b5ac50ff795c",
+      "byteLength": 17535,
+      "operation": "MODIFY",
+      "reason": "W2/W3 thick observer NOT_STARTED handling.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "governance/tools/generate-status-snapshot.mjs",
+      "sha256": "c994c3b3ada2521c3509f6c1548cc4e5fbf0e0a0b00a62246ee0b85aba949ead",
+      "byteLength": 4339,
+      "operation": "MODIFY",
+      "reason": "W4 lifecycle staging projection.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "governance/tools/gate-lifecycle-orchestrator.mjs",
+      "sha256": "16aa15ee9c51475fb8deaa4ff4db95f65780a388da11b3b5aa77dcc652a4d2fa",
+      "byteLength": 60554,
+      "operation": "MODIFY",
+      "reason": "W4 lifecycle staging differential validation.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "governance/tools/validate-active-gate.mjs",
+      "sha256": "b1624cf6905357c106ce9435a150279581f35b70ff01c38e2084d3151b9feaaa",
+      "byteLength": 7933,
+      "operation": "MODIFY",
+      "reason": "W5 closed-gate and generated-context alignment.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "governance/tools/governance-preflight.mjs",
+      "sha256": "d3b1253e3ff651b378b5b45ee01cc5d205846ebd5aff01d01b5eab81e87e8ca0",
+      "byteLength": 11259,
+      "operation": "MODIFY",
+      "reason": "W5 closed-gate and generated-context alignment.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "governance/gee-v1/tests/gee-post-freeze-maintenance-authority.test.mjs",
+      "sha256": "b62ee0b5333d36330a683f93006a4aa6b2bda88ae6dc322d90203d91e1478392",
+      "byteLength": 51953,
+      "operation": "MODIFY",
+      "reason": "W1/W2/W3 proof coverage.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "governance/tests/gate-lifecycle-orchestrator.test.mjs",
+      "sha256": "7beb4e266e15c657b7fd3b05065bde8b50c7a28eebe66740fc184aecf52060ee",
+      "byteLength": 85758,
+      "operation": "MODIFY",
+      "reason": "W4 proof coverage.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "governance/tests/gate13-authority-conflicts-repair.test.mjs",
+      "sha256": "c79d4a15251489855f5d848ffa07154dde1d78fefca86e7ecec625e268482969",
+      "byteLength": 22729,
+      "operation": "MODIFY",
+      "reason": "W5 proof coverage.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_GOVERNANCE_WORKFLOW_FIX_W1_W5_R1.json",
+      "sha256": "4f8401487b5c67bc9661eca8e225f97d1c54557a54d23dabcf0b089a4c600d01",
+      "byteLength": 1995,
+      "operation": "CREATE",
+      "reason": "Bounded Owner authority for the W1-W5 maintenance program.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "governance/historical-architecture/GOVERNANCE_WORKFLOW_FIX_W1_W5_AUTHORIZED_PATHS_R1.json",
+      "sha256": "738b60772891ad267cd98149d77681899c1fd695405dc85f768f3d97b13c9b5d",
+      "byteLength": 5212,
+      "operation": "CREATE",
+      "reason": "Finite exact-path manifest for the W1-W5 maintenance program.",
+      "artifactClass": "MAINTENANCE"
+    }
+  ]
+}

@@ -14,15 +14,27 @@ import { createHash } from 'node:crypto';
 // tracked repository.
 
 const toolsDir = path.dirname(fileURLToPath(import.meta.url));
-const repoRoot = path.resolve(toolsDir, '..', '..'); // .../governance/tests -> repo root
+const repoRoot = process.env.WHEEL_LIVE_REPO_ROOT || path.resolve(toolsDir, '..', '..');
+const CANDIDATE_ROOT = path.resolve(toolsDir, '..', '..');
 const fixtureBase = fs.mkdtempSync(path.join(os.tmpdir(), 'gate13-repair-fixture-'));
 const fixtures = [];
 
 function h(bytes) { return createHash('sha256').update(bytes).digest('hex'); }
 
+function overlayCandidateProduction(dir) {
+  for (const rel of [
+    'governance/tools/validate-active-gate.mjs',
+    'governance/tools/governance-preflight.mjs',
+    'governance/gee-v1/adapters/gee-mission-authority-source.mjs'
+  ]) {
+    fs.copyFileSync(path.join(CANDIDATE_ROOT, ...rel.split('/')), path.join(dir, ...rel.split('/')));
+  }
+}
+
 function makeFixture(name) {
   const dir = path.join(fixtureBase, name);
   fs.cpSync(path.join(repoRoot, 'governance'), path.join(dir, 'governance'), { recursive: true, dereference: true });
+  overlayCandidateProduction(dir);
   fixtures.push(dir);
   return dir;
 }
@@ -336,4 +348,35 @@ test('G13-REPAIR-16: reproducible from a different working directory', () => {
   const { code, out } = run(path.join(dir, 'governance/tools/validate-active-gate.mjs'), [], dir, { ACTIVE_GATE_PATH: 'governance/active/CANDIDATE.json' });
   assert.equal(code, 0);
   assert.deepEqual(JSON.parse(out), { valid: true, findingIds: [] });
+});
+
+test('W5: closed GATE13 is not globally blocked by unrelated FULL-ledger baseline findings', () => {
+  const dir = makeFixture('w5-closed-gate13-baseline');
+  const { code, out, err } = run('governance/tools/validate-active-gate.mjs', [], dir);
+  assert.equal(code, 0, err || out);
+  assert.deepEqual(JSON.parse(out), { valid: true, findingIds: [] });
+});
+
+test('W5: generated ACTIVE_GATE_CONTEXT drift is not configuration authority', () => {
+  const dir = makeFixture('w5-context-drift');
+  fs.writeFileSync(path.join(dir, 'governance', 'generated', 'ACTIVE_GATE_CONTEXT.json'), '{}\n');
+  const { code, out, err } = run('governance/tools/governance-preflight.mjs', ['--work-unit-type', 'GATE', '--work-unit-id', 'GATE13'], dir);
+  const combined = `${out || ''}${err || ''}`;
+  let report = null;
+  try { report = JSON.parse(out); } catch { report = null; }
+  assert.ok(report, combined.slice(0, 400));
+  assert.ok(!(report.findingIds || []).includes('GENERATED_FILE_DRIFT'), JSON.stringify(report.findingIds));
+  assert.ok(!(report.blockingFindings || []).includes('GENERATED_FILE_DRIFT'));
+});
+
+test('W5: genuine non-closed active-gate contradiction remains fail-closed', () => {
+  const dir = makeFixture('w5-nonclosed-fail-closed');
+  revertGate13ToPreReconciliation(dir);
+  fs.writeFileSync(path.join(dir, 'governance/active/CANDIDATE.json'), gate13Candidate());
+  fs.rmSync(path.join(dir, 'governance/gates/GATE13/contracts'), { recursive: true, force: true });
+  const { code, err } = run('governance/tools/validate-active-gate.mjs', [], dir, { ACTIVE_GATE_PATH: 'governance/active/CANDIDATE.json' });
+  const report = JSON.parse(err);
+  assert.equal(code, 2);
+  assert.ok(report.findingIds.includes('ACTIVE_GATE_NOT_AUTHORIZED'));
+  assert.ok(report.findingIds.includes('GATE_CONTRACT_INVALID'));
 });

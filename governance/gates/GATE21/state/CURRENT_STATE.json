@@ -1,0 +1,8 @@
+{
+  "schemaVersion": 1,
+  "gateId": "GATE21",
+  "stateRevision": "R0005",
+  "revisionPath": "governance/gates/GATE21/state/revisions/R0005",
+  "stateSealSha256": "36e7e648cddf1cd9b54e95f747934f67c2e27f20c4526156611da7fb60c76dba",
+  "committedByTransactionId": "GATE21_EXTERNAL_CONFIRMATION_R1_TRANSACTION"
+}

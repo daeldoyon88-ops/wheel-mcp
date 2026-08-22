@@ -1,0 +1,51 @@
+{
+  "documentKind": "POST_FREEZE_MAINTENANCE_AUTHORITY_CONSUMPTION",
+  "schemaVersion": 2,
+  "authorityId": "GATE21_POST_START_BUILD_ACTIVATION_CONSUMER_REPAIR_AUTHORITY_R1",
+  "programId": "GATE21_POST_START_BUILD_ACTIVATION_CONSUMER_REPAIR_R1",
+  "manifestSha256": "750d170ef35cecc7fe8b39103d852b81bb324edb842e79f662b202a8cf87ead5",
+  "baseHead": "e19507db9304b6e1088b1b4a983498ba412dacf5",
+  "consumedUse": 1,
+  "transactionId": "GATE21_POST_START_BUILD_ACTIVATION_CONSUMER_REPAIR_R1_TRANSACTION",
+  "recordedAt": "2026-08-22T12:30:00.000Z",
+  "commitMessage": "governance: repair GATE21 post-START build-activation consumer",
+  "cohortSelfExclusion": {
+    "path": "governance/historical-architecture/GATE21_POST_START_BUILD_ACTIVATION_CONSUMER_REPAIR_CONSUMPTION_R1.json",
+    "reason": "The consumption record cannot hash its own final bytes; its identity is bound by the authority and manifest instead."
+  },
+  "cohortPathCount": 5,
+  "cohort": [
+    {
+      "path": "governance/gee-v1/adapters/wheel/gate-start-authority-source.mjs",
+      "sha256": "0e4d84a6c963e08f21ff6e68690568d0e16dbb88e63924b1f6cce3abde0c022f",
+      "byteLength": 20633,
+      "operation": "MODIFY",
+      "reason": "Repair START consumer to bind historical START to R0001 and runtime scope to CURRENT_CONTRACT after succession.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "governance/tests/gate-start-authority-primitive.test.mjs",
+      "sha256": "4822be919f6819bb4afccfcd9a335dd3e706a294363925f1ffc57600af2cfa76",
+      "byteLength": 22952,
+      "operation": "MODIFY",
+      "reason": "Bounded post-START contract-succession regression and fail-closed hostiles.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_GATE21_POST_START_BUILD_ACTIVATION_CONSUMER_REPAIR_R1.json",
+      "sha256": "05382b26b8153a1e04a3a6cf5538daba9bdcc923f6048b1a694665c2b0a82dc5",
+      "byteLength": 2247,
+      "operation": "CREATE",
+      "reason": "Fresh single-use V2 local explicit authority for this consumer repair.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "governance/historical-architecture/GATE21_POST_START_BUILD_ACTIVATION_CONSUMER_REPAIR_AUTHORIZED_PATHS_R1.json",
+      "sha256": "750d170ef35cecc7fe8b39103d852b81bb324edb842e79f662b202a8cf87ead5",
+      "byteLength": 3052,
+      "operation": "CREATE",
+      "reason": "Finite exact-path manifest for this consumer repair.",
+      "artifactClass": "MAINTENANCE"
+    }
+  ]
+}

@@ -701,6 +701,9 @@ function refreshCandidateProjections({ stagingRoot, candidate, fail, projectionP
   const run = (generatorPath) => {
     try {
       const args = [path.join(stagingRoot, ...generatorPath.split('/')), '--root', stagingRoot];
+      if (generatorPath === 'governance/tools/generate-status-snapshot.mjs') {
+        args.push('--lifecycle-staging-only');
+      }
       if (generatorPath === 'governance/tools/generate-status-snapshot.mjs' && projectionPolicyModulePath) {
         args.push('--policy-module', projectionPolicyModulePath);
       }

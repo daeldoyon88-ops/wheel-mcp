@@ -1,0 +1,84 @@
+{
+  "schemaVersion": 1,
+  "authorityMode": "LOCAL_EXPLICIT_AUTHORITY",
+  "projectId": "WHEEL",
+  "gateId": "GATE21",
+  "purpose": "GATE_NORMAL_AUTHORIZATION",
+  "transitionType": "AUTHORIZATION",
+  "fromStatus": "NOT_STARTED",
+  "toStatus": "AUTHORIZED_NOT_STARTED",
+  "recordedAt": "2026-08-22T11:33:50.273Z",
+  "baseCommit": "e19507db9304b6e1088b1b4a983498ba412dacf5",
+  "preLedgerSha256": "7c71a0548a566392ac23c942523e3e029de594229e0cb676e41bb2a783b512af",
+  "previousEventSha256": "4e8c2647b4dec45a13661fda5620746369c849fa2e7fb9730b3eef17ed3f09cb",
+  "contractSha256": "0b07ec7f2e1056c2a88fe1972995021ea0c3776d4871216d8d966acb38aed3bc",
+  "currentContractSha256": "0cf03de0fa8efd61ce5cdb8749890e3ce2d25fd73c598cf7bf6396dd8a687774",
+  "dependencyProof": {
+    "gateId": "GATE20",
+    "status": "COMPLETE_CONFIRMED",
+    "authorityPath": "GATE20_INDEPENDENT_EXTERNAL_CONFIRMATION_R1_EXTERNAL_REINSPECTION_REPORT",
+    "authoritySha256": "9dc8b6978fae888a45301545628721fc8ac8719397022db6d9aded7eb646c0e4"
+  },
+  "stateRevision": "R0001",
+  "document": "GATE_AUTHORIZATION_RECORD",
+  "authorizationId": "GATE_AUTHORIZATION_GATE21_R1",
+  "authorizedStateArtifacts": [
+    {
+      "cohortRole": "CURRENT_STATE",
+      "repoRelativePath": "governance/gates/GATE21/state/CURRENT_STATE.json",
+      "sha256": "17decf0769631c75315e415d2a6ad3cec3a05416b0a1393cf2b8a95f235e3f3e",
+      "byteLength": 300
+    },
+    {
+      "cohortRole": "CHECKPOINT",
+      "repoRelativePath": "governance/gates/GATE21/state/revisions/R0001/CHECKPOINT.json",
+      "sha256": "d1afcdfb270df6afff68c7b4ca7f9c93506727f68cd173f691bf1ceba1ea3555",
+      "byteLength": 330
+    },
+    {
+      "cohortRole": "OPEN_DEFECTS",
+      "repoRelativePath": "governance/gates/GATE21/state/revisions/R0001/OPEN_DEFECTS.json",
+      "sha256": "18e17f69c3ef4e228a1432c925457744748e299ffb0592cf553d1f65c94e98c6",
+      "byteLength": 70
+    },
+    {
+      "cohortRole": "STATE_SEAL",
+      "repoRelativePath": "governance/gates/GATE21/state/revisions/R0001/STATE_SEAL.json",
+      "sha256": "539714aa1743446a5f90b8bef5fb8d3bad4b4c0fb0cb0491a9f0128e49612f95",
+      "byteLength": 1239
+    }
+  ],
+  "authorizedDerivedArtifacts": [
+    {
+      "cohortRole": "GATE_STATUS_SNAPSHOT",
+      "repoRelativePath": "governance/state/generated/GATE_STATUS_SNAPSHOT.json"
+    },
+    {
+      "cohortRole": "ACTIVE_GATE",
+      "repoRelativePath": "governance/active/ACTIVE_GATE.json"
+    },
+    {
+      "cohortRole": "ACTIVE_GATE_CONTEXT_JSON",
+      "repoRelativePath": "governance/generated/ACTIVE_GATE_CONTEXT.json"
+    },
+    {
+      "cohortRole": "ACTIVE_GATE_CONTEXT_MD",
+      "repoRelativePath": "governance/generated/ACTIVE_GATE_CONTEXT.md"
+    }
+  ],
+  "prohibitedOperations": [
+    "START",
+    "GATE_EXECUTION",
+    "AGENT_CLOSURE",
+    "EXTERNAL_CONFIRMATION",
+    "COMPLETE_CONFIRMED",
+    "ARBITRARY_LEDGER_TRANSITION",
+    "LEDGER_REWRITE",
+    "GIT_PUSH",
+    "ARBITRARY_GOVERNANCE_WRITE",
+    "OTHER_GATE",
+    "GEE_REVISION_CREATION"
+  ],
+  "executionAuthorized": false,
+  "reason": "Bounded Owner GATE21 authorization: permit only the canonical NOT_STARTED to AUTHORIZED_NOT_STARTED lifecycle transition; START and BUILD remain prohibited."
+}

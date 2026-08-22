@@ -1,0 +1,19 @@
+{
+  "gateId": "GATE21",
+  "stateRevision": "R0003",
+  "milestone": "GATE21_CONTRACT_SUCCESSION",
+  "resumePoint": "IN_PROGRESS_BUILD_AUTHORIZED",
+  "completedTasks": [
+    "GATE21_CONTRACT_SUCCESSION_R0001_TO_R0002"
+  ],
+  "openTasks": [
+    "GATE21_FUNCTIONAL_BUILD"
+  ],
+  "reusableEvidence": [],
+  "invalidatedEvidence": [],
+  "requiredNextActions": [
+    "GATE21_FUNCTIONAL_BUILD"
+  ],
+  "protectedHashes": [],
+  "createdAt": "2026-08-22T12:05:00.000Z"
+}

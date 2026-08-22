@@ -1,0 +1,99 @@
+{
+  "documentKind": "POST_FREEZE_MAINTENANCE_AUTHORITY_CONSUMPTION",
+  "schemaVersion": 2,
+  "authorityId": "GATE21_INDEPENDENT_EXTERNAL_CONFIRMATION_LOCAL_AUTHORITY_R1",
+  "programId": "GATE21_INDEPENDENT_EXTERNAL_CONFIRMATION_R1",
+  "manifestSha256": "7df8e5498613569b576285f8b6d34e29f5456afd948bf3d89934e62027404ecf",
+  "baseHead": "e19507db9304b6e1088b1b4a983498ba412dacf5",
+  "consumedUse": 1,
+  "transactionId": "GATE21_EXTERNAL_CONFIRMATION_R1_TRANSACTION",
+  "recordedAt": "2026-08-22T13:30:00.000Z",
+  "commitMessage": "governance: confirm GATE21 with independent confirmation",
+  "cohortSelfExclusion": {
+    "path": "governance/historical-architecture/GATE21_EXTERNAL_CONFIRMATION_CONSUMPTION_R1.json",
+    "reason": "The consumption record cannot hash its own final bytes; its identity is bound by the authority and manifest instead."
+  },
+  "cohortPathCount": 11,
+  "cohort": [
+    {
+      "path": "governance/sources/GATE21_INDEPENDENT_EXTERNAL_CONFIRMATION_R1_EXTERNAL_REINSPECTION_REPORT.json",
+      "sha256": "4962e8cb12fab276630ce6b402aa4ccbff4586318d8efcd040721b155ec57f14",
+      "byteLength": 6362,
+      "operation": "CREATE",
+      "reason": "Independent external reinspection report bound to the GATE21 COMPLETE_AGENT pre-state and independently remeasured BUILD/R0004/R0002 evidence identities.",
+      "artifactClass": "EXTERNAL_CONFIRMATION"
+    },
+    {
+      "path": "governance/gee-v1/adapters/wheel/external-authority-policy.mjs",
+      "sha256": "225b4e03b6bb1aea84108d5fa9976aa4f29028ba5dc893496e0e325ec7dcc420",
+      "byteLength": 7086,
+      "operation": "MODIFY",
+      "reason": "Registers the existing standard external-reinspection declaration for the GATE21 logical authority.",
+      "artifactClass": "EXTERNAL_CONFIRMATION"
+    },
+    {
+      "path": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_GATE21_EXTERNAL_CONFIRMATION_R1.json",
+      "sha256": "f52273abc6fdb573d35030f0c24351f7ff0dae0b3b22575dc25b26a40ebaac16",
+      "byteLength": 2579,
+      "operation": "CREATE",
+      "reason": "Single-use LOCAL_EXPLICIT_AUTHORITY bound to the exact GATE21 COMPLETE_AGENT pre-state.",
+      "artifactClass": "EXTERNAL_CONFIRMATION"
+    },
+    {
+      "path": "governance/historical-architecture/GATE21_EXTERNAL_CONFIRMATION_AUTHORIZED_PATHS_R1.json",
+      "sha256": "7df8e5498613569b576285f8b6d34e29f5456afd948bf3d89934e62027404ecf",
+      "byteLength": 3939,
+      "operation": "CREATE",
+      "reason": "Finite exact-file confirmation cohort with no wildcard, directory blanket or unrelated user work.",
+      "artifactClass": "EXTERNAL_CONFIRMATION"
+    },
+    {
+      "path": "governance/gates/GATE21/state/revisions/R0005/CHECKPOINT.json",
+      "sha256": "4b7acb3d225e605b933bc3332f9a744c5366c1efd3cd42757d8e278f2ff7de1e",
+      "byteLength": 334,
+      "operation": "CREATE",
+      "reason": "Immutable successor checkpoint consuming the R0004 COMPLETE_AGENT handoff.",
+      "artifactClass": "EXTERNAL_CONFIRMATION"
+    },
+    {
+      "path": "governance/gates/GATE21/state/revisions/R0005/OPEN_DEFECTS.json",
+      "sha256": "3a1ea11672c475b23bf65b286142cb86fd520d65e4b4e2d7d046b1b53ee58031",
+      "byteLength": 70,
+      "operation": "CREATE",
+      "reason": "Closed-world R0005 defect projection for the independently confirmed terminal state.",
+      "artifactClass": "EXTERNAL_CONFIRMATION"
+    },
+    {
+      "path": "governance/gates/GATE21/state/revisions/R0005/STATE_SEAL.json",
+      "sha256": "36e7e648cddf1cd9b54e95f747934f67c2e27f20c4526156611da7fb60c76dba",
+      "byteLength": 1359,
+      "operation": "CREATE",
+      "reason": "Native R0005 state seal chained from R0004 and pinned by the confirmation event.",
+      "artifactClass": "EXTERNAL_CONFIRMATION"
+    },
+    {
+      "path": "governance/gates/GATE21/state/CURRENT_STATE.json",
+      "sha256": "ff2f0f312ce08791e0b2d5eaec5897250296b990f79ce484793b88d66ae84ed9",
+      "byteLength": 308,
+      "operation": "MODIFY",
+      "reason": "Advances the canonical GATE21 state pointer to COMPLETE_CONFIRMED R0005.",
+      "artifactClass": "EXTERNAL_CONFIRMATION"
+    },
+    {
+      "path": "governance/state/GATE_STATUS_LEDGER.ndjson",
+      "sha256": "2b5a028825727230e299f4c15f47b5a8b478552883ed40c48af34847e7644150",
+      "byteLength": 53265,
+      "operation": "MODIFY",
+      "reason": "Appends exactly one GATE21 EXTERNAL_CONFIRMATION event after the immutable 88-event prefix.",
+      "artifactClass": "EXTERNAL_CONFIRMATION"
+    },
+    {
+      "path": "governance/state/generated/GATE_STATUS_SNAPSHOT.json",
+      "sha256": "342867c22c3fa84895a4bd67b5187bef52ec50b99bd44d336f8cbb6942812817",
+      "byteLength": 15787,
+      "operation": "MODIFY",
+      "reason": "Regenerates the derived status projection from the confirmed canonical ledger.",
+      "artifactClass": "EXTERNAL_CONFIRMATION"
+    }
+  ]
+}

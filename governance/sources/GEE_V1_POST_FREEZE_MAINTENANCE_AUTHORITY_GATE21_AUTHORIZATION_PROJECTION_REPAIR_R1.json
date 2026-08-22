@@ -1,0 +1,69 @@
+{
+  "document": "GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY",
+  "schemaVersion": 2,
+  "authorityId": "GATE21_AUTHORIZATION_PROJECTION_REPAIR_AUTHORITY_R1",
+  "authorityClass": "PROJECT_OWNER_POST_FREEZE_MAINTENANCE_AUTHORITY",
+  "authorityMode": "LOCAL_EXPLICIT_AUTHORITY",
+  "issuedBy": "PROJECT_OWNER",
+  "createdAt": "2026-08-22T01:25:44.808Z",
+  "expiresAt": "2026-08-29T01:25:44.808Z",
+  "targetSystem": "PROJECT_GOVERNANCE",
+  "programId": "GATE21_AUTHORIZATION_PROJECTION_REPAIR_R1",
+  "authorityPurpose": "NORMAL_MAINTENANCE",
+  "resumePoint": "CP-GATE21-AUTHORIZATION-PROJECTION-REPAIR-R1",
+  "maxUse": 1,
+  "preState": {
+    "baseHead": "e19507db9304b6e1088b1b4a983498ba412dacf5",
+    "ledgerEventCount": 84,
+    "ledgerPrefixSha256": "7c71a0548a566392ac23c942523e3e029de594229e0cb676e41bb2a783b512af",
+    "gateId": "GATE21",
+    "gateStatus": "NOT_STARTED",
+    "stateRevision": null,
+    "contractRevision": "R0001",
+    "activeGate": "GATE13",
+    "R8ExpectedAbsent": true
+  },
+  "authorizedPathManifestPath": "governance/historical-architecture/GATE21_AUTHORIZATION_PROJECTION_REPAIR_AUTHORIZED_PATHS_R1.json",
+  "authorizedPathManifestSha256": "b5544ac57328ac8a440bf9c0150b4a789e479491304e40bf30f3ce07e91d27bd",
+  "authorizedOperationClasses": [
+    "GATE21_AUTHORIZATION_PROJECTION_REPAIR"
+  ],
+  "commitPolicy": {
+    "maxCommitCount": 1,
+    "allowedGitOperations": [
+      "GIT_ADD_PATHSPEC",
+      "GIT_COMMIT"
+    ],
+    "commitMessage": "governance: bound GATE21 authorization projection staging repair",
+    "thirdCommitAuthorized": false
+  },
+  "pushAuthorized": false,
+  "authorityPredecessor": null,
+  "authorityHeadBinding": {
+    "mode": "BASE_HEAD",
+    "baseHead": "e19507db9304b6e1088b1b4a983498ba412dacf5"
+  },
+  "consumptionRecordPath": "governance/historical-architecture/GATE21_AUTHORIZATION_PROJECTION_REPAIR_CONSUMPTION_R1.json",
+  "prohibitedOperations": [
+    "START",
+    "SECOND_START",
+    "GATE21_BUILD",
+    "AUTHORIZATION_APPLY",
+    "AGENT_CLOSURE",
+    "EXTERNAL_CONFIRMATION",
+    "COMPLETE_AGENT",
+    "COMPLETE_CONFIRMED",
+    "ACTIVE_GATE_SWITCH",
+    "GEE_R8",
+    "GEE_CORE_MODIFICATION",
+    "FAST_GATE_REBUILD",
+    "R2A_R2B",
+    "G15_G16_G17_REPAIR",
+    "LEDGER_MUTATION",
+    "HISTORY_REWRITE",
+    "CONTRACT_MUTATION",
+    "PRECONTRACT_MUTATION",
+    "GIT_PUSH",
+    "UNRELATED_WRITE"
+  ]
+}

@@ -1,0 +1,152 @@
+{
+  "gateId": "GATE21",
+  "contractRevision": "R0002",
+  "previousContractPath": "governance/gates/GATE21/contracts/EXECUTION_CONTRACT_R0001.json",
+  "previousContractSha256": "0b07ec7f2e1056c2a88fe1972995021ea0c3776d4871216d8d966acb38aed3bc",
+  "strategicRegistryReference": {
+    "registryPath": "governance/GATE_REGISTRY_00_40.json",
+    "registrySha256": "76d5f9ff0a21f8c1eadaf9ccd9e48c9087d12655fac6a5c9215584053652a56b",
+    "gateId": "GATE21",
+    "canonicalObjectiveSha256": "17a7f4077bac7bf2ae3bea2010ead44b223140f3f68b6ebc6224544c786a2afa"
+  },
+  "canonicalRequirements": [
+    { "requirementId": "G21-BUILD-01", "statement": "Promote, version and bind existing directional-lab DailyBarV1 without rebuilding it; eventTime is distinct from availableAt and availableAt >= eventTime.", "normativeSource": "governance/sources/GATE21_CANONICAL_MANDATE_R0.json" },
+    { "requirementId": "G21-BUILD-02", "statement": "Preserve missingness, raw-vs-adjusted separation, corporate-action policy, civilDate/marketCalendar, source registry/FREE fallback, replay manifests, and L4B macro vintage/revision semantics by wrap/import, not fork.", "normativeSource": "governance/sources/GATE21_CANONICAL_MANDATE_R0.json" },
+    { "requirementId": "G21-BUILD-03", "statement": "Required V1 sources have COST_CLASS=FREE; if no reliable free source exists mark UNAVAILABLE or OPTIONAL_FUTURE; do not introduce a paid mandatory dependency.", "normativeSource": "governance/sources/GATE21_PREREQUISITE_THIN_CONTRACTS_R0.json" },
+    { "requirementId": "G21-BUILD-04", "statement": "Reject lookahead, revision leakage, availability-time leakage and adjustment leakage; historical replay must not observe later vintages or future bars.", "normativeSource": "governance/sources/GATE21_CANONICAL_MANDATE_R0.json" },
+    { "requirementId": "G21-BUILD-05", "statement": "Define HISTORICAL vs LIVE boundary without implementing live production ingestion; keep historical precompute off the Wheel live-scan path.", "normativeSource": "governance/sources/GATE21_CANONICAL_MANDATE_R0.json" },
+    { "requirementId": "G21-BUILD-06", "statement": "New GATE21 artifacts resolve through PROJECT/DATA/CACHE roots; no new machine-home hardcodes; GATE21 ephemeral test roots use run-root-lifecycle.", "normativeSource": "governance/sources/GATE21_PREREQUISITE_THIN_CONTRACTS_R0.json" },
+    { "requirementId": "G21-BUILD-07", "statement": "Do not implement G22+ labels, features, regimes, UI, prediction, portfolio or live execution; do not mutate directional-lab source bytes unless a bounded mandatory defect is independently proven.", "normativeSource": "governance/sources/GATE21_CANONICAL_MANDATE_R0.json" },
+    { "requirementId": "G21-BUILD-08", "statement": "Preserve R0001 precontract evidence; this revision activates functional BUILD scope only and does not close, confirm, START, or authorize GATE22.", "normativeSource": "governance/gates/GATE21/contracts/EXECUTION_CONTRACT_R0001.json" }
+  ],
+  "requiredInputs": [
+    { "path": "governance/sources/GATE21_CANONICAL_MANDATE_R0.json", "sha256": "8e261f88982a1b0892dd2cf25a765773ece72d6f47c6f35261b7e36a72c58474", "role": "CANONICAL_MANDATE" },
+    { "path": "governance/sources/GATE21_PREREQUISITE_THIN_CONTRACTS_R0.json", "sha256": "f6338189cda47a7a931499fd1aaacd5fcdcfed37bc386f15b30258d989dee8b7", "role": "REQUIRED_THIN_CONTRACTS" },
+    { "path": "governance/GATE_REGISTRY_00_40.json", "sha256": "76d5f9ff0a21f8c1eadaf9ccd9e48c9087d12655fac6a5c9215584053652a56b", "role": "STRATEGIC_REGISTRY" },
+    { "path": "governance/gates/GATE21/contracts/EXECUTION_CONTRACT_R0001.json", "sha256": "0b07ec7f2e1056c2a88fe1972995021ea0c3776d4871216d8d966acb38aed3bc", "role": "IMMUTABLE_PREDECESSOR_PRECONTRACT" },
+    { "path": "governance/state/GATE_STATUS_LEDGER.ndjson", "role": "LIFECYCLE_AND_DEPENDENCY_PRESTATE" }
+  ],
+  "requiredOutputs": [
+    { "ordinal": 1, "path": "governance/gates/GATE21/implementation/causal-data-interface.mjs", "role": "Canonical causal data facade for GATE22+" },
+    { "ordinal": 2, "path": "governance/gates/GATE21/implementation/lab-import-adapter.mjs", "role": "Read/import/wrap adapter over directional-lab primitives" },
+    { "ordinal": 3, "path": "governance/gates/GATE21/implementation/source-registry-v1.mjs", "role": "FREE source registry and fallback binding" },
+    { "ordinal": 4, "path": "governance/gates/GATE21/implementation/portability-and-hygiene.mjs", "role": "Portable roots and storage-hygiene lifecycle" },
+    { "ordinal": 5, "path": "governance/gates/GATE21/contracts/GATE21_BINDING_V1.json", "role": "Schema/version pins, HISTORICAL/LIVE and off-scan boundary" },
+    { "ordinal": 6, "path": "governance/gates/GATE21/tests/gate21-foundation.test.mjs", "role": "Positive consumer-proof tests" },
+    { "ordinal": 7, "path": "governance/gates/GATE21/tests/gate21-hostiles.test.mjs", "role": "Anti-leakage hostile tests" },
+    { "ordinal": 8, "path": "governance/gates/GATE21/tests/gate21-evolvability.test.mjs", "role": "FUTURE_CHANGE_TEST and FUTURE_3_GATES_TEST" },
+    { "ordinal": 9, "path": "governance/gates/GATE21/fixtures/causal-consumer-fixture.mjs", "role": "Real declared consumer fixture" },
+    { "ordinal": 10, "path": "governance/gates/GATE21/evidence/BUILD_CANDIDATE_RECEIPT.json", "role": "Build-candidate proof receipt, not closure" }
+  ],
+  "validators": [
+    "node governance/tools/validate-gate-contract.mjs --contract governance/gates/GATE21/contracts/EXECUTION_CONTRACT_R0002.json --pointer governance/gates/GATE21/contracts/CURRENT_CONTRACT.json",
+    "node governance/gates/GATE21/tests/gate21-foundation.test.mjs",
+    "node governance/gates/GATE21/tests/gate21-hostiles.test.mjs",
+    "node governance/gates/GATE21/tests/gate21-evolvability.test.mjs"
+  ],
+  "positiveTests": [
+    { "testId": "G21-POS-01", "case": "as-of consumer reads DailyBarV1 with availableAt >= eventTime", "expected": "PASS" },
+    { "testId": "G21-POS-02", "case": "identical source version, manifest, cutoff, corporate-action policy and adjustment mode replay to the same digest", "expected": "PASS" },
+    { "testId": "G21-POS-03", "case": "required V1 registry rows have COST_CLASS=FREE", "expected": "PASS" }
+  ],
+  "negativeTests": [
+    { "testId": "G21-NEG-01", "case": "future bar requested at historical as-of", "expected": "BLOCKED/ABSENT" },
+    { "testId": "G21-NEG-02", "case": "macro revision published after decision time", "expected": "NOT_VISIBLE" },
+    { "testId": "G21-NEG-03", "case": "paid-only source configured as required V1", "expected": "BLOCKED" },
+    { "testId": "G21-NEG-04", "case": "G22+ or directional-lab mutation path requested under this contract", "expected": "BLOCKED" }
+  ],
+  "countertests": [
+    { "testId": "G21-CTR-01", "case": "missing volume silently becomes zero", "expected": "BLOCKED" },
+    { "testId": "G21-CTR-02", "case": "forward-fill across missing market-data interval without explicit future contract", "expected": "BLOCKED" },
+    { "testId": "G21-CTR-03", "case": "asserted PASS without consumer fixture consumption", "expected": "BLOCKED" }
+  ],
+  "reuseRules": [
+    "REUSE then WRAP then CONTRACTUALIZE then VERSION; do not rewrite DailyBarV1 or L4B vintage modules.",
+    "Directional-lab bytes are INPUT/DEPENDENCY: read, import and wrap only unless a bounded mandatory defect is independently proven.",
+    "Reuse existing GEE/Fast Gate workflow, run-root-lifecycle and proof patterns without modifying their core.",
+    "Preserve EXECUTION_CONTRACT_R0001 bytes and START bindings; this revision does not replay START."
+  ],
+  "invalidationRules": [
+    "Any mutation of EXECUTION_CONTRACT_R0001 invalidates this succession.",
+    "Any authorizedPath outside the exact BUILD cohort, or any wildcard/directory-wide path, invalidates this contract.",
+    "Any paid-only required V1 dependency invalidates this contract.",
+    "Any G22+ implementation or directional-lab source mutation without a separate proven defect invalidates this contract."
+  ],
+  "forbiddenReplays": [
+    "GATE21 START",
+    "SECOND_START",
+    "W1-W5",
+    "GEE R8",
+    "G22+",
+    "R0001 mutation",
+    "directional-lab mutation",
+    "scanner production rewrite",
+    "ui-lab integration",
+    "live IBKR execution",
+    "COMPLETE_AGENT",
+    "EXTERNAL_CONFIRMATION",
+    "COMPLETE_CONFIRMED",
+    "git commit",
+    "git push",
+    "git add .",
+    "git add -A"
+  ],
+  "closureConditions": [
+    "CLOSURE_PATH_PROOF recalculated from bound bytes, not asserted PASS.",
+    "Causality, vintage-hindsight, replay digest identity, leakage hostiles, FREE_DATA, portability, hygiene, no-production-coupling and evolvability are evidenced.",
+    "A declared consumer fixture fails if GATE21 v1 bindings disappear or mismatch.",
+    "This contract does not itself COMPLETE_AGENT, EXTERNAL_CONFIRM, or auto-authorize GATE22."
+  ],
+  "nextGateAuthorizationConditions": [
+    "GATE21 BUILD PASS is not GATE22 authorization.",
+    "GATE22 requires a later separate execution contract and authority."
+  ],
+  "performanceBudget": {
+    "targetMinutes": 90,
+    "expectedMaximumMinutes": 180,
+    "closeoutStartMinutes": 150,
+    "absoluteMaximumMinutes": 480
+  },
+  "checkpointPolicy": {
+    "resume": "IN_PROGRESS under EXECUTION_CONTRACT_R0002; next exact step is GATE21 functional BUILD without closure",
+    "reuse": "directional-lab causal contracts plus GEE/Fast Gate workflow without core edits",
+    "independentConfirmation": "required separately after BUILD; not this succession"
+  },
+  "authorizedPaths": [
+    "governance/gates/GATE21/implementation/causal-data-interface.mjs",
+    "governance/gates/GATE21/implementation/lab-import-adapter.mjs",
+    "governance/gates/GATE21/implementation/source-registry-v1.mjs",
+    "governance/gates/GATE21/implementation/portability-and-hygiene.mjs",
+    "governance/gates/GATE21/contracts/GATE21_BINDING_V1.json",
+    "governance/gates/GATE21/tests/gate21-foundation.test.mjs",
+    "governance/gates/GATE21/tests/gate21-hostiles.test.mjs",
+    "governance/gates/GATE21/tests/gate21-evolvability.test.mjs",
+    "governance/gates/GATE21/fixtures/causal-consumer-fixture.mjs",
+    "governance/gates/GATE21/evidence/BUILD_CANDIDATE_RECEIPT.json"
+  ],
+  "requiredPolicyIds": [
+    "MAIN_AGENT_ONLY",
+    "SUBAGENTS_FORBIDDEN_BY_DEFAULT",
+    "NETWORK_FORBIDDEN_BY_DEFAULT",
+    "GIT_WRITES_FORBIDDEN_BY_DEFAULT",
+    "DANGEROUS_GIT_COMMANDS_FORBIDDEN",
+    "AUTHORIZED_PATHS_ONLY",
+    "NO_RESTART_FROM_ZERO",
+    "RESUME_FROM_CHECKPOINT",
+    "NO_HARDCODED_PASS",
+    "NO_CIRCULAR_VALIDATION",
+    "NO_FUTURE_LEAKAGE",
+    "NO_GATE_MANDATE_REDEFINITION",
+    "BLOCK_ON_AUTHORITY_CONFLICT",
+    "DETERMINISTIC_OPERATIONS_LOCAL",
+    "SEPARATE_SESSION_REINSPECTION",
+    "GENERATED_FILES_NON_CANONICAL",
+    "HISTORICAL_REJECTED_NOT_ACTIVE"
+  ],
+  "sourceReferences": [
+    { "sourcePath": "governance/GATE_REGISTRY_00_40.json", "sourceSha256": "76d5f9ff0a21f8c1eadaf9ccd9e48c9087d12655fac6a5c9215584053652a56b", "sourceLocation": "/gates/GATE21", "field": "canonicalObjective" },
+    { "sourcePath": "governance/sources/GATE21_CANONICAL_MANDATE_R0.json", "sourceSha256": "8e261f88982a1b0892dd2cf25a765773ece72d6f47c6f35261b7e36a72c58474", "sourceLocation": "/", "field": "canonicalObjective" },
+    { "sourcePath": "governance/sources/GATE21_PREREQUISITE_THIN_CONTRACTS_R0.json", "sourceSha256": "f6338189cda47a7a931499fd1aaacd5fcdcfed37bc386f15b30258d989dee8b7", "sourceLocation": "/", "field": "purpose" },
+    { "sourcePath": "governance/gates/GATE21/contracts/EXECUTION_CONTRACT_R0001.json", "sourceSha256": "0b07ec7f2e1056c2a88fe1972995021ea0c3776d4871216d8d966acb38aed3bc", "sourceLocation": "/", "field": "contractRevision" }
+  ]
+}

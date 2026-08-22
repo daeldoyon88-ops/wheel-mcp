@@ -1,0 +1,304 @@
+{
+  "document": "GATE21_CANONICAL_MANDATE_R0",
+  "schemaVersion": 1,
+  "authorityId": "GATE21_CANONICAL_MANDATE_RATIFICATION_R0",
+  "issuedBy": "PROJECT_OWNER",
+  "issuedAtUtc": "2026-08-21T22:46:00.000Z",
+  "temporary": false,
+  "canonical": true,
+  "ratificationOnly": true,
+  "executionAuthorized": false,
+  "startAuthorized": false,
+  "statusTransitionAuthorized": false,
+  "functionalImplementationAuthorized": false,
+  "precontractAuthorized": false,
+  "buildAuthorized": false,
+  "commitAuthorized": false,
+  "pushAuthorized": false,
+  "gateId": "GATE21",
+  "canonicalName": "MARKET DATA CAUSAL FOUNDATION",
+  "canonicalObjective": "Promote, version, and bind the existing directional-lab causal market-data foundation so GATE22+ can consume historically replayable, provenance-bound, leakage-safe, FREE, path-independent data without rebuilding DailyBarV1 or lab macro vintage semantics.",
+  "objective": "Promote, version, and bind the existing directional-lab causal market-data foundation so GATE22+ can consume historically replayable, provenance-bound, leakage-safe, FREE, path-independent data without rebuilding DailyBarV1 or lab macro vintage semantics.",
+  "strategicPurpose": "Make market data historically reproducible, provenance-bound and safe for downstream causal features and decisions by promoting existing lab contracts rather than recreating them.",
+  "dependencies": ["GATE20"],
+  "dependencyRationale": {
+    "directPredecessor": "GATE20",
+    "requiredStatus": "COMPLETE_CONFIRMED",
+    "basis": [
+      "The canonical registry declares GATE20.nextGate = GATE21.",
+      "GATE20 is COMPLETE_CONFIRMED.",
+      "No hidden prerequisite is introduced."
+    ]
+  },
+  "inScope": [
+    "Bind DailyBarV1 (eventTime distinct from availableAt, missingness, raw vs adjusted)",
+    "DATA_SOURCE_REGISTRY and SOURCE_PRIORITY_AND_FALLBACK referencing lab identities",
+    "MARKET_CALENDAR / SESSION / TIMEZONE via existing lab civilDate and marketCalendarL3V1",
+    "CORPORATE_ACTIONS via existing corporateActionV1 and corporateActionPolicy",
+    "DATA_REVISION_VINTAGE_SEMANTICS via existing macro vintage L4B and bar revision L3 where already present",
+    "Provenance and replayable snapshot/dataset manifests (DatasetManifestV1 / SnapshotDatasetManifestV1)",
+    "Missingness and leakage-control proof including vintage-hindsight",
+    "HISTORICAL vs LIVE boundary with LIVE not implemented in GATE21",
+    "Additive schema versioning",
+    "Historical precompute off the Wheel live-scan path",
+    "Thin attachments: portability for new artifacts, FREE_DATA envelope, STORAGE_HYGIENE on GATE21 tests",
+    "Evolvability proofs (FUTURE_CHANGE_TEST, FUTURE_3_GATES_TEST, FUTURE_10_GATES_SANITY_CHECK)",
+    "GATE21 binding artifacts that import lab contracts without forking them"
+  ],
+  "outOfScope": [
+    "G23 feature families A-U",
+    "G24+ engines, analogues, models, UI",
+    "Live IBKR implementation, python_ibkr work, JS IBKR promotion",
+    "Wheel scanner or server.js scan-path modification",
+    "ui-lab integration",
+    "GEE core changes, GEE R8, Fast Gate rebuild",
+    "R2A mutation, R2B, new trust root, history rewrite, commit-as-authority",
+    "Paid required data",
+    "Historical %TEMP% cleanup",
+    "Portfolio state, live execution, START or BUILD from this mandate",
+    "Rebuilding DailyBarV1 or macro vintage modules"
+  ],
+  "entryConditions": [
+    "GATE20 is COMPLETE_CONFIRMED under the current authority architecture.",
+    "This mandate is persisted as ratificationOnly and does not itself START GATE21.",
+    "A separate execution contract, START authority and exact path manifest are required before implementation.",
+    "R8 and later GEE revisions remain unauthorized.",
+    "This mandate does not switch ACTIVE_GATE.",
+    "R2A is excluded from the GATE21 workset."
+  ],
+  "historicalVsLiveBoundary": {
+    "historical": "GATE21 snapshots, vintages, manifests and replay",
+    "live": "Yahoo / existing IBKR python shadow remain the production live plane; GATE21 must not implement, replace or dual-fetch live",
+    "rule": "A live quote must never be substituted into a historical snapshot",
+    "sharedLiveSnapshot": "OUT_OF_SCOPE (G25 schema / G35 fetch-once)"
+  },
+  "dataSourceRegistryRequirements": {
+    "requiredFields": [
+      "SOURCE",
+      "identityOrLabRegistryId",
+      "COST_CLASS",
+      "RATE_LIMIT",
+      "HISTORICAL_DEPTH",
+      "FRESHNESS",
+      "RELIABILITY",
+      "ACCESS_TERMS",
+      "FREE_FALLBACK",
+      "HISTORICAL_OR_LIVE_CLASS"
+    ],
+    "requiredV1CostClass": "FREE",
+    "ibkrTwsRequiredForGate21": false,
+    "reuse": [
+      "research/directional-lab/src/contracts/marketDataSourceL3V1.mjs",
+      "research/directional-lab/src/contracts/marketDataIngestionRegistryL3V1.mjs"
+    ],
+    "rule": "Do not invent a parallel source registry."
+  },
+  "sourcePriorityAndFallback": {
+    "rule": "Declared ordered fallback per series. Contradiction is fail-closed or explicit DEGRADED, never a silent pick. Fallback must not introduce a later vintage or live-into-historical substitution. Missing fallback for a required source blocks closure."
+  },
+  "eventTimeVsAvailableAt": {
+    "rule": "Promote DailyBarV1: eventTime is the session event; availableAt is the first usable instant; availableAt >= eventTime is mandatory. GATE21 tests this invariant and does not redefine it."
+  },
+  "dataRevisionVintageSemantics": {
+    "rule": "Promote existing lab L4B vintage set, observation vintage, resolveMacroVintageAsOf and dataset snapshot identity. Historical replay of revisable macro series must use the vintage available at T, not a later revision. GATE21 must not rebuild these modules.",
+    "hostileTest": "Fixture where a revision at T+n differs; as-of T must not observe T+n."
+  },
+  "rawVsAdjustedSemantics": {
+    "bases": ["RAW", "SPLIT_ADJUSTED", "TOTAL_RETURN_ADJUSTED", "DERIVED_ADJUSTED"],
+    "rule": "Promote DATA_CONTRACT bases stored separately with no implicit mix. DERIVED_ADJUSTED is refused in strict mode. GATE21 does not invent a fifth basis."
+  },
+  "corporateActions": {
+    "rule": "Promote corporateActionV1, corporateActionPolicy and TEMPORAL_RULES intra-session order. Splits and dividends are never forward-filled into prices. Ambiguous same-session RAW split+dividend fails closed. GATE21 tests existing policy and does not rewrite it."
+  },
+  "marketCalendarSessionTimezone": {
+    "rule": "Promote civilDate (UTC civil YYYY-MM-DD, no local Date conversion) and marketCalendarL3V1. America/New_York session rules already in DailyBarV1. GATE21 binds them and does not replace them."
+  },
+  "missingness": {
+    "rule": "Promote missingReasonsV1: null stays null; missing volume is never silently 0; no forward-fill; a rolling window containing null produces null. Unknown reasons are refused."
+  },
+  "provenance": {
+    "rule": "Every snapshot, bar and vintage binds source identity, loader/version and hashes as the lab already does. GATE21 evidence recomputes identities from bytes and never trusts an asserted PASS."
+  },
+  "replayableSnapshotManifest": {
+    "rule": "Promote DatasetManifestV1, SnapshotDatasetManifestV1 and validateDatasetManifest hash verification. Closure rematerializes from bound inputs to a byte-identical digest. available is not complete. An empty dataset is not complete."
+  },
+  "leakageProof": {
+    "mustFail": [
+      "future suffix after T used at T",
+      "later macro vintage used at T",
+      "live substituted as historical",
+      "forward-filled missingness represented as observed"
+    ],
+    "rule": "Evidence is failing hostile tests plus passing replay. Presence of a leakage document is not closure."
+  },
+  "schemaVersioning": {
+    "rule": "Named schema versions remain (DailyBarV1, vintage L4B, manifests). Evolution is additive. Consumers ignore unknown fields. Removing or renaming a required field requires a version bump and migration. GATE21 pins promoted versions and does not freeze them irreversibly."
+  },
+  "existingAssetsToReuse": [
+    "research/directional-lab/DATA_CONTRACT.md",
+    "research/directional-lab/TEMPORAL_RULES.md",
+    "research/directional-lab/src/contracts/dailyBarV1.mjs",
+    "research/directional-lab/src/contracts/missingReasonsV1.mjs",
+    "research/directional-lab/src/contracts/corporateActionV1.mjs",
+    "research/directional-lab/src/data/corporateActionPolicy.mjs",
+    "research/directional-lab/src/time/civilDate.mjs",
+    "research/directional-lab/src/contracts/marketCalendarL3V1.mjs",
+    "research/directional-lab/src/contracts/marketDataSourceL3V1.mjs",
+    "research/directional-lab/src/contracts/marketDataIngestionRegistryL3V1.mjs",
+    "research/directional-lab/src/contracts/marketDataBarRevisionL3V1.mjs",
+    "research/directional-lab/src/contracts/datasetManifestV1.mjs",
+    "research/directional-lab/src/contracts/snapshotDatasetManifestV1.mjs",
+    "research/directional-lab/src/contracts/datasetSnapshotV1.mjs",
+    "research/directional-lab/src/data/buildDatasetManifest.mjs",
+    "research/directional-lab/src/data/validateDatasetManifest.mjs",
+    "research/directional-lab/src/data/buildSnapshotDatasetManifest.mjs",
+    "research/directional-lab/src/macro/macroVintageSetL4BV1.mjs",
+    "research/directional-lab/src/macro/resolveMacroVintageAsOfL4BV1.mjs",
+    "research/directional-lab/src/macro/macroObservationVintageL4BV1.mjs",
+    "research/directional-lab/src/macro/macroDatasetSnapshotL4BV1.mjs",
+    "research/directional-lab/src/contracts/macroIngestionContractsL4BV1.mjs",
+    "research/directional-lab/docs/L4B-I1-macro-ingestion-identities-vintages.md"
+  ],
+  "exactNewGap": "GATE21-governed binding of existing lab identities: source registry/fallback/FREE records, leakage and vintage-hindsight closure evidence pack, schema/version pins, portability root resolution for new artifacts, hygiene manifests for GATE21 test workspaces, and a real consumer-proof fixture. Files on disk alone cannot close GATE21. If lab APIs already satisfy a binding, do not duplicate.",
+  "primaryProducer": "directional-lab causal contracts plus GATE21 binding and evidence wrappers under governance/gates/GATE21/ when later separately write-granted",
+  "primaryConsumers": [
+    "GATE22 outcome/label foundation",
+    "GATE23 feature store historical inputs",
+    "GATE32 leakage/OOS validation (not a GATE21 producer)"
+  ],
+  "nonConsumers": ["/scan_shortlist live path"],
+  "portabilityAndMigrationThinContract": {
+    "source": "governance/sources/GATE21_PREREQUISITE_THIN_CONTRACTS_R0.json#/PORTABILITY_AND_MIGRATION",
+    "gate21Scope": "New GATE21 artifacts resolve through configurable roots. No new machine-home hardcodes. Constitution canonicalPath remains MACHINE_SPECIFIC and is not amended in GATE21. Full EXPORT/RESTORE/SMOKE remains GATE40."
+  },
+  "freeDataSourcePolicyThinContract": {
+    "source": "governance/sources/GATE21_PREREQUISITE_THIN_CONTRACTS_R0.json#/FREE_DATA_SOURCE_POLICY",
+    "rule": "Required GATE21 sources have COST_CLASS=FREE. No paid API, dataset, licence or mandatory paid tier. If a series is not FREE-reliable it is omitted from required V1 or marked UNAVAILABLE; it is not fabricated."
+  },
+  "storageHygieneThinContract": {
+    "source": "governance/sources/GATE21_PREREQUISITE_THIN_CONTRACTS_R0.json#/STORAGE_HYGIENE_INVARIANT",
+    "rule": "GATE21 tests and runners that allocate Temp reuse run-root-lifecycle. Historical Temp leftovers are not cleaned in GATE21."
+  },
+  "noProductionCouplingProof": {
+    "test": "research/directional-lab/test/no-production-coupling.test.mjs",
+    "rule": "Must remain PASS and be recomputed at closure. A comment is insufficient. Scanner paths are excluded from the workset."
+  },
+  "liveScanLatencyTarget": "ZERO",
+  "exactWorkset": {
+    "consumeExisting": "existingAssetsToReuse plus existing lab tests: no-production-coupling, temporal-causality, split-adjustment, manifest-coverage, snapshot-dataset-manifest, market-macro-l4b-i1/i2 vintage tests",
+    "geeConsumeDoNotEdit": [
+      "governance/gee-v1/context/compile-context.mjs",
+      "governance/gee-v1/runtime/run-root-lifecycle.mjs",
+      "governance/tools/gate-fast-path-control-plane.mjs",
+      "governance/tools/issue-precontract-authority.mjs"
+    ],
+    "laterCreateNotAuthorizedByThisMandate": [
+      "governance/gates/GATE21/contracts/EXECUTION_CONTRACT_R0001.json",
+      "governance/gates/GATE21/contracts/CURRENT_CONTRACT.json",
+      "governance/gates/GATE21/contracts/PRECONTRACT_AUTHORITY_CONSUMPTION_R1.json",
+      "GATE21 implementation, tests and evidence under governance/gates/GATE21/"
+    ],
+    "laterModifyLabDefault": "Do not modify DailyBarV1 or vintage modules; wrap unless a proven binding bug exists.",
+    "expansionReasonCodes": ["MISSING_REQUIRED_FACT", "PROOF_DRIFTED", "CONTRADICTION_DETECTED"]
+  },
+  "forbiddenPaths": [
+    "app/scanners/**",
+    "Wheel server.js scan routes",
+    "wheel-mcp-ui-lab/**",
+    "python_ibkr/** as GATE21 work",
+    "app/data_providers/ibkrReadOnlyProvider.js promotion",
+    "G23 family contracts (seasonality, technical, volume-structure, macro feature publication, earnings feature, regime snapshot, featureSnapshot, order/trade/fill/signal/backtestResult)",
+    "governance/gee-v1/core/** edits",
+    "R8",
+    "R2A preflight dirty byte",
+    "R2B",
+    "historical Temp leftovers",
+    "ACTIVE_GATE hand-edit",
+    "closed GATE00-GATE20 evidence/history"
+  ],
+  "closurePathProof": {
+    "rule": "GATE21 cannot close because files exist. Closure must recalculate from bound bytes: real consumer fixture; causality; replay digest identity; leakage and vintage-hindsight hostile tests; FREE_DATA registry rows for required sources; portability replay under a different DATA_ROOT; STORAGE_HYGIENE ephemeral root released or locked failure recorded; no-production-coupling PASS; live-scan workset empty; evolvability tests PASS; validator-derived verdict with no asserted PASS field."
+  },
+  "futureChangeTest": "Without reopening closed GATE21 evidence: add a FREE source; add an additive field; pin schema v2; pin vintage v2; rollback to v1; migrate snapshot format; rebind DATA_ROOT.",
+  "future3GatesTest": "GATE22 new label class, GATE23 new feature family consuming v1 bars/vintages, and GATE24 regime vector reading GATE23 which reads GATE21 must work against frozen GATE21 v1 without reopening GATE21, self-bootstrap or a new trust root.",
+  "future10GatesSanityCheck": "The GATE21 data plane remains extensible to GATE31+ via versioning and adapters. A later provider is a source-registry adapter, not a GATE21 reopen. A later UI replacement must not require a GATE21 rebuild.",
+  "rollbackOrFallback": "Rollback pins the previous schema/snapshot version. Fallback is lab research-only unchanged and Wheel live unchanged if GATE21 bindings are absent.",
+  "migrationAndDeprecationPath": "Migrate by rematerializing snapshots under the new version while keeping old manifests readable. Deprecate by version id, never by silently rewriting DailyBarV1 or deleting closed evidence.",
+  "mergeReadiness": "ISOLATED. Not UI_LAB. Not INTEGRATION_CANDIDATE. Not REMOTE_ELIGIBLE. BUILD PASS is not merge permission. No ui-lab refresh in GATE21.",
+  "precontractExpectation": "A later separate Owner write-grant is required to issue precontract via existing issue-precontract-authority.mjs. This mandate does not authorize precontract, START or BUILD.",
+  "startPreconditions": [
+    "This mandate remains ratificationOnly",
+    "Separate PROJECT_OWNER_GATE_START_AUTHORITY exists",
+    "Precontract review PASS",
+    "GATE20 COMPLETE_CONFIRMED",
+    "EXACT_WORKSET locked in an execution contract",
+    "R2A not in workset",
+    "No GEE core edits"
+  ],
+  "completeConfirmedCriteria": [
+    "closurePathProof recalculated PASS",
+    "Causality, vintage-hindsight, replay, leakage, FREE_DATA, portability, hygiene, zero coupling, zero scan-latency delta and evolvability are evidenced",
+    "Independent confirmation remains a later separate session",
+    "GATE22 is not auto-authorized"
+  ],
+  "requiredOutputs": [
+    "causal market-data binding of existing lab contracts",
+    "source and provenance registry referencing lab identities",
+    "historical snapshot manifest binding",
+    "missing-data and leakage-control report including vintage-hindsight",
+    "real consumer-proof that GATE21 bindings are actually consumed"
+  ],
+  "exitConditions": [
+    "Every required market-data source is identity- and provenance-bound with COST_CLASS=FREE.",
+    "Event time is distinct from real availability time and availableAt >= eventTime.",
+    "Missing data is explicit and cannot silently become observed data.",
+    "Historical snapshots rematerialize to a byte-identical digest.",
+    "Known future leakage and later-vintage hindsight tests are rejected.",
+    "A declared consumer fixture fails if GATE21 v1 bindings disappear or mismatch.",
+    "no-production-coupling remains PASS and Wheel live-scan files are absent from the workset.",
+    "New GATE21 artifacts are path-independent and GATE21 ephemeral test roots are declared and cleaned or recorded failed.",
+    "This mandate did not START, BUILD, or auto-authorize GATE22.",
+    "No unrelated regression identity is introduced."
+  ],
+  "forbiddenScope": [
+    "future leakage",
+    "unbound current-data substitution",
+    "invented market observations",
+    "broker orders",
+    "paid required V1 data",
+    "live IBKR implementation",
+    "DailyBarV1 rebuild",
+    "macro vintage rebuild",
+    "G23 feature-family implementation",
+    "scanner modification",
+    "START or BUILD by this document"
+  ],
+  "downstreamGuarantees": [
+    "GATE22-GATE40 may consume only causal, as-of-bound data products promoted by GATE21.",
+    "This mandate creates no execution contract, START, state transition or implementation."
+  ],
+  "nextGate": "GATE22",
+  "sourceReferences": [
+    {
+      "sourceId": "OWNER_APPROVED_GATE21_FORMAL_DEFINITION_38_POINTS",
+      "sourcePath": null,
+      "field": "canonicalObjective",
+      "evidence": "Project Owner accepted GATE21 architecture direction and the formal 38-point GATE21 definition; this document persists that definition as ratificationOnly."
+    },
+    {
+      "sourceId": "OWNER_PROVIDED_WHEEL_JARVISE_MASTER_ROADMAP_00_40",
+      "sourcePath": "governance/sources/WHEEL_JARVISE_MASTER_ROADMAP_00_40.txt",
+      "sourceSha256": "c59c9f243581104e0486f075311da4163b27f778ea5ba176c8f86f3b74d6647d",
+      "sourceLocation": "GATE21 - MARKET DATA CAUSAL FOUNDATION",
+      "field": "canonicalName",
+      "evidence": "Historical official name MARKET DATA CAUSAL FOUNDATION; functional objective is promote-not-rebuild as defined here."
+    }
+  ],
+  "ownerDisposition": {
+    "status": "RATIFICATION_ONLY",
+    "execution": "NOT_AUTHORIZED_BY_THIS_DOCUMENT",
+    "start": "NOT_AUTHORIZED_BY_THIS_DOCUMENT",
+    "build": "NOT_AUTHORIZED_BY_THIS_DOCUMENT",
+    "precontract": "NOT_AUTHORIZED_BY_THIS_DOCUMENT"
+  }
+}

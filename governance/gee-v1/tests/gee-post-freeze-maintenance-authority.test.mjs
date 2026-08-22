@@ -5,6 +5,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { execFileSync } from 'node:child_process';
 import {
   createGeeMissionAuthoritySource,
 } from '../adapters/gee-mission-authority-source.mjs';
@@ -20,8 +21,10 @@ import {
 import { collectClosedStateSealMembers } from '../core/sealed-state-evidence.mjs';
 import { verifyOwnerSignature } from '../core/release-authority.mjs';
 import { resolveCanonicalLedgerPrefix } from '../../tools/validate-status-ledger.mjs';
+import { collectPostFreezeMaintenanceObservation } from '../../tools/post-freeze-maintenance-observation.mjs';
 
-const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..', '..');
+const REPO_ROOT = process.env.WHEEL_LIVE_REPO_ROOT || path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..', '..');
+const CANDIDATE_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..', '..');
 const R7_ID = 'GOVERNANCE_EXECUTION_EFFICIENCY_V1_R7';
 const R8_ID = 'GOVERNANCE_EXECUTION_EFFICIENCY_V1_R8';
 const R9999_ID = 'GOVERNANCE_EXECUTION_EFFICIENCY_V1_R9999';
@@ -824,5 +827,140 @@ test('LA07: the adapter resolves a local V2 authority with no owner key present 
   assert.deepEqual(result.findings, []);
   assert.equal(result.proofs.WORK_UNIT_EXECUTABLE.state, 'PROVEN');
   assert.deepEqual(result.authorizedPaths, fixture.manifest.paths.map((entry) => entry.path));
+  fs.rmSync(root, { recursive: true, force: true });
+});
+
+const W1W5_AUTHORITY_REL = 'governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_GOVERNANCE_WORKFLOW_FIX_W1_W5_R1.json';
+const W1W5_PROGRAM_ID = 'WHEEL_GOVERNANCE_WORKFLOW_FIX_W1_W5_R1';
+
+test('W1: default V2 observation supplies pathPrestates and authorityDocumentPath', () => {
+  const authority = JSON.parse(fs.readFileSync(path.join(REPO_ROOT, W1W5_AUTHORITY_REL), 'utf8'));
+  const observation = collectPostFreezeMaintenanceObservation({
+    root: REPO_ROOT,
+    authority,
+    authorityDocumentPath: W1W5_AUTHORITY_REL
+  });
+  assert.equal(observation.valid, true, JSON.stringify(observation.findings));
+  assert.equal(observation.observed.authorityDocumentPath, W1W5_AUTHORITY_REL);
+  assert.equal(typeof observation.observed.pathPrestates, 'object');
+  assert.ok(observation.observed.pathPrestates['governance/tools/governance-preflight.mjs']);
+  const source = createGeeMissionAuthoritySource(REPO_ROOT);
+  const result = source.resolveWorkUnitAuthority(W1W5_PROGRAM_ID);
+  assert.equal(result.proofs.WORK_UNIT_EXECUTABLE.state, 'FAILED', JSON.stringify(result.findings));
+  assert.ok(result.findings.some((finding) => finding.code === 'AUTHORITY_ALREADY_CONSUMED'));
+  assert.ok(result.findings.every((finding) => finding.code !== 'PATH_PRESTATE_OBSERVATION_MISSING'));
+});
+
+test('W1: a declared digest that is not a canonical predecessor is blocked', () => {
+  const authority = JSON.parse(fs.readFileSync(path.join(REPO_ROOT, W1W5_AUTHORITY_REL), 'utf8'));
+  const observation = collectPostFreezeMaintenanceObservation({
+    root: REPO_ROOT,
+    authority,
+    authorityDocumentPath: W1W5_AUTHORITY_REL
+  });
+  assert.equal(observation.valid, true);
+  const forged = structuredClone(observation.manifest);
+  const target = forged.paths.find((entry) => entry.path === 'governance/tools/validate-active-gate.mjs');
+  target.prestate.sha256 = '0'.repeat(64);
+  const result = evaluatePostFreezeMaintenanceAuthorityV2({
+    authority,
+    manifest: forged,
+    observed: observation.observed,
+    phase: PHASE_AUTHORIZE_PROGRAM_APPLY,
+    consumptionRecord: null
+  });
+  assert.equal(result.decision, 'BLOCKED');
+  assert.ok(result.findings.some((finding) => finding.code === 'PATH_PRESTATE_SHA_MISMATCH' || finding.code === 'PATH_PRESTATE_NOT_A_CANONICAL_PREDECESSOR'));
+});
+
+test('W1: default observer proves a valid unconsumed V2 authority on a bounded scratch', () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'w1-unconsumed-'));
+  fs.cpSync(path.join(REPO_ROOT, 'governance'), path.join(root, 'governance'), { recursive: true });
+  execFileSync('git', ['init', '--quiet'], { cwd: root });
+  execFileSync('git', ['-c', 'user.name=w1scratch', '-c', 'user.email=w1scratch@example.invalid', 'commit', '--allow-empty', '--quiet', '-m', 'w1scratch'], { cwd: root });
+  const head = execFileSync('git', ['rev-parse', 'HEAD'], { cwd: root, encoding: 'utf8' }).trim();
+  const authorityRel = 'governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_SCRATCH_UNCONSUMED_R1.json';
+  const manifestRel = 'governance/historical-architecture/SCRATCH_UNCONSUMED_AUTHORIZED_PATHS_R1.json';
+  const consumptionRel = 'governance/historical-architecture/SCRATCH_UNCONSUMED_CONSUMPTION_R1.json';
+  const programId = 'WHEEL_GOVERNANCE_SCRATCH_UNCONSUMED_V2_R1';
+  const manifest = {
+    documentKind: 'POST_FREEZE_MAINTENANCE_AUTHORIZED_PATH_MANIFEST',
+    schemaVersion: 2,
+    manifestId: 'SCRATCH_UNCONSUMED_AUTHORIZED_PATHS_R1',
+    programId,
+    prestateSelfExclusion: [
+      { path: authorityRel, role: 'AUTHORITY_DOCUMENT', reason: 'scratch authority self-exclusion' },
+      { path: manifestRel, role: 'AUTHORIZED_PATH_MANIFEST', reason: 'scratch manifest self-exclusion' }
+    ],
+    paths: [
+      { path: authorityRel, operation: 'CREATE', phase: 'MAINTENANCE', reason: 'scratch authority', artifactClass: 'MAINTENANCE', prestate: { state: 'ABSENT' } },
+      { path: manifestRel, operation: 'CREATE', phase: 'MAINTENANCE', reason: 'scratch manifest', artifactClass: 'MAINTENANCE', prestate: { state: 'ABSENT' } },
+      { path: consumptionRel, operation: 'CREATE', phase: 'MAINTENANCE', reason: 'scratch consumption', artifactClass: 'MAINTENANCE', prestate: { state: 'ABSENT' } }
+    ]
+  };
+  const manifestBytes = Buffer.from(`${JSON.stringify(manifest, null, 2)}\n`, 'utf8');
+  fs.writeFileSync(path.join(root, ...manifestRel.split('/')), manifestBytes);
+  const liveAuthority = JSON.parse(fs.readFileSync(path.join(REPO_ROOT, W1W5_AUTHORITY_REL), 'utf8'));
+  const authority = {
+    ...liveAuthority,
+    authorityId: 'WHEEL_GOVERNANCE_SCRATCH_UNCONSUMED_LOCAL_AUTHORITY_R1',
+    programId,
+    resumePoint: 'CP-WHEEL-GOVERNANCE-SCRATCH-UNCONSUMED-R1',
+    createdAt: '2026-08-22T00:00:00.000Z',
+    expiresAt: '2026-12-31T23:59:59.000Z',
+    preState: { ...liveAuthority.preState, baseHead: head },
+    authorizedPathManifestPath: manifestRel,
+    authorizedPathManifestSha256: sha256Hex(manifestBytes),
+    authorityHeadBinding: { mode: 'BASE_HEAD', baseHead: head },
+    consumptionRecordPath: consumptionRel
+  };
+  fs.writeFileSync(path.join(root, ...authorityRel.split('/')), `${JSON.stringify(authority, null, 2)}\n`);
+  const source = createGeeMissionAuthoritySource(root);
+  const result = source.resolveWorkUnitAuthority(programId);
+  assert.equal(result.proofs.WORK_UNIT_EXECUTABLE.state, 'PROVEN', JSON.stringify(result.findings));
+  assert.deepEqual(result.findings, []);
+  fs.rmSync(root, { recursive: true, force: true });
+});
+
+test('W2/W3: legitimate NOT_STARTED missing CURRENT_STATE/CURRENT_CONTRACT observe as null', () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'w2w3-not-started-'));
+  fs.cpSync(path.join(REPO_ROOT, 'governance'), path.join(root, 'governance'), { recursive: true });
+  execFileSync('git', ['init', '--quiet'], { cwd: root });
+  execFileSync('git', ['-c', 'user.name=w2w3', '-c', 'user.email=w2w3@example.invalid', 'commit', '--allow-empty', '--quiet', '-m', 'w2w3'], { cwd: root });
+  const head = execFileSync('git', ['rev-parse', 'HEAD'], { cwd: root, encoding: 'utf8' }).trim();
+  fs.rmSync(path.join(root, 'governance', 'gates', 'GATE21', 'state'), { recursive: true, force: true });
+  fs.rmSync(path.join(root, 'governance', 'gates', 'GATE21', 'contracts'), { recursive: true, force: true });
+  const authority = JSON.parse(fs.readFileSync(path.join(REPO_ROOT, W1W5_AUTHORITY_REL), 'utf8'));
+  authority.preState = { ...authority.preState, gateId: 'GATE21', gateStatus: 'NOT_STARTED', stateRevision: null, contractRevision: null, baseHead: head };
+  const observation = collectPostFreezeMaintenanceObservation({
+    root,
+    authority,
+    authorityDocumentPath: W1W5_AUTHORITY_REL,
+    includeConsumptionCohort: false
+  });
+  assert.equal(observation.valid, true, JSON.stringify(observation.findings));
+  assert.equal(observation.observed.stateRevision, null);
+  assert.equal(observation.observed.contractRevision, null);
+  fs.rmSync(root, { recursive: true, force: true });
+});
+
+test('W2/W3: malformed PRESENT CURRENT_STATE remains fail-closed', () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'w2w3-malformed-'));
+  fs.cpSync(path.join(REPO_ROOT, 'governance'), path.join(root, 'governance'), { recursive: true });
+  execFileSync('git', ['init', '--quiet'], { cwd: root });
+  execFileSync('git', ['-c', 'user.name=w2w3', '-c', 'user.email=w2w3@example.invalid', 'commit', '--allow-empty', '--quiet', '-m', 'w2w3'], { cwd: root });
+  const stateDir = path.join(root, 'governance', 'gates', 'GATE21', 'state');
+  fs.mkdirSync(stateDir, { recursive: true });
+  fs.writeFileSync(path.join(stateDir, 'CURRENT_STATE.json'), '{not-json');
+  const authority = JSON.parse(fs.readFileSync(path.join(REPO_ROOT, W1W5_AUTHORITY_REL), 'utf8'));
+  authority.preState = { ...authority.preState, gateId: 'GATE21' };
+  const observation = collectPostFreezeMaintenanceObservation({
+    root,
+    authority,
+    authorityDocumentPath: W1W5_AUTHORITY_REL,
+    includeConsumptionCohort: false
+  });
+  assert.equal(observation.valid, false);
+  assert.ok(observation.findings.length > 0);
   fs.rmSync(root, { recursive: true, force: true });
 });

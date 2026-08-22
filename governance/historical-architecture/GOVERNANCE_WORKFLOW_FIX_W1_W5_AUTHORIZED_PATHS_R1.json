@@ -1,0 +1,116 @@
+{
+  "documentKind": "POST_FREEZE_MAINTENANCE_AUTHORIZED_PATH_MANIFEST",
+  "schemaVersion": 2,
+  "manifestId": "GOVERNANCE_WORKFLOW_FIX_W1_W5_AUTHORIZED_PATHS_R1",
+  "programId": "WHEEL_GOVERNANCE_WORKFLOW_FIX_W1_W5_R1",
+  "prestateSelfExclusion": [
+    {
+      "path": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_GOVERNANCE_WORKFLOW_FIX_W1_W5_R1.json",
+      "role": "AUTHORITY_DOCUMENT",
+      "reason": "The authority document is a causally prior publisher input and remains bound by the exact V2 self-exclusion."
+    },
+    {
+      "path": "governance/historical-architecture/GOVERNANCE_WORKFLOW_FIX_W1_W5_AUTHORIZED_PATHS_R1.json",
+      "role": "AUTHORIZED_PATH_MANIFEST",
+      "reason": "The manifest is a causally prior publisher input and remains bound by the exact V2 self-exclusion."
+    }
+  ],
+  "paths": [
+    {
+      "path": "governance/gee-v1/adapters/gee-mission-authority-source.mjs",
+      "operation": "MODIFY",
+      "phase": "MAINTENANCE",
+      "reason": "W1 thin V2 observer wiring.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": { "state": "PRESENT", "sha256": "4c9c97f6865152b0182d5b37d4566b26759a1b735d2f6882d77de108c4677607", "byteLength": 24564 }
+    },
+    {
+      "path": "governance/tools/post-freeze-maintenance-observation.mjs",
+      "operation": "MODIFY",
+      "phase": "MAINTENANCE",
+      "reason": "W2/W3 thick observer NOT_STARTED handling.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": { "state": "PRESENT", "sha256": "3ed9b545bcca0b85dde05b41cb85e08fe079a5d6c2113eb9fd90c1a887848c9b", "byteLength": 17088 }
+    },
+    {
+      "path": "governance/tools/generate-status-snapshot.mjs",
+      "operation": "MODIFY",
+      "phase": "MAINTENANCE",
+      "reason": "W4 lifecycle staging projection.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": { "state": "PRESENT", "sha256": "1b271c216f73e0d2c82cecce0f2c6fb4740a7f63b4eb36a55bddbb5362f1d3a0", "byteLength": 4030 }
+    },
+    {
+      "path": "governance/tools/gate-lifecycle-orchestrator.mjs",
+      "operation": "MODIFY",
+      "phase": "MAINTENANCE",
+      "reason": "W4 lifecycle staging differential validation.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": { "state": "PRESENT", "sha256": "a6152f95d2ee761f8898546413650ae860ac93ca4cdcd630f9a54108bf850ed6", "byteLength": 60420 }
+    },
+    {
+      "path": "governance/tools/validate-active-gate.mjs",
+      "operation": "MODIFY",
+      "phase": "MAINTENANCE",
+      "reason": "W5 closed-gate and generated-context alignment.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": { "state": "PRESENT", "sha256": "74a3da0429c7c9a2aa027c515125842801c757992cdf5a567fb8bc23f4586ef3", "byteLength": 7773 }
+    },
+    {
+      "path": "governance/tools/governance-preflight.mjs",
+      "operation": "MODIFY",
+      "phase": "MAINTENANCE",
+      "reason": "W5 closed-gate and generated-context alignment.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": { "state": "PRESENT", "sha256": "ef699c1a1d959f0b7f56bf0bd721714848074400afdc986d35d8abd4a4a8f46c", "byteLength": 11091 }
+    },
+    {
+      "path": "governance/gee-v1/tests/gee-post-freeze-maintenance-authority.test.mjs",
+      "operation": "MODIFY",
+      "phase": "MAINTENANCE",
+      "reason": "W1/W2/W3 proof coverage.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": { "state": "PRESENT", "sha256": "0d7dc7fb6069b785b3ebac0bb2ab04c53c65ce75b8822e0edaa4848b600cc034", "byteLength": 46801 }
+    },
+    {
+      "path": "governance/tests/gate-lifecycle-orchestrator.test.mjs",
+      "operation": "MODIFY",
+      "phase": "MAINTENANCE",
+      "reason": "W4 proof coverage.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": { "state": "PRESENT", "sha256": "761f24375729fd4dcfa099f346a7e6f6d370eb4840128840b3a3ca25e0c1b7be", "byteLength": 82057 }
+    },
+    {
+      "path": "governance/tests/gate13-authority-conflicts-repair.test.mjs",
+      "operation": "MODIFY",
+      "phase": "MAINTENANCE",
+      "reason": "W5 proof coverage.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": { "state": "PRESENT", "sha256": "40d91479a6a867b8c16db8dacff89b1eede439d3a457222361f9e177984d0ae4", "byteLength": 20478 }
+    },
+    {
+      "path": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_GOVERNANCE_WORKFLOW_FIX_W1_W5_R1.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "Bounded Owner authority for the W1-W5 maintenance program.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": { "state": "ABSENT" }
+    },
+    {
+      "path": "governance/historical-architecture/GOVERNANCE_WORKFLOW_FIX_W1_W5_AUTHORIZED_PATHS_R1.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "Finite exact-path manifest for the W1-W5 maintenance program.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": { "state": "ABSENT" }
+    },
+    {
+      "path": "governance/historical-architecture/GOVERNANCE_WORKFLOW_FIX_W1_W5_CONSUMPTION_R1.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "Mechanically produced single-use V2 consumption receipt.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": { "state": "ABSENT" }
+    }
+  ]
+}

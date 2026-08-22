@@ -1,0 +1,43 @@
+{
+  "documentKind": "POST_FREEZE_MAINTENANCE_AUTHORITY_CONSUMPTION",
+  "schemaVersion": 2,
+  "authorityId": "WHEEL_GOVERNANCE_W1_W5_TEST_PROOF_REPAIR_LOCAL_AUTHORITY_R1",
+  "programId": "WHEEL_GOVERNANCE_W1_W5_TEST_PROOF_REPAIR_R1",
+  "manifestSha256": "234e286e12d31a750cb85724817217e4859a1ef7539b96440a697c01faf3900d",
+  "baseHead": "e19507db9304b6e1088b1b4a983498ba412dacf5",
+  "consumedUse": 1,
+  "transactionId": "WHEEL_GOVERNANCE_W1_W5_TEST_PROOF_REPAIR_R1_TRANSACTION",
+  "recordedAt": "2026-08-22T11:19:49.162Z",
+  "commitMessage": "governance: repair W1-W5 test proof",
+  "cohortSelfExclusion": {
+    "path": "governance/historical-architecture/W1_W5_TEST_PROOF_REPAIR_CONSUMPTION_R1.json",
+    "reason": "The consumption record cannot hash its own final bytes; its identity is bound by the authority and manifest instead."
+  },
+  "cohortPathCount": 4,
+  "cohort": [
+    {
+      "path": "governance/gee-v1/tests/gee-post-freeze-maintenance-authority.test.mjs",
+      "sha256": "969f0437c4bb7424f5ef16a576e33ce6bcf09aafe587b6e3b7537de68b9cde6a",
+      "byteLength": 55230,
+      "operation": "MODIFY",
+      "reason": "Retarget the stale live W1 post-consumption assertion and keep a bounded unconsumed scratch proof.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_W1_W5_TEST_PROOF_REPAIR_R1.json",
+      "sha256": "ec9e4890d92d1a676a327ff7959ec2cfa6df85077d97bb1c9928ba0113498c96",
+      "byteLength": 2040,
+      "operation": "CREATE",
+      "reason": "Bounded Owner authority for the W1-W5 test-proof repair.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "governance/historical-architecture/W1_W5_TEST_PROOF_REPAIR_AUTHORIZED_PATHS_R1.json",
+      "sha256": "234e286e12d31a750cb85724817217e4859a1ef7539b96440a697c01faf3900d",
+      "byteLength": 2323,
+      "operation": "CREATE",
+      "reason": "Finite exact-path manifest for the W1-W5 test-proof repair.",
+      "artifactClass": "MAINTENANCE"
+    }
+  ]
+}

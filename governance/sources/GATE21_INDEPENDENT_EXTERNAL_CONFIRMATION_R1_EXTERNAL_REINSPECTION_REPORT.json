@@ -1,0 +1,143 @@
+{
+  "document": "EXTERNAL_REINSPECTION_REPORT",
+  "schemaVersion": 1,
+  "reportId": "GATE21_INDEPENDENT_EXTERNAL_CONFIRMATION_R1_EXTERNAL_REINSPECTION_REPORT",
+  "gateId": "GATE21",
+  "programId": "GATE21_INDEPENDENT_EXTERNAL_CONFIRMATION_R1",
+  "verifierId": "GATE21_INDEPENDENT_EXTERNAL_CONFIRMATION_R1",
+  "independentSession": true,
+  "verdict": "PASS",
+  "reinspectionBasis": "Independent external confirmation of GATE21 COMPLETE_AGENT. Live prestate remeasured: ledger 88 events SHA256 a34637cc3677ba87e54dda657ec135da608c8659bf6c65f5a979578a8f198bf7. GATE21 COMPLETE_AGENT R0004. CURRENT_CONTRACT R0002 SHA256 f989895c6533a77918410dfd53a7f74e0745409f4ba28dae16f3bcb14f056f73. CURRENT_STATE seal f7f6c0b4a787fd4805ff40182de1c37cd541f83b95eda94bae60ba06ab1e3acd. BUILD_CANDIDATE_RECEIPT file bytes 817ce16bb9ee214c59024aff1e5c63f3cd77736d59b444557dda307d3aba19d2 thisDocumentSha256 ba5fcdcd6883a6ae57efa02fd695aec79003e29bbb68518c0e6b5a9d68147dce 10-path BUILD cohort drift 0. AGENT_CLOSURE GATE21_AGENT_CLOSURE_R1 ordinal 88 unique. START GATE21_START_R1 ordinal 86 unique. AGENT_CLOSURE consumption 22e3d7d188b44e4f9bcf7cf0499bf840e9759027b7de4df024fa71592080430c/3810. HEAD e19507db9304b6e1088b1b4a983498ba412dacf5. ACTIVE_GATE GATE13. GATE22 NOT_STARTED. R8 absent. Readiness audit GATE21_EXTERNAL_CONFIRMATION_AUDIT_PASS_READY_FOR_FINAL_CLOSURE. Functional tests not rerun because current BUILD bytes match the independently audited receipt.",
+  "preState": {
+    "baseHead": "e19507db9304b6e1088b1b4a983498ba412dacf5",
+    "ledgerEventCount": 88,
+    "ledgerPrefixSha256": "a34637cc3677ba87e54dda657ec135da608c8659bf6c65f5a979578a8f198bf7",
+    "gateStatus": "COMPLETE_AGENT",
+    "stateRevision": "R0004",
+    "contractRevision": "R0002",
+    "activeGate": "GATE13",
+    "R8ExpectedAbsent": true
+  },
+  "independentChecks": [
+    {
+      "check": "EXTERNAL_CONFIRMATION_READINESS_AUDIT",
+      "result": "GATE21_EXTERNAL_CONFIRMATION_AUDIT_PASS_READY_FOR_FINAL_CLOSURE"
+    },
+    {
+      "check": "LEDGER",
+      "eventCount": 88,
+      "sha256": "a34637cc3677ba87e54dda657ec135da608c8659bf6c65f5a979578a8f198bf7"
+    },
+    {
+      "check": "GATE21_STATUS",
+      "result": "COMPLETE_AGENT",
+      "stateRevision": "R0004",
+      "stateSealSha256": "f7f6c0b4a787fd4805ff40182de1c37cd541f83b95eda94bae60ba06ab1e3acd",
+      "previousStateSealSha256": "7451e1898dbfb48deacfc3fa9cbe2de665bfa58954c5f23c324e199fddada28a"
+    },
+    {
+      "check": "COMPLETE_AGENT_EVENT",
+      "eventId": "GATE21_AGENT_CLOSURE_R1",
+      "ordinal": 88,
+      "transitionType": "AGENT_CLOSURE",
+      "eventPayloadSha256": "1e7269008f18a53f97b7ac25427d5dee5df2bf6469a6c60aece9bb651ac5aa22",
+      "unique": true
+    },
+    {
+      "check": "START_EVENT",
+      "eventId": "GATE21_START_R1",
+      "ordinal": 86,
+      "unique": true
+    },
+    {
+      "check": "CURRENT_CONTRACT",
+      "contractRevision": "R0002",
+      "sha256": "f989895c6533a77918410dfd53a7f74e0745409f4ba28dae16f3bcb14f056f73"
+    },
+    {
+      "check": "BUILD_CANDIDATE_RECEIPT",
+      "path": "governance/gates/GATE21/evidence/BUILD_CANDIDATE_RECEIPT.json",
+      "fileSha256": "817ce16bb9ee214c59024aff1e5c63f3cd77736d59b444557dda307d3aba19d2",
+      "thisDocumentSha256": "ba5fcdcd6883a6ae57efa02fd695aec79003e29bbb68518c0e6b5a9d68147dce",
+      "byteLength": 14615,
+      "artifactDriftCount": 0,
+      "testsRerun": false
+    },
+    {
+      "check": "BUILD_10_PATH_COHORT",
+      "result": "PASS",
+      "paths": [
+        {
+          "path": "governance/gates/GATE21/implementation/causal-data-interface.mjs",
+          "sha256": "61874d328ab5eb9680b942667eeca994c656849e119f1b4dc3ef902bf2a92e64"
+        },
+        {
+          "path": "governance/gates/GATE21/implementation/lab-import-adapter.mjs",
+          "sha256": "64f8807149adadf6ac71d23daae749f80cfc8032bc24aa9791d58967cfcd9a88"
+        },
+        {
+          "path": "governance/gates/GATE21/implementation/source-registry-v1.mjs",
+          "sha256": "ed701d455b0bb502531c8dde701c69e4f7b381994cc424c3fe488c5a4135cfb5"
+        },
+        {
+          "path": "governance/gates/GATE21/implementation/portability-and-hygiene.mjs",
+          "sha256": "162e63cae3631826c1cd31474a993ec2097f91dfe2f3a1f7416abca8c83d521c"
+        },
+        {
+          "path": "governance/gates/GATE21/contracts/GATE21_BINDING_V1.json",
+          "sha256": "c8982c5c857759dd4204670e514c6b447b573140552d188012b9c9dedc5e9607"
+        },
+        {
+          "path": "governance/gates/GATE21/tests/gate21-foundation.test.mjs",
+          "sha256": "0274f06e7e776d62faf80120961d4fcc7977b4e6b3a3d6e2a49bc85e4e59a216"
+        },
+        {
+          "path": "governance/gates/GATE21/tests/gate21-hostiles.test.mjs",
+          "sha256": "4834c359e5fc846fe82cba38d3d2442b038c52f77018e871874a26683949efbe"
+        },
+        {
+          "path": "governance/gates/GATE21/tests/gate21-evolvability.test.mjs",
+          "sha256": "b5d38193aa70a19d217ccbaadbbb8d166e810203ad30a525e9f18a0db63aec09"
+        },
+        {
+          "path": "governance/gates/GATE21/fixtures/causal-consumer-fixture.mjs",
+          "sha256": "52d6061e5d77a221326349dad23882b5d2f9997c1cb36c71165bddf0f04b8848"
+        },
+        {
+          "path": "governance/gates/GATE21/evidence/BUILD_CANDIDATE_RECEIPT.json",
+          "sha256": "817ce16bb9ee214c59024aff1e5c63f3cd77736d59b444557dda307d3aba19d2"
+        }
+      ]
+    },
+    {
+      "check": "AGENT_CLOSURE_CONSUMPTION",
+      "path": "governance/historical-architecture/GATE21_AGENT_CLOSURE_CONSUMPTION_R1.json",
+      "sha256": "22e3d7d188b44e4f9bcf7cf0499bf840e9759027b7de4df024fa71592080430c",
+      "byteLength": 3810
+    },
+    {
+      "check": "GATE22_STATUS",
+      "result": "NOT_STARTED"
+    },
+    {
+      "check": "R8",
+      "result": "ABSENT"
+    },
+    {
+      "check": "OPEN_DEFECTS",
+      "stateRevision": "R0004",
+      "blockingDefectCount": 0
+    },
+    {
+      "check": "EXTERNAL_CONFIRMATION_ABSENT",
+      "result": true
+    }
+  ],
+  "closureDisposition": {
+    "requiredTransition": "EXTERNAL_CONFIRMATION",
+    "resultingStatus": "COMPLETE_CONFIRMED",
+    "exactlyOneEvent": true,
+    "GATE22RemainNotStarted": true
+  },
+  "createdAt": "2026-08-22T13:30:00.000Z"
+}

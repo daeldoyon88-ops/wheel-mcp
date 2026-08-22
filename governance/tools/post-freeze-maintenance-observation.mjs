@@ -232,8 +232,13 @@ export function collectPostFreezeMaintenanceObservation({
     const events = ledgerBytes.toString('utf8').split(/\r?\n/).filter((line) => line.trim()).map((line) => JSON.parse(line));
     const gateId = authority.preState?.gateId;
     const gateRoot = gateId ? path.join(root, 'governance', 'gates', gateId) : null;
-    const currentState = gateRoot ? readJson(path.join(gateRoot, 'state', 'CURRENT_STATE.json')) : null;
-    const currentContract = gateRoot ? readJson(path.join(gateRoot, 'contracts', 'CURRENT_CONTRACT.json')) : null;
+    const currentStateFile = gateRoot ? path.join(gateRoot, 'state', 'CURRENT_STATE.json') : null;
+    const currentContractFile = gateRoot ? path.join(gateRoot, 'contracts', 'CURRENT_CONTRACT.json') : null;
+    // A NOT_STARTED gate can legitimately have neither projection yet.  Absence
+    // is observed as null; an existing malformed projection still throws and
+    // therefore remains a fail-closed observation failure.
+    const currentState = currentStateFile && fs.existsSync(currentStateFile) ? readJson(currentStateFile) : null;
+    const currentContract = currentContractFile && fs.existsSync(currentContractFile) ? readJson(currentContractFile) : null;
     const activeGate = readJson(path.join(root, 'governance', 'active', 'ACTIVE_GATE.json'));
     const externalReportFile = authority.externalReinspectionReportPath ? resolveMaintenancePath(root, authority.externalReinspectionReportPath) : null;
     const externalReportBytes = externalReportFile && fs.existsSync(externalReportFile) ? fs.readFileSync(externalReportFile) : null;

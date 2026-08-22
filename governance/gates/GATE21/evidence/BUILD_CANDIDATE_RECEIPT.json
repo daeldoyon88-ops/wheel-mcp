@@ -1,0 +1,407 @@
+{
+  "document": "GATE21_BUILD_CANDIDATE_RECEIPT",
+  "schemaVersion": 1,
+  "gateId": "GATE21",
+  "contractRevision": "R0002",
+  "executionContractPath": "governance/gates/GATE21/contracts/EXECUTION_CONTRACT_R0002.json",
+  "executionContractSha256": "f989895c6533a77918410dfd53a7f74e0745409f4ba28dae16f3bcb14f056f73",
+  "currentContractSha256": "f989895c6533a77918410dfd53a7f74e0745409f4ba28dae16f3bcb14f056f73",
+  "role": "BUILD_CANDIDATE_PROOF_NOT_CLOSURE",
+  "causalInterfaceId": "GATE21_CausalDataInterface/1",
+  "bindingId": "GATE21_BINDING_V1",
+  "normalizedRecordVersion": "GATE21_NormalizedCausalRecord/1",
+  "canonicalBarSchema": "DailyBarV1",
+  "exactPathCohort": [
+    "governance/gates/GATE21/implementation/causal-data-interface.mjs",
+    "governance/gates/GATE21/implementation/lab-import-adapter.mjs",
+    "governance/gates/GATE21/implementation/source-registry-v1.mjs",
+    "governance/gates/GATE21/implementation/portability-and-hygiene.mjs",
+    "governance/gates/GATE21/contracts/GATE21_BINDING_V1.json",
+    "governance/gates/GATE21/tests/gate21-foundation.test.mjs",
+    "governance/gates/GATE21/tests/gate21-hostiles.test.mjs",
+    "governance/gates/GATE21/tests/gate21-evolvability.test.mjs",
+    "governance/gates/GATE21/fixtures/causal-consumer-fixture.mjs",
+    "governance/gates/GATE21/evidence/BUILD_CANDIDATE_RECEIPT.json"
+  ],
+  "artifacts": [
+    {
+      "path": "governance/gates/GATE21/implementation/causal-data-interface.mjs",
+      "sha256": "61874d328ab5eb9680b942667eeca994c656849e119f1b4dc3ef902bf2a92e64",
+      "byteLength": 17612
+    },
+    {
+      "path": "governance/gates/GATE21/implementation/lab-import-adapter.mjs",
+      "sha256": "64f8807149adadf6ac71d23daae749f80cfc8032bc24aa9791d58967cfcd9a88",
+      "byteLength": 13071
+    },
+    {
+      "path": "governance/gates/GATE21/implementation/source-registry-v1.mjs",
+      "sha256": "ed701d455b0bb502531c8dde701c69e4f7b381994cc424c3fe488c5a4135cfb5",
+      "byteLength": 6370
+    },
+    {
+      "path": "governance/gates/GATE21/implementation/portability-and-hygiene.mjs",
+      "sha256": "162e63cae3631826c1cd31474a993ec2097f91dfe2f3a1f7416abca8c83d521c",
+      "byteLength": 6160
+    },
+    {
+      "path": "governance/gates/GATE21/contracts/GATE21_BINDING_V1.json",
+      "sha256": "c8982c5c857759dd4204670e514c6b447b573140552d188012b9c9dedc5e9607",
+      "byteLength": 4191
+    },
+    {
+      "path": "governance/gates/GATE21/tests/gate21-foundation.test.mjs",
+      "sha256": "0274f06e7e776d62faf80120961d4fcc7977b4e6b3a3d6e2a49bc85e4e59a216",
+      "byteLength": 7149
+    },
+    {
+      "path": "governance/gates/GATE21/tests/gate21-hostiles.test.mjs",
+      "sha256": "4834c359e5fc846fe82cba38d3d2442b038c52f77018e871874a26683949efbe",
+      "byteLength": 7957
+    },
+    {
+      "path": "governance/gates/GATE21/tests/gate21-evolvability.test.mjs",
+      "sha256": "b5d38193aa70a19d217ccbaadbbb8d166e810203ad30a525e9f18a0db63aec09",
+      "byteLength": 6611
+    },
+    {
+      "path": "governance/gates/GATE21/fixtures/causal-consumer-fixture.mjs",
+      "sha256": "52d6061e5d77a221326349dad23882b5d2f9997c1cb36c71165bddf0f04b8848",
+      "byteLength": 6759
+    }
+  ],
+  "reusedDirectionalLabDependencies": [
+    {
+      "path": "research/directional-lab/DATA_CONTRACT.md",
+      "role": "DATA_CONTRACT",
+      "sha256": "0735e490d609e888b925a6f0ba79df2f537c9b55552fadce848ca9b5384ed9bd",
+      "byteLength": 8982,
+      "originalByteModified": false
+    },
+    {
+      "path": "research/directional-lab/TEMPORAL_RULES.md",
+      "role": "TEMPORAL_RULES",
+      "sha256": "47a06e0d43120e1647fea6ab9837f2f9abfbbfa5e1aa4df265f88ca2228903d6",
+      "byteLength": 6609,
+      "originalByteModified": false
+    },
+    {
+      "path": "research/directional-lab/src/contracts/dailyBarV1.mjs",
+      "role": "DailyBarV1",
+      "sha256": "6e29a4e12260dd0faf1988c84661168ffc030c421374e345853e09b4d3ddfe99",
+      "byteLength": 8105,
+      "originalByteModified": false
+    },
+    {
+      "path": "research/directional-lab/src/contracts/missingReasonsV1.mjs",
+      "role": "missingReasonsV1",
+      "sha256": "1b03f59d87c5c5612a92198969194196bfb4da164a1bfe4570e18eebbc9750a2",
+      "byteLength": 3646,
+      "originalByteModified": false
+    },
+    {
+      "path": "research/directional-lab/src/contracts/corporateActionV1.mjs",
+      "role": "corporateActionV1",
+      "sha256": "eeb0a1fd913f5b54245b0a7ece4d5900f83ca7e22f08843fc4148948a7984b99",
+      "byteLength": 2122,
+      "originalByteModified": false
+    },
+    {
+      "path": "research/directional-lab/src/data/corporateActionPolicy.mjs",
+      "role": "corporateActionPolicy",
+      "sha256": "16b911355406c4a046af9cdde715d68588b5d7b2f16ecde8dec2f02911f8bbe7",
+      "byteLength": 4741,
+      "originalByteModified": false
+    },
+    {
+      "path": "research/directional-lab/src/time/civilDate.mjs",
+      "role": "civilDate",
+      "sha256": "4b45436168c438acaee0c1f15876b0938f032ef933905eb10ed6f1c7a2334efa",
+      "byteLength": 3604,
+      "originalByteModified": false
+    },
+    {
+      "path": "research/directional-lab/src/time/marketSession.mjs",
+      "role": "marketSession",
+      "sha256": "1a806b28563fc6a7eeb1ec09be44ceafd590afde27bc84940e56b4a703714c0a",
+      "byteLength": 2589,
+      "originalByteModified": false
+    },
+    {
+      "path": "research/directional-lab/src/contracts/marketCalendarL3V1.mjs",
+      "role": "marketCalendarL3V1",
+      "sha256": "a8cfbbc359d35e8ea83c0f7c8858b262bb86a464cd379e5f5dedfbe97bd78e8d",
+      "byteLength": 16353,
+      "originalByteModified": false
+    },
+    {
+      "path": "research/directional-lab/src/contracts/marketDataSourceL3V1.mjs",
+      "role": "marketDataSourceL3V1",
+      "sha256": "200da0ee105d8cbb4f13778bf0c7fa2f445d83150a501de13cd37573074885ac",
+      "byteLength": 45801,
+      "originalByteModified": false
+    },
+    {
+      "path": "research/directional-lab/src/contracts/marketDataIngestionRegistryL3V1.mjs",
+      "role": "marketDataIngestionRegistryL3V1",
+      "sha256": "4e3bb9ced8b57047169c567884df54a02eebbbef49624fbb2eb47429a4cbe070",
+      "byteLength": 39394,
+      "originalByteModified": false
+    },
+    {
+      "path": "research/directional-lab/src/contracts/marketDataBarRevisionL3V1.mjs",
+      "role": "marketDataBarRevisionL3V1",
+      "sha256": "5b650b2f23867c1f7e9494d848694e615f612da0afbb5afefff1c8be01b73142",
+      "byteLength": 27647,
+      "originalByteModified": false
+    },
+    {
+      "path": "research/directional-lab/src/contracts/datasetManifestV1.mjs",
+      "role": "DatasetManifestV1",
+      "sha256": "6b7a0c343f602d7e3a2beec7511e843d4e0c08121cdaae84fe7facbf1a47dadf",
+      "byteLength": 6361,
+      "originalByteModified": false
+    },
+    {
+      "path": "research/directional-lab/src/contracts/snapshotDatasetManifestV1.mjs",
+      "role": "SnapshotDatasetManifestV1",
+      "sha256": "7c75a212d5864459753196f37b79c145fc757183aa8f08fad1b8b0bd4a80e76a",
+      "byteLength": 6475,
+      "originalByteModified": false
+    },
+    {
+      "path": "research/directional-lab/src/contracts/datasetSnapshotV1.mjs",
+      "role": "DatasetSnapshotV1",
+      "sha256": "37aef1cb109fa8278dfe17a05ad95074aeb20478de744704306dd3e27037ac84",
+      "byteLength": 10464,
+      "originalByteModified": false
+    },
+    {
+      "path": "research/directional-lab/src/data/buildDatasetManifest.mjs",
+      "role": "buildDatasetManifest",
+      "sha256": "65ee7f2cea791ae28d8c6adcdc2d9bed6a29b4db316d57b9af21217e1277efb1",
+      "byteLength": 4247,
+      "originalByteModified": false
+    },
+    {
+      "path": "research/directional-lab/src/data/validateDatasetManifest.mjs",
+      "role": "validateDatasetManifest",
+      "sha256": "6bb2af3a5bbdf314b1c9ae7997d7ac959df3b76e090f5ffb7864df24d256fc19",
+      "byteLength": 1285,
+      "originalByteModified": false
+    },
+    {
+      "path": "research/directional-lab/src/data/buildSnapshotDatasetManifest.mjs",
+      "role": "buildSnapshotDatasetManifest",
+      "sha256": "6728f2d14009c208094b48ad96f32d3b6519f84ba2d4d65fd5454310fe23b2a7",
+      "byteLength": 10204,
+      "originalByteModified": false
+    },
+    {
+      "path": "research/directional-lab/src/data/normalizeDailyBars.mjs",
+      "role": "normalizeDailyBars",
+      "sha256": "91cf798f4d59d12671e3178262167ddc343f16b2ba400a525e2f1e7292d25778",
+      "byteLength": 6631,
+      "originalByteModified": false
+    },
+    {
+      "path": "research/directional-lab/src/data/validateDailyBars.mjs",
+      "role": "validateDailyBars",
+      "sha256": "8279b54a5e45c7647b9598b2cbe9b47f27bc7d18d54d820a62b3463cd457e977",
+      "byteLength": 4725,
+      "originalByteModified": false
+    },
+    {
+      "path": "research/directional-lab/src/data/selectPriceBasis.mjs",
+      "role": "selectPriceBasis",
+      "sha256": "ce4ab9ab541f3902a24ffde0862f1cb0ca3298867961bce9402b154212465183",
+      "byteLength": 5114,
+      "originalByteModified": false
+    },
+    {
+      "path": "research/directional-lab/src/data/jsonDailyAdapter.mjs",
+      "role": "jsonDailyAdapter",
+      "sha256": "28e28c13a8a54aa1de3af88b5b7b55f5ff22742d75e98e2753481c6e514145a3",
+      "byteLength": 3347,
+      "originalByteModified": false
+    },
+    {
+      "path": "research/directional-lab/src/macro/macroVintageSetL4BV1.mjs",
+      "role": "macroVintageSetL4BV1",
+      "sha256": "fe97a00cefae18d8edf68714ebce85d2c01cd358f2f8219d4548242f22ba58f6",
+      "byteLength": 19719,
+      "originalByteModified": false
+    },
+    {
+      "path": "research/directional-lab/src/macro/resolveMacroVintageAsOfL4BV1.mjs",
+      "role": "resolveMacroVintageAsOfL4BV1",
+      "sha256": "811ce8af06049ccc2204ed14ea417737fd69ba989a2a8a09d8860ae42568f8bf",
+      "byteLength": 9600,
+      "originalByteModified": false
+    },
+    {
+      "path": "research/directional-lab/src/macro/macroObservationVintageL4BV1.mjs",
+      "role": "macroObservationVintageL4BV1",
+      "sha256": "75994b26cb11d0882e3cac31009bdf6d82b58ff172234dd84d1d3bdc92b15226",
+      "byteLength": 13010,
+      "originalByteModified": false
+    },
+    {
+      "path": "research/directional-lab/src/macro/macroDatasetSnapshotL4BV1.mjs",
+      "role": "macroDatasetSnapshotL4BV1",
+      "sha256": "cebfa29405d9841ba1711f393e334b661390fe7c3911a4c3a89f4d049b892267",
+      "byteLength": 5332,
+      "originalByteModified": false
+    },
+    {
+      "path": "research/directional-lab/src/contracts/macroIngestionContractsL4BV1.mjs",
+      "role": "macroIngestionContractsL4BV1",
+      "sha256": "32f989e09a3101db8eea977325faa92cc4dee75916d93f54c011cc0e67de7edd",
+      "byteLength": 49675,
+      "originalByteModified": false
+    },
+    {
+      "path": "research/directional-lab/docs/L4B-I1-macro-ingestion-identities-vintages.md",
+      "role": "L4B-I1-docs",
+      "sha256": "3a78f554e4aa5be9c972716c07d9f215fcead07570421de2b87f6af37bf1f3b2",
+      "byteLength": 6783,
+      "originalByteModified": false
+    }
+  ],
+  "directionalLabBytesModified": 0,
+  "testsPlanned": [
+    "governance/gates/GATE21/tests/gate21-foundation.test.mjs",
+    "governance/gates/GATE21/tests/gate21-hostiles.test.mjs",
+    "governance/gates/GATE21/tests/gate21-evolvability.test.mjs"
+  ],
+  "testsExecuted": [
+    {
+      "path": "governance/gates/GATE21/tests/gate21-foundation.test.mjs",
+      "result": "PASS",
+      "tests": 9
+    },
+    {
+      "path": "governance/gates/GATE21/tests/gate21-hostiles.test.mjs",
+      "result": "PASS",
+      "tests": 12
+    },
+    {
+      "path": "governance/gates/GATE21/tests/gate21-evolvability.test.mjs",
+      "result": "PASS",
+      "tests": 6
+    }
+  ],
+  "testSummary": {
+    "suites": 3,
+    "tests": 27,
+    "pass": 27,
+    "fail": 0,
+    "durationMs": 462.0088,
+    "command": "node --test governance/gates/GATE21/tests/gate21-foundation.test.mjs governance/gates/GATE21/tests/gate21-hostiles.test.mjs governance/gates/GATE21/tests/gate21-evolvability.test.mjs",
+    "hiddenTimeout": false,
+    "broadHistoricalRegression": false
+  },
+  "hostileResults": [
+    {
+      "id": "G21-NEG-01",
+      "case": "future bar requested at historical as-of",
+      "expected": "BLOCKED/ABSENT",
+      "result": "PASS"
+    },
+    {
+      "id": "G21-NEG-02",
+      "case": "macro revision published after decision time",
+      "expected": "NOT_VISIBLE",
+      "result": "PASS"
+    },
+    {
+      "id": "CA-RAW-OVERWRITE",
+      "case": "corporate-action adjustment cannot silently overwrite raw",
+      "expected": "BLOCKED",
+      "result": "PASS"
+    },
+    {
+      "id": "G21-CTR-01",
+      "case": "missing volume silently becomes zero",
+      "expected": "BLOCKED",
+      "result": "PASS"
+    },
+    {
+      "id": "G21-CTR-02",
+      "case": "forward-fill across missing interval",
+      "expected": "BLOCKED",
+      "result": "PASS"
+    },
+    {
+      "id": "TZ-AMBIGUOUS",
+      "case": "timezone ambiguity",
+      "expected": "FAIL_CLOSED",
+      "result": "PASS"
+    },
+    {
+      "id": "FALLBACK-SCHEMA",
+      "case": "incompatible fallback schema",
+      "expected": "BLOCKED",
+      "result": "PASS"
+    },
+    {
+      "id": "REPLAY-MISMATCH",
+      "case": "replay manifest source/hash/version mismatch",
+      "expected": "BLOCKED",
+      "result": "PASS"
+    },
+    {
+      "id": "G21-NEG-03",
+      "case": "paid-only source configured as required V1",
+      "expected": "BLOCKED",
+      "result": "PASS"
+    },
+    {
+      "id": "HARDCODED-PATH",
+      "case": "hard-coded machine path",
+      "expected": "FAIL",
+      "result": "PASS"
+    },
+    {
+      "id": "G21-NEG-04",
+      "case": "G22+ or directional-lab mutation path",
+      "expected": "BLOCKED",
+      "result": "PASS"
+    },
+    {
+      "id": "G21-CTR-03",
+      "case": "asserted PASS without consumer fixture consumption",
+      "expected": "BLOCKED",
+      "result": "PASS"
+    }
+  ],
+  "positiveResults": [
+    {
+      "id": "G21-POS-01",
+      "case": "as-of consumer reads DailyBarV1 with availableAt >= eventTime",
+      "expected": "PASS",
+      "result": "PASS"
+    },
+    {
+      "id": "G21-POS-02",
+      "case": "identical replay digest",
+      "expected": "PASS",
+      "result": "PASS"
+    },
+    {
+      "id": "G21-POS-03",
+      "case": "required V1 COST_CLASS=FREE",
+      "expected": "PASS",
+      "result": "PASS"
+    }
+  ],
+  "consumerFixture": {
+    "path": "governance/gates/GATE21/fixtures/causal-consumer-fixture.mjs",
+    "id": "GATE21_CausalConsumerFixture/1",
+    "consumed": true
+  },
+  "outOfScopeMutation": false,
+  "lifecycleClosure": "NOT_PERFORMED",
+  "receiptExistenceAloneIsNotFunctionalProof": true,
+  "thisDocumentSha256": "ba5fcdcd6883a6ae57efa02fd695aec79003e29bbb68518c0e6b5a9d68147dce"
+}

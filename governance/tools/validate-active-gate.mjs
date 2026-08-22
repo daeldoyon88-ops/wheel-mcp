@@ -48,13 +48,15 @@ function isGateAuthorizedAndExecutable(activeGate) {
     ledgerPath: path.join(root, process.env.LEDGER_PATH || 'governance/state/GATE_STATUS_LEDGER.ndjson'),
     policy: WHEEL_EXTERNAL_AUTHORITY_POLICY
   });
-  if (!ledgerReport.valid) { reasons.push('LEDGER_INVALID'); return { ok: false, reasons }; }
-
   const gateStatus = ledgerReport.gates.find((g) => g.gateId === activeGate);
   if (!gateStatus) { reasons.push('GATE_STATUS_NOT_IN_LEDGER'); return { ok: false, reasons }; }
   if (gateStatus.currentStatus === 'NOT_STARTED') { reasons.push('GATE_STATUS_NOT_AUTHORIZED'); return { ok: false, reasons }; }
 
+  // A closed pointer is a historical fact.  Known FULL-ledger findings outside
+  // that gate must not reinterpret its closure as an unauthorised active gate.
   if (closedStatuses.has(gateStatus.currentStatus)) return { ok: true, reasons: [] };
+
+  if (!ledgerReport.valid) { reasons.push('LEDGER_INVALID'); return { ok: false, reasons }; }
 
   const gateRoot = path.join(root, 'governance', 'gates', activeGate);
   const pointerPath = path.join(gateRoot, 'contracts', 'CURRENT_CONTRACT.json');

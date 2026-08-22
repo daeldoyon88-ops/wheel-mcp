@@ -1411,7 +1411,7 @@
     {
       "gateId": "GATE21",
       "officialName": "MARKET DATA CAUSAL FOUNDATION",
-      "canonicalObjective": "Creer la fondation causale des donnees de marche.",
+      "canonicalObjective": "Promote, version, and bind the existing directional-lab causal market-data foundation so GATE22+ can consume historically replayable, provenance-bound, leakage-safe, FREE, path-independent data without rebuilding DailyBarV1 or lab macro vintage semantics.",
       "strategicPurpose": "Make market data historically reproducible, provenance-bound and safe for downstream causal features and decisions.",
       "dependencies": [
         "GATE20"
@@ -1422,34 +1422,48 @@
         "No future information is available to historical feature materialization."
       ],
       "expectedOutputs": [
-        "causal market-data contract",
-        "source and provenance registry",
-        "historical snapshot manifest",
-        "missing-data and leakage-control report"
+        "causal market-data binding of existing lab contracts",
+        "source and provenance registry referencing lab identities",
+        "historical snapshot manifest binding",
+        "missing-data and leakage-control report including vintage-hindsight",
+        "real consumer-proof that GATE21 bindings are actually consumed"
       ],
       "exitConditions": [
-        "Every required market-data source is identity- and provenance-bound.",
-        "Event date is distinct from real availability date.",
+        "Every required market-data source is identity- and provenance-bound with COST_CLASS=FREE.",
+        "Event time is distinct from real availability time and availableAt >= eventTime.",
         "Missing data is explicit and cannot silently become observed data.",
-        "Historical snapshots replay byte-identically.",
-        "Known future leakage tests are rejected.",
+        "Historical snapshots rematerialize to a byte-identical digest.",
+        "Known future leakage and later-vintage hindsight tests are rejected.",
+        "A declared consumer fixture fails if GATE21 v1 bindings disappear or mismatch.",
+        "no-production-coupling remains PASS and Wheel live-scan files are absent from the workset.",
+        "New GATE21 artifacts are path-independent and GATE21 ephemeral test roots are declared and cleaned or recorded failed.",
+        "This mandate did not START, BUILD, or auto-authorize GATE22.",
         "No unrelated regression identity is introduced."
       ],
       "nextGate": "GATE22",
       "sourceReferences": [
         {
+          "sourceId": "GATE21_CANONICAL_MANDATE_RATIFICATION_R0",
+          "sourcePath": "governance/sources/GATE21_CANONICAL_MANDATE_R0.json",
+          "sourceSha256": "8e261f88982a1b0892dd2cf25a765773ece72d6f47c6f35261b7e36a72c58474",
+          "sourceLocation": "canonicalObjective",
+          "field": "canonicalObjective",
+          "evidence": "Owner-approved GATE21 formal definition persisted as ratificationOnly mandate."
+        },
+        {
           "sourceId": "GATE16_40_OWNER_RATIFICATION_AND_CANONICALIZATION_R2",
           "sourcePath": "governance/sources/GATE16_40_OWNER_RATIFICATION_R2.json",
           "sourceLocation": "/gates/GATE21",
-          "field": "canonicalObjective",
-          "evidence": "Canonical strategic mandate projection from the owner-ratified R2 source."
+          "field": "canonicalName",
+          "evidence": "Historical R2 identifier and name provenance; GATE21 functional fields bind to GATE21_CANONICAL_MANDATE_R0."
         },
         {
           "sourceId": "OWNER_PROVIDED_WHEEL_JARVISE_MASTER_ROADMAP_00_40",
           "sourcePath": "governance/sources/WHEEL_JARVISE_MASTER_ROADMAP_00_40.txt",
           "sourceSha256": "c59c9f243581104e0486f075311da4163b27f778ea5ba176c8f86f3b74d6647d",
           "sourceLocation": "GATE21 - MARKET DATA CAUSAL FOUNDATION",
-          "field": "canonicalObjective"
+          "field": "officialName",
+          "evidence": "Historical official name MARKET DATA CAUSAL FOUNDATION; functional objective binds to GATE21_CANONICAL_MANDATE_R0."
         }
       ],
       "definitionCompleteness": "EXPLICIT_COMPLETE",

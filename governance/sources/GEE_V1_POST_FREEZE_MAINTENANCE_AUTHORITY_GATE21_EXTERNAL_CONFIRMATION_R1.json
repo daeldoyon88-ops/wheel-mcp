@@ -1,0 +1,66 @@
+{
+  "document": "GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY",
+  "schemaVersion": 2,
+  "authorityId": "GATE21_INDEPENDENT_EXTERNAL_CONFIRMATION_LOCAL_AUTHORITY_R1",
+  "authorityClass": "PROJECT_OWNER_POST_FREEZE_MAINTENANCE_AUTHORITY",
+  "authorityMode": "LOCAL_EXPLICIT_AUTHORITY",
+  "issuedBy": "PROJECT_OWNER",
+  "createdAt": "2026-08-22T13:30:00.000Z",
+  "expiresAt": "2026-12-31T23:59:59.000Z",
+  "targetSystem": "PROJECT_GOVERNANCE",
+  "programId": "GATE21_INDEPENDENT_EXTERNAL_CONFIRMATION_R1",
+  "authorityPurpose": "GATE_EXTERNAL_CONFIRMATION",
+  "resumePoint": "GATE21_INDEPENDENT_EXTERNAL_CONFIRMATION",
+  "maxUse": 1,
+  "preState": {
+    "baseHead": "e19507db9304b6e1088b1b4a983498ba412dacf5",
+    "ledgerEventCount": 88,
+    "ledgerPrefixSha256": "a34637cc3677ba87e54dda657ec135da608c8659bf6c65f5a979578a8f198bf7",
+    "gateId": "GATE21",
+    "gateStatus": "COMPLETE_AGENT",
+    "stateRevision": "R0004",
+    "contractRevision": "R0002",
+    "activeGate": "GATE13",
+    "R8ExpectedAbsent": true
+  },
+  "authorizedPathManifestPath": "governance/historical-architecture/GATE21_EXTERNAL_CONFIRMATION_AUTHORIZED_PATHS_R1.json",
+  "authorizedPathManifestSha256": "7df8e5498613569b576285f8b6d34e29f5456afd948bf3d89934e62027404ecf",
+  "authorizedOperationClasses": [
+    "EXTERNAL_CONFIRMATION"
+  ],
+  "commitPolicy": {
+    "maxCommitCount": 1,
+    "allowedGitOperations": [
+      "GIT_ADD_PATHSPEC",
+      "GIT_COMMIT"
+    ],
+    "commitMessage": "governance: confirm GATE21 with independent confirmation",
+    "thirdCommitAuthorized": false
+  },
+  "pushAuthorized": false,
+  "authorityPredecessor": {
+    "authorityId": "GATE21_FINAL_CLOSURE_LOCAL_AUTHORITY_R1",
+    "sha256": "dd1d8e873f786ecacc74749a6dd91eed73e04dfdcde539863e2a4b237460dda8"
+  },
+  "authorityHeadBinding": {
+    "mode": "BASE_HEAD",
+    "baseHead": "e19507db9304b6e1088b1b4a983498ba412dacf5"
+  },
+  "consumptionRecordPath": "governance/historical-architecture/GATE21_EXTERNAL_CONFIRMATION_CONSUMPTION_R1.json",
+  "prohibitedOperations": [
+    "START",
+    "SECOND_START",
+    "AGENT_CLOSURE",
+    "EXTERNAL_CONFIRMATION",
+    "COMPLETE_AGENT",
+    "COMPLETE_CONFIRMED",
+    "ACTIVE_GATE_SWITCH",
+    "GEE_R8",
+    "GIT_PUSH",
+    "HISTORY_REWRITE",
+    "THIRD_COMMIT",
+    "UNRELATED_WRITE"
+  ],
+  "externalReinspectionReportPath": "governance/sources/GATE21_INDEPENDENT_EXTERNAL_CONFIRMATION_R1_EXTERNAL_REINSPECTION_REPORT.json",
+  "externalReinspectionReportSha256": "4962e8cb12fab276630ce6b402aa4ccbff4586318d8efcd040721b155ec57f14"
+}

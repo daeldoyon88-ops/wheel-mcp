@@ -1,0 +1,52 @@
+{
+  "documentKind": "POST_FREEZE_MAINTENANCE_AUTHORIZED_PATH_MANIFEST",
+  "schemaVersion": 2,
+  "manifestId": "W1_W5_TEST_PROOF_REPAIR_AUTHORIZED_PATHS_R1",
+  "programId": "WHEEL_GOVERNANCE_W1_W5_TEST_PROOF_REPAIR_R1",
+  "prestateSelfExclusion": [
+    {
+      "path": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_W1_W5_TEST_PROOF_REPAIR_R1.json",
+      "role": "AUTHORITY_DOCUMENT",
+      "reason": "The authority document is a causally prior publisher input and remains bound by the exact V2 self-exclusion."
+    },
+    {
+      "path": "governance/historical-architecture/W1_W5_TEST_PROOF_REPAIR_AUTHORIZED_PATHS_R1.json",
+      "role": "AUTHORIZED_PATH_MANIFEST",
+      "reason": "The manifest is a causally prior publisher input and remains bound by the exact V2 self-exclusion."
+    }
+  ],
+  "paths": [
+    {
+      "path": "governance/gee-v1/tests/gee-post-freeze-maintenance-authority.test.mjs",
+      "operation": "MODIFY",
+      "phase": "MAINTENANCE",
+      "reason": "Retarget the stale live W1 post-consumption assertion and keep a bounded unconsumed scratch proof.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": { "state": "PRESENT", "sha256": "b62ee0b5333d36330a683f93006a4aa6b2bda88ae6dc322d90203d91e1478392", "byteLength": 51953 }
+    },
+    {
+      "path": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_W1_W5_TEST_PROOF_REPAIR_R1.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "Bounded Owner authority for the W1-W5 test-proof repair.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": { "state": "ABSENT" }
+    },
+    {
+      "path": "governance/historical-architecture/W1_W5_TEST_PROOF_REPAIR_AUTHORIZED_PATHS_R1.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "Finite exact-path manifest for the W1-W5 test-proof repair.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": { "state": "ABSENT" }
+    },
+    {
+      "path": "governance/historical-architecture/W1_W5_TEST_PROOF_REPAIR_CONSUMPTION_R1.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "Mechanically produced single-use V2 consumption receipt.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": { "state": "ABSENT" }
+    }
+  ]
+}

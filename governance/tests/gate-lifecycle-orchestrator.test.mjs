@@ -49,14 +49,26 @@ import {
 } from '../gee-v1/core/gate-start-authority.mjs';
 import { WHEEL_EXTERNAL_AUTHORITY_POLICY } from '../gee-v1/adapters/wheel/external-authority-policy.mjs';
 
-const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
+const REPO_ROOT = process.env.WHEEL_LIVE_REPO_ROOT || path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
+const CANDIDATE_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 
 const GATE17_AGENT_CLOSURE_AUTHORITY =
   'governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_GATE17_AGENT_CLOSURE_R1.json';
 
+function overlayCandidateProduction(dir) {
+  for (const rel of [
+    'governance/tools/generate-status-snapshot.mjs',
+    'governance/tools/gate-lifecycle-orchestrator.mjs',
+    'governance/tools/post-freeze-maintenance-observation.mjs'
+  ]) {
+    fs.copyFileSync(path.join(CANDIDATE_ROOT, ...rel.split('/')), path.join(dir, ...rel.split('/')));
+  }
+}
+
 function scratchRoot(label) {
   const root = fs.mkdtempSync(path.join(fs.realpathSync(os.tmpdir()), `gate-lifecycle-${label}-`));
   fs.cpSync(path.join(REPO_ROOT, 'governance'), path.join(root, 'governance'), { recursive: true });
+  overlayCandidateProduction(root);
   execFileSync('git', ['init', '--quiet'], { cwd: root });
   execFileSync('git', ['add', '--', 'governance'], { cwd: root });
   execFileSync('git', ['-c', 'user.name=gate-lifecycle-test', '-c', 'user.email=gate-lifecycle-test@example.invalid', 'commit', '--quiet', '-m', 'scratch baseline'], { cwd: root });
@@ -1303,4 +1315,68 @@ test('governed bytes are deterministic and newline-terminated', () => {
   const value = { b: 2, a: [1, 2, 3] };
   assert.equal(governedBytes(value).toString('utf8'), `${JSON.stringify(value, null, 2)}\n`);
   assert.equal(Buffer.compare(governedBytes(value), governedBytes(value)), 0);
+});
+
+function spawnSnapshot(root, extraArgs = []) {
+  const script = path.join(CANDIDATE_ROOT, 'governance', 'tools', 'generate-status-snapshot.mjs');
+  try {
+    const out = execFileSync(process.execPath, [script, '--root', root, ...extraArgs], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
+    return { code: 0, out };
+  } catch (error) {
+    return { code: error.status ?? 1, out: `${error.stdout || ''}`, err: `${error.stderr || ''}` };
+  }
+}
+
+test('W4 DEFAULT_SNAPSHOT_FAIL_CLOSED: default generator refuses an invalid readable ledger', () => {
+  const root = scratchRoot('w4-default-fail-closed');
+  fs.appendFileSync(path.join(root, 'governance', 'state', 'GATE_STATUS_LEDGER.ndjson'), '{"not":"an-event"}\n');
+  const result = spawnSnapshot(root);
+  assert.notEqual(result.code, 0);
+  const report = JSON.parse(result.out || result.err || '{}');
+  assert.equal(report.valid, false);
+});
+
+test('W4 STAGING_PROJECTION_MODE_BOUNDED: lifecycle-staging-only still projects a readable ledger with baseline findings', () => {
+  const root = scratchRoot('w4-staging-bounded');
+  const output = path.join(root, 'governance', 'state', 'generated', 'W4_STAGING_SNAPSHOT.json');
+  const result = spawnSnapshot(root, ['--lifecycle-staging-only', '--output', output]);
+  assert.equal(result.code, 0, result.err || result.out);
+  const report = JSON.parse(result.out);
+  assert.equal(report.valid, true);
+  assert.equal(report.lifecycleStagingOnly, true);
+  assert.equal(fs.existsSync(output), true);
+});
+
+test('W4 MALFORMED_LEDGER_REJECTED: unreadable ledger is refused even in staging', () => {
+  const root = scratchRoot('w4-malformed');
+  fs.writeFileSync(path.join(root, 'governance', 'state', 'GATE_STATUS_LEDGER.ndjson'), '{truncated');
+  const result = spawnSnapshot(root, ['--lifecycle-staging-only']);
+  assert.notEqual(result.code, 0);
+  const report = JSON.parse(result.out || result.err || '{}');
+  assert.equal(report.valid, false);
+  assert.ok((report.findings || []).some((finding) => finding.detectorId === 'NDJSON_PARSE_ERROR'));
+});
+
+test('W4 NEW_BLOCKING_FINDING_REJECTED and DIFFERENTIAL_VALIDATION_PRESERVED', () => {
+  const root = scratchRoot('w4-diff-new-finding');
+  const baseline = collectBaselineIntegrity(root);
+  const staging = fs.mkdtempSync(path.join(fs.realpathSync(os.tmpdir()), 'w4-diff-staging-'));
+  const candidate = {
+    gateId: 'GATE20',
+    writes: [{
+      path: 'governance/state/GATE_STATUS_LEDGER.ndjson',
+      bytes: Buffer.concat([
+        fs.readFileSync(path.join(root, 'governance', 'state', 'GATE_STATUS_LEDGER.ndjson')),
+        Buffer.from('{"schemaVersion":1}\n')
+      ])
+    }],
+    paths: {
+      seal: 'governance/gates/GATE20/state/revisions/R0004/STATE_SEAL.json',
+      currentState: 'governance/gates/GATE20/state/CURRENT_STATE.json'
+    }
+  };
+  const report = validateCandidateInStagingRoot({ root, candidate, stagingRoot: staging, baseline });
+  assert.equal(report.valid, false);
+  assert.ok(report.findings.some((finding) => finding.defectClass === 'CANDIDATE_LEDGER_INVALID' || finding.defectClass === 'CANDIDATE_PROJECTION_REGENERATION_FAILED'));
+  fs.rmSync(staging, { recursive: true, force: true });
 });

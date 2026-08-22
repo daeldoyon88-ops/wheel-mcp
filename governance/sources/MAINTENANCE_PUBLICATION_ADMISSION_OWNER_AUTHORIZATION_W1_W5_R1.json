@@ -1,0 +1,25 @@
+{
+  "document": "MAINTENANCE_PUBLICATION_ADMISSION_OWNER_AUTHORIZATION",
+  "schemaVersion": 1,
+  "authorityId": "WHEEL_GOVERNANCE_WORKFLOW_FIX_W1_W5_PUBLICATION_OWNER_AUTHORIZATION_R1",
+  "authorityClass": "PROJECT_OWNER_MAINTENANCE_PUBLICATION_ADMISSION_AUTHORITY",
+  "authorityMode": "LOCAL_EXPLICIT_AUTHORITY",
+  "issuedBy": "PROJECT_OWNER",
+  "issuedAtUtc": "2026-08-22T02:15:37.056Z",
+  "decisionId": "WHEEL_GOVERNANCE_WORKFLOW_FIX_W1_W5_OWNER_DECISION_R1",
+  "purpose": "MAINTENANCE_PUBLICATION_ADMISSION",
+  "reexecutionAuthorized": false,
+  "grantsFutureBytePermission": false,
+  "genericV1Admission": false,
+  "admittedPublications": [
+    {
+      "admissionId": "WHEEL_GOVERNANCE_WORKFLOW_FIX_W1_W5_PUBLICATION_ADMISSION_R1",
+      "projectId": "WHEEL",
+      "gateId": "GATE20",
+      "programId": "WHEEL_GOVERNANCE_WORKFLOW_FIX_W1_W5_R1",
+      "admissionPath": "governance/authority/publication-admissions/GATE20/WHEEL_GOVERNANCE_WORKFLOW_FIX_W1_W5_PUBLICATION_ADMISSION_R1.json",
+      "admissionDigest": "50914838c174fa6d4d15d56d8f3e7afc0c513131af59db874845d9b4e7a1edbd"
+    }
+  ],
+  "registryDigest": "1b0908148aee78a3e5825e98a159f86dfd8c359343735a0c6e461c5f97599c2a"
+}

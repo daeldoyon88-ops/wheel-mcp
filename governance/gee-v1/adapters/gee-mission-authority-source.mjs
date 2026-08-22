@@ -39,6 +39,7 @@ import {
   PHASE_AUTHORIZE_PROGRAM_APPLY
 } from '../core/post-freeze-maintenance-authority.mjs';
 import { collectClosedStateSealMembers, collectClosedStateSealMembersAtCommit } from '../core/sealed-state-evidence.mjs';
+import { collectPostFreezeMaintenanceObservation } from '../../tools/post-freeze-maintenance-observation.mjs';
 
 export const MISSIONS_DIR = 'governance/gee-v1/missions';
 export const MISSION_WORK_UNIT_TYPE = 'MISSION_REVISION';
@@ -137,51 +138,16 @@ function resolveGovernedFile(root, relativePath) {
   return relative && !relative.startsWith('..') && !path.isAbsolute(relative) ? resolved : null;
 }
 
-function observeV2MaintenanceAuthority(root, authority, manifest, loadedAuthorities) {
-  const ledgerPath = path.join(root, 'governance', 'state', 'GATE_STATUS_LEDGER.ndjson');
-  const ledgerBytes = fs.readFileSync(ledgerPath);
-  const ledgerLines = ledgerBytes.toString('utf8').split(/\r?\n/).filter((line) => line.trim());
-  const ledgerEvents = ledgerLines.map((line) => JSON.parse(line));
-  const gateEvents = authority.preState.gateId === null ? [] : ledgerEvents.filter((event) => event.gateId === authority.preState.gateId);
-  const gateStateRoot = authority.preState.gateId === null ? null : path.join(root, 'governance', 'gates', authority.preState.gateId);
-  const currentState = gateStateRoot ? readJsonIfPresent(path.join(gateStateRoot, 'state', 'CURRENT_STATE.json')) : null;
-  const currentContract = gateStateRoot ? readJsonIfPresent(path.join(gateStateRoot, 'contracts', 'CURRENT_CONTRACT.json')) : null;
-  const activeGate = readJsonIfPresent(path.join(root, 'governance', 'active', 'ACTIVE_GATE.json'));
-  const manifestPath = resolveGovernedFile(root, authority.authorizedPathManifestPath);
-  const predecessor = authority.authorityPredecessor === null
-    ? null
-    : loadedAuthorities.find((candidate) => candidate.authority?.authorityId === authority.authorityPredecessor.authorityId);
-  const closedStateSealInventory = collectClosedStateSealMembers(root);
-  const preStateClosedStateSealInventory = collectClosedStateSealMembersAtCommit(root, authority.preState?.baseHead);
-  const externalReportFile = authority.externalReinspectionReportPath
-    ? resolveGovernedFile(root, authority.externalReinspectionReportPath)
-    : null;
-  const externalReportBytes = externalReportFile && fs.existsSync(externalReportFile)
-    ? fs.readFileSync(externalReportFile)
-    : null;
-  return {
-    baseHead: execFileSync('git', ['rev-parse', 'HEAD'], { cwd: root, encoding: 'utf8' }).trim(),
-    ledgerEventCount: ledgerLines.length,
-    ledgerPrefixSha256: crypto.createHash('sha256').update(ledgerBytes).digest('hex'),
-    gateId: authority.preState.gateId,
-    gateStatus: gateEvents.at(-1)?.toStatus ?? null,
-    stateRevision: currentState?.stateRevision ?? null,
-    contractRevision: currentContract?.contractRevision ?? null,
-    activeGate: activeGate?.activeGate ?? null,
-    R8Absent: !fs.existsSync(path.join(root, 'governance', 'gee-v1', 'missions', 'GEE_V1_EXECUTION_CONTRACT_R0008.json')),
-    manifestSha256: manifestPath ? crypto.createHash('sha256').update(fs.readFileSync(manifestPath)).digest('hex') : null,
-    authorityPredecessorSha256: predecessor?.authoritySha256 ?? null,
+function observeV2MaintenanceAuthority(root, authority, manifest, loadedAuthorities, authorityDocumentPath) {
+  const observation = collectPostFreezeMaintenanceObservation({
+    root,
+    authority,
+    authorityDocumentPath,
     requestedPaths: manifest?.paths?.map((entry) => entry.path) ?? [],
-    requestedOperationClasses: manifest?.paths?.map((entry) => entry.artifactClass) ?? [],
-    externalReinspectionReportPath: externalReportBytes ? authority.externalReinspectionReportPath : null,
-    externalReinspectionReportSha256: externalReportBytes
-      ? crypto.createHash('sha256').update(externalReportBytes).digest('hex')
-      : null,
-    closedStateSealMembers: closedStateSealInventory.members,
-    closedStateSealFindings: closedStateSealInventory.findings,
-    preStateClosedStateSealMembers: preStateClosedStateSealInventory.members,
-    preStateClosedStateSealFindings: preStateClosedStateSealInventory.findings
-  };
+    requestedOperationClasses: manifest?.paths?.map((entry) => entry.artifactClass) ?? []
+  });
+  if (!observation.valid) throw new Error(observation.findings.map((finding) => finding.code).join(',') || 'POST_FREEZE_MAINTENANCE_OBSERVATION_FAILED');
+  return observation.observed;
 }
 
 function maintenanceAuthorityV2Result(workUnitId, loaded, root, loadedAuthorities, maintenanceObservationProvider) {
@@ -195,7 +161,7 @@ function maintenanceAuthorityV2Result(workUnitId, loaded, root, loadedAuthoritie
   try {
     observed = typeof maintenanceObservationProvider === 'function'
       ? maintenanceObservationProvider({ root, authority, manifest, loadedAuthorities })
-      : observeV2MaintenanceAuthority(root, authority, manifest, loadedAuthorities);
+      : observeV2MaintenanceAuthority(root, authority, manifest, loadedAuthorities, loaded.authorityRelativePath);
   } catch (error) {
     observationFinding = { code: 'POST_FREEZE_MAINTENANCE_OBSERVATION_FAILED', detail: error?.message || String(error) };
   }

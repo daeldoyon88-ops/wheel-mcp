@@ -1,0 +1,98 @@
+{
+  "document": "GATE21_BINDING_V1",
+  "schemaVersion": 1,
+  "bindingId": "GATE21_BINDING_V1",
+  "interfaceVersion": "GATE21_CausalDataInterface/1",
+  "normalizedRecordVersion": "GATE21_NormalizedCausalRecord/1",
+  "sourceRegistryVersion": "GATE21_SourceRegistry/1",
+  "labImportAdapterVersion": "GATE21_LabImportAdapter/1",
+  "portabilityContractId": "GATE21_PORTABILITY_AND_HYGIENE/1",
+  "executionContractRevision": "R0002",
+  "executionContractPath": "governance/gates/GATE21/contracts/EXECUTION_CONTRACT_R0002.json",
+  "canonicalBarSchema": "DailyBarV1",
+  "promotedLabPins": {
+    "DailyBarV1": "DailyBarV1",
+    "MissingReasonsV1": "MissingReasonsV1",
+    "CorporateActionV1": "CorporateActionV1",
+    "corporateActionPolicy": "corporateActionPolicy/1",
+    "DatasetManifestV1": "DatasetManifestV1",
+    "SnapshotDatasetManifestV1": "SnapshotDatasetManifestV1",
+    "coverage": "coverage/1",
+    "normalizeDailyBars": "normalizeDailyBars/1",
+    "jsonDailyAdapter": "jsonDailyAdapter/1",
+    "MacroVintageSetManifest": "MacroVintageSetManifest/1",
+    "MacroDatasetSnapshotManifest": "MacroDatasetSnapshotManifest/1"
+  },
+  "eventTimeVsAvailableAt": {
+    "eventTime": "real session event (UTC ISO)",
+    "availableAt": "first usable instant (UTC ISO)",
+    "invariant": "availableAt >= eventTime"
+  },
+  "priceBases": ["RAW", "SPLIT_ADJUSTED", "TOTAL_RETURN_ADJUSTED", "DERIVED_ADJUSTED"],
+  "derivedAdjustedInStrictMode": "REFUSED",
+  "missingness": {
+    "missingNotZero": true,
+    "missingVolumeNotZero": true,
+    "noSilentImputation": true,
+    "noImplicitForwardFill": true
+  },
+  "historicalVsLiveBoundary": {
+    "historical": "GATE21 snapshots, vintages, manifests and replay",
+    "live": "NOT_IMPLEMENTED_IN_GATE21",
+    "liveSubstitutionIntoHistorical": "FORBIDDEN",
+    "sharedLiveSnapshot": "OUT_OF_SCOPE",
+    "productionIngestion": "NOT_IMPLEMENTED",
+    "wheelScannerCoupling": "NONE"
+  },
+  "performance": {
+    "liveScanCriticalPath": "MUST_NOT_LENGTHEN",
+    "historicalWork": "OFF_SCAN",
+    "architecture": ["FETCH_ONCE", "NORMALIZE", "VERSION_CACHE", "REUSE"]
+  },
+  "portability": {
+    "requiredRoots": ["PROJECT_ROOT", "DATA_ROOT", "CACHE_ROOT"],
+    "reservedRoots": ["MODEL_ROOT", "PORTFOLIO_ROOT"],
+    "hardcodedMachineHome": "FORBIDDEN_FOR_NEW_GATE21_ARTIFACTS"
+  },
+  "freeData": {
+    "requiredV1CostClass": "FREE",
+    "ifNoReliableFreeSource": ["UNAVAILABLE", "OPTIONAL_FUTURE"],
+    "paidMandatory": "FORBIDDEN"
+  },
+  "evolvability": {
+    "evolution": "ADDITIVE_VERSIONED",
+    "unknownFields": "CONSUMERS_IGNORE",
+    "requiredFieldRemoval": "REQUIRES_VERSION_BUMP_AND_MIGRATION",
+    "mergeReadiness": "ISOLATED",
+    "rollback": "PIN_PREVIOUS_SCHEMA_OR_SNAPSHOT_VERSION",
+    "fallback": "LAB_RESEARCH_UNCHANGED_AND_WHEEL_LIVE_UNCHANGED_IF_BINDINGS_ABSENT",
+    "deprecation": "BY_VERSION_ID_NEVER_SILENT_REWRITE"
+  },
+  "downstream": {
+    "GATE22": "consumes frozen v1 causal records for labels/outcomes without changing trust semantics",
+    "GATE23": "consumes frozen v1 bars/vintages for features without changing trust semantics",
+    "GATE24": "consumes GATE23 which consumes GATE21 v1 without reopening GATE21"
+  },
+  "outOfScope": [
+    "G22 labels/outcomes",
+    "G23 A-U features",
+    "G24 regimes",
+    "G25 analogs",
+    "Jarvise UI",
+    "live production ingestion",
+    "Wheel scanner rewrite",
+    "IBKR order routing"
+  ],
+  "exactWorkset": [
+    "governance/gates/GATE21/implementation/causal-data-interface.mjs",
+    "governance/gates/GATE21/implementation/lab-import-adapter.mjs",
+    "governance/gates/GATE21/implementation/source-registry-v1.mjs",
+    "governance/gates/GATE21/implementation/portability-and-hygiene.mjs",
+    "governance/gates/GATE21/contracts/GATE21_BINDING_V1.json",
+    "governance/gates/GATE21/tests/gate21-foundation.test.mjs",
+    "governance/gates/GATE21/tests/gate21-hostiles.test.mjs",
+    "governance/gates/GATE21/tests/gate21-evolvability.test.mjs",
+    "governance/gates/GATE21/fixtures/causal-consumer-fixture.mjs",
+    "governance/gates/GATE21/evidence/BUILD_CANDIDATE_RECEIPT.json"
+  ]
+}

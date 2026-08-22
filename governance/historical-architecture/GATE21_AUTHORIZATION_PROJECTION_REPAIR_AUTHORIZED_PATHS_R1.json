@@ -1,0 +1,68 @@
+{
+  "documentKind": "POST_FREEZE_MAINTENANCE_AUTHORIZED_PATH_MANIFEST",
+  "schemaVersion": 2,
+  "manifestId": "GATE21_AUTHORIZATION_PROJECTION_REPAIR_AUTHORIZED_PATHS_R1",
+  "programId": "GATE21_AUTHORIZATION_PROJECTION_REPAIR_R1",
+  "prestateSelfExclusion": [
+    {
+      "path": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_GATE21_AUTHORIZATION_PROJECTION_REPAIR_R1.json",
+      "role": "AUTHORITY_DOCUMENT",
+      "reason": "The authority document must exist for the canonical V2 evaluator to load and bind it before program consumption."
+    },
+    {
+      "path": "governance/historical-architecture/GATE21_AUTHORIZATION_PROJECTION_REPAIR_AUTHORIZED_PATHS_R1.json",
+      "role": "AUTHORIZED_PATH_MANIFEST",
+      "reason": "The manifest must exist so the authority can pin its exact digest before program consumption."
+    }
+  ],
+  "paths": [
+    {
+      "path": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_GATE21_AUTHORIZATION_PROJECTION_REPAIR_R1.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE_AUTHORITY_RECORDS",
+      "reason": "Single-use local Owner authority for the bounded GATE21 authorization projection repair.",
+      "artifactClass": "GATE21_AUTHORIZATION_PROJECTION_REPAIR",
+      "prestate": { "state": "ABSENT" }
+    },
+    {
+      "path": "governance/historical-architecture/GATE21_AUTHORIZATION_PROJECTION_REPAIR_AUTHORIZED_PATHS_R1.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE_AUTHORITY_RECORDS",
+      "reason": "Finite manifest for the Owner vehicle and exactly two repair tools; no wildcard or third repair path.",
+      "artifactClass": "GATE21_AUTHORIZATION_PROJECTION_REPAIR",
+      "prestate": { "state": "ABSENT" }
+    },
+    {
+      "path": "governance/historical-architecture/GATE21_AUTHORIZATION_PROJECTION_REPAIR_CONSUMPTION_R1.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE_AUTHORITY_RECORDS",
+      "reason": "Schema-required future single-use consumption record; absent until a separately authorized canonical consumption.",
+      "artifactClass": "GATE21_AUTHORIZATION_PROJECTION_REPAIR",
+      "prestate": { "state": "ABSENT" }
+    },
+    {
+      "path": "governance/tools/generate-status-snapshot.mjs",
+      "operation": "MODIFY",
+      "phase": "GATE21_AUTHORIZATION_PROJECTION_REPAIR",
+      "reason": "Bounded lifecycle-staging projection repair while preserving the default fail-closed generator behavior.",
+      "artifactClass": "GATE21_AUTHORIZATION_PROJECTION_REPAIR",
+      "prestate": {
+        "state": "PRESENT",
+        "sha256": "87f8bc33b664aa492a6d545be5af2a9e7035916e04cb1fb65be6c5bba7ecd7b1",
+        "byteLength": 4109
+      }
+    },
+    {
+      "path": "governance/tools/gate-lifecycle-orchestrator.mjs",
+      "operation": "MODIFY",
+      "phase": "GATE21_AUTHORIZATION_PROJECTION_REPAIR",
+      "reason": "Passes the explicit lifecycle-staging-only mode to the existing candidate projection invocation.",
+      "artifactClass": "GATE21_AUTHORIZATION_PROJECTION_REPAIR",
+      "prestate": {
+        "state": "PRESENT",
+        "sha256": "ca911ff6809ad346ea7be6ee0c638e8f3d226ff2436c9ea6449a47680491b0a2",
+        "byteLength": 61593
+      }
+    }
+  ]
+}

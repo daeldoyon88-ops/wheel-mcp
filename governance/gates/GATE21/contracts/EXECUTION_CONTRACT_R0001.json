@@ -1,0 +1,71 @@
+{
+  "gateId": "GATE21",
+  "contractRevision": "R0001",
+  "strategicRegistryReference": {
+    "registryPath": "governance/GATE_REGISTRY_00_40.json",
+    "registrySha256": "76d5f9ff0a21f8c1eadaf9ccd9e48c9087d12655fac6a5c9215584053652a56b",
+    "gateId": "GATE21",
+    "canonicalObjectiveSha256": "17a7f4077bac7bf2ae3bea2010ead44b223140f3f68b6ebc6224544c786a2afa"
+  },
+  "canonicalRequirements": [
+    { "requirementId": "G21-PRECONTRACT-01", "statement": "Bind the GATE21 canonical mandate by its exact SHA-256; it grants neither START nor BUILD.", "normativeSource": "governance/sources/GATE21_CANONICAL_MANDATE_R0.json" },
+    { "requirementId": "G21-PRECONTRACT-02", "statement": "Bind the prerequisite thin contracts by their exact SHA-256 without adding them to bootstrap authorizedPaths.", "normativeSource": "governance/sources/GATE21_PREREQUISITE_THIN_CONTRACTS_R0.json" },
+    { "requirementId": "G21-PRECONTRACT-03", "statement": "Preserve GATE21 as NOT_STARTED and GATE20 as COMPLETE_CONFIRMED; this cohort creates no ledger event or ACTIVE_GATE mutation.", "normativeSource": "governance/state/GATE_STATUS_LEDGER.ndjson" },
+    { "requirementId": "G21-PRECONTRACT-04", "statement": "The only authorized cohort is the two contract files and their generated precontract-consumption receipt; functional implementation remains unauthorized.", "normativeSource": "governance/gee-v1/adapters/wheel/precontract-authority-source.mjs" }
+  ],
+  "requiredInputs": [
+    { "path": "governance/sources/GATE21_CANONICAL_MANDATE_R0.json", "sha256": "8e261f88982a1b0892dd2cf25a765773ece72d6f47c6f35261b7e36a72c58474", "role": "CANONICAL_RATIFICATION_ONLY_MANDATE" },
+    { "path": "governance/sources/GATE21_PREREQUISITE_THIN_CONTRACTS_R0.json", "sha256": "f6338189cda47a7a931499fd1aaacd5fcdcfed37bc386f15b30258d989dee8b7", "role": "REQUIRED_THIN_CONTRACTS" },
+    { "path": "governance/GATE_REGISTRY_00_40.json", "sha256": "76d5f9ff0a21f8c1eadaf9ccd9e48c9087d12655fac6a5c9215584053652a56b", "role": "STRATEGIC_REGISTRY" },
+    { "path": "governance/state/GATE_STATUS_LEDGER.ndjson", "role": "LIFECYCLE_AND_DEPENDENCY_PRESTATE" }
+  ],
+  "requiredOutputs": [
+    { "ordinal": 1, "path": "governance/gates/GATE21/contracts/EXECUTION_CONTRACT_R0001.json", "role": "Versioned precontract-only execution contract" },
+    { "ordinal": 2, "path": "governance/gates/GATE21/contracts/CURRENT_CONTRACT.json", "role": "Pointer to the exact versioned contract" },
+    { "ordinal": 3, "path": "governance/gates/GATE21/contracts/PRECONTRACT_AUTHORITY_CONSUMPTION_R1.json", "role": "Primitive-generated single-use consumption receipt" }
+  ],
+  "validators": [
+    "node governance/tools/validate-gate-contract.mjs --contract governance/gates/GATE21/contracts/EXECUTION_CONTRACT_R0001.json --pointer governance/gates/GATE21/contracts/CURRENT_CONTRACT.json",
+    "node governance/tools/validate-precontract-authority.mjs --gate GATE21",
+    "node governance/tools/apply-precontract-bootstrap.mjs --root . --authority governance/authority/precontract/GATE21/PROJECT_OWNER_LOCAL_PRECONTRACT_AUTHORITY.json --staged <external-staged-root>"
+  ],
+  "positiveTests": [
+    { "testId": "G21-PRE-POS-01", "case": "the exact contract and pointer bytes are precontract-bound", "expected": "AUTHORIZED" },
+    { "testId": "G21-PRE-POS-02", "case": "the generated receipt binds the authority and both contract bytes", "expected": "AUTHORIZED" }
+  ],
+  "negativeTests": [
+    { "testId": "G21-PRE-NEG-01", "case": "START, BUILD, lifecycle transition or functional path request", "expected": "BLOCKED" },
+    { "testId": "G21-PRE-NEG-02", "case": "mandate or thin contract added to bootstrap authorizedPaths", "expected": "BLOCKED" },
+    { "testId": "G21-PRE-NEG-03", "case": "changed bound mandate, thin-contract or registry bytes", "expected": "BLOCKED" }
+  ],
+  "countertests": [
+    { "testId": "G21-PRE-CTR-01", "case": "contract assertion without issued-authority consumption", "expected": "BLOCKED" },
+    { "testId": "G21-PRE-CTR-02", "case": "second use of the local authority", "expected": "BLOCKED" }
+  ],
+  "reuseRules": [
+    "Reuse the existing GEE local precontract authority issuer and bootstrap applier without modification.",
+    "Reuse the GATE20 precontract cohort format only; do not reuse its functional scope.",
+    "Reuse the independent pre-precontract audit conclusion supplied for this mission."
+  ],
+  "invalidationRules": [
+    "Any drift of a hash-pinned required input blocks this precontract.",
+    "Any change to the two staged artifact bytes after authority issuance blocks publication.",
+    "Any lifecycle change from GATE21 NOT_STARTED or loss of GATE20 COMPLETE_CONFIRMED blocks publication."
+  ],
+  "forbiddenReplays": ["GATE21 START", "GATE21 BUILD", "GEE R8", "R2A", "R2B", "Fast Gate rebuild", "ledger mutation", "ACTIVE_GATE mutation", "git commit", "git push"],
+  "closureConditions": ["This precontract is not closure, confirmation, START or BUILD.", "A later separately authorized lifecycle may use this contract only under its own authority."],
+  "nextGateAuthorizationConditions": ["No next-Gate authorization is created by this precontract."],
+  "performanceBudget": { "targetMinutes": 5, "expectedMaximumMinutes": 20, "closeoutStartMinutes": 10, "absoluteMaximumMinutes": 60 },
+  "checkpointPolicy": { "resume": "independent pre-precontract audit handoff", "reuse": "existing GEE precontract primitives and GATE20 cohort format", "independentConfirmation": "required separately after later lifecycle work" },
+  "authorizedPaths": [
+    "governance/gates/GATE21/contracts/EXECUTION_CONTRACT_R0001.json",
+    "governance/gates/GATE21/contracts/CURRENT_CONTRACT.json",
+    "governance/gates/GATE21/contracts/PRECONTRACT_AUTHORITY_CONSUMPTION_R1.json"
+  ],
+  "requiredPolicyIds": ["AUTHORIZED_PATHS_ONLY", "NO_HARDCODED_PASS", "NO_CIRCULAR_VALIDATION", "DETERMINISTIC_OPERATIONS_LOCAL", "NO_FUTURE_LEAKAGE", "GIT_WRITES_FORBIDDEN_BY_DEFAULT"],
+  "sourceReferences": [
+    { "sourcePath": "governance/GATE_REGISTRY_00_40.json", "sourceSha256": "76d5f9ff0a21f8c1eadaf9ccd9e48c9087d12655fac6a5c9215584053652a56b", "sourceLocation": "/gates/GATE21", "field": "canonicalObjective" },
+    { "sourcePath": "governance/sources/GATE21_CANONICAL_MANDATE_R0.json", "sourceSha256": "8e261f88982a1b0892dd2cf25a765773ece72d6f47c6f35261b7e36a72c58474", "sourceLocation": "/", "field": "canonicalObjective" },
+    { "sourcePath": "governance/sources/GATE21_PREREQUISITE_THIN_CONTRACTS_R0.json", "sourceSha256": "f6338189cda47a7a931499fd1aaacd5fcdcfed37bc386f15b30258d989dee8b7", "sourceLocation": "/", "field": "purpose" }
+  ]
+}

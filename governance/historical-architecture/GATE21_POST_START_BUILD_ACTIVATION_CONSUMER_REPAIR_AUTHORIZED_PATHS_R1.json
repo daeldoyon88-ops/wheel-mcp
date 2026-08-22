@@ -1,0 +1,74 @@
+{
+  "documentKind": "POST_FREEZE_MAINTENANCE_AUTHORIZED_PATH_MANIFEST",
+  "schemaVersion": 2,
+  "manifestId": "GATE21_POST_START_BUILD_ACTIVATION_CONSUMER_REPAIR_AUTHORIZED_PATHS_R1",
+  "programId": "GATE21_POST_START_BUILD_ACTIVATION_CONSUMER_REPAIR_R1",
+  "prestateSelfExclusion": [
+    {
+      "path": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_GATE21_POST_START_BUILD_ACTIVATION_CONSUMER_REPAIR_R1.json",
+      "role": "AUTHORITY_DOCUMENT",
+      "reason": "The authority document is a causally prior publisher input and remains bound by the exact V2 self-exclusion."
+    },
+    {
+      "path": "governance/historical-architecture/GATE21_POST_START_BUILD_ACTIVATION_CONSUMER_REPAIR_AUTHORIZED_PATHS_R1.json",
+      "role": "AUTHORIZED_PATH_MANIFEST",
+      "reason": "The manifest is a causally prior publisher input and remains bound by the exact V2 self-exclusion."
+    }
+  ],
+  "paths": [
+    {
+      "path": "governance/gee-v1/adapters/wheel/gate-start-authority-source.mjs",
+      "operation": "MODIFY",
+      "phase": "MAINTENANCE",
+      "reason": "Repair START consumer to bind historical START to R0001 and runtime scope to CURRENT_CONTRACT after succession.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "PRESENT",
+        "sha256": "5b9aaa2f72911b15d15e4f2d70381a7e6e1df017fd0b6669a9100e8102cbafdd",
+        "byteLength": 14653
+      }
+    },
+    {
+      "path": "governance/tests/gate-start-authority-primitive.test.mjs",
+      "operation": "MODIFY",
+      "phase": "MAINTENANCE",
+      "reason": "Bounded post-START contract-succession regression and fail-closed hostiles.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "PRESENT",
+        "sha256": "f895bb06aea485e5f173bf5873a24826d437780f84284f67705d65b8a9b2062a",
+        "byteLength": 26785
+      }
+    },
+    {
+      "path": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_GATE21_POST_START_BUILD_ACTIVATION_CONSUMER_REPAIR_R1.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "Fresh single-use V2 local explicit authority for this consumer repair.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "governance/historical-architecture/GATE21_POST_START_BUILD_ACTIVATION_CONSUMER_REPAIR_AUTHORIZED_PATHS_R1.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "Finite exact-path manifest for this consumer repair.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "governance/historical-architecture/GATE21_POST_START_BUILD_ACTIVATION_CONSUMER_REPAIR_CONSUMPTION_R1.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "Mechanically produced single-use V2 consumption receipt.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    }
+  ]
+}

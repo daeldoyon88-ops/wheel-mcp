@@ -1,0 +1,40 @@
+{
+  "document": "GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY",
+  "schemaVersion": 2,
+  "authorityId": "WHEEL_GOVERNANCE_WORKFLOW_FIX_W1_W5_LOCAL_AUTHORITY_R1",
+  "authorityClass": "PROJECT_OWNER_POST_FREEZE_MAINTENANCE_AUTHORITY",
+  "authorityMode": "LOCAL_EXPLICIT_AUTHORITY",
+  "issuedBy": "PROJECT_OWNER",
+  "createdAt": "2026-08-22T02:15:37.056Z",
+  "expiresAt": "2026-12-31T23:59:59.000Z",
+  "targetSystem": "PROJECT_GOVERNANCE",
+  "programId": "WHEEL_GOVERNANCE_WORKFLOW_FIX_W1_W5_R1",
+  "authorityPurpose": "NORMAL_MAINTENANCE",
+  "resumePoint": "CP-WHEEL-GOVERNANCE-WORKFLOW-FIX-W1-W5-R1",
+  "maxUse": 1,
+  "preState": {
+    "baseHead": "e19507db9304b6e1088b1b4a983498ba412dacf5",
+    "ledgerEventCount": 84,
+    "ledgerPrefixSha256": "7c71a0548a566392ac23c942523e3e029de594229e0cb676e41bb2a783b512af",
+    "gateId": "GATE20",
+    "gateStatus": "COMPLETE_CONFIRMED",
+    "stateRevision": "R0004",
+    "contractRevision": "R0001",
+    "activeGate": "GATE13",
+    "R8ExpectedAbsent": true
+  },
+  "authorizedPathManifestPath": "governance/historical-architecture/GOVERNANCE_WORKFLOW_FIX_W1_W5_AUTHORIZED_PATHS_R1.json",
+  "authorizedPathManifestSha256": "738b60772891ad267cd98149d77681899c1fd695405dc85f768f3d97b13c9b5d",
+  "authorizedOperationClasses": ["MAINTENANCE"],
+  "commitPolicy": {
+    "maxCommitCount": 1,
+    "allowedGitOperations": ["GIT_ADD_PATHSPEC", "GIT_COMMIT"],
+    "commitMessage": "governance: repair W1-W5 workflow",
+    "thirdCommitAuthorized": false
+  },
+  "pushAuthorized": false,
+  "authorityPredecessor": null,
+  "authorityHeadBinding": { "mode": "BASE_HEAD", "baseHead": "e19507db9304b6e1088b1b4a983498ba412dacf5" },
+  "consumptionRecordPath": "governance/historical-architecture/GOVERNANCE_WORKFLOW_FIX_W1_W5_CONSUMPTION_R1.json",
+  "prohibitedOperations": ["START", "SECOND_START", "AGENT_CLOSURE", "EXTERNAL_CONFIRMATION", "COMPLETE_AGENT", "COMPLETE_CONFIRMED", "ACTIVE_GATE_SWITCH", "GEE_R8", "GIT_PUSH", "HISTORY_REWRITE", "THIRD_COMMIT", "UNRELATED_WRITE"]
+}

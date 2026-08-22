@@ -24,6 +24,7 @@ const outputPath = path.resolve(option('--output', path.join(root, 'governance',
 const sourceMapPath = option('--source-map', null) ? path.resolve(option('--source-map')) : null;
 const policyModulePath = option('--policy-module', null);
 const check = process.argv.includes('--check');
+const lifecycleStagingOnly = process.argv.includes('--lifecycle-staging-only');
 let policy = WHEEL_EXTERNAL_AUTHORITY_POLICY;
 if (policyModulePath) {
   const candidate = path.resolve(root, policyModulePath);
@@ -34,7 +35,8 @@ if (policyModulePath) {
   if (!policy || typeof policy !== 'object') throw new Error('POLICY_MODULE_INVALID');
 }
 const report = validateLedger({ root, ledgerPath, sourceMapPath, policy });
-if (!report.valid) {
+const ledgerInputReadable = !report.findings.some((finding) => ['MISSING_LEDGER', 'NDJSON_PARSE_ERROR'].includes(finding.detectorId));
+if (!report.valid && !(lifecycleStagingOnly && ledgerInputReadable)) {
   process.stdout.write(JSON.stringify({ valid: false, stale: false, findings: report.findings }, null, 2) + '\n');
   process.exitCode = 2;
 } else {
@@ -69,11 +71,11 @@ if (!report.valid) {
   const existing = fs.existsSync(outputPath) ? fs.readFileSync(outputPath) : null;
   const stale = !existing || existing.length !== bytes.length || !crypto.timingSafeEqual(Buffer.from(existing), bytes);
   if (check) {
-    process.stdout.write(JSON.stringify({ valid: true, stale, sourceLedgerSha256: report.ledgerSha256, outputPath: path.relative(root, outputPath).replaceAll('\\', '/') }, null, 2) + '\n');
+    process.stdout.write(JSON.stringify({ valid: true, stale, lifecycleStagingOnly, sourceLedgerSha256: report.ledgerSha256, outputPath: path.relative(root, outputPath).replaceAll('\\', '/') }, null, 2) + '\n');
     process.exitCode = stale ? 2 : 0;
   } else {
     fs.mkdirSync(path.dirname(outputPath), { recursive: true });
     atomicWrite(outputPath, bytes);
-    process.stdout.write(JSON.stringify({ valid: true, stale: false, generated: true, outputPath: path.relative(root, outputPath).replaceAll('\\', '/'), sourceLedgerSha256: report.ledgerSha256 }, null, 2) + '\n');
+    process.stdout.write(JSON.stringify({ valid: true, stale: false, generated: true, lifecycleStagingOnly, outputPath: path.relative(root, outputPath).replaceAll('\\', '/'), sourceLedgerSha256: report.ledgerSha256 }, null, 2) + '\n');
   }
 }

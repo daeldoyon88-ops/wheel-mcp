@@ -31,7 +31,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
 import { createExecutionAuthorityRegistry, resolveExecutionAuthority } from '../gee-v1/core/work-unit-core.mjs';
-import { createWheelGateAuthoritySource, readActiveGateId, POST_START_MAINTENANCE_EXECUTION } from '../gee-v1/adapters/wheel/gate-authority-source.mjs';
+import { createWheelGateAuthoritySource, readActiveGateId } from '../gee-v1/adapters/wheel/gate-authority-source.mjs';
 import { createWheelGateStartAuthoritySource } from '../gee-v1/adapters/wheel/gate-start-authority-source.mjs';
 import { createGeeMissionAuthoritySource } from '../gee-v1/adapters/gee-mission-authority-source.mjs';
 import { createWheelProjectAdapter } from '../gee-v1/adapters/wheel/wheel-project-adapter.mjs';
@@ -44,25 +44,16 @@ const DEFAULT_WORK_UNIT_TYPE = 'GATE';
 const CONFIGURATION_VALIDATORS = [
   ['governance/tools/validate-adapter-parity.mjs', []],
   ['governance/tools/validate-active-gate.mjs', []],
-  ['governance/tools/validate-active-authority-references.mjs', []],
-  ['governance/tools/generate-active-gate-context.mjs', ['--check']]
+  ['governance/tools/validate-active-authority-references.mjs', []]
 ];
+
+// ACTIVE_GATE_CONTEXT is a derived convenience projection, never a canonical
+// input or execution authority.  Its drift is reported separately by its own
+// generator and must not turn unrelated work-units into configuration failures.
 
 function option(name, fallback = null) {
   const index = process.argv.indexOf(name);
   return index >= 0 && process.argv[index + 1] ? process.argv[index + 1] : fallback;
-}
-
-function options(name) {
-  const values = [];
-  for (let index = 0; index < process.argv.length - 1; index += 1) {
-    if (process.argv[index] === name && process.argv[index + 1]) values.push(process.argv[index + 1]);
-  }
-  return values;
-}
-
-function hasOption(name) {
-  return process.argv.includes(name);
 }
 
 function runConfigurationValidators() {
@@ -155,21 +146,6 @@ function buildRegistry() {
       }
     })
   ];
-  if (workUnitType === POST_START_MAINTENANCE_EXECUTION) {
-    sources.push(createWheelGateAuthoritySource(REPO_ROOT, {
-      projectId: PROJECT_ID,
-      workUnitType: POST_START_MAINTENANCE_EXECUTION,
-      maintenanceAuthorityPath: option('--maintenance-authority'),
-      requestedPaths: options('--requested-path'),
-      requestedOperationClasses: options('--requested-operation-class'),
-      requestedPermissions: {
-        startRequested: hasOption('--request-start'),
-        statusTransitionRequested: hasOption('--request-status-transition'),
-        gate21Requested: hasOption('--request-gate21'),
-        futureBytePermissionRequested: hasOption('--request-future-byte')
-      }
-    }));
-  }
   if (workUnitType === 'GATE_START') {
     sources.push(createWheelGateStartAuthoritySource(REPO_ROOT, { projectId: PROJECT_ID }));
   }
@@ -229,14 +205,6 @@ const workUnitReport = {
   proofs: authority.proofs,
   findings: authority.findings
 };
-if (workUnitType === POST_START_MAINTENANCE_EXECUTION) {
-  Object.assign(workUnitReport, {
-    startAuthorized: false,
-    statusTransitionAuthorized: false,
-    gateAuthorizationAuthorized: false,
-    futureBytePermission: false
-  });
-}
 if (workUnitType === PRECONTRACT_WORK_UNIT_TYPE) workUnitReport.bootstrapAuthorized = authority.bootstrapAuthorized === true;
 
 const report = {

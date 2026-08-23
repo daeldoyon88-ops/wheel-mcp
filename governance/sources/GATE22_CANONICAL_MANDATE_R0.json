@@ -1,0 +1,934 @@
+{
+  "document": "GATE22_CANONICAL_MANDATE_R0",
+  "schemaVersion": 1,
+  "authorityId": "GATE22_CANONICAL_MANDATE_RATIFICATION_R0",
+  "issuedBy": "PROJECT_OWNER",
+  "temporary": false,
+  "canonical": true,
+  "ratificationOnly": true,
+  "executionAuthorized": false,
+  "startAuthorized": false,
+  "statusTransitionAuthorized": false,
+  "functionalImplementationAuthorized": false,
+  "precontractAuthorized": false,
+  "buildAuthorized": false,
+  "commitAuthorized": false,
+  "pushAuthorized": false,
+  "canonicalIdentity": {
+    "gateId": "GATE22",
+    "canonicalName": "BOTTOM/TOP LABEL ENGINE",
+    "architecturalTerm": "HISTORICAL TRUTH LAYER",
+    "canonicalObjective": "Creer des labels historiques pour les zones de creux, sommets, fortes hausses, fortes baisses, reprises, capitulations, accumulations, distributions, continuations et faux signaux.",
+    "canonicalObjectiveBinding": {
+      "sourcePath": "governance/GATE_REGISTRY_00_40.json",
+      "sourcePointer": "/gates/22/canonicalObjective",
+      "sha256": "e963d83b26c88336707fa6facfec8c2f3db6f8c17975bbc1555d096ab9ab59db",
+      "lengthChars": 180,
+      "lengthBytes": 180,
+      "encoding": "ASCII_ONLY",
+      "normalizationApplied": false,
+      "rule": "byte-identical to the registry; no normalization, no translation, no re-accentuation"
+    },
+    "officialNameBinding": {
+      "sourcePath": "governance/GATE_REGISTRY_00_40.json",
+      "sourcePointer": "/gates/22/officialName",
+      "value": "BOTTOM/TOP LABEL ENGINE"
+    },
+    "strategicPurpose": "Create outcome labels that may use future data only as the target definition while preserving a future-free historical feature boundary."
+  },
+  "missionBoundary": {
+    "produces": {
+      "transform": "Observation(T) to Outcome(T+H)",
+      "carries": [
+        "identity",
+        "horizon",
+        "formula",
+        "dataset",
+        "reproducible proof"
+      ]
+    },
+    "doesNotProduce": [
+      "prediction",
+      "recommendation",
+      "Wheel decision",
+      "Market Regime",
+      "strategy"
+    ]
+  },
+  "ownerDecisions": [
+    {
+      "id": "D-1",
+      "subject": "contract structure",
+      "decision": "Route R-B ratified: the Consumption Boundary domain becomes contractual. Coverage is exactly seven domains, in order: Temporal Boundary and Horizon Policy, Outcome Persistence, Identity Model, PriceBasis, Dataset Separation, Taxonomy V1, Consumption Boundary. Always exactly 7 contracts. No 8th contract."
+    },
+    {
+      "id": "D-2",
+      "subject": "instrument identity",
+      "decision": "Direct pin. GATE22 explicitly reuses instrumentIdentityV1 as the canonical source of instrument identity, of the ticker != identity rule, and of content-addressed identity. Transitive resolution alone is not sufficient."
+    },
+    {
+      "id": "D-3",
+      "subject": "GATE21 pins",
+      "decision": "Use consumesGate21Pins[] and not a single-value field. The field may hold several pins. Values must stay inside the authorized GATE21 vocabulary."
+    },
+    {
+      "id": "D-4",
+      "subject": "PriceBasis",
+      "decision": "adjustmentTypes is the mandatory pin. marketDataPriceBases is not used because it does not cover TOTAL_RETURN_ADJUSTED. PriceBasis V1 is RAW, SPLIT_ADJUSTED, TOTAL_RETURN_ADJUSTED. DERIVED_ADJUSTED is refused in strict V1."
+    },
+    {
+      "id": "V-1",
+      "subject": "missingness",
+      "decision": "OutcomeStatus and MissingReasons are separated. OutcomeStatus is RESOLVED, INSUFFICIENT_DATA, FAIL_CLOSED. MissingReasons carries the detailed technical cause. No new historical status is created."
+    },
+    {
+      "id": "B-1",
+      "subject": "instrument identity promotion",
+      "decision": "Additive promotion of instrumentIdentityV1 as a directly governed dependency. GATE22 keeps ticker != identity. InstrumentIdentityId stays the canonical source of identity. No parallel field consumesLabContractsDirect[]. No secondary authority. consumesGate21Pins[] reflects the dependency after promotion."
+    },
+    {
+      "id": "B-2",
+      "subject": "outcome missing reason",
+      "decision": "OutcomeMissingReason is a structure internal to GATE22_OUTCOME_PERSISTENCE_V1. It is not a new contract, not a new historical status, not a new primitive. OutcomeStatus stays at 3 values; the reason carries the detailed technical cause; the historical status stays immutable."
+    },
+    {
+      "id": "B-3",
+      "subject": "registry compatibility",
+      "decision": "Projection fortes hausses to CONTINUATION and fortes baisses to DRAWDOWN, without modifying Taxonomy V1. Taxonomy V1 stays exactly NEW_LOW, NEW_HIGH, RECOVERY, CONTINUATION, DRAWDOWN, RANGE. CAPITULATION, ACCUMULATION, DISTRIBUTION, FALSE_SIGNAL stay deferred as future FormulaId or annotations."
+    },
+    {
+      "id": "O-3",
+      "subject": "permanently incompletable outcome window",
+      "decision": "An Outcome window that can never be completed because of permanent data absence produces no historical Outcome. No OutcomeId is created. OUTCOME_WINDOW_TRUNCATED_BY_DATASET_END must not create a contradiction with the closed OutcomeId and the mandatory DatasetId_outcome."
+    },
+    {
+      "id": "PROMO-1_OPTION_B",
+      "subject": "form of the instrumentIdentityV1 promotion",
+      "decision": "Option B ratified. No GATE21 historical mutation. No change to GATE21 LAB_SCHEMA_PINS. No change to GATE21_BINDING_V1. No change to R0001-R0005. No change to research/directional-lab. PROMO-1 will be carried later by a GATE22-owned successor surface. This mandate does not execute PROMO-1.",
+      "supersedes": "the earlier described WRAP promotion executed inside the GATE21 surfaces under a GEE post-freeze maintenance ceremony"
+    }
+  ],
+  "gate21DependencyPreconditions": [
+    {
+      "id": "PROMO-1",
+      "pin": "instrumentIdentityV1",
+      "currentlyInVocabulary": false,
+      "currentLabSchemaPinCount": 27,
+      "observedAuthority": "GATE21_LabImportAdapter/1 :: LAB_SCHEMA_PINS",
+      "requiredBeforeStart": true,
+      "blocksAudit": false,
+      "blocksCurrentMandateMaterialization": false,
+      "executed": false,
+      "form": "PROMO-1_OPTION_B",
+      "noGate21HistoricalMutation": true,
+      "noLabSchemaPinsChange": true,
+      "noGate21BindingV1Change": true,
+      "noR0001ToR0005Change": true,
+      "noDirectionalLabChange": true,
+      "successorSurfaceOwnedByGate22": true,
+      "successorSurfaceMaterialized": false,
+      "successorSurfaceRef": "gate22SuccessorPinVocabulary",
+      "additiveRule": "append-only; no deletion; no destructive rename; no retroactive modification of existing identities",
+      "i12Interaction": "NONE. instrumentIdentityV1 is not declared in any consumesGate21Pins array, so I-12 holds literally and unconditionally on the frozen 27-key LAB_SCHEMA_PINS vocabulary. The GATE22 consumption of instrumentIdentityV1 is declared in the separate consumesGate22SuccessorPins namespace, which I-12 does not govern.",
+      "declaredNotClaimed": "This mandate declares PROMO-1 as an unmet precondition. It does not assert that PROMO-1 has been executed and it does not assert that START is authorized."
+    }
+  ],
+  "domainContracts": {
+    "contractCount": 7,
+    "designFreezeReferenceMap": {
+      "map": [
+        {
+          "designFreezeId": "GATE22_CANONICAL_MANDATE_R0",
+          "role": "mandate document container",
+          "mandateContractId": null
+        },
+        {
+          "designFreezeId": "TARGET_BOUNDARY_CONTRACT_V1",
+          "role": "design reference",
+          "mandateContractId": [
+            "GATE22_TEMPORAL_HORIZON_V1",
+            "GATE22_OUTCOME_PERSISTENCE_V1"
+          ]
+        },
+        {
+          "designFreezeId": "OBSERVATION_OUTCOME_IDENTITY_V1",
+          "role": "design reference",
+          "mandateContractId": [
+            "GATE22_IDENTITY_MODEL_V1"
+          ]
+        },
+        {
+          "designFreezeId": "DATA_SEMANTICS_CONTRACT_V1",
+          "role": "design reference",
+          "mandateContractId": [
+            "GATE22_PRICE_BASIS_V1",
+            "GATE22_DATASET_SEPARATION_V1"
+          ]
+        },
+        {
+          "designFreezeId": "LABEL_TAXONOMY_V1",
+          "role": "design reference",
+          "mandateContractId": [
+            "GATE22_TAXONOMY_V1"
+          ]
+        },
+        {
+          "designFreezeId": "CONSUMPTION_BOUNDARY_V1",
+          "role": "design reference",
+          "mandateContractId": [
+            "GATE22_CONSUMPTION_BOUNDARY_V1"
+          ]
+        },
+        {
+          "designFreezeId": "REUSE_INVENTORY_V1",
+          "role": "dependency inventory, NON_CONTRACTUAL",
+          "mandateContractId": null,
+          "projectsTo": [
+            "gate21PinVocabulary",
+            "gate21DependencyPreconditions/PROMO-1"
+          ]
+        }
+      ],
+      "rules": {
+        "R1": "a designFreezeId is a design reference, never a contractId, never executable",
+        "R2": "the only START execution contracts are C1 to C7; contractCount === 7 stays the hard invariant",
+        "R3": "START does not merge (no design ID promoted into a contract), does not rename (no contractId replaced by a design ID), does not choose (no selection between namings)",
+        "R4": "REUSE_INVENTORY_V1 stays a dependency inventory; never a contract, never counted in contractCount"
+      },
+      "properties": {
+        "designToContractIsNonInjective": true,
+        "designToContractIsPartial": true,
+        "inverseContractToDesignFreezeRefIsFunction": true,
+        "note": "for every Ci in C1..C7 there is exactly one designFreezeRef; that is the direction a hostile audit tests"
+      }
+    },
+    "contracts": [
+      {
+        "contractKey": "C1",
+        "contractId": "GATE22_TEMPORAL_HORIZON_V1",
+        "version": 1,
+        "designFreezeRef": "TARGET_BOUNDARY_CONTRACT_V1",
+        "purpose": "T = SessionDate; KnowledgeCutoff is distinct; Observation requires availableAt <= KnowledgeCutoff; the Outcome window is (T, T+H]; H is a session count; HorizonId is content-addressed against the pinned calendar registry.",
+        "consumesGate21Pins": [
+          "marketSessionCalendar",
+          "marketCalendarAuthority",
+          "marketCalendarRegistry",
+          "marketCalendarL3",
+          "DailyBarV1",
+          "knowledgeModes"
+        ],
+        "consumesGate22SuccessorPins": [],
+        "temporalRules": {
+          "observationTime": "T = SessionDate",
+          "knowledgeCutoffDistinctFromSessionDate": true,
+          "observationAdmissibility": "availableAt <= KnowledgeCutoff",
+          "outcomeWindow": "(T, T+H]"
+        },
+        "sessionCountingRules": {
+          "unit": "GATE21 market session (marketCalendarL3 / marketSessionCalendar)",
+          "REGULAR_SESSION": 1,
+          "HALF_DAY_SESSION": 1,
+          "fractionalHorizonForbidden": true,
+          "horizonIdComposition": "sessionCount + calendarRegistryManifestId",
+          "horizonsV1": [
+            30,
+            90,
+            180,
+            252
+          ],
+          "countingBasis": "sessions present in the bound calendar registry; both sessionKind values count as 1 when admitted by allowedSessionKinds",
+          "notToBeConfusedWith": "the bar frequency token DAILY_REGULAR_SESSION",
+          "forbiddenHorizonUnits": [
+            "1 year",
+            "365 days",
+            "12 months"
+          ]
+        }
+      },
+      {
+        "contractKey": "C2",
+        "contractId": "GATE22_OUTCOME_PERSISTENCE_V1",
+        "version": 1,
+        "designFreezeRef": "TARGET_BOUNDARY_CONTRACT_V1",
+        "purpose": "Outcome persistence and missingness routing. Before the Outcome Dataset asOf is reached no Outcome record and no OutcomeId exist. After it, the record carries RESOLVED, INSUFFICIENT_DATA or FAIL_CLOSED. Append-only, no historical mutation. Hosts the internal OutcomeMissingReason structure ratified by B-2.",
+        "consumesGate21Pins": [
+          "MissingReasonsV1",
+          "coverage",
+          "DatasetSnapshotRecord",
+          "SnapshotDatasetManifestV1"
+        ],
+        "consumesGate22SuccessorPins": [],
+        "outcomeStatus": {
+          "values": [
+            "RESOLVED",
+            "INSUFFICIENT_DATA",
+            "FAIL_CLOSED"
+          ],
+          "count": 3,
+          "notYetResolvedIsNotAnEnumValue": true,
+          "notYetResolvedRepresentation": "absence of an Outcome record, never a stored value",
+          "appendOnly": true,
+          "historicalMutation": "FORBIDDEN_ALWAYS"
+        },
+        "outcomeMissingReason": {
+          "classification": "INTERNAL_STRUCTURE_OF_C2",
+          "isNewContract": false,
+          "isNewStatus": false,
+          "isNewPrimitive": false,
+          "reasonClass": [
+            "INPUT",
+            "WINDOW",
+            "BASIS"
+          ],
+          "inputCause": "value of MissingReasonsV1 (GATE21 pin) or null",
+          "windowCause": "value of OutcomeWindowCause/1 (local to C2) or null",
+          "exactlyOneOfInputCauseOrWindowCauseIsNonNull": true,
+          "reasonParticipatesInOutcomeId": false,
+          "resolvedIffReasonIsNull": "OutcomeStatus === RESOLVED if and only if OutcomeMissingReason === null"
+        },
+        "outcomeWindowCauseV1": {
+          "surfaceVersionedWith": "GATE22_OUTCOME_PERSISTENCE_V1",
+          "count": 4,
+          "values": [
+            {
+              "cause": "INSUFFICIENT_SESSIONS_IN_WINDOW",
+              "routesTo": "INSUFFICIENT_DATA",
+              "decidability": "calendar fact, decidable at T against the pinned calendar registry"
+            },
+            {
+              "cause": "CALENDAR_GAP_IN_WINDOW",
+              "routesTo": "INSUFFICIENT_DATA",
+              "decidability": "calendar fact, decidable at T against the pinned calendar registry"
+            },
+            {
+              "cause": "PRICE_BASIS_MIXED_IN_WINDOW",
+              "routesTo": "FAIL_CLOSED",
+              "decidability": "settled bars, observed mixture at the asOf"
+            },
+            {
+              "cause": "PRICE_BASIS_UNAVAILABLE_FOR_WINDOW",
+              "routesTo": "FAIL_CLOSED",
+              "decidability": "settled bars, basis absent at the asOf"
+            }
+          ],
+          "retired": [
+            {
+              "cause": "OUTCOME_WINDOW_TRUNCATED_BY_DATASET_END",
+              "retiredBy": "O-3",
+              "reason": "its instantiation would require knowing the future non-arrival of data, which is a latent NO_FUTURE_LEAKAGE violation and, under the C-2 asOf rule, dead vocabulary"
+            }
+          ]
+        },
+        "nonEmissionRule": {
+          "rule": "No Outcome record and no OutcomeId exist while the C5 asOf is not reached, whether the absence is temporary or permanent.",
+          "absenceNeverConvertedToStatus": true,
+          "settlementBoundExists": false,
+          "note": "the system never has to decide whether the data will arrive one day; temporary and permanent absence receive the same treatment, which is why no settlement bound is required and no new rule enters the mandate"
+        }
+      },
+      {
+        "contractKey": "C3",
+        "contractId": "GATE22_IDENTITY_MODEL_V1",
+        "version": 1,
+        "designFreezeRef": "OBSERVATION_OUTCOME_IDENTITY_V1",
+        "purpose": "Content-addressed identity model. InstrumentIdentityId is the single canonical source of instrument identity; ticker != identity; FormulaId is behavior and a behavioral change produces a new identity. C3 owns the composition rule, not the source vocabularies.",
+        "consumesGate21Pins": [
+          "marketDataSourceL3",
+          "DatasetSnapshotCore",
+          "DatasetSnapshotRecord",
+          "DatasetManifestV1",
+          "marketCalendarRegistry"
+        ],
+        "consumesGate22SuccessorPins": [
+          "instrumentIdentityV1"
+        ],
+        "identityDigestRules": {
+          "instrumentIdentityIdRequired": true,
+          "observationIdComposition": {
+            "closure": "EXACT_ONLY",
+            "count": 8,
+            "ordered": [
+              "InstrumentIdentityId",
+              "SessionDate",
+              "KnowledgeCutoff",
+              "AvailableAt",
+              "Source",
+              "DatasetId_observation",
+              "PriceBasisId",
+              "MissingnessState"
+            ]
+          },
+          "outcomeIdComposition": {
+            "closure": "EXACT_ONLY",
+            "count": 6,
+            "ordered": [
+              "ObservationId",
+              "HorizonId",
+              "FormulaId",
+              "DatasetId_outcome",
+              "PriceBasisId",
+              "TaxonomyVersion"
+            ]
+          },
+          "closureRule": "EXACT_ONLY: no optional field, no interpretable field, no implicit extension, no at-minimum reading",
+          "forbiddenInAnyIdentityDigest": [
+            "ticker",
+            "symbol",
+            "temporary alias",
+            "every field of ALIAS_BINDING_FIELDS",
+            "OutcomeStatus",
+            "OutcomeMissingReason",
+            "OutcomeWindowCause"
+          ],
+          "readingPrinciple": "the OutcomeId identifies the question asked, never the answer; status and reason are therefore excluded, which is the generalization of B-2",
+          "horizonIdNotInObservationId": "an Observation is horizon-free and serves several H, consistent with C1",
+          "instrumentIdentityV1NotModified": true,
+          "formulaIdRule": "FormulaId is behavior; a behavioral change produces a new identity",
+          "shareClassRepresentation": "distinct share classes are distinct identities carrying distinct identitySeed values and their own aliases; there is no shareClass field in the lab and none is assumed"
+        }
+      },
+      {
+        "contractKey": "C4",
+        "contractId": "GATE22_PRICE_BASIS_V1",
+        "version": 1,
+        "designFreezeRef": "DATA_SEMANTICS_CONTRACT_V1",
+        "purpose": "Price basis admissibility and stability across the window. PriceBasis V1 is adjustmentTypes minus DERIVED_ADJUSTED. The same basis is mandatory from T to T+H; a mixture is FAIL_CLOSED.",
+        "consumesGate21Pins": [
+          "adjustmentTypes",
+          "corporateActionPolicy",
+          "CorporateActionV1",
+          "corporateActionTreatments",
+          "DailyBarV1"
+        ],
+        "consumesGate22SuccessorPins": [],
+        "priceBasisV1": {
+          "values": [
+            "RAW",
+            "SPLIT_ADJUSTED",
+            "TOTAL_RETURN_ADJUSTED"
+          ],
+          "count": 3,
+          "membershipModality": "full members, none optional, none hypothetical",
+          "derivedFrom": "adjustmentTypes minus DERIVED_ADJUSTED",
+          "derivedAdjusted": "REFUSED_IN_STRICT_V1",
+          "sameBasisAcrossWindow": true,
+          "mixtureRoutesTo": "FAIL_CLOSED via PRICE_BASIS_MIXED_IN_WINDOW",
+          "noRelabeling": "an unsupported or derived basis can never be relabeled to another basis, neither at load, nor at computation, nor at persistence",
+          "availabilityFact": "corporateActionTreatments attests RAW_SOURCE_UNTRANSFORMED and PROVIDER_SPLIT_ADJUSTED_UNTRANSFORMED only; this is an availability fact, not a reservation on membership; a basis unavailable for a window routes to PRICE_BASIS_UNAVAILABLE_FOR_WINDOW and FAIL_CLOSED"
+        }
+      },
+      {
+        "contractKey": "C5",
+        "contractId": "GATE22_DATASET_SEPARATION_V1",
+        "version": 1,
+        "designFreezeRef": "DATA_SEMANTICS_CONTRACT_V1",
+        "purpose": "Observation Dataset and Outcome Dataset are separate. Vintages never mix. The Outcome Dataset asOf is a deterministic function of the bytes, never a build-time choice. A restatement produces a new DatasetId and leaves the prior Outcome unchanged.",
+        "consumesGate21Pins": [
+          "DatasetManifestV1",
+          "SnapshotDatasetManifestV1",
+          "DatasetSnapshotCore",
+          "DatasetSnapshotRecord",
+          "marketDataBarRevisionL3",
+          "coverage",
+          "DailyBarV1",
+          "knowledgeModes"
+        ],
+        "consumesGate22SuccessorPins": [
+          "instrumentIdentityV1"
+        ],
+        "vintageRules": {
+          "observationDataset": "GATE21 snapshot as-of KnowledgeCutoff",
+          "outcomeDataset": "historical snapshot of the window (T, T+H]",
+          "noVintageMixing": "a DatasetId binds exactly one vintage",
+          "noCrossVersionStitching": true,
+          "firstPersistedOutcomeReproducible": true,
+          "restatement": "new DatasetId; the prior Outcome is unchanged",
+          "enforcementPoint": "a vintage violation is refused at dataset construction, not at window resolution; the DatasetId cannot be bound, so no OutcomeWindowCause is required for it"
+        },
+        "outcomeDatasetAsOfRule": {
+          "sessionSet": "the sessions of (T, T+H] enumerated by the pinned calendar registry (calendarRegistryManifestId, C1), a closed and finite set",
+          "settlingInstant": "availableAt of the INITIAL_ROOT revision of the bar of that session",
+          "asOf": "max over the sessionSet of settlingInstant, equivalently the first instant at which every bar of (T, T+H] has availableAt <= asOf",
+          "outcomeDataset": "the GATE21 snapshot defined at that asOf",
+          "noBuildTimeSelection": true,
+          "noLaterVintageAsInitialTruth": true,
+          "noStitching": true,
+          "restatementKinds": [
+            "VALUE_REVISION",
+            "RESTORATION",
+            "WITHDRAWAL"
+          ],
+          "asOfIsDerivedNeverStored": "DatasetSnapshotCore/1 and DatasetSnapshotRecord/1 carry no as-of field and need none; the instant is derived and the snapshot stays content-addressed",
+          "emissionInstant": "at the asOf, not at horizon expiry; DatasetId_outcome is a mandatory member of a closed tuple so no OutcomeId can be struck before the asOf",
+          "attestationQualityNote": "determinism of the instant is bounded by knowledgeMode; under CAPTURE_TIME_ONLY the availableAt is a capture rather than an attested publication; declared availability fact, not a reservation on the rule"
+        }
+      },
+      {
+        "contractKey": "C6",
+        "contractId": "GATE22_TAXONOMY_V1",
+        "version": 1,
+        "designFreezeRef": "LABEL_TAXONOMY_V1",
+        "purpose": "Label taxonomy V1: exactly 6 mechanical, non-exclusive, versioned primitives. Hosts the registryConcept to taxonomyPrimitive compatibility projection.",
+        "consumesGate21Pins": [
+          "DailyBarV1",
+          "marketSessionCalendar",
+          "adjustmentTypes"
+        ],
+        "consumesGate22SuccessorPins": [],
+        "taxonomyV1": {
+          "primitives": [
+            "NEW_LOW",
+            "NEW_HIGH",
+            "RECOVERY",
+            "CONTINUATION",
+            "DRAWDOWN",
+            "RANGE"
+          ],
+          "count": 6,
+          "properties": [
+            "mechanical",
+            "non-exclusive",
+            "versioned"
+          ],
+          "noAddition": true,
+          "noRenaming": true,
+          "deferred": [
+            "CAPITULATION",
+            "ACCUMULATION",
+            "DISTRIBUTION",
+            "FALSE_SIGNAL"
+          ],
+          "deferredDisposition": "future FormulaId or annotations; never V1 primitives"
+        }
+      },
+      {
+        "contractKey": "C7",
+        "contractId": "GATE22_CONSUMPTION_BOUNDARY_V1",
+        "version": 1,
+        "designFreezeRef": "CONSUMPTION_BOUNDARY_V1",
+        "purpose": "Downstream consumption boundary. GATE23 consumes GATE21 and Observation only; Outcome is forbidden as a feature, even lagged. GATE24 lives in a separate namespace. GATE25 attaches Outcome only after selection.",
+        "consumesGate21Pins": [],
+        "consumesGate22SuccessorPins": [],
+        "consumesGate21PinsJustification": "downstream projection contract; it consumes no GATE21 pin by construction; the empty array is declared, not omitted, and the schema must accept it",
+        "boundaries": {
+          "GATE23": "GATE21 plus Observation only; Outcome forbidden as a feature, even lagged",
+          "GATE24": "separate namespace",
+          "GATE25": "Outcome attached after selection"
+        }
+      }
+    ]
+  },
+  "gate21PinVocabulary": {
+    "authoritySource": "GATE21_LabImportAdapter/1 :: LAB_SCHEMA_PINS",
+    "authorityRule": "single authority; no parallel field; no secondary authority",
+    "observedKeyCount": 27,
+    "observedKeyCountPath": "governance/gates/GATE21/implementation/lab-import-adapter.mjs",
+    "instrumentIdentityV1PresentInGate21Vocabulary": false,
+    "keyCountFrozenUnderOptionB": 27,
+    "keyCountFrozenUnderOptionBNote": "PROMO-1 Option B freezes LAB_SCHEMA_PINS at 27 keys. This mandate declares no 28th GATE21 key and no extension of this vocabulary. The GATE22 consumption of instrumentIdentityV1 is carried by gate22SuccessorPinVocabulary, a separate namespace.",
+    "consumed": {
+      "count": 18,
+      "keys": [
+        "DailyBarV1",
+        "MissingReasonsV1",
+        "CorporateActionV1",
+        "corporateActionPolicy",
+        "corporateActionTreatments",
+        "DatasetManifestV1",
+        "SnapshotDatasetManifestV1",
+        "DatasetSnapshotCore",
+        "DatasetSnapshotRecord",
+        "coverage",
+        "marketCalendarL3",
+        "marketCalendarAuthority",
+        "marketSessionCalendar",
+        "marketCalendarRegistry",
+        "marketDataSourceL3",
+        "marketDataBarRevisionL3",
+        "adjustmentTypes",
+        "knowledgeModes"
+      ],
+      "arithmetic": "18 consumed + 9 excluded = 27, the frozen LAB_SCHEMA_PINS key count"
+    },
+    "excluded": {
+      "count": 9,
+      "entries": [
+        {
+          "pin": "marketDataPriceBases",
+          "reason": "D-4; verified as RAW and SPLIT_ADJUSTED only; does not cover TOTAL_RETURN_ADJUSTED"
+        },
+        {
+          "pin": "ingestionPriceBases",
+          "reason": "D-4 by extension; verified as RAW and SPLIT_ADJUSTED only; same insufficiency"
+        },
+        {
+          "pin": "normalizeDailyBars",
+          "reason": "ingestion layer; outside the label perimeter"
+        },
+        {
+          "pin": "jsonDailyAdapter",
+          "reason": "ingestion layer; outside the label perimeter"
+        },
+        {
+          "pin": "marketDataIngestionRegistryL3",
+          "reason": "ingestion layer; outside the label perimeter"
+        },
+        {
+          "pin": "ingestionPolicy",
+          "reason": "ingestion layer; outside the label perimeter"
+        },
+        {
+          "pin": "barObservation",
+          "reason": "ingestion layer; outside the label perimeter"
+        },
+        {
+          "pin": "MacroVintageSetManifest",
+          "reason": "macro; outside the V1 perimeter"
+        },
+        {
+          "pin": "MacroDatasetSnapshotManifest",
+          "reason": "macro; outside the V1 perimeter"
+        }
+      ]
+    },
+    "isImageOf": "REUSE_INVENTORY_V1, which is a dependency inventory and never a contract"
+  },
+  "gate22SuccessorPinVocabulary": {
+    "surfaceName": "GATE22_SUCCESSOR_SCHEMA_PINS",
+    "requiredBy": "PROMO-1_OPTION_B",
+    "owner": "GATE22",
+    "isContract": false,
+    "isEighthContract": false,
+    "countedInContractCount": false,
+    "isExtensionOfGate21LabSchemaPins": false,
+    "isSecondaryAuthorityOverGate21Pins": false,
+    "additive": true,
+    "wrapOnly": true,
+    "referencesExistingModule": "research/directional-lab/src/contracts/instrumentIdentityV1.mjs",
+    "modifiesReferencedModule": false,
+    "modifiesGate21": false,
+    "modifiesGate21BindingV1": false,
+    "modifiesDirectionalLab": false,
+    "pins": [
+      "instrumentIdentityV1"
+    ],
+    "pinCount": 1,
+    "pinContent": [
+      "InstrumentIdentityAuthorityPolicy/1",
+      "InstrumentIdentityCore/1",
+      "InstrumentIdentityRecord/1",
+      "InstrumentDescriptorCore/1",
+      "SymbolNamespacePolicy/1",
+      "InstrumentAliasBindingCore/1",
+      "ProviderInstrumentBindingCore/1",
+      "InstrumentAliasRevocationCore/1",
+      "ProviderInstrumentRevocationCore/1",
+      "InstrumentIdentityManifest/1",
+      "InstrumentIdentityRegistryManifest/1",
+      "DatasetSnapshotInstrumentBinding/1"
+    ],
+    "consumedByContracts": [
+      "GATE22_IDENTITY_MODEL_V1",
+      "GATE22_DATASET_SEPARATION_V1"
+    ],
+    "declaringField": "consumesGate22SuccessorPins",
+    "declaringFieldNaming": "no canonical convention exists for a GATE22-owned successor pin namespace; the field follows the literal shape of the existing consumesGate21Pins field, with the owning surface named in place of GATE21",
+    "governedByI12": false,
+    "governedByI12Rationale": "I-12 governs consumesGate21Pins against LAB_SCHEMA_PINS only; this namespace is disjoint from it, so I-12 stays literally true and unweakened",
+    "executed": false,
+    "materialized": false,
+    "requiredBeforeStart": true,
+    "createdByThisDocument": false,
+    "totalDistinctSchemaDependencies": {
+      "gate21Pins": 18,
+      "gate22SuccessorPins": 1,
+      "total": 19,
+      "note": "the audited total of 19 distinct schema dependencies is preserved; only its partition across two namespaces changed, so that I-12 holds against the frozen 27-key GATE21 vocabulary"
+    }
+  },
+  "registryCompatibility": {
+    "purpose": "compatibility projection from the registry concepts of the canonical objective onto Taxonomy V1 primitives; does not modify Taxonomy V1 and creates no primitive",
+    "projection": [
+      {
+        "registryConcept": "creux",
+        "taxonomyPrimitive": "NEW_LOW",
+        "status": "ACTIVE"
+      },
+      {
+        "registryConcept": "sommets",
+        "taxonomyPrimitive": "NEW_HIGH",
+        "status": "ACTIVE"
+      },
+      {
+        "registryConcept": "fortes hausses",
+        "taxonomyPrimitive": "CONTINUATION",
+        "status": "ACTIVE",
+        "decision": "B-3"
+      },
+      {
+        "registryConcept": "fortes baisses",
+        "taxonomyPrimitive": "DRAWDOWN",
+        "status": "ACTIVE",
+        "decision": "B-3"
+      },
+      {
+        "registryConcept": "reprises",
+        "taxonomyPrimitive": "RECOVERY",
+        "status": "ACTIVE"
+      },
+      {
+        "registryConcept": "continuations",
+        "taxonomyPrimitive": "CONTINUATION",
+        "status": "ACTIVE"
+      },
+      {
+        "registryConcept": "capitulations",
+        "taxonomyPrimitive": null,
+        "status": "DEFERRED",
+        "disposition": "future FormulaId or annotation"
+      },
+      {
+        "registryConcept": "accumulations",
+        "taxonomyPrimitive": null,
+        "status": "DEFERRED",
+        "disposition": "future FormulaId or annotation"
+      },
+      {
+        "registryConcept": "distributions",
+        "taxonomyPrimitive": null,
+        "status": "DEFERRED",
+        "disposition": "future FormulaId or annotation"
+      },
+      {
+        "registryConcept": "faux signaux",
+        "taxonomyPrimitive": null,
+        "status": "DEFERRED",
+        "disposition": "future FormulaId or annotation"
+      }
+    ],
+    "properties": {
+      "registryConceptCount": 10,
+      "coveredCount": 10,
+      "activeCount": 6,
+      "deferredCount": 4,
+      "distinctPrimitivesUsed": 5,
+      "nonInjective": "CONTINUATION receives two concepts, fortes hausses and continuations; a projection is not a bijection",
+      "nonSurjective": "RANGE receives no registry concept; RANGE is an additive mechanical primitive, not a translation of the registry",
+      "taxonomyV1Unchanged": true
+    }
+  },
+  "immutableInvariants": [
+    {
+      "id": "I-1",
+      "rule": "domainContracts.contractCount === 7 and contracts.length === 7, verified jointly"
+    },
+    {
+      "id": "I-2",
+      "rule": "canonicalObjective is byte-identical to the registry; sha256 e963d83b26c88336707fa6facfec8c2f3db6f8c17975bbc1555d096ab9ab59db, 180 characters, pure ASCII"
+    },
+    {
+      "id": "I-3",
+      "rule": "Taxonomy V1 is exactly 6 primitives; no addition, no renaming"
+    },
+    {
+      "id": "I-4",
+      "rule": "OutcomeStatus is exactly 3 values; NOT_YET_RESOLVED is not a member of OutcomeStatus"
+    },
+    {
+      "id": "I-5",
+      "rule": "Outcome is append-only; no historical mutation, ever"
+    },
+    {
+      "id": "I-6",
+      "rule": "ticker != identity; InstrumentIdentityId is the single canonical source of identity"
+    },
+    {
+      "id": "I-7",
+      "rule": "PriceBasis V1 is 3 values; DERIVED_ADJUSTED is refused; the basis is identical from T to T+H; a mixture is FAIL_CLOSED"
+    },
+    {
+      "id": "I-8",
+      "rule": "Observation Dataset != Outcome Dataset; a restatement produces a new DatasetId"
+    },
+    {
+      "id": "I-9",
+      "rule": "Horizon is in {30, 90, 180, 252} sessions; never calendar based; 1 year, 365 days and 12 months are forbidden"
+    },
+    {
+      "id": "I-10",
+      "rule": "GATE23 never consumes Outcome, not even lagged"
+    },
+    {
+      "id": "I-11",
+      "rule": "FormulaId is behavior; a behavioral change produces a new identity"
+    },
+    {
+      "id": "I-12",
+      "rule": "consumesGate21Pins[] is a subset of LAB_SCHEMA_PINS; no secondary authority, no parallel field"
+    },
+    {
+      "id": "I-13",
+      "rule": "no OutcomeId is emitted before horizon expiry",
+      "status": "THEOREM",
+      "proof": "eventTime is the real end of the session and availableAt cannot precede eventTime (dailyBarV1.mjs), therefore asOf = max availableAt over (T, T+H] >= availableAt(T+H) >= eventTime(T+H) = horizon expiry"
+    },
+    {
+      "id": "I-14",
+      "rule": "every authority flag is false; ratificationOnly is true"
+    },
+    {
+      "id": "I-15",
+      "rule": "the only execution contracts are C1 to C7; a designFreezeId is never executable; START does not merge, does not rename, does not choose; REUSE_INVENTORY_V1 is never a contract",
+      "source": "P0-1"
+    },
+    {
+      "id": "I-16",
+      "rule": "InstrumentIdentityId is required in every content-addressed identity; ObservationId contains the 8 declared components; ticker, symbol and temporary alias are forbidden in every identity digest",
+      "source": "P0-2, modality tightened to EXACT_ONLY by C-1"
+    },
+    {
+      "id": "I-17",
+      "rule": "a DatasetId binds exactly one vintage; no cross-version stitching; the first persisted Outcome is reproducible",
+      "source": "P1-1"
+    },
+    {
+      "id": "I-18",
+      "rule": "REGULAR_SESSION = HALF_DAY_SESSION = 1 session; a fractional H is forbidden; HorizonId = sessionCount + calendarRegistryManifestId",
+      "source": "P1-2"
+    },
+    {
+      "id": "I-19",
+      "rule": "PriceBasis V1 is 3 full members; DERIVED_ADJUSTED is refused; no unsupported or derived basis may be relabeled",
+      "source": "P1-3"
+    },
+    {
+      "id": "I-20",
+      "rule": "the OutcomeId tuple is closed at exactly 6 components and the ObservationId tuple is closed at exactly 8, both ordered and EXACT_ONLY, without ticker, without status, without reason",
+      "source": "C-1"
+    },
+    {
+      "id": "I-21",
+      "rule": "the Outcome Dataset is the snapshot at asOf = max availableAt of the INITIAL_ROOT revisions of (T, T+H]; no build-time selection; no stitching; a restatement produces a new DatasetId",
+      "source": "C-2"
+    },
+    {
+      "id": "I-22",
+      "rule": "a window whose asOf is not reached produces no Outcome record and no OutcomeId; absence is never converted into a status; no settlement bound exists; OutcomeWindowCause/1 contains no value whose instantiation would require knowing the future non-arrival of data",
+      "source": "O-3"
+    }
+  ],
+  "startBoundary": {
+    "does": [
+      "consumes the freeze",
+      "establishes authority",
+      "prepares BUILD"
+    ],
+    "doesNot": [
+      "produces no label",
+      "produces no Outcome",
+      "creates no dataset",
+      "modifies no contract",
+      "chooses no horizon",
+      "changes no FormulaId"
+    ],
+    "startIsNotBuild": true,
+    "startDoesNotMergeRenameOrChoose": "START does not merge design IDs into contracts, does not rename a contractId, and does not select between namings (R3)",
+    "notAuthorizedByThisDocument": true
+  },
+  "entryConditions": [
+    "GATE21 causal data is COMPLETE_CONFIRMED.",
+    "Label horizons and target definitions are declared.",
+    "Feature inputs are cut off at the historical observation time."
+  ],
+  "entryConditionsSource": "governance/GATE_REGISTRY_00_40.json#/gates/22/entryConditions, byte-identical",
+  "exitConditions": [
+    "Future values appear only in declared target outcomes.",
+    "No feature uses information unavailable at the observation time.",
+    "Every label is reproducible from bound inputs.",
+    "Ambiguous and insufficient cases are explicitly classified.",
+    "Coverage and horizon reports are complete."
+  ],
+  "exitConditionsSource": "governance/GATE_REGISTRY_00_40.json#/gates/22/exitConditions, byte-identical",
+  "forbiddenScope": [
+    "no 8th contract",
+    "no new taxonomy primitive",
+    "no new OutcomeStatus value",
+    "no new model",
+    "no prediction",
+    "no recommendation",
+    "no Wheel decision",
+    "no Market Regime",
+    "no strategy",
+    "no calendar horizon (1 year, 365 days, 12 months)",
+    "no DERIVED_ADJUSTED price basis",
+    "no relabeling of an unsupported or derived price basis",
+    "no ticker, symbol or temporary alias in any identity digest",
+    "no Outcome consumed as a GATE23 feature, even lagged",
+    "no historical mutation of a persisted Outcome",
+    "no OutcomeId before the Outcome Dataset asOf",
+    "no settlement bound for absent data",
+    "no build-time selection of the Outcome Dataset snapshot",
+    "no cross-version stitching of datasets",
+    "no secondary pin authority and no parallel pin field"
+  ],
+  "downstreamGuarantees": {
+    "GATE23": "consumes GATE21 and Observation only; Outcome is never a feature, not even lagged (I-10)",
+    "GATE24": "separate namespace",
+    "GATE25": "Outcome is attached only after selection"
+  },
+  "nextGate": "GATE23",
+  "sourceReferences": [
+    {
+      "sourceId": "GATE16_40_OWNER_RATIFICATION_AND_CANONICALIZATION_R2",
+      "sourcePath": "governance/sources/GATE16_40_OWNER_RATIFICATION_R2.json",
+      "sourceLocation": "/gates/GATE22",
+      "field": "canonicalObjective",
+      "evidence": "Canonical strategic mandate projection from the owner-ratified R2 source."
+    },
+    {
+      "sourceId": "OWNER_PROVIDED_WHEEL_JARVISE_MASTER_ROADMAP_00_40",
+      "sourcePath": "governance/sources/WHEEL_JARVISE_MASTER_ROADMAP_00_40.txt",
+      "sourceSha256": "c59c9f243581104e0486f075311da4163b27f778ea5ba176c8f86f3b74d6647d",
+      "sourceLocation": "GATE22 - BOTTOM/TOP LABEL ENGINE",
+      "field": "canonicalObjective"
+    },
+    {
+      "sourceId": "GATE_REGISTRY_00_40",
+      "sourcePath": "governance/GATE_REGISTRY_00_40.json",
+      "sourceLocation": "/gates/22",
+      "field": "canonicalName, canonicalObjective, strategicPurpose, entryConditions, exitConditions, nextGate",
+      "evidence": "Registry entry consumed byte-identically; this mandate redefines no registry field."
+    },
+    {
+      "sourceId": "GATE21_CANONICAL_MANDATE_R0",
+      "sourcePath": "governance/sources/GATE21_CANONICAL_MANDATE_R0.json",
+      "field": "dependency, schemaVersioning, futureChangeTest, exactWorkset",
+      "evidence": "GATE21 is the direct predecessor; its schemaVersioning and futureChangeTest describe the additive route and its exactWorkset describes the WRAP form. PROMO-1 Option B supersedes the GATE21-side execution of that route."
+    },
+    {
+      "sourceId": "CANONICAL_MANDATE_AUTHORITY_ID_NAMING_PRECEDENT",
+      "sourcePath": "governance/sources/GATE15_CANONICAL_MANDATE_R0.json",
+      "sourceLocation": "/authorityId",
+      "field": "authorityId",
+      "evidence": "authorityId is derived, not chosen: GATE15 and GATE21 canonical mandates both carry GATE<NN>_CANONICAL_MANDATE_RATIFICATION_R0, and governance/gates/GATE15/contracts/EXECUTION_CONTRACT_R0001.json references the GATE15 mandate by that exact sourceId. The value here applies the same rule to GATE22. It names a ratification identity only and asserts no ceremony, no START and no execution authority."
+    },
+    {
+      "sourceId": "GATE22_OWNER_DESIGN_FREEZE_CONFIRMED",
+      "sourcePath": null,
+      "field": "ownerDecisions",
+      "evidence": "Owner Design Freeze confirmed with decisions D-1, D-2, D-3, D-4, V-1, B-1, B-2, B-3, followed by hostile correction rounds P0-1, P0-2, P1-1, P1-2, P1-3, then C-1, C-2, then O-3, and the Owner verdict PASS_HOSTILE_AUDIT. PROMO-1 Option B ratified thereafter."
+    }
+  ],
+  "ownerDisposition": {
+    "status": "RATIFICATION_ONLY",
+    "execution": "NOT_AUTHORIZED_BY_THIS_DOCUMENT",
+    "start": "NOT_AUTHORIZED_BY_THIS_DOCUMENT",
+    "build": "NOT_AUTHORIZED_BY_THIS_DOCUMENT",
+    "precontract": "NOT_AUTHORIZED_BY_THIS_DOCUMENT",
+    "statusTransition": "NOT_AUTHORIZED_BY_THIS_DOCUMENT",
+    "commit": "NOT_AUTHORIZED_BY_THIS_DOCUMENT",
+    "push": "NOT_AUTHORIZED_BY_THIS_DOCUMENT",
+    "promo1": "NOT_EXECUTED_BY_THIS_DOCUMENT",
+    "notes": "This document canonicalizes the GATE22 mandate only. It creates no contract file, no gate directory, no ledger entry, no state transition and no evidence. C1 to C7 are conceptual contracts declared here, not files."
+  }
+}

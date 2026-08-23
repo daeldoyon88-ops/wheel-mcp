@@ -1,0 +1,65 @@
+{
+  "document": "GATE22_MANDATE_BINDING",
+  "schemaVersion": 1,
+  "gateId": "GATE22",
+  "boundAt": "2026-08-23T00:00:00.000Z",
+  "mandate": {
+    "documentId": "GATE22_CANONICAL_MANDATE_R0",
+    "authorityId": "GATE22_CANONICAL_MANDATE_RATIFICATION_R0",
+    "issuedBy": "PROJECT_OWNER",
+    "path": "governance/sources/GATE22_CANONICAL_MANDATE_R0.json",
+    "sha256": "1d101e0da4a21f2561055993d17779ade6f9c5bc339fe91abaee390e10eb95bb",
+    "byteLength": 41184,
+    "readOnly": true,
+    "canonical": true,
+    "ratificationOnly": true,
+    "designFreezeClosed": true,
+    "auditsObtained": [
+      "PASS_HOSTILE_AUDIT",
+      "PASS_INDEPENDENT_MATERIALIZATION_AUDIT"
+    ],
+    "grants": {
+      "executionAuthorized": false,
+      "startAuthorized": false,
+      "statusTransitionAuthorized": false,
+      "functionalImplementationAuthorized": false,
+      "precontractAuthorized": false,
+      "buildAuthorized": false,
+      "commitAuthorized": false,
+      "pushAuthorized": false
+    }
+  },
+  "strategicRegistry": {
+    "path": "governance/GATE_REGISTRY_00_40.json",
+    "sha256": "76d5f9ff0a21f8c1eadaf9ccd9e48c9087d12655fac6a5c9215584053652a56b",
+    "gateId": "GATE22",
+    "officialName": "BOTTOM/TOP LABEL ENGINE",
+    "canonicalObjectiveSha256": "bc8376b2ac7b399010bb31146ce7e775e5af05ce4a0f85b4e80144d27381c726",
+    "canonicalObjectiveRawSha256": "e963d83b26c88336707fa6facfec8c2f3db6f8c17975bbc1555d096ab9ab59db",
+    "canonicalObjectiveLengthBytes": 180,
+    "entryConditionsSource": "governance/GATE_REGISTRY_00_40.json#/gates/22/entryConditions, byte-identical",
+    "exitConditionsSource": "governance/GATE_REGISTRY_00_40.json#/gates/22/exitConditions, byte-identical",
+    "nextGate": "GATE23",
+    "mandateRedefinition": false
+  },
+  "dependencyProof": {
+    "gateId": "GATE21",
+    "status": "COMPLETE_CONFIRMED",
+    "terminalEventId": "GATE21_EXTERNAL_CONFIRMATION_R1",
+    "terminalOrdinal": 89,
+    "stateRevision": "R0005",
+    "currentStatePath": "governance/gates/GATE21/state/CURRENT_STATE.json",
+    "currentStateSha256": "ff2f0f312ce08791e0b2d5eaec5897250296b990f79ce484793b88d66ae84ed9",
+    "stateSealPath": "governance/gates/GATE21/state/revisions/R0005/STATE_SEAL.json",
+    "stateSealSha256": "36e7e648cddf1cd9b54e95f747934f67c2e27f20c4526156611da7fb60c76dba",
+    "ledgerPath": "governance/state/GATE_STATUS_LEDGER.ndjson",
+    "ledgerSha256": "2b5a028825727230e299f4c15f47b5a8b478552883ed40c48af34847e7644150",
+    "ledgerLineCount": 89,
+    "reopened": false,
+    "newRevisionCreated": false
+  },
+  "constitution": {
+    "path": "governance/PROJECT_CONSTITUTION.json",
+    "sha256": "a26443b54c7168b2927e42e2b70bc480eba3aee8abdca10a56852d576d3d62c8"
+  }
+}

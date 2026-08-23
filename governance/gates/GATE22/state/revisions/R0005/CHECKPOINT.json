@@ -1,0 +1,13 @@
+{
+  "gateId": "GATE22",
+  "stateRevision": "R0005",
+  "milestone": "GATE22_EXTERNAL_CONFIRMATION",
+  "resumePoint": "COMPLETE_CONFIRMED",
+  "completedTasks": [],
+  "openTasks": [],
+  "reusableEvidence": [],
+  "invalidatedEvidence": [],
+  "requiredNextActions": [],
+  "protectedHashes": [],
+  "createdAt": "2026-08-23T23:19:27.401Z"
+}

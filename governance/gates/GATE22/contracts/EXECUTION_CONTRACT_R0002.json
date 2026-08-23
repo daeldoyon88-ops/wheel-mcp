@@ -1,0 +1,458 @@
+{
+  "gateId": "GATE22",
+  "contractRevision": "R0002",
+  "previousContractPath": "governance/gates/GATE22/contracts/EXECUTION_CONTRACT_R0001.json",
+  "previousContractSha256": "76b6d6d9fe0938ea43e6e20710e1081e4918a72ecbab49072549b0450bb294e0",
+  "strategicRegistryReference": {
+    "registryPath": "governance/GATE_REGISTRY_00_40.json",
+    "registrySha256": "76d5f9ff0a21f8c1eadaf9ccd9e48c9087d12655fac6a5c9215584053652a56b",
+    "gateId": "GATE22",
+    "canonicalObjectiveSha256": "bc8376b2ac7b399010bb31146ce7e775e5af05ce4a0f85b4e80144d27381c726"
+  },
+  "canonicalRequirements": [
+    {
+      "requirementId": "G22-BUILD-01",
+      "statement": "Materialize exactly the seven frozen domain contracts C1..C7 at their planned contract paths, each machine-bound to its mandate projection digest; no eighth contract, no rename, no merge, no version change.",
+      "normativeSource": "governance/sources/GATE22_CANONICAL_MANDATE_R0.json#/domainContracts"
+    },
+    {
+      "requirementId": "G22-BUILD-02",
+      "statement": "Implement the BOTTOM/TOP LABEL ENGINE strictly as the Observation(T) to Outcome(T+H) transform; produce no prediction, recommendation, Wheel decision, market regime or strategy.",
+      "normativeSource": "governance/sources/GATE22_CANONICAL_MANDATE_R0.json#/missionBoundary"
+    },
+    {
+      "requirementId": "G22-BUILD-03",
+      "statement": "Horizon H is a session count in {30, 90, 180, 252}; calendar horizons are forbidden; REGULAR_SESSION equals HALF_DAY_SESSION equals one session; HorizonId is sessionCount plus calendarRegistryManifestId.",
+      "normativeSource": "governance/sources/GATE22_CANONICAL_MANDATE_R0.json#/immutableInvariants"
+    },
+    {
+      "requirementId": "G22-BUILD-04",
+      "statement": "The OutcomeId tuple is closed at exactly six ordered components and the ObservationId tuple at exactly eight, both EXACT_ONLY, carrying InstrumentIdentityId and excluding ticker, symbol, temporary alias, status and reason.",
+      "normativeSource": "governance/sources/GATE22_CANONICAL_MANDATE_R0.json#/immutableInvariants"
+    },
+    {
+      "requirementId": "G22-BUILD-05",
+      "statement": "PriceBasis V1 is exactly three members; DERIVED_ADJUSTED is refused; the basis is identical from T to T+H and any mixture is FAIL_CLOSED; no unsupported or derived basis may be relabeled.",
+      "normativeSource": "governance/sources/GATE22_CANONICAL_MANDATE_R0.json#/immutableInvariants"
+    },
+    {
+      "requirementId": "G22-BUILD-06",
+      "statement": "The Observation Dataset and the Outcome Dataset stay separate; the Outcome Dataset asOf is a deterministic function of the bytes; a restatement produces a new DatasetId; no cross-version stitching and no build-time snapshot selection.",
+      "normativeSource": "governance/sources/GATE22_CANONICAL_MANDATE_R0.json#/immutableInvariants"
+    },
+    {
+      "requirementId": "G22-BUILD-07",
+      "statement": "Outcome persistence is append-only with OutcomeStatus of exactly three values; before the Outcome Dataset asOf no Outcome record and no OutcomeId exist; absence is never converted into a status and no settlement bound is emitted for absent data.",
+      "normativeSource": "governance/sources/GATE22_CANONICAL_MANDATE_R0.json#/immutableInvariants"
+    },
+    {
+      "requirementId": "G22-BUILD-08",
+      "statement": "Taxonomy V1 is exactly six mechanical, non-exclusive, versioned primitives; no addition and no renaming; the registryConcept to taxonomyPrimitive projection stays a compatibility projection.",
+      "normativeSource": "governance/sources/GATE22_CANONICAL_MANDATE_R0.json#/domainContracts/contracts/5"
+    },
+    {
+      "requirementId": "G22-BUILD-09",
+      "statement": "GATE23 consumes GATE21 and Observation only and never consumes Outcome, not even lagged; GATE24 lives in a separate namespace; GATE25 attaches Outcome only after selection.",
+      "normativeSource": "governance/sources/GATE22_CANONICAL_MANDATE_R0.json#/domainContracts/contracts/6"
+    },
+    {
+      "requirementId": "G22-BUILD-10",
+      "statement": "consumesGate21Pins stays a subset of the frozen GATE21 LAB_SCHEMA_PINS; GATE22-owned pins are consumed only through consumesGate22SuccessorPins; no secondary pin authority and no parallel pin field.",
+      "normativeSource": "governance/sources/GATE22_CANONICAL_MANDATE_R0.json#/gate21PinVocabulary"
+    },
+    {
+      "requirementId": "G22-BUILD-11",
+      "statement": "Preserve EXECUTION_CONTRACT_R0001 bytes and the GATE22 START binding; this revision activates materialization and functional BUILD scope only and does not close, confirm, replay START, or authorize GATE23.",
+      "normativeSource": "governance/gates/GATE22/contracts/EXECUTION_CONTRACT_R0001.json"
+    },
+    {
+      "requirementId": "G22-BUILD-12",
+      "statement": "GATE21 surfaces and research/directional-lab stay byte-identical; no GATE21 R0006 is created and no GATE21 state is reopened.",
+      "normativeSource": "governance/gates/GATE21/state/CURRENT_STATE.json"
+    }
+  ],
+  "requiredInputs": [
+    {
+      "path": "governance/sources/GATE22_CANONICAL_MANDATE_R0.json",
+      "sha256": "1d101e0da4a21f2561055993d17779ade6f9c5bc339fe91abaee390e10eb95bb",
+      "role": "CANONICAL_RATIFICATION_ONLY_MANDATE"
+    },
+    {
+      "path": "governance/gates/GATE22/prestart/GATE22_START_DOMAIN_CONTRACT_SET_V1.json",
+      "sha256": "e01835fb7474680297db166180005a1a5f5c791b707f46a7228afa4756f32eac",
+      "role": "FROZEN_DOMAIN_CONTRACT_PROJECTION_SET"
+    },
+    {
+      "path": "governance/gates/GATE22/pins/GATE22_SUCCESSOR_SCHEMA_PINS.json",
+      "sha256": "5e28fa6ce6b4af6b2fe52440eb209411b8d584c39284ba305bc9f9bf2057c931",
+      "role": "GATE22_OWNED_SUCCESSOR_PIN_SURFACE"
+    },
+    {
+      "path": "governance/GATE_REGISTRY_00_40.json",
+      "sha256": "76d5f9ff0a21f8c1eadaf9ccd9e48c9087d12655fac6a5c9215584053652a56b",
+      "role": "STRATEGIC_REGISTRY"
+    },
+    {
+      "path": "governance/gates/GATE22/contracts/EXECUTION_CONTRACT_R0001.json",
+      "sha256": "76b6d6d9fe0938ea43e6e20710e1081e4918a72ecbab49072549b0450bb294e0",
+      "role": "IMMUTABLE_PREDECESSOR_PRECONTRACT"
+    },
+    {
+      "path": "governance/gates/GATE21/state/CURRENT_STATE.json",
+      "sha256": "ff2f0f312ce08791e0b2d5eaec5897250296b990f79ce484793b88d66ae84ed9",
+      "role": "GATE21_DEPENDENCY_PRESTATE"
+    },
+    {
+      "path": "governance/gates/GATE21/contracts/GATE21_BINDING_V1.json",
+      "sha256": "c8982c5c857759dd4204670e514c6b447b573140552d188012b9c9dedc5e9607",
+      "role": "GATE21_CAUSAL_DATA_BINDING"
+    },
+    {
+      "path": "governance/state/GATE_STATUS_LEDGER.ndjson",
+      "role": "LIFECYCLE_AND_DEPENDENCY_PRESTATE"
+    }
+  ],
+  "requiredOutputs": [
+    {
+      "ordinal": 1,
+      "path": "governance/gates/GATE22/contracts/GATE22_TEMPORAL_HORIZON_V1.json",
+      "role": "C1 GATE22_TEMPORAL_HORIZON_V1 materialized domain contract"
+    },
+    {
+      "ordinal": 2,
+      "path": "governance/gates/GATE22/contracts/GATE22_OUTCOME_PERSISTENCE_V1.json",
+      "role": "C2 GATE22_OUTCOME_PERSISTENCE_V1 materialized domain contract"
+    },
+    {
+      "ordinal": 3,
+      "path": "governance/gates/GATE22/contracts/GATE22_IDENTITY_MODEL_V1.json",
+      "role": "C3 GATE22_IDENTITY_MODEL_V1 materialized domain contract"
+    },
+    {
+      "ordinal": 4,
+      "path": "governance/gates/GATE22/contracts/GATE22_PRICE_BASIS_V1.json",
+      "role": "C4 GATE22_PRICE_BASIS_V1 materialized domain contract"
+    },
+    {
+      "ordinal": 5,
+      "path": "governance/gates/GATE22/contracts/GATE22_DATASET_SEPARATION_V1.json",
+      "role": "C5 GATE22_DATASET_SEPARATION_V1 materialized domain contract"
+    },
+    {
+      "ordinal": 6,
+      "path": "governance/gates/GATE22/contracts/GATE22_TAXONOMY_V1.json",
+      "role": "C6 GATE22_TAXONOMY_V1 materialized domain contract"
+    },
+    {
+      "ordinal": 7,
+      "path": "governance/gates/GATE22/contracts/GATE22_CONSUMPTION_BOUNDARY_V1.json",
+      "role": "C7 GATE22_CONSUMPTION_BOUNDARY_V1 materialized domain contract"
+    },
+    {
+      "ordinal": 8,
+      "path": "governance/gates/GATE22/buildprep/GATE22_BUILD_WORKSET_MANIFEST.json",
+      "role": "Exact closed BUILD workset and authorized path manifest"
+    },
+    {
+      "ordinal": 9,
+      "path": "governance/gates/GATE22/buildprep/GATE22_BUILD_AUTHORITY_CANDIDATE.json",
+      "role": "Required BUILD authority form, non-activated candidate"
+    },
+    {
+      "ordinal": 10,
+      "path": "governance/gates/GATE22/buildprep/GATE22_DOMAIN_CONTRACT_BINDINGS.json",
+      "role": "Machine-bindable C1..C7 to mandate projection bindings"
+    },
+    {
+      "ordinal": 11,
+      "path": "governance/gates/GATE22/buildprep/BUILD_CHECKPOINT.json",
+      "role": "Resume point for the next mission, which starts at BUILD"
+    },
+    {
+      "ordinal": 12,
+      "path": "governance/gates/GATE22/buildprep/BUILD_EVIDENCE_BASELINE.json",
+      "role": "Pre-BUILD validator and evidence baseline for differential proof"
+    },
+    {
+      "ordinal": 13,
+      "path": "governance/gates/GATE22/implementation/temporal-horizon-v1.mjs",
+      "role": "C1 temporal horizon and session-counted H engine"
+    },
+    {
+      "ordinal": 14,
+      "path": "governance/gates/GATE22/implementation/outcome-persistence-v1.mjs",
+      "role": "C2 append-only Outcome persistence and missingness routing"
+    },
+    {
+      "ordinal": 15,
+      "path": "governance/gates/GATE22/implementation/identity-model-v1.mjs",
+      "role": "C3 content-addressed ObservationId/OutcomeId composition"
+    },
+    {
+      "ordinal": 16,
+      "path": "governance/gates/GATE22/implementation/price-basis-v1.mjs",
+      "role": "C4 PriceBasis admissibility and window stability"
+    },
+    {
+      "ordinal": 17,
+      "path": "governance/gates/GATE22/implementation/dataset-separation-v1.mjs",
+      "role": "C5 Observation/Outcome dataset separation and asOf derivation"
+    },
+    {
+      "ordinal": 18,
+      "path": "governance/gates/GATE22/implementation/taxonomy-v1.mjs",
+      "role": "C6 six-primitive label taxonomy"
+    },
+    {
+      "ordinal": 19,
+      "path": "governance/gates/GATE22/implementation/consumption-boundary-v1.mjs",
+      "role": "C7 downstream consumption boundary enforcement"
+    },
+    {
+      "ordinal": 20,
+      "path": "governance/gates/GATE22/implementation/label-engine-v1.mjs",
+      "role": "BOTTOM/TOP LABEL ENGINE composition over C1..C7"
+    },
+    {
+      "ordinal": 21,
+      "path": "governance/gates/GATE22/tests/gate22-foundation.test.mjs",
+      "role": "Positive consumer-proof tests over C1..C7"
+    },
+    {
+      "ordinal": 22,
+      "path": "governance/gates/GATE22/tests/gate22-hostiles.test.mjs",
+      "role": "Anti-leakage and invariant hostile tests"
+    },
+    {
+      "ordinal": 23,
+      "path": "governance/gates/GATE22/tests/gate22-evolvability.test.mjs",
+      "role": "FUTURE_CHANGE_TEST and FUTURE_3_GATES_TEST"
+    },
+    {
+      "ordinal": 24,
+      "path": "governance/gates/GATE22/fixtures/label-consumer-fixture.mjs",
+      "role": "Declared consumer fixture for GATE22 v1 bindings"
+    },
+    {
+      "ordinal": 25,
+      "path": "governance/gates/GATE22/evidence/BUILD_CANDIDATE_RECEIPT.json",
+      "role": "Build-candidate proof receipt, not closure"
+    }
+  ],
+  "validators": [
+    "node governance/tools/validate-gate-contract.mjs --contract governance/gates/GATE22/contracts/EXECUTION_CONTRACT_R0002.json --pointer governance/gates/GATE22/contracts/CURRENT_CONTRACT.json",
+    "node governance/tools/validate-state-seal.mjs --seal governance/gates/GATE22/state/revisions/R0003/STATE_SEAL.json",
+    "node governance/tools/validate-state-revision.mjs --gate-id GATE22 --contract governance/gates/GATE22/contracts/EXECUTION_CONTRACT_R0002.json",
+    "node governance/tools/validate-status-ledger.mjs",
+    "node governance/tools/governance-preflight.mjs",
+    "node governance/gates/GATE22/tests/gate22-foundation.test.mjs",
+    "node governance/gates/GATE22/tests/gate22-hostiles.test.mjs",
+    "node governance/gates/GATE22/tests/gate22-evolvability.test.mjs"
+  ],
+  "positiveTests": [
+    {
+      "testId": "G22-POS-01",
+      "case": "each materialized Ci reproduces its mandateProjectionSha256 from the embedded projection bytes",
+      "expected": "PASS"
+    },
+    {
+      "testId": "G22-POS-02",
+      "case": "an Outcome resolves only after the Outcome Dataset asOf and replays to the same OutcomeId",
+      "expected": "PASS"
+    },
+    {
+      "testId": "G22-POS-03",
+      "case": "a horizon of 30, 90, 180 or 252 sessions resolves through the pinned calendar registry",
+      "expected": "PASS"
+    },
+    {
+      "testId": "G22-POS-04",
+      "case": "taxonomy V1 exposes exactly six non-exclusive primitives",
+      "expected": "PASS"
+    }
+  ],
+  "negativeTests": [
+    {
+      "testId": "G22-NEG-01",
+      "case": "a calendar horizon of 1 year, 365 days or 12 months is requested",
+      "expected": "BLOCKED"
+    },
+    {
+      "testId": "G22-NEG-02",
+      "case": "DERIVED_ADJUSTED is supplied as a price basis, or the basis changes between T and T+H",
+      "expected": "FAIL_CLOSED"
+    },
+    {
+      "testId": "G22-NEG-03",
+      "case": "an OutcomeId is requested before the Outcome Dataset asOf is reached",
+      "expected": "ABSENT"
+    },
+    {
+      "testId": "G22-NEG-04",
+      "case": "GATE23 requests an Outcome as a feature, including a lagged one",
+      "expected": "BLOCKED"
+    },
+    {
+      "testId": "G22-NEG-05",
+      "case": "a ticker, symbol or temporary alias is offered to an identity digest",
+      "expected": "BLOCKED"
+    },
+    {
+      "testId": "G22-NEG-06",
+      "case": "an eighth domain contract or a renamed contractId is presented",
+      "expected": "BLOCKED"
+    }
+  ],
+  "countertests": [
+    {
+      "testId": "G22-CTR-01",
+      "case": "a persisted Outcome is mutated in place instead of restated under a new DatasetId",
+      "expected": "BLOCKED"
+    },
+    {
+      "testId": "G22-CTR-02",
+      "case": "absence of data is silently converted into an OutcomeStatus value",
+      "expected": "BLOCKED"
+    },
+    {
+      "testId": "G22-CTR-03",
+      "case": "asserted PASS without the declared consumer fixture consuming GATE22 v1 bindings",
+      "expected": "BLOCKED"
+    },
+    {
+      "testId": "G22-CTR-04",
+      "case": "two dataset vintages are stitched into one DatasetId",
+      "expected": "BLOCKED"
+    }
+  ],
+  "reuseRules": [
+    "REUSE then WRAP then CONTRACTUALIZE then VERSION; consume GATE21 causal-data interface and LAB_SCHEMA_PINS without forking them.",
+    "The Design Freeze is closed: C1..C7 come from GATE22_CANONICAL_MANDATE_R0 projections only, never from rediscovery.",
+    "Reuse the existing GEE, Fast Gate and Context Compiler workflow without modifying their core.",
+    "Preserve EXECUTION_CONTRACT_R0001 bytes and START bindings; this revision does not replay START."
+  ],
+  "invalidationRules": [
+    "Any mutation of EXECUTION_CONTRACT_R0001 invalidates this succession.",
+    "Any authorizedPath outside the exact declared cohort, or any wildcard or directory-wide path, invalidates this contract.",
+    "Any divergence between a materialized Ci and its mandate projection digest invalidates this contract.",
+    "Any eighth contract, rename, merge or version change invalidates this contract.",
+    "Any mutation of a GATE21 surface or of research/directional-lab invalidates this contract."
+  ],
+  "forbiddenReplays": [
+    "GATE22 START",
+    "SECOND_START",
+    "GEE R8",
+    "GATE21 reopening",
+    "GATE21 R0006",
+    "directional-lab mutation",
+    "AGENT_CLOSURE",
+    "EXTERNAL_CONFIRMATION",
+    "COMPLETE_CONFIRMED",
+    "ACTIVE_GATE mutation",
+    "ledger rewrite",
+    "GATE23 implementation",
+    "git commit",
+    "git push",
+    "git add .",
+    "git add -A"
+  ],
+  "closureConditions": [
+    "CLOSURE_PATH_PROOF recalculated from bound bytes, not asserted PASS.",
+    "Causality, horizon session-counting, identity closure, price-basis stability, dataset separation, taxonomy cardinality and consumption boundary are each evidenced.",
+    "A declared consumer fixture fails if GATE22 v1 bindings disappear or mismatch.",
+    "This contract does not itself COMPLETE_AGENT, EXTERNAL_CONFIRM, or authorize GATE23."
+  ],
+  "nextGateAuthorizationConditions": [
+    "GATE22 BUILD PASS is not GATE23 authorization.",
+    "GATE23 requires a later separate execution contract and authority."
+  ],
+  "performanceBudget": {
+    "targetMinutes": 120,
+    "expectedMaximumMinutes": 240,
+    "closeoutStartMinutes": 200,
+    "absoluteMaximumMinutes": 480
+  },
+  "checkpointPolicy": {
+    "resume": "IN_PROGRESS under EXECUTION_CONTRACT_R0002; C1..C7 materialized and BUILD package prepared; next exact step is the GATE22 functional BUILD without closure",
+    "reuse": "GATE21 causal-data interface, GATE22 frozen mandate projections, and the GEE/Fast Gate workflow without core edits",
+    "independentConfirmation": "required separately after BUILD; not this succession"
+  },
+  "authorizedPaths": [
+    "governance/gates/GATE22/contracts/GATE22_TEMPORAL_HORIZON_V1.json",
+    "governance/gates/GATE22/contracts/GATE22_OUTCOME_PERSISTENCE_V1.json",
+    "governance/gates/GATE22/contracts/GATE22_IDENTITY_MODEL_V1.json",
+    "governance/gates/GATE22/contracts/GATE22_PRICE_BASIS_V1.json",
+    "governance/gates/GATE22/contracts/GATE22_DATASET_SEPARATION_V1.json",
+    "governance/gates/GATE22/contracts/GATE22_TAXONOMY_V1.json",
+    "governance/gates/GATE22/contracts/GATE22_CONSUMPTION_BOUNDARY_V1.json",
+    "governance/gates/GATE22/buildprep/GATE22_BUILD_WORKSET_MANIFEST.json",
+    "governance/gates/GATE22/buildprep/GATE22_BUILD_AUTHORITY_CANDIDATE.json",
+    "governance/gates/GATE22/buildprep/GATE22_DOMAIN_CONTRACT_BINDINGS.json",
+    "governance/gates/GATE22/buildprep/BUILD_CHECKPOINT.json",
+    "governance/gates/GATE22/buildprep/BUILD_EVIDENCE_BASELINE.json",
+    "governance/gates/GATE22/implementation/temporal-horizon-v1.mjs",
+    "governance/gates/GATE22/implementation/outcome-persistence-v1.mjs",
+    "governance/gates/GATE22/implementation/identity-model-v1.mjs",
+    "governance/gates/GATE22/implementation/price-basis-v1.mjs",
+    "governance/gates/GATE22/implementation/dataset-separation-v1.mjs",
+    "governance/gates/GATE22/implementation/taxonomy-v1.mjs",
+    "governance/gates/GATE22/implementation/consumption-boundary-v1.mjs",
+    "governance/gates/GATE22/implementation/label-engine-v1.mjs",
+    "governance/gates/GATE22/tests/gate22-foundation.test.mjs",
+    "governance/gates/GATE22/tests/gate22-hostiles.test.mjs",
+    "governance/gates/GATE22/tests/gate22-evolvability.test.mjs",
+    "governance/gates/GATE22/fixtures/label-consumer-fixture.mjs",
+    "governance/gates/GATE22/evidence/BUILD_CANDIDATE_RECEIPT.json"
+  ],
+  "requiredPolicyIds": [
+    "MAIN_AGENT_ONLY",
+    "SUBAGENTS_FORBIDDEN_BY_DEFAULT",
+    "NETWORK_FORBIDDEN_BY_DEFAULT",
+    "GIT_WRITES_FORBIDDEN_BY_DEFAULT",
+    "DANGEROUS_GIT_COMMANDS_FORBIDDEN",
+    "AUTHORIZED_PATHS_ONLY",
+    "NO_RESTART_FROM_ZERO",
+    "RESUME_FROM_CHECKPOINT",
+    "NO_HARDCODED_PASS",
+    "NO_CIRCULAR_VALIDATION",
+    "NO_FUTURE_LEAKAGE",
+    "NO_GATE_MANDATE_REDEFINITION",
+    "BLOCK_ON_AUTHORITY_CONFLICT",
+    "DETERMINISTIC_OPERATIONS_LOCAL",
+    "SEPARATE_SESSION_REINSPECTION",
+    "GENERATED_FILES_NON_CANONICAL",
+    "HISTORICAL_REJECTED_NOT_ACTIVE"
+  ],
+  "sourceReferences": [
+    {
+      "sourcePath": "governance/GATE_REGISTRY_00_40.json",
+      "sourceSha256": "76d5f9ff0a21f8c1eadaf9ccd9e48c9087d12655fac6a5c9215584053652a56b",
+      "sourceLocation": "/gates/GATE22",
+      "field": "canonicalObjective"
+    },
+    {
+      "sourcePath": "governance/sources/GATE22_CANONICAL_MANDATE_R0.json",
+      "sourceSha256": "1d101e0da4a21f2561055993d17779ade6f9c5bc339fe91abaee390e10eb95bb",
+      "sourceLocation": "/domainContracts",
+      "field": "contracts"
+    },
+    {
+      "sourcePath": "governance/sources/GATE22_CANONICAL_MANDATE_R0.json",
+      "sourceSha256": "1d101e0da4a21f2561055993d17779ade6f9c5bc339fe91abaee390e10eb95bb",
+      "sourceLocation": "/immutableInvariants",
+      "field": "rule"
+    },
+    {
+      "sourcePath": "governance/sources/GATE22_CANONICAL_MANDATE_R0.json",
+      "sourceSha256": "1d101e0da4a21f2561055993d17779ade6f9c5bc339fe91abaee390e10eb95bb",
+      "sourceLocation": "/forbiddenScope",
+      "field": "forbiddenScope"
+    },
+    {
+      "sourcePath": "governance/gates/GATE22/contracts/EXECUTION_CONTRACT_R0001.json",
+      "sourceSha256": "76b6d6d9fe0938ea43e6e20710e1081e4918a72ecbab49072549b0450bb294e0",
+      "sourceLocation": "/",
+      "field": "contractRevision"
+    }
+  ]
+}

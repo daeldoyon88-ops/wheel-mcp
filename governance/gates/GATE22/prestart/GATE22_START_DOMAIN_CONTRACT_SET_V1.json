@@ -1,0 +1,267 @@
+{
+  "document": "GATE22_START_DOMAIN_CONTRACT_SET_V1",
+  "schemaVersion": 1,
+  "gateId": "GATE22",
+  "preparedAt": "2026-08-23T00:00:00.000Z",
+  "authority": {
+    "mandatePath": "governance/sources/GATE22_CANONICAL_MANDATE_R0.json",
+    "mandateSha256": "1d101e0da4a21f2561055993d17779ade6f9c5bc339fe91abaee390e10eb95bb",
+    "mandatePointer": "/domainContracts",
+    "ownerDecisionId": "D-1",
+    "ownerDecisionPointer": "/ownerDecisions/0"
+  },
+  "contractCount": 7,
+  "declaredContractCount": 7,
+  "contractCountInvariant": "contractCount === 7",
+  "eighthContractPresent": false,
+  "contracts": [
+    {
+      "contractKey": "C1",
+      "contractId": "GATE22_TEMPORAL_HORIZON_V1",
+      "version": 1,
+      "designFreezeRef": "TARGET_BOUNDARY_CONTRACT_V1",
+      "purpose": "T = SessionDate; KnowledgeCutoff is distinct; Observation requires availableAt <= KnowledgeCutoff; the Outcome window is (T, T+H]; H is a session count; HorizonId is content-addressed against the pinned calendar registry.",
+      "consumesGate21Pins": [
+        "marketSessionCalendar",
+        "marketCalendarAuthority",
+        "marketCalendarRegistry",
+        "marketCalendarL3",
+        "DailyBarV1",
+        "knowledgeModes"
+      ],
+      "consumesGate21PinCount": 6,
+      "consumesGate22SuccessorPins": [],
+      "consumesGate22SuccessorPinCount": 0,
+      "mandatePointer": "/domainContracts/contracts/0",
+      "mandateProjectionSha256": "951fbf834b2f513e64f9f8ced3a6a95dbb4ab063b7b10aced58d80e627fa387b",
+      "plannedContractPath": "governance/gates/GATE22/contracts/GATE22_TEMPORAL_HORIZON_V1.json",
+      "materializedAtPrestart": false,
+      "functionalImplementationPresent": false
+    },
+    {
+      "contractKey": "C2",
+      "contractId": "GATE22_OUTCOME_PERSISTENCE_V1",
+      "version": 1,
+      "designFreezeRef": "TARGET_BOUNDARY_CONTRACT_V1",
+      "purpose": "Outcome persistence and missingness routing. Before the Outcome Dataset asOf is reached no Outcome record and no OutcomeId exist. After it, the record carries RESOLVED, INSUFFICIENT_DATA or FAIL_CLOSED. Append-only, no historical mutation. Hosts the internal OutcomeMissingReason structure ratified by B-2.",
+      "consumesGate21Pins": [
+        "MissingReasonsV1",
+        "coverage",
+        "DatasetSnapshotRecord",
+        "SnapshotDatasetManifestV1"
+      ],
+      "consumesGate21PinCount": 4,
+      "consumesGate22SuccessorPins": [],
+      "consumesGate22SuccessorPinCount": 0,
+      "mandatePointer": "/domainContracts/contracts/1",
+      "mandateProjectionSha256": "866c80713da1b1e327d1e4b71b7d84b59bded3593aa5bfe34ae767173931df4c",
+      "plannedContractPath": "governance/gates/GATE22/contracts/GATE22_OUTCOME_PERSISTENCE_V1.json",
+      "materializedAtPrestart": false,
+      "functionalImplementationPresent": false
+    },
+    {
+      "contractKey": "C3",
+      "contractId": "GATE22_IDENTITY_MODEL_V1",
+      "version": 1,
+      "designFreezeRef": "OBSERVATION_OUTCOME_IDENTITY_V1",
+      "purpose": "Content-addressed identity model. InstrumentIdentityId is the single canonical source of instrument identity; ticker != identity; FormulaId is behavior and a behavioral change produces a new identity. C3 owns the composition rule, not the source vocabularies.",
+      "consumesGate21Pins": [
+        "marketDataSourceL3",
+        "DatasetSnapshotCore",
+        "DatasetSnapshotRecord",
+        "DatasetManifestV1",
+        "marketCalendarRegistry"
+      ],
+      "consumesGate21PinCount": 5,
+      "consumesGate22SuccessorPins": [
+        "instrumentIdentityV1"
+      ],
+      "consumesGate22SuccessorPinCount": 1,
+      "mandatePointer": "/domainContracts/contracts/2",
+      "mandateProjectionSha256": "ca0fd44951511564095444c00ffbf2212c881d13fc4d1d2d99555cddea4f2c09",
+      "plannedContractPath": "governance/gates/GATE22/contracts/GATE22_IDENTITY_MODEL_V1.json",
+      "materializedAtPrestart": false,
+      "functionalImplementationPresent": false
+    },
+    {
+      "contractKey": "C4",
+      "contractId": "GATE22_PRICE_BASIS_V1",
+      "version": 1,
+      "designFreezeRef": "DATA_SEMANTICS_CONTRACT_V1",
+      "purpose": "Price basis admissibility and stability across the window. PriceBasis V1 is adjustmentTypes minus DERIVED_ADJUSTED. The same basis is mandatory from T to T+H; a mixture is FAIL_CLOSED.",
+      "consumesGate21Pins": [
+        "adjustmentTypes",
+        "corporateActionPolicy",
+        "CorporateActionV1",
+        "corporateActionTreatments",
+        "DailyBarV1"
+      ],
+      "consumesGate21PinCount": 5,
+      "consumesGate22SuccessorPins": [],
+      "consumesGate22SuccessorPinCount": 0,
+      "mandatePointer": "/domainContracts/contracts/3",
+      "mandateProjectionSha256": "6f6bc7e3a4a3d93de080ede2650434dc4dbb00c806c1df23f6072f25d8939f86",
+      "plannedContractPath": "governance/gates/GATE22/contracts/GATE22_PRICE_BASIS_V1.json",
+      "materializedAtPrestart": false,
+      "functionalImplementationPresent": false
+    },
+    {
+      "contractKey": "C5",
+      "contractId": "GATE22_DATASET_SEPARATION_V1",
+      "version": 1,
+      "designFreezeRef": "DATA_SEMANTICS_CONTRACT_V1",
+      "purpose": "Observation Dataset and Outcome Dataset are separate. Vintages never mix. The Outcome Dataset asOf is a deterministic function of the bytes, never a build-time choice. A restatement produces a new DatasetId and leaves the prior Outcome unchanged.",
+      "consumesGate21Pins": [
+        "DatasetManifestV1",
+        "SnapshotDatasetManifestV1",
+        "DatasetSnapshotCore",
+        "DatasetSnapshotRecord",
+        "marketDataBarRevisionL3",
+        "coverage",
+        "DailyBarV1",
+        "knowledgeModes"
+      ],
+      "consumesGate21PinCount": 8,
+      "consumesGate22SuccessorPins": [
+        "instrumentIdentityV1"
+      ],
+      "consumesGate22SuccessorPinCount": 1,
+      "mandatePointer": "/domainContracts/contracts/4",
+      "mandateProjectionSha256": "c931402f55af5f62a749152d2c42e165cb1836db9f84ddc1ef2c6b8bacb02bdc",
+      "plannedContractPath": "governance/gates/GATE22/contracts/GATE22_DATASET_SEPARATION_V1.json",
+      "materializedAtPrestart": false,
+      "functionalImplementationPresent": false
+    },
+    {
+      "contractKey": "C6",
+      "contractId": "GATE22_TAXONOMY_V1",
+      "version": 1,
+      "designFreezeRef": "LABEL_TAXONOMY_V1",
+      "purpose": "Label taxonomy V1: exactly 6 mechanical, non-exclusive, versioned primitives. Hosts the registryConcept to taxonomyPrimitive compatibility projection.",
+      "consumesGate21Pins": [
+        "DailyBarV1",
+        "marketSessionCalendar",
+        "adjustmentTypes"
+      ],
+      "consumesGate21PinCount": 3,
+      "consumesGate22SuccessorPins": [],
+      "consumesGate22SuccessorPinCount": 0,
+      "mandatePointer": "/domainContracts/contracts/5",
+      "mandateProjectionSha256": "5dc1d70738f39794873a0edefdfb5e708bd9bda6d4f612abab6d6a06f9ce64d0",
+      "plannedContractPath": "governance/gates/GATE22/contracts/GATE22_TAXONOMY_V1.json",
+      "materializedAtPrestart": false,
+      "functionalImplementationPresent": false
+    },
+    {
+      "contractKey": "C7",
+      "contractId": "GATE22_CONSUMPTION_BOUNDARY_V1",
+      "version": 1,
+      "designFreezeRef": "CONSUMPTION_BOUNDARY_V1",
+      "purpose": "Downstream consumption boundary. GATE23 consumes GATE21 and Observation only; Outcome is forbidden as a feature, even lagged. GATE24 lives in a separate namespace. GATE25 attaches Outcome only after selection.",
+      "consumesGate21Pins": [],
+      "consumesGate21PinCount": 0,
+      "consumesGate22SuccessorPins": [],
+      "consumesGate22SuccessorPinCount": 0,
+      "mandatePointer": "/domainContracts/contracts/6",
+      "mandateProjectionSha256": "fc130141a33c229271ba9412327cdd0b1f95ecdf69dedc182a7d2a7465bd1daa",
+      "plannedContractPath": "governance/gates/GATE22/contracts/GATE22_CONSUMPTION_BOUNDARY_V1.json",
+      "materializedAtPrestart": false,
+      "functionalImplementationPresent": false
+    }
+  ],
+  "designFreezeReferenceMap": {
+    "map": [
+      {
+        "designFreezeId": "GATE22_CANONICAL_MANDATE_R0",
+        "role": "mandate document container",
+        "mandateContractId": null
+      },
+      {
+        "designFreezeId": "TARGET_BOUNDARY_CONTRACT_V1",
+        "role": "design reference",
+        "mandateContractId": [
+          "GATE22_TEMPORAL_HORIZON_V1",
+          "GATE22_OUTCOME_PERSISTENCE_V1"
+        ]
+      },
+      {
+        "designFreezeId": "OBSERVATION_OUTCOME_IDENTITY_V1",
+        "role": "design reference",
+        "mandateContractId": [
+          "GATE22_IDENTITY_MODEL_V1"
+        ]
+      },
+      {
+        "designFreezeId": "DATA_SEMANTICS_CONTRACT_V1",
+        "role": "design reference",
+        "mandateContractId": [
+          "GATE22_PRICE_BASIS_V1",
+          "GATE22_DATASET_SEPARATION_V1"
+        ]
+      },
+      {
+        "designFreezeId": "LABEL_TAXONOMY_V1",
+        "role": "design reference",
+        "mandateContractId": [
+          "GATE22_TAXONOMY_V1"
+        ]
+      },
+      {
+        "designFreezeId": "CONSUMPTION_BOUNDARY_V1",
+        "role": "design reference",
+        "mandateContractId": [
+          "GATE22_CONSUMPTION_BOUNDARY_V1"
+        ]
+      },
+      {
+        "designFreezeId": "REUSE_INVENTORY_V1",
+        "role": "dependency inventory, NON_CONTRACTUAL",
+        "mandateContractId": null,
+        "projectsTo": [
+          "gate21PinVocabulary",
+          "gate21DependencyPreconditions/PROMO-1"
+        ]
+      }
+    ],
+    "rules": {
+      "R1": "a designFreezeId is a design reference, never a contractId, never executable",
+      "R2": "the only START execution contracts are C1 to C7; contractCount === 7 stays the hard invariant",
+      "R3": "START does not merge (no design ID promoted into a contract), does not rename (no contractId replaced by a design ID), does not choose (no selection between namings)",
+      "R4": "REUSE_INVENTORY_V1 stays a dependency inventory; never a contract, never counted in contractCount"
+    },
+    "properties": {
+      "designToContractIsNonInjective": true,
+      "designToContractIsPartial": true,
+      "inverseContractToDesignFreezeRefIsFunction": true,
+      "note": "for every Ci in C1..C7 there is exactly one designFreezeRef; that is the direction a hostile audit tests"
+    }
+  },
+  "successorPinSurface": {
+    "path": "governance/gates/GATE22/pins/GATE22_SUCCESSOR_SCHEMA_PINS.json",
+    "surfaceName": "GATE22_SUCCESSOR_SCHEMA_PINS",
+    "declaringField": "consumesGate22SuccessorPins",
+    "countedInContractCount": false
+  },
+  "divergenceProof": {
+    "contractIdsEqualMandate": true,
+    "contractKeysEqualMandate": true,
+    "contractOrderEqualMandate": true,
+    "contractsRenamed": false,
+    "contractsMerged": false,
+    "designFreezeIdPromotedToContract": false,
+    "consumesGate21PinsWithinFrozenVocabulary": true,
+    "instrumentIdentityV1InAnyConsumesGate21Pins": false,
+    "consumesGate22SuccessorPinsWithinSuccessorSurface": true,
+    "contractsConsumingSuccessorPin": [
+      "GATE22_IDENTITY_MODEL_V1",
+      "GATE22_DATASET_SEPARATION_V1"
+    ]
+  },
+  "disposition": {
+    "materialized": false,
+    "materializedByThisPackage": false,
+    "materializationRequiresStart": true,
+    "startExecuted": false,
+    "note": "This set is the machine-readable projection of C1..C7 required before START. It creates no contract file at the canonical contract path and authorizes no execution."
+  }
+}

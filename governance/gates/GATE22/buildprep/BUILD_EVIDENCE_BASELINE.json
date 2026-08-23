@@ -1,0 +1,92 @@
+{
+  "document": "GATE22_BUILD_EVIDENCE_BASELINE",
+  "schemaVersion": 1,
+  "gateId": "GATE22",
+  "capturedAt": "2026-08-23T11:00:00.000Z",
+  "purpose": "Pre-BUILD baseline so the BUILD mission can prove differentially that it introduced no new blocking finding.",
+  "buildExecuted": false,
+  "lifecycle": {
+    "executionStatus": "IN_PROGRESS",
+    "stateRevision": "R0003",
+    "contractRevision": "R0002",
+    "ledgerTerminalOrdinal": 92,
+    "ledgerTerminalEventId": "GATE22_CONTRACT_SUCCESSION_R0002_R1",
+    "ledgerSha256": "c0870f31e06fefa68840e1a33ef86678dee9c6ad81591b28a9cf21c702e09079",
+    "ledgerEventCount": 92,
+    "startEventCount": 1,
+    "contractSuccessionEventCount": 1,
+    "buildEventCount": 0
+  },
+  "validatorBaseline": [
+    {
+      "validator": "validate-gate-contract",
+      "target": "governance/gates/GATE22/contracts/EXECUTION_CONTRACT_R0002.json",
+      "verdict": "PASS",
+      "blockingCount": 0
+    },
+    {
+      "validator": "validate-state-seal",
+      "target": "governance/gates/GATE22/state/revisions/R0003/STATE_SEAL.json",
+      "verdict": "PASS",
+      "blockingCount": 0
+    },
+    {
+      "validator": "validate-state-revision",
+      "target": "GATE22",
+      "verdict": "PASS",
+      "blockingCount": 0,
+      "resolvedRevision": "R0003",
+      "sealChain": [
+        "R0001",
+        "R0002",
+        "R0003"
+      ]
+    },
+    {
+      "validator": "governance-preflight",
+      "verdict": "PASS",
+      "blockingFindingCount": 0
+    },
+    {
+      "validator": "validate-status-ledger",
+      "verdict": "HISTORICAL_BLOCKING_ONLY",
+      "blockingCount": 3,
+      "introducedByThisMission": 0
+    }
+  ],
+  "historicalBlockingFindings": [
+    {
+      "detectorId": "GATE_AUTHORIZATION_STATE_LINEAGE_INVALID",
+      "eventId": "GATE15_AUTHORIZATION_R1",
+      "lineNumber": 62,
+      "gateId": "GATE15"
+    },
+    {
+      "detectorId": "GATE_AUTHORIZATION_STATE_LINEAGE_INVALID",
+      "eventId": "GATE16_AUTHORIZATION_R1",
+      "lineNumber": 66,
+      "gateId": "GATE16"
+    },
+    {
+      "detectorId": "GATE_AUTHORIZATION_STATE_LINEAGE_INVALID",
+      "eventId": "GATE17_AUTHORIZATION_R1",
+      "lineNumber": 70,
+      "gateId": "GATE17"
+    }
+  ],
+  "historicalBlockingNote": "These three GATE15/GATE16/GATE17 findings predate GATE22 and are out of scope. The BUILD must compare differentially and require introducedBlockingLedgerFindingCount === 0, not a clean absolute run.",
+  "expectedEvidenceArtifact": {
+    "path": "governance/gates/GATE22/evidence/BUILD_CANDIDATE_RECEIPT.json",
+    "referenceShape": "governance/gates/GATE21/evidence/BUILD_CANDIDATE_RECEIPT.json",
+    "rule": "Receipt existence alone is not functional proof; results must be recalculated from bound bytes."
+  },
+  "businessImplementationPresent": {
+    "labelProduced": false,
+    "observationProduced": false,
+    "outcomeProduced": false,
+    "datasetProduced": false,
+    "backfillProduced": false,
+    "marketResultProduced": false,
+    "engineImplemented": false
+  }
+}

@@ -1,0 +1,94 @@
+{
+  "document": "GATE22_DOMAIN_CONTRACT",
+  "schemaVersion": 1,
+  "gateId": "GATE22",
+  "contractKey": "C4",
+  "contractId": "GATE22_PRICE_BASIS_V1",
+  "version": 1,
+  "designFreezeRef": "DATA_SEMANTICS_CONTRACT_V1",
+  "materializedAt": "2026-08-23T11:00:00.000Z",
+  "materializedBy": {
+    "eventId": "GATE22_CONTRACT_SUCCESSION_R0002_R1",
+    "transitionType": "CONTRACT_SUCCESSION",
+    "executionContractRevision": "R0002",
+    "executionContractPath": "governance/gates/GATE22/contracts/EXECUTION_CONTRACT_R0002.json",
+    "executionContractSha256": "62354d05f100678cfa8f852e6dcf6f590c0a1f37d8eab2406a76288b58a8780b",
+    "stateRevision": "R0003"
+  },
+  "authority": {
+    "mandateDocumentId": "GATE22_CANONICAL_MANDATE_R0",
+    "mandatePath": "governance/sources/GATE22_CANONICAL_MANDATE_R0.json",
+    "mandateSha256": "1d101e0da4a21f2561055993d17779ade6f9c5bc339fe91abaee390e10eb95bb",
+    "mandateByteLength": 41184,
+    "mandatePointer": "/domainContracts/contracts/3",
+    "mandateProjectionSha256": "6f6bc7e3a4a3d93de080ede2650434dc4dbb00c806c1df23f6072f25d8939f86",
+    "projectionRule": "sha256(canonicalJson(mandate#/domainContracts/contracts/3))",
+    "projectionSetPath": "governance/gates/GATE22/prestart/GATE22_START_DOMAIN_CONTRACT_SET_V1.json",
+    "projectionSetSha256": "e01835fb7474680297db166180005a1a5f5c791b707f46a7228afa4756f32eac",
+    "ownerDecisionId": "D-1",
+    "ownerDecisionPointer": "/ownerDecisions/0",
+    "ratificationOnlyMandate": true,
+    "grantsBuild": false
+  },
+  "mandateProjection": {
+    "contractKey": "C4",
+    "contractId": "GATE22_PRICE_BASIS_V1",
+    "version": 1,
+    "designFreezeRef": "DATA_SEMANTICS_CONTRACT_V1",
+    "purpose": "Price basis admissibility and stability across the window. PriceBasis V1 is adjustmentTypes minus DERIVED_ADJUSTED. The same basis is mandatory from T to T+H; a mixture is FAIL_CLOSED.",
+    "consumesGate21Pins": [
+      "adjustmentTypes",
+      "corporateActionPolicy",
+      "CorporateActionV1",
+      "corporateActionTreatments",
+      "DailyBarV1"
+    ],
+    "consumesGate22SuccessorPins": [],
+    "priceBasisV1": {
+      "values": [
+        "RAW",
+        "SPLIT_ADJUSTED",
+        "TOTAL_RETURN_ADJUSTED"
+      ],
+      "count": 3,
+      "membershipModality": "full members, none optional, none hypothetical",
+      "derivedFrom": "adjustmentTypes minus DERIVED_ADJUSTED",
+      "derivedAdjusted": "REFUSED_IN_STRICT_V1",
+      "sameBasisAcrossWindow": true,
+      "mixtureRoutesTo": "FAIL_CLOSED via PRICE_BASIS_MIXED_IN_WINDOW",
+      "noRelabeling": "an unsupported or derived basis can never be relabeled to another basis, neither at load, nor at computation, nor at persistence",
+      "availabilityFact": "corporateActionTreatments attests RAW_SOURCE_UNTRANSFORMED and PROVIDER_SPLIT_ADJUSTED_UNTRANSFORMED only; this is an availability fact, not a reservation on membership; a basis unavailable for a window routes to PRICE_BASIS_UNAVAILABLE_FOR_WINDOW and FAIL_CLOSED"
+    }
+  },
+  "consumesGate21Pins": [
+    "adjustmentTypes",
+    "corporateActionPolicy",
+    "CorporateActionV1",
+    "corporateActionTreatments",
+    "DailyBarV1"
+  ],
+  "consumesGate21PinCount": 5,
+  "consumesGate22SuccessorPins": [],
+  "consumesGate22SuccessorPinCount": 0,
+  "successorPinSurface": null,
+  "classification": {
+    "isExecutionContract": true,
+    "countedInContractCount": true,
+    "isEighthContract": false,
+    "renamed": false,
+    "merged": false,
+    "versionChanged": false,
+    "newDecisionIntroduced": false,
+    "designFreezeIdPromotedToContract": false
+  },
+  "buildDisposition": {
+    "status": "MATERIALIZED_AWAITING_BUILD",
+    "buildExecuted": false,
+    "functionalImplementationPresent": false,
+    "implementationPath": null,
+    "labelProduced": false,
+    "observationProduced": false,
+    "outcomeProduced": false,
+    "datasetProduced": false
+  }
+}

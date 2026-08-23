@@ -1,0 +1,69 @@
+{
+  "schemaVersion": 1,
+  "authorityMode": "LOCAL_EXPLICIT_AUTHORITY",
+  "document": "GATE_START_RECORD",
+  "recordId": "GATE_START_RECORD_GATE22_R1",
+  "projectId": "WHEEL",
+  "gateId": "GATE22",
+  "purpose": "START_PLUS_EXECUTION_AUTHORITY",
+  "eventId": "GATE22_START_R1",
+  "transitionType": "START",
+  "fromStatus": "AUTHORIZED_NOT_STARTED",
+  "toStatus": "IN_PROGRESS",
+  "recordedAt": "2026-08-23T10:15:00.000Z",
+  "baseCommit": "337e4d2b465754a943668e9aca919f05b0b530b8",
+  "preStartLedgerSha256": "30e32e13e07f6114e67c13c60035c47d39c5f9af76b26a023cd43b51af12f2e4",
+  "previousEventSha256": "05a0795fdf259f254aba25b484c8a578b1a82eb785b3403a2f7be201c3c11c2d",
+  "contractSha256": "76b6d6d9fe0938ea43e6e20710e1081e4918a72ecbab49072549b0450bb294e0",
+  "currentContractSha256": "19c2c6b6f03d393f0117e2e167bbe6f6393fc59dbc4e50c135d48ff256f185b9",
+  "preStateRevision": "R0001",
+  "preCurrentStateSha256": "8241aa801c38d703a7fd0630047fbc8aadc6db6564112852c62cb0a8a7e88990",
+  "preStateSealSha256": "9ee0e143994fe7757b1e0cfa993cb9ee7e1b3907558f310b6dd60520f5e8fadc",
+  "readinessDigest": "3d9e24d18f1895031e6fd7e03d82acaa368a3077ad4376843eda8fcf615f2ade",
+  "dependencyProof": {
+    "gateId": "GATE21",
+    "status": "COMPLETE_CONFIRMED",
+    "authorityPath": "GATE21_INDEPENDENT_EXTERNAL_CONFIRMATION_R1_EXTERNAL_REINSPECTION_REPORT",
+    "authoritySha256": "4962e8cb12fab276630ce6b402aa4ccbff4586318d8efcd040721b155ec57f14"
+  },
+  "activeGatePreState": {
+    "activeGate": "GATE13",
+    "sha256": "34fcbfd9bb068cf2adfd973a73db4c4da297e9300242c1d04c08571968a417b9",
+    "byteLength": 305
+  },
+  "authorizedStartWritePaths": [
+    "governance/authority/authorizations/GATE22/GATE_START_RECORD.json",
+    "governance/authority/authorizations/GATE22/PROJECT_OWNER_GATE_START_AUTHORITY.json",
+    "governance/state/GATE_STATUS_LEDGER.ndjson",
+    "governance/gates/GATE22/state/revisions/R0002/CHECKPOINT.json",
+    "governance/gates/GATE22/state/revisions/R0002/OPEN_DEFECTS.json",
+    "governance/gates/GATE22/state/revisions/R0002/STATE_SEAL.json",
+    "governance/gates/GATE22/state/CURRENT_STATE.json",
+    "governance/state/generated/GATE_STATUS_SNAPSHOT.json",
+    "governance/generated/ACTIVE_GATE_CONTEXT.json",
+    "governance/generated/ACTIVE_GATE_CONTEXT.md"
+  ],
+  "functionalExecutionScope": [
+    "governance/gates/GATE22/contracts/EXECUTION_CONTRACT_R0001.json",
+    "governance/gates/GATE22/contracts/CURRENT_CONTRACT.json",
+    "governance/gates/GATE22/contracts/PRECONTRACT_AUTHORITY_CONSUMPTION_R1.json"
+  ],
+  "expiresAtUtc": "2026-12-31T23:59:59.000Z",
+  "maxUse": 1,
+  "prohibitedOperations": [
+    "AUTHORIZATION",
+    "SECOND_START",
+    "AGENT_CLOSURE",
+    "EXTERNAL_CONFIRMATION",
+    "COMPLETE_CONFIRMED",
+    "OTHER_GATE",
+    "GEE_REVISION_CREATION",
+    "ARBITRARY_LEDGER_TRANSITION",
+    "LEDGER_REWRITE",
+    "ARBITRARY_GOVERNANCE_WRITE",
+    "GIT_PUSH"
+  ],
+  "startAuthorized": true,
+  "executionAuthorized": true,
+  "recordDigest": "8e37aaefd2fdc5d590a06bd51fa9ee7a4e4f6a3848755509751e41b0c0798339"
+}

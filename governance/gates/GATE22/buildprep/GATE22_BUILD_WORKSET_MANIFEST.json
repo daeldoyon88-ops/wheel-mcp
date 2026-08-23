@@ -1,0 +1,290 @@
+{
+  "document": "GATE22_BUILD_WORKSET_MANIFEST",
+  "schemaVersion": 1,
+  "gateId": "GATE22",
+  "preparedAt": "2026-08-23T11:00:00.000Z",
+  "preparedUnder": {
+    "executionContractRevision": "R0002",
+    "executionContractPath": "governance/gates/GATE22/contracts/EXECUTION_CONTRACT_R0002.json",
+    "executionContractSha256": "62354d05f100678cfa8f852e6dcf6f590c0a1f37d8eab2406a76288b58a8780b",
+    "stateRevision": "R0003",
+    "successionEventId": "GATE22_CONTRACT_SUCCESSION_R0002_R1"
+  },
+  "buildExecuted": false,
+  "worksetClosed": true,
+  "wildcardPathsPresent": false,
+  "directoryWidePathsPresent": false,
+  "authorizedPathScope": {
+    "source": "governance/gates/GATE22/contracts/EXECUTION_CONTRACT_R0002.json#/authorizedPaths",
+    "totalAuthorizedPaths": 25,
+    "alreadyMaterialized": 12,
+    "remainingForBuild": 13,
+    "invariant": "buildWritePaths is a strict subset of EXECUTION_CONTRACT_R0002.authorizedPaths"
+  },
+  "buildWritePaths": [
+    {
+      "ordinal": 1,
+      "path": "governance/gates/GATE22/implementation/temporal-horizon-v1.mjs",
+      "role": "C1 temporal horizon and session-counted H engine",
+      "exists": false
+    },
+    {
+      "ordinal": 2,
+      "path": "governance/gates/GATE22/implementation/outcome-persistence-v1.mjs",
+      "role": "C2 append-only Outcome persistence and missingness routing",
+      "exists": false
+    },
+    {
+      "ordinal": 3,
+      "path": "governance/gates/GATE22/implementation/identity-model-v1.mjs",
+      "role": "C3 content-addressed ObservationId/OutcomeId composition",
+      "exists": false
+    },
+    {
+      "ordinal": 4,
+      "path": "governance/gates/GATE22/implementation/price-basis-v1.mjs",
+      "role": "C4 PriceBasis admissibility and window stability",
+      "exists": false
+    },
+    {
+      "ordinal": 5,
+      "path": "governance/gates/GATE22/implementation/dataset-separation-v1.mjs",
+      "role": "C5 Observation/Outcome dataset separation and asOf derivation",
+      "exists": false
+    },
+    {
+      "ordinal": 6,
+      "path": "governance/gates/GATE22/implementation/taxonomy-v1.mjs",
+      "role": "C6 six-primitive label taxonomy",
+      "exists": false
+    },
+    {
+      "ordinal": 7,
+      "path": "governance/gates/GATE22/implementation/consumption-boundary-v1.mjs",
+      "role": "C7 downstream consumption boundary enforcement",
+      "exists": false
+    },
+    {
+      "ordinal": 8,
+      "path": "governance/gates/GATE22/implementation/label-engine-v1.mjs",
+      "role": "BOTTOM/TOP LABEL ENGINE composition over C1..C7",
+      "exists": false
+    },
+    {
+      "ordinal": 9,
+      "path": "governance/gates/GATE22/tests/gate22-foundation.test.mjs",
+      "role": "Positive consumer-proof tests over C1..C7",
+      "exists": false
+    },
+    {
+      "ordinal": 10,
+      "path": "governance/gates/GATE22/tests/gate22-hostiles.test.mjs",
+      "role": "Anti-leakage and invariant hostile tests",
+      "exists": false
+    },
+    {
+      "ordinal": 11,
+      "path": "governance/gates/GATE22/tests/gate22-evolvability.test.mjs",
+      "role": "FUTURE_CHANGE_TEST and FUTURE_3_GATES_TEST",
+      "exists": false
+    },
+    {
+      "ordinal": 12,
+      "path": "governance/gates/GATE22/fixtures/label-consumer-fixture.mjs",
+      "role": "Declared consumer fixture for GATE22 v1 bindings",
+      "exists": false
+    },
+    {
+      "ordinal": 13,
+      "path": "governance/gates/GATE22/evidence/BUILD_CANDIDATE_RECEIPT.json",
+      "role": "Build-candidate proof receipt, not closure",
+      "exists": false
+    }
+  ],
+  "readOnlyInputs": [
+    {
+      "path": "governance/sources/GATE22_CANONICAL_MANDATE_R0.json",
+      "role": "CANONICAL_RATIFICATION_ONLY_MANDATE",
+      "sha256": "1d101e0da4a21f2561055993d17779ade6f9c5bc339fe91abaee390e10eb95bb",
+      "byteLength": 41184
+    },
+    {
+      "path": "governance/gates/GATE22/prestart/GATE22_START_DOMAIN_CONTRACT_SET_V1.json",
+      "role": "FROZEN_DOMAIN_CONTRACT_PROJECTION_SET",
+      "sha256": "e01835fb7474680297db166180005a1a5f5c791b707f46a7228afa4756f32eac",
+      "byteLength": 11383
+    },
+    {
+      "path": "governance/gates/GATE22/pins/GATE22_SUCCESSOR_SCHEMA_PINS.json",
+      "role": "GATE22_OWNED_SUCCESSOR_PIN_SURFACE",
+      "sha256": "5e28fa6ce6b4af6b2fe52440eb209411b8d584c39284ba305bc9f9bf2057c931",
+      "byteLength": 4389
+    },
+    {
+      "path": "governance/gates/GATE22/contracts/EXECUTION_CONTRACT_R0002.json",
+      "role": "ACTIVE_EXECUTION_CONTRACT",
+      "sha256": "62354d05f100678cfa8f852e6dcf6f590c0a1f37d8eab2406a76288b58a8780b",
+      "byteLength": 20648
+    },
+    {
+      "path": "governance/GATE_REGISTRY_00_40.json",
+      "role": "STRATEGIC_REGISTRY",
+      "sha256": "76d5f9ff0a21f8c1eadaf9ccd9e48c9087d12655fac6a5c9215584053652a56b",
+      "byteLength": 114592
+    },
+    {
+      "path": "governance/gates/GATE21/contracts/GATE21_BINDING_V1.json",
+      "role": "GATE21_CAUSAL_DATA_BINDING_READ_ONLY",
+      "sha256": "c8982c5c857759dd4204670e514c6b447b573140552d188012b9c9dedc5e9607",
+      "byteLength": 4191
+    },
+    {
+      "path": "governance/gates/GATE21/implementation/causal-data-interface.mjs",
+      "role": "GATE21_CAUSAL_FACADE_READ_ONLY",
+      "sha256": "61874d328ab5eb9680b942667eeca994c656849e119f1b4dc3ef902bf2a92e64",
+      "byteLength": 17612
+    },
+    {
+      "path": "governance/gates/GATE21/implementation/lab-import-adapter.mjs",
+      "role": "GATE21_LAB_ADAPTER_READ_ONLY",
+      "sha256": "64f8807149adadf6ac71d23daae749f80cfc8032bc24aa9791d58967cfcd9a88",
+      "byteLength": 13071
+    },
+    {
+      "path": "governance/gates/GATE21/implementation/source-registry-v1.mjs",
+      "role": "GATE21_SOURCE_REGISTRY_READ_ONLY",
+      "sha256": "ed701d455b0bb502531c8dde701c69e4f7b381994cc424c3fe488c5a4135cfb5",
+      "byteLength": 6370
+    },
+    {
+      "path": "governance/gates/GATE21/implementation/portability-and-hygiene.mjs",
+      "role": "GATE21_PORTABILITY_READ_ONLY",
+      "sha256": "162e63cae3631826c1cd31474a993ec2097f91dfe2f3a1f7416abca8c83d521c",
+      "byteLength": 6160
+    },
+    {
+      "path": "governance/gates/GATE22/contracts/GATE22_TEMPORAL_HORIZON_V1.json",
+      "role": "C1_MATERIALIZED_DOMAIN_CONTRACT",
+      "sha256": "c53ec179919f90593efdaad625187bc56218a4615bd7d0cecb415a27d4b55783",
+      "byteLength": 3998
+    },
+    {
+      "path": "governance/gates/GATE22/contracts/GATE22_OUTCOME_PERSISTENCE_V1.json",
+      "role": "C2_MATERIALIZED_DOMAIN_CONTRACT",
+      "sha256": "f2b54bb09888dad767db6ef438b7dea914c3ee8d9fd6fe67eb8061635e8fa7ea",
+      "byteLength": 5757
+    },
+    {
+      "path": "governance/gates/GATE22/contracts/GATE22_IDENTITY_MODEL_V1.json",
+      "role": "C3_MATERIALIZED_DOMAIN_CONTRACT",
+      "sha256": "4f754354b8c6b93f0b8a7dea2ffb295a79c63502f641acc60f4ae6008a0fa796",
+      "byteLength": 5047
+    },
+    {
+      "path": "governance/gates/GATE22/contracts/GATE22_PRICE_BASIS_V1.json",
+      "role": "C4_MATERIALIZED_DOMAIN_CONTRACT",
+      "sha256": "99af1fcddc7d6f57e3f54c28cfdd1d6afda1888e44fb531de751a8eac7ad4434",
+      "byteLength": 3860
+    },
+    {
+      "path": "governance/gates/GATE22/contracts/GATE22_DATASET_SEPARATION_V1.json",
+      "role": "C5_MATERIALIZED_DOMAIN_CONTRACT",
+      "sha256": "002d1d9c051ef5862ec7e404171b1599a38e57c457de06a2a4ea8bfebae87e2b",
+      "byteLength": 5340
+    },
+    {
+      "path": "governance/gates/GATE22/contracts/GATE22_TAXONOMY_V1.json",
+      "role": "C6_MATERIALIZED_DOMAIN_CONTRACT",
+      "sha256": "a1fbb5e23f60b6bff7c814d57f277bc1eef501db60926391f9008e3a3099c0f5",
+      "byteLength": 3343
+    },
+    {
+      "path": "governance/gates/GATE22/contracts/GATE22_CONSUMPTION_BOUNDARY_V1.json",
+      "role": "C7_MATERIALIZED_DOMAIN_CONTRACT",
+      "sha256": "3e33b498ee24139e04b654c269c3a9fb2ba9b08421b641876d69fce56e05cd60",
+      "byteLength": 3131
+    }
+  ],
+  "forbiddenPaths": [
+    "governance/gates/GATE21/",
+    "research/directional-lab/",
+    "governance/gee-v1/",
+    "governance/state/GATE_STATUS_LEDGER.ndjson",
+    "governance/active/ACTIVE_GATE.json",
+    "governance/sources/GATE22_CANONICAL_MANDATE_R0.json",
+    "governance/gates/GATE22/contracts/EXECUTION_CONTRACT_R0001.json",
+    "governance/gates/GATE22/contracts/EXECUTION_CONTRACT_R0002.json",
+    "governance/gates/GATE22/state/revisions/R0001/",
+    "governance/gates/GATE22/state/revisions/R0002/",
+    "governance/gates/GATE22/state/revisions/R0003/"
+  ],
+  "contractBindings": [
+    {
+      "contractKey": "C1",
+      "contractId": "GATE22_TEMPORAL_HORIZON_V1",
+      "contractPath": "governance/gates/GATE22/contracts/GATE22_TEMPORAL_HORIZON_V1.json",
+      "contractSha256": "c53ec179919f90593efdaad625187bc56218a4615bd7d0cecb415a27d4b55783",
+      "implementationPath": "governance/gates/GATE22/implementation/temporal-horizon-v1.mjs"
+    },
+    {
+      "contractKey": "C2",
+      "contractId": "GATE22_OUTCOME_PERSISTENCE_V1",
+      "contractPath": "governance/gates/GATE22/contracts/GATE22_OUTCOME_PERSISTENCE_V1.json",
+      "contractSha256": "f2b54bb09888dad767db6ef438b7dea914c3ee8d9fd6fe67eb8061635e8fa7ea",
+      "implementationPath": "governance/gates/GATE22/implementation/outcome-persistence-v1.mjs"
+    },
+    {
+      "contractKey": "C3",
+      "contractId": "GATE22_IDENTITY_MODEL_V1",
+      "contractPath": "governance/gates/GATE22/contracts/GATE22_IDENTITY_MODEL_V1.json",
+      "contractSha256": "4f754354b8c6b93f0b8a7dea2ffb295a79c63502f641acc60f4ae6008a0fa796",
+      "implementationPath": "governance/gates/GATE22/implementation/identity-model-v1.mjs"
+    },
+    {
+      "contractKey": "C4",
+      "contractId": "GATE22_PRICE_BASIS_V1",
+      "contractPath": "governance/gates/GATE22/contracts/GATE22_PRICE_BASIS_V1.json",
+      "contractSha256": "99af1fcddc7d6f57e3f54c28cfdd1d6afda1888e44fb531de751a8eac7ad4434",
+      "implementationPath": "governance/gates/GATE22/implementation/price-basis-v1.mjs"
+    },
+    {
+      "contractKey": "C5",
+      "contractId": "GATE22_DATASET_SEPARATION_V1",
+      "contractPath": "governance/gates/GATE22/contracts/GATE22_DATASET_SEPARATION_V1.json",
+      "contractSha256": "002d1d9c051ef5862ec7e404171b1599a38e57c457de06a2a4ea8bfebae87e2b",
+      "implementationPath": "governance/gates/GATE22/implementation/dataset-separation-v1.mjs"
+    },
+    {
+      "contractKey": "C6",
+      "contractId": "GATE22_TAXONOMY_V1",
+      "contractPath": "governance/gates/GATE22/contracts/GATE22_TAXONOMY_V1.json",
+      "contractSha256": "a1fbb5e23f60b6bff7c814d57f277bc1eef501db60926391f9008e3a3099c0f5",
+      "implementationPath": "governance/gates/GATE22/implementation/taxonomy-v1.mjs"
+    },
+    {
+      "contractKey": "C7",
+      "contractId": "GATE22_CONSUMPTION_BOUNDARY_V1",
+      "contractPath": "governance/gates/GATE22/contracts/GATE22_CONSUMPTION_BOUNDARY_V1.json",
+      "contractSha256": "3e33b498ee24139e04b654c269c3a9fb2ba9b08421b641876d69fce56e05cd60",
+      "implementationPath": "governance/gates/GATE22/implementation/consumption-boundary-v1.mjs"
+    }
+  ],
+  "expectedValidatorWorkset": [
+    "node governance/tools/validate-gate-contract.mjs --contract governance/gates/GATE22/contracts/EXECUTION_CONTRACT_R0002.json --pointer governance/gates/GATE22/contracts/CURRENT_CONTRACT.json",
+    "node governance/tools/validate-state-seal.mjs --seal governance/gates/GATE22/state/revisions/R0003/STATE_SEAL.json",
+    "node governance/tools/validate-state-revision.mjs --gate-id GATE22 --contract governance/gates/GATE22/contracts/EXECUTION_CONTRACT_R0002.json",
+    "node governance/tools/validate-status-ledger.mjs",
+    "node governance/tools/governance-preflight.mjs",
+    "node governance/gates/GATE22/tests/gate22-foundation.test.mjs",
+    "node governance/gates/GATE22/tests/gate22-hostiles.test.mjs",
+    "node governance/gates/GATE22/tests/gate22-evolvability.test.mjs"
+  ],
+  "buildScope": {
+    "canonicalName": "BOTTOM/TOP LABEL ENGINE",
+    "architecturalTerm": "HISTORICAL TRUTH LAYER",
+    "transform": "Observation(T) to Outcome(T+H)",
+    "producesNoPrediction": true,
+    "producesNoRecommendation": true,
+    "producesNoWheelDecision": true
+  }
+}

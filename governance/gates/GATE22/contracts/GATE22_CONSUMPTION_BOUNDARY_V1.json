@@ -1,0 +1,73 @@
+{
+  "document": "GATE22_DOMAIN_CONTRACT",
+  "schemaVersion": 1,
+  "gateId": "GATE22",
+  "contractKey": "C7",
+  "contractId": "GATE22_CONSUMPTION_BOUNDARY_V1",
+  "version": 1,
+  "designFreezeRef": "CONSUMPTION_BOUNDARY_V1",
+  "materializedAt": "2026-08-23T11:00:00.000Z",
+  "materializedBy": {
+    "eventId": "GATE22_CONTRACT_SUCCESSION_R0002_R1",
+    "transitionType": "CONTRACT_SUCCESSION",
+    "executionContractRevision": "R0002",
+    "executionContractPath": "governance/gates/GATE22/contracts/EXECUTION_CONTRACT_R0002.json",
+    "executionContractSha256": "62354d05f100678cfa8f852e6dcf6f590c0a1f37d8eab2406a76288b58a8780b",
+    "stateRevision": "R0003"
+  },
+  "authority": {
+    "mandateDocumentId": "GATE22_CANONICAL_MANDATE_R0",
+    "mandatePath": "governance/sources/GATE22_CANONICAL_MANDATE_R0.json",
+    "mandateSha256": "1d101e0da4a21f2561055993d17779ade6f9c5bc339fe91abaee390e10eb95bb",
+    "mandateByteLength": 41184,
+    "mandatePointer": "/domainContracts/contracts/6",
+    "mandateProjectionSha256": "fc130141a33c229271ba9412327cdd0b1f95ecdf69dedc182a7d2a7465bd1daa",
+    "projectionRule": "sha256(canonicalJson(mandate#/domainContracts/contracts/6))",
+    "projectionSetPath": "governance/gates/GATE22/prestart/GATE22_START_DOMAIN_CONTRACT_SET_V1.json",
+    "projectionSetSha256": "e01835fb7474680297db166180005a1a5f5c791b707f46a7228afa4756f32eac",
+    "ownerDecisionId": "D-1",
+    "ownerDecisionPointer": "/ownerDecisions/0",
+    "ratificationOnlyMandate": true,
+    "grantsBuild": false
+  },
+  "mandateProjection": {
+    "contractKey": "C7",
+    "contractId": "GATE22_CONSUMPTION_BOUNDARY_V1",
+    "version": 1,
+    "designFreezeRef": "CONSUMPTION_BOUNDARY_V1",
+    "purpose": "Downstream consumption boundary. GATE23 consumes GATE21 and Observation only; Outcome is forbidden as a feature, even lagged. GATE24 lives in a separate namespace. GATE25 attaches Outcome only after selection.",
+    "consumesGate21Pins": [],
+    "consumesGate22SuccessorPins": [],
+    "consumesGate21PinsJustification": "downstream projection contract; it consumes no GATE21 pin by construction; the empty array is declared, not omitted, and the schema must accept it",
+    "boundaries": {
+      "GATE23": "GATE21 plus Observation only; Outcome forbidden as a feature, even lagged",
+      "GATE24": "separate namespace",
+      "GATE25": "Outcome attached after selection"
+    }
+  },
+  "consumesGate21Pins": [],
+  "consumesGate21PinCount": 0,
+  "consumesGate22SuccessorPins": [],
+  "consumesGate22SuccessorPinCount": 0,
+  "successorPinSurface": null,
+  "classification": {
+    "isExecutionContract": true,
+    "countedInContractCount": true,
+    "isEighthContract": false,
+    "renamed": false,
+    "merged": false,
+    "versionChanged": false,
+    "newDecisionIntroduced": false,
+    "designFreezeIdPromotedToContract": false
+  },
+  "buildDisposition": {
+    "status": "MATERIALIZED_AWAITING_BUILD",
+    "buildExecuted": false,
+    "functionalImplementationPresent": false,
+    "implementationPath": null,
+    "labelProduced": false,
+    "observationProduced": false,
+    "outcomeProduced": false,
+    "datasetProduced": false
+  }
+}

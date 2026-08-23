@@ -1,0 +1,107 @@
+{
+  "document": "GATE22_DOMAIN_CONTRACT",
+  "schemaVersion": 1,
+  "gateId": "GATE22",
+  "contractKey": "C1",
+  "contractId": "GATE22_TEMPORAL_HORIZON_V1",
+  "version": 1,
+  "designFreezeRef": "TARGET_BOUNDARY_CONTRACT_V1",
+  "materializedAt": "2026-08-23T11:00:00.000Z",
+  "materializedBy": {
+    "eventId": "GATE22_CONTRACT_SUCCESSION_R0002_R1",
+    "transitionType": "CONTRACT_SUCCESSION",
+    "executionContractRevision": "R0002",
+    "executionContractPath": "governance/gates/GATE22/contracts/EXECUTION_CONTRACT_R0002.json",
+    "executionContractSha256": "62354d05f100678cfa8f852e6dcf6f590c0a1f37d8eab2406a76288b58a8780b",
+    "stateRevision": "R0003"
+  },
+  "authority": {
+    "mandateDocumentId": "GATE22_CANONICAL_MANDATE_R0",
+    "mandatePath": "governance/sources/GATE22_CANONICAL_MANDATE_R0.json",
+    "mandateSha256": "1d101e0da4a21f2561055993d17779ade6f9c5bc339fe91abaee390e10eb95bb",
+    "mandateByteLength": 41184,
+    "mandatePointer": "/domainContracts/contracts/0",
+    "mandateProjectionSha256": "951fbf834b2f513e64f9f8ced3a6a95dbb4ab063b7b10aced58d80e627fa387b",
+    "projectionRule": "sha256(canonicalJson(mandate#/domainContracts/contracts/0))",
+    "projectionSetPath": "governance/gates/GATE22/prestart/GATE22_START_DOMAIN_CONTRACT_SET_V1.json",
+    "projectionSetSha256": "e01835fb7474680297db166180005a1a5f5c791b707f46a7228afa4756f32eac",
+    "ownerDecisionId": "D-1",
+    "ownerDecisionPointer": "/ownerDecisions/0",
+    "ratificationOnlyMandate": true,
+    "grantsBuild": false
+  },
+  "mandateProjection": {
+    "contractKey": "C1",
+    "contractId": "GATE22_TEMPORAL_HORIZON_V1",
+    "version": 1,
+    "designFreezeRef": "TARGET_BOUNDARY_CONTRACT_V1",
+    "purpose": "T = SessionDate; KnowledgeCutoff is distinct; Observation requires availableAt <= KnowledgeCutoff; the Outcome window is (T, T+H]; H is a session count; HorizonId is content-addressed against the pinned calendar registry.",
+    "consumesGate21Pins": [
+      "marketSessionCalendar",
+      "marketCalendarAuthority",
+      "marketCalendarRegistry",
+      "marketCalendarL3",
+      "DailyBarV1",
+      "knowledgeModes"
+    ],
+    "consumesGate22SuccessorPins": [],
+    "temporalRules": {
+      "observationTime": "T = SessionDate",
+      "knowledgeCutoffDistinctFromSessionDate": true,
+      "observationAdmissibility": "availableAt <= KnowledgeCutoff",
+      "outcomeWindow": "(T, T+H]"
+    },
+    "sessionCountingRules": {
+      "unit": "GATE21 market session (marketCalendarL3 / marketSessionCalendar)",
+      "REGULAR_SESSION": 1,
+      "HALF_DAY_SESSION": 1,
+      "fractionalHorizonForbidden": true,
+      "horizonIdComposition": "sessionCount + calendarRegistryManifestId",
+      "horizonsV1": [
+        30,
+        90,
+        180,
+        252
+      ],
+      "countingBasis": "sessions present in the bound calendar registry; both sessionKind values count as 1 when admitted by allowedSessionKinds",
+      "notToBeConfusedWith": "the bar frequency token DAILY_REGULAR_SESSION",
+      "forbiddenHorizonUnits": [
+        "1 year",
+        "365 days",
+        "12 months"
+      ]
+    }
+  },
+  "consumesGate21Pins": [
+    "marketSessionCalendar",
+    "marketCalendarAuthority",
+    "marketCalendarRegistry",
+    "marketCalendarL3",
+    "DailyBarV1",
+    "knowledgeModes"
+  ],
+  "consumesGate21PinCount": 6,
+  "consumesGate22SuccessorPins": [],
+  "consumesGate22SuccessorPinCount": 0,
+  "successorPinSurface": null,
+  "classification": {
+    "isExecutionContract": true,
+    "countedInContractCount": true,
+    "isEighthContract": false,
+    "renamed": false,
+    "merged": false,
+    "versionChanged": false,
+    "newDecisionIntroduced": false,
+    "designFreezeIdPromotedToContract": false
+  },
+  "buildDisposition": {
+    "status": "MATERIALIZED_AWAITING_BUILD",
+    "buildExecuted": false,
+    "functionalImplementationPresent": false,
+    "implementationPath": null,
+    "labelProduced": false,
+    "observationProduced": false,
+    "outcomeProduced": false,
+    "datasetProduced": false
+  }
+}

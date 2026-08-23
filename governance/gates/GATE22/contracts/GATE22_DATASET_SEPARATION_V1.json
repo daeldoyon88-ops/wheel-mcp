@@ -1,0 +1,119 @@
+{
+  "document": "GATE22_DOMAIN_CONTRACT",
+  "schemaVersion": 1,
+  "gateId": "GATE22",
+  "contractKey": "C5",
+  "contractId": "GATE22_DATASET_SEPARATION_V1",
+  "version": 1,
+  "designFreezeRef": "DATA_SEMANTICS_CONTRACT_V1",
+  "materializedAt": "2026-08-23T11:00:00.000Z",
+  "materializedBy": {
+    "eventId": "GATE22_CONTRACT_SUCCESSION_R0002_R1",
+    "transitionType": "CONTRACT_SUCCESSION",
+    "executionContractRevision": "R0002",
+    "executionContractPath": "governance/gates/GATE22/contracts/EXECUTION_CONTRACT_R0002.json",
+    "executionContractSha256": "62354d05f100678cfa8f852e6dcf6f590c0a1f37d8eab2406a76288b58a8780b",
+    "stateRevision": "R0003"
+  },
+  "authority": {
+    "mandateDocumentId": "GATE22_CANONICAL_MANDATE_R0",
+    "mandatePath": "governance/sources/GATE22_CANONICAL_MANDATE_R0.json",
+    "mandateSha256": "1d101e0da4a21f2561055993d17779ade6f9c5bc339fe91abaee390e10eb95bb",
+    "mandateByteLength": 41184,
+    "mandatePointer": "/domainContracts/contracts/4",
+    "mandateProjectionSha256": "c931402f55af5f62a749152d2c42e165cb1836db9f84ddc1ef2c6b8bacb02bdc",
+    "projectionRule": "sha256(canonicalJson(mandate#/domainContracts/contracts/4))",
+    "projectionSetPath": "governance/gates/GATE22/prestart/GATE22_START_DOMAIN_CONTRACT_SET_V1.json",
+    "projectionSetSha256": "e01835fb7474680297db166180005a1a5f5c791b707f46a7228afa4756f32eac",
+    "ownerDecisionId": "D-1",
+    "ownerDecisionPointer": "/ownerDecisions/0",
+    "ratificationOnlyMandate": true,
+    "grantsBuild": false
+  },
+  "mandateProjection": {
+    "contractKey": "C5",
+    "contractId": "GATE22_DATASET_SEPARATION_V1",
+    "version": 1,
+    "designFreezeRef": "DATA_SEMANTICS_CONTRACT_V1",
+    "purpose": "Observation Dataset and Outcome Dataset are separate. Vintages never mix. The Outcome Dataset asOf is a deterministic function of the bytes, never a build-time choice. A restatement produces a new DatasetId and leaves the prior Outcome unchanged.",
+    "consumesGate21Pins": [
+      "DatasetManifestV1",
+      "SnapshotDatasetManifestV1",
+      "DatasetSnapshotCore",
+      "DatasetSnapshotRecord",
+      "marketDataBarRevisionL3",
+      "coverage",
+      "DailyBarV1",
+      "knowledgeModes"
+    ],
+    "consumesGate22SuccessorPins": [
+      "instrumentIdentityV1"
+    ],
+    "vintageRules": {
+      "observationDataset": "GATE21 snapshot as-of KnowledgeCutoff",
+      "outcomeDataset": "historical snapshot of the window (T, T+H]",
+      "noVintageMixing": "a DatasetId binds exactly one vintage",
+      "noCrossVersionStitching": true,
+      "firstPersistedOutcomeReproducible": true,
+      "restatement": "new DatasetId; the prior Outcome is unchanged",
+      "enforcementPoint": "a vintage violation is refused at dataset construction, not at window resolution; the DatasetId cannot be bound, so no OutcomeWindowCause is required for it"
+    },
+    "outcomeDatasetAsOfRule": {
+      "sessionSet": "the sessions of (T, T+H] enumerated by the pinned calendar registry (calendarRegistryManifestId, C1), a closed and finite set",
+      "settlingInstant": "availableAt of the INITIAL_ROOT revision of the bar of that session",
+      "asOf": "max over the sessionSet of settlingInstant, equivalently the first instant at which every bar of (T, T+H] has availableAt <= asOf",
+      "outcomeDataset": "the GATE21 snapshot defined at that asOf",
+      "noBuildTimeSelection": true,
+      "noLaterVintageAsInitialTruth": true,
+      "noStitching": true,
+      "restatementKinds": [
+        "VALUE_REVISION",
+        "RESTORATION",
+        "WITHDRAWAL"
+      ],
+      "asOfIsDerivedNeverStored": "DatasetSnapshotCore/1 and DatasetSnapshotRecord/1 carry no as-of field and need none; the instant is derived and the snapshot stays content-addressed",
+      "emissionInstant": "at the asOf, not at horizon expiry; DatasetId_outcome is a mandatory member of a closed tuple so no OutcomeId can be struck before the asOf",
+      "attestationQualityNote": "determinism of the instant is bounded by knowledgeMode; under CAPTURE_TIME_ONLY the availableAt is a capture rather than an attested publication; declared availability fact, not a reservation on the rule"
+    }
+  },
+  "consumesGate21Pins": [
+    "DatasetManifestV1",
+    "SnapshotDatasetManifestV1",
+    "DatasetSnapshotCore",
+    "DatasetSnapshotRecord",
+    "marketDataBarRevisionL3",
+    "coverage",
+    "DailyBarV1",
+    "knowledgeModes"
+  ],
+  "consumesGate21PinCount": 8,
+  "consumesGate22SuccessorPins": [
+    "instrumentIdentityV1"
+  ],
+  "consumesGate22SuccessorPinCount": 1,
+  "successorPinSurface": {
+    "path": "governance/gates/GATE22/pins/GATE22_SUCCESSOR_SCHEMA_PINS.json",
+    "sha256": "5e28fa6ce6b4af6b2fe52440eb209411b8d584c39284ba305bc9f9bf2057c931",
+    "countedInContractCount": false
+  },
+  "classification": {
+    "isExecutionContract": true,
+    "countedInContractCount": true,
+    "isEighthContract": false,
+    "renamed": false,
+    "merged": false,
+    "versionChanged": false,
+    "newDecisionIntroduced": false,
+    "designFreezeIdPromotedToContract": false
+  },
+  "buildDisposition": {
+    "status": "MATERIALIZED_AWAITING_BUILD",
+    "buildExecuted": false,
+    "functionalImplementationPresent": false,
+    "implementationPath": null,
+    "labelProduced": false,
+    "observationProduced": false,
+    "outcomeProduced": false,
+    "datasetProduced": false
+  }
+}

@@ -1,0 +1,10 @@
+import assert from 'node:assert/strict';
+import { consumeFixture, fixtureInput } from '../fixtures/label-consumer-fixture.mjs';
+import { HORIZONS_V1 } from '../implementation/temporal-horizon-v1.mjs';
+import { createObservationId, createOutcomeId } from '../implementation/identity-model-v1.mjs';
+const result = consumeFixture();
+assert.equal(result.status, 'RESOLVED'); assert.equal(HORIZONS_V1.length, 4); assert.ok(result.outcomeId);
+assert.equal(createObservationId(fixtureInput.observation).length, 64);
+assert.equal(createOutcomeId({ ObservationId: 'o', HorizonId: 'h', FormulaId: 'f', DatasetId_outcome: 'd', PriceBasisId: 'RAW', TaxonomyVersion: 't' }).length, 64);
+assert.match(result.outcomeId, /^[0-9a-f]{64}$/);
+console.log('GATE22_FOUNDATION_PASS 6');

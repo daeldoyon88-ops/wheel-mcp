@@ -1,0 +1,23 @@
+{
+  "document": "GATE22_BUILD_CANDIDATE_RECEIPT",
+  "schemaVersion": 1,
+  "gateId": "GATE22",
+  "buildExecuted": true,
+  "agentClosureExecuted": false,
+  "externalConfirmationExecuted": false,
+  "contractSuccessionExecutedDuringBuild": false,
+  "mandate": { "path": "governance/sources/GATE22_CANONICAL_MANDATE_R0.json", "sha256": "1d101e0da4a21f2561055993d17779ade6f9c5bc339fe91abaee390e10eb95bb" },
+  "currentContract": { "path": "governance/gates/GATE22/contracts/EXECUTION_CONTRACT_R0002.json", "sha256": "62354d05f100678cfa8f852e6dcf6f590c0a1f37d8eab2406a76288b58a8780b" },
+  "buildWorkset": [
+    "governance/gates/GATE22/implementation/temporal-horizon-v1.mjs", "governance/gates/GATE22/implementation/outcome-persistence-v1.mjs", "governance/gates/GATE22/implementation/identity-model-v1.mjs", "governance/gates/GATE22/implementation/price-basis-v1.mjs", "governance/gates/GATE22/implementation/dataset-separation-v1.mjs", "governance/gates/GATE22/implementation/taxonomy-v1.mjs", "governance/gates/GATE22/implementation/consumption-boundary-v1.mjs", "governance/gates/GATE22/implementation/label-engine-v1.mjs", "governance/gates/GATE22/tests/gate22-foundation.test.mjs", "governance/gates/GATE22/tests/gate22-hostiles.test.mjs", "governance/gates/GATE22/tests/gate22-evolvability.test.mjs", "governance/gates/GATE22/fixtures/label-consumer-fixture.mjs", "governance/gates/GATE22/evidence/BUILD_CANDIDATE_RECEIPT.json"
+  ],
+  "outputSha256": {
+    "temporal-horizon-v1.mjs": "80d07930f4f74b4a729af88960ce1e4d1df4e94889b090ac78043aa7571e8a57", "outcome-persistence-v1.mjs": "12fbafee9ff063e2794db08d542ee2b9581fba9b97637be7c405d1b445e0934f", "identity-model-v1.mjs": "badc4c6fa4c2dc62a8df91257547a49a4f87c148de82dc2c41f5569edc76c131", "price-basis-v1.mjs": "320f05610372fb5b6897c5d18ffea1f5bcb08b6d1af0dcb360dabebce1236309", "dataset-separation-v1.mjs": "14ba2de930d766e47f39e2c50b8cb0204f9ca99a0ed507beb798fefbb8dc36a7", "taxonomy-v1.mjs": "803a17e08328643ac7b071f49f4f376a6aaa86144a6c8495a5cb0c8f4ee0402c", "consumption-boundary-v1.mjs": "54f4a55a9a59b410b31dd46c365f2475f3c2577865e1500cc3e93d18c0f8dc67", "label-engine-v1.mjs": "bfe87a2993996f73824cf2adf84fcb0d7881710d8c82b4ff1d2c2c3a8a2a4458", "gate22-foundation.test.mjs": "0eac5c2babfaa79766691a918ac39f1b427f7882af401af7f4df912b733298d4", "gate22-hostiles.test.mjs": "5e6730acb950d633e83c5653de905cc152f892018e233e93151c050025d70936", "gate22-evolvability.test.mjs": "54379a8eb4c7e07bffdb51432c571895439adb09c7fa7cd39153317c3b8ab5f3", "label-consumer-fixture.mjs": "1ad9b522d3fd25ac4738fe608226b0e0f0bc2b789b26889ba04cf06aa7e206c6" },
+  "tests": { "foundation": "PASS (6 assertions)", "hostiles": "PASS (15 assertions)", "evolvability": "PASS (5 assertions)", "totalAssertions": 26 },
+  "c1ToC7": { "bindingsPath": "governance/gates/GATE22/buildprep/GATE22_DOMAIN_CONTRACT_BINDINGS.json", "allBound": true, "contractCount": 7, "eighthContractPresent": false },
+  "nonVacuousProof": ["cutoff refusal", "invalid horizon refusal", "derived/mixed basis fail-closed", "O-3 absence before asOf", "EXACT_ONLY identity", "six-primitives-only taxonomy", "GATE23 lagged Outcome blocked", "append-only Outcome duplicate blocked", "window.sessions to windowBars exact coverage", "verified DatasetSnapshot manifest identity binds DatasetId_outcome", "arbitrary supplied DatasetId refusal", "distinct valid provenance snapshots create distinct OutcomeIds"],
+  "functionalAuditFailureEL": "CLOSED",
+  "datasetSnapshotReuse": ["DatasetSnapshotCore/1", "DatasetSnapshotRecord/1", "SnapshotDatasetManifestV1", "verifySnapshotDatasetManifest"],
+  "boundaryProof": { "gate21Writes": 0, "directionalLabWrites": 0, "outOfScopeWrites": 0 },
+  "validators": { "validateGateContract": "PASS", "validateStateSeal": "PASS", "validateStateRevision": "PASS", "governancePreflightGATE22": "PASS (explicit --work-unit-type GATE --work-unit-id GATE22)", "gitDiffCheck": "PASS", "validateStatusLedger": "HISTORICAL_BLOCKING_ONLY (GATE15-17)", "introducedBlockingLedgerFindingCount": 0 }
+}

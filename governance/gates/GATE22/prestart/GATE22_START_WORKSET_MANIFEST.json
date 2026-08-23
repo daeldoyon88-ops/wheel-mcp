@@ -1,0 +1,106 @@
+{
+  "document": "GATE22_START_WORKSET_MANIFEST",
+  "schemaVersion": 1,
+  "gateId": "GATE22",
+  "preparedAt": "2026-08-23T00:00:00.000Z",
+  "authority": {
+    "mandatePath": "governance/sources/GATE22_CANONICAL_MANDATE_R0.json",
+    "mandateSha256": "1d101e0da4a21f2561055993d17779ade6f9c5bc339fe91abaee390e10eb95bb",
+    "startAuthorityConsumed": false
+  },
+  "precontractCohortPaths": [
+    "governance/gates/GATE22/contracts/EXECUTION_CONTRACT_R0001.json",
+    "governance/gates/GATE22/contracts/CURRENT_CONTRACT.json",
+    "governance/gates/GATE22/contracts/PRECONTRACT_AUTHORITY_CONSUMPTION_R1.json"
+  ],
+  "lifecycleStartWritePaths": [
+    "governance/authority/precontract/GATE22/PROJECT_OWNER_LOCAL_PRECONTRACT_AUTHORITY.json",
+    "governance/authority/authorizations/GATE22/PROJECT_OWNER_GATE_AUTHORIZATION_AUTHORITY.json",
+    "governance/authority/authorizations/GATE22/GATE_AUTHORIZATION_RECORD.json",
+    "governance/authority/authorizations/GATE22/PROJECT_OWNER_GATE_START_AUTHORITY.json",
+    "governance/authority/authorizations/GATE22/GATE_START_RECORD.json",
+    "governance/state/GATE_STATUS_LEDGER.ndjson",
+    "governance/gates/GATE22/state/CURRENT_STATE.json",
+    "governance/gates/GATE22/state/revisions/R0001/CHECKPOINT.json",
+    "governance/gates/GATE22/state/revisions/R0001/OPEN_DEFECTS.json",
+    "governance/gates/GATE22/state/revisions/R0001/STATE_SEAL.json",
+    "governance/gates/GATE22/state/revisions/R0002/CHECKPOINT.json",
+    "governance/gates/GATE22/state/revisions/R0002/OPEN_DEFECTS.json",
+    "governance/gates/GATE22/state/revisions/R0002/STATE_SEAL.json",
+    "governance/state/generated/GATE_STATUS_SNAPSHOT.json",
+    "governance/generated/ACTIVE_GATE_CONTEXT.json",
+    "governance/generated/ACTIVE_GATE_CONTEXT.md"
+  ],
+  "domainContractPaths": [
+    "governance/gates/GATE22/contracts/GATE22_TEMPORAL_HORIZON_V1.json",
+    "governance/gates/GATE22/contracts/GATE22_OUTCOME_PERSISTENCE_V1.json",
+    "governance/gates/GATE22/contracts/GATE22_IDENTITY_MODEL_V1.json",
+    "governance/gates/GATE22/contracts/GATE22_PRICE_BASIS_V1.json",
+    "governance/gates/GATE22/contracts/GATE22_DATASET_SEPARATION_V1.json",
+    "governance/gates/GATE22/contracts/GATE22_TAXONOMY_V1.json",
+    "governance/gates/GATE22/contracts/GATE22_CONSUMPTION_BOUNDARY_V1.json"
+  ],
+  "alreadyMaterializedPaths": [
+    "governance/gates/GATE22/pins/GATE22_SUCCESSOR_SCHEMA_PINS.json"
+  ],
+  "readOnlyInputs": [
+    {
+      "path": "governance/sources/GATE22_CANONICAL_MANDATE_R0.json",
+      "sha256": "1d101e0da4a21f2561055993d17779ade6f9c5bc339fe91abaee390e10eb95bb",
+      "byteLength": 41184
+    },
+    {
+      "path": "governance/GATE_REGISTRY_00_40.json",
+      "sha256": "76d5f9ff0a21f8c1eadaf9ccd9e48c9087d12655fac6a5c9215584053652a56b",
+      "byteLength": 114592
+    },
+    {
+      "path": "governance/PROJECT_CONSTITUTION.json",
+      "sha256": "a26443b54c7168b2927e42e2b70bc480eba3aee8abdca10a56852d576d3d62c8",
+      "byteLength": 16370
+    },
+    {
+      "path": "governance/state/GATE_STATUS_LEDGER.ndjson",
+      "sha256": "2b5a028825727230e299f4c15f47b5a8b478552883ed40c48af34847e7644150",
+      "byteLength": 53265
+    },
+    {
+      "path": "research/directional-lab/src/contracts/instrumentIdentityV1.mjs",
+      "sha256": "9535f6a5d8347f99c7a0222479d27b5a9fd6c1d9f5bb4de7a699a80b23e8ee2e",
+      "byteLength": 44338
+    },
+    {
+      "path": "governance/gates/GATE21/implementation/lab-import-adapter.mjs",
+      "sha256": "64f8807149adadf6ac71d23daae749f80cfc8032bc24aa9791d58967cfcd9a88",
+      "byteLength": 13071
+    },
+    {
+      "path": "governance/gates/GATE21/contracts/GATE21_BINDING_V1.json",
+      "sha256": "c8982c5c857759dd4204670e514c6b447b573140552d188012b9c9dedc5e9607",
+      "byteLength": 4191
+    },
+    {
+      "path": "governance/gates/GATE21/evidence/BUILD_CANDIDATE_RECEIPT.json",
+      "sha256": "817ce16bb9ee214c59024aff1e5c63f3cd77736d59b444557dda307d3aba19d2",
+      "byteLength": 14615
+    },
+    {
+      "path": "governance/gates/GATE21/state/CURRENT_STATE.json",
+      "sha256": "ff2f0f312ce08791e0b2d5eaec5897250296b990f79ce484793b88d66ae84ed9",
+      "byteLength": 308
+    },
+    {
+      "path": "governance/gates/GATE21/state/revisions/R0005/STATE_SEAL.json",
+      "sha256": "36e7e648cddf1cd9b54e95f747934f67c2e27f20c4526156611da7fb60c76dba",
+      "byteLength": 1359
+    }
+  ],
+  "forbiddenWritePaths": [
+    "governance/gates/GATE21/",
+    "research/directional-lab/",
+    "governance/sources/GATE22_CANONICAL_MANDATE_R0.json"
+  ],
+  "functionalImplementationPathsDeclared": false,
+  "functionalImplementationPathsRationale": "START is not BUILD. No implementation, test or fixture path is declared by this manifest; declaring one would pre-authorize a functional BUILD that no authority has granted.",
+  "exactWorksetIsClosed": true
+}

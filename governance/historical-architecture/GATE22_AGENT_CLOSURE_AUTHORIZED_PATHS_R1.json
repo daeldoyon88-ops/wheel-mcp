@@ -1,0 +1,17 @@
+{
+  "documentKind": "POST_FREEZE_MAINTENANCE_AUTHORIZED_PATH_MANIFEST",
+  "schemaVersion": 1,
+  "manifestId": "GATE22_AGENT_CLOSURE_AUTHORIZED_PATHS_R1",
+  "programId": "GATE22_AGENT_CLOSURE_BUILD_2C6E46E400B953CD23EAD6511C5C82E120293FE5EE5E2A5F9453C4A0B2C133FF_R1",
+  "paths": [
+    { "path": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_GATE22_AGENT_CLOSURE_R1.json", "operation": "CREATE", "phase": "AGENT_CLOSURE", "reason": "Single-use LOCAL_EXPLICIT_AUTHORITY bound to the exact GATE22 closure pre-state.", "artifactClass": "AGENT_CLOSURE" },
+    { "path": "governance/historical-architecture/GATE22_AGENT_CLOSURE_AUTHORIZED_PATHS_R1.json", "operation": "CREATE", "phase": "AGENT_CLOSURE", "reason": "Finite exact-file GATE22 closure cohort with no wildcard or directory blanket.", "artifactClass": "AGENT_CLOSURE" },
+    { "path": "governance/historical-architecture/GATE22_AGENT_CLOSURE_CONSUMPTION_R1.json", "operation": "CREATE", "phase": "AGENT_CLOSURE", "reason": "Single-use consumption record binding the GATE22 authority, manifest and transaction.", "artifactClass": "AGENT_CLOSURE" },
+    { "path": "governance/gates/GATE22/state/revisions/R0004/CHECKPOINT.json", "operation": "CREATE", "phase": "AGENT_CLOSURE", "reason": "New GATE22 closure checkpoint after the exact AGENT_CLOSURE transition.", "artifactClass": "AGENT_CLOSURE" },
+    { "path": "governance/gates/GATE22/state/revisions/R0004/OPEN_DEFECTS.json", "operation": "CREATE", "phase": "AGENT_CLOSURE", "reason": "Derived GATE22 closure defect projection preserving the zero blocking-defect state.", "artifactClass": "AGENT_CLOSURE" },
+    { "path": "governance/gates/GATE22/state/revisions/R0004/STATE_SEAL.json", "operation": "CREATE", "phase": "AGENT_CLOSURE", "reason": "Native GATE22 state seal chained from R0003 and pinned by the AGENT_CLOSURE event.", "artifactClass": "AGENT_CLOSURE" },
+    { "path": "governance/gates/GATE22/state/CURRENT_STATE.json", "operation": "MODIFY", "phase": "AGENT_CLOSURE", "reason": "Advance the canonical GATE22 state pointer to R0004 COMPLETE_AGENT.", "artifactClass": "AGENT_CLOSURE" },
+    { "path": "governance/state/GATE_STATUS_LEDGER.ndjson", "operation": "MODIFY", "phase": "AGENT_CLOSURE", "reason": "Append exactly one canonical GATE22 AGENT_CLOSURE event; every earlier event stays byte-identical.", "artifactClass": "AGENT_CLOSURE" },
+    { "path": "governance/state/generated/GATE_STATUS_SNAPSHOT.json", "operation": "MODIFY", "phase": "AGENT_CLOSURE", "reason": "Regenerate the derived status projection from the post-closure canonical ledger.", "artifactClass": "AGENT_CLOSURE" }
+  ]
+}

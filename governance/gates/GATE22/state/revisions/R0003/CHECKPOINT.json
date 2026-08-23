@@ -1,0 +1,25 @@
+{
+  "gateId": "GATE22",
+  "stateRevision": "R0003",
+  "milestone": "GATE22_CONTRACT_SUCCESSION",
+  "resumePoint": "IN_PROGRESS_BUILD_AUTHORIZED",
+  "completedTasks": [
+    "GATE22_CONTRACT_SUCCESSION_R0001_TO_R0002",
+    "GATE22_DOMAIN_CONTRACT_MATERIALIZATION_C1_C7",
+    "GATE22_BUILD_PACKAGE_PREPARATION"
+  ],
+  "openTasks": [
+    "GATE22_FUNCTIONAL_BUILD"
+  ],
+  "reusableEvidence": [
+    "governance/gates/GATE22/prestart/GATE22_START_DOMAIN_CONTRACT_SET_V1.json",
+    "governance/gates/GATE22/buildprep/GATE22_BUILD_WORKSET_MANIFEST.json",
+    "governance/gates/GATE22/buildprep/BUILD_CHECKPOINT.json"
+  ],
+  "invalidatedEvidence": [],
+  "requiredNextActions": [
+    "GATE22_FUNCTIONAL_BUILD"
+  ],
+  "protectedHashes": [],
+  "createdAt": "2026-08-23T11:00:00.000Z"
+}

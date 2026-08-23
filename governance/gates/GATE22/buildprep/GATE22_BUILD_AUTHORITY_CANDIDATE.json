@@ -1,0 +1,84 @@
+{
+  "document": "GATE22_BUILD_AUTHORITY_CANDIDATE",
+  "schemaVersion": 1,
+  "gateId": "GATE22",
+  "preparedAt": "2026-08-23T11:00:00.000Z",
+  "activated": false,
+  "buildExecuted": false,
+  "determination": {
+    "question": "What authority does the GATE22 functional BUILD require?",
+    "method": "REUSE_OF_PROVEN_CANONICAL_PATTERN",
+    "evidence": {
+      "referenceGate": "GATE21",
+      "referenceSequence": [
+        {
+          "ordinal": 87,
+          "transitionType": "CONTRACT_SUCCESSION",
+          "note": "activated BUILD-scoped EXECUTION_CONTRACT_R0002"
+        },
+        {
+          "ordinal": 88,
+          "transitionType": "AGENT_CLOSURE",
+          "note": "first ledger event after the BUILD"
+        }
+      ],
+      "conclusion": "No ledger event and no additional authority artifact exists between GATE21 CONTRACT_SUCCESSION and AGENT_CLOSURE, so the functional BUILD itself consumes no lifecycle authority."
+    }
+  },
+  "requiredAuthorityForBuild": {
+    "lifecycleAuthorityRequired": false,
+    "newLedgerEventRequired": false,
+    "newStateRevisionRequired": false,
+    "newOwnerCryptographicAuthorityRequired": false,
+    "sufficientAuthority": {
+      "kind": "ACTIVE_EXECUTION_CONTRACT",
+      "path": "governance/gates/GATE22/contracts/EXECUTION_CONTRACT_R0002.json",
+      "sha256": "62354d05f100678cfa8f852e6dcf6f590c0a1f37d8eab2406a76288b58a8780b",
+      "contractRevision": "R0002",
+      "pointerPath": "governance/gates/GATE22/contracts/CURRENT_CONTRACT.json",
+      "pointerSha256": "e6786c34bb1b207b5c248929b1e6747f608be581d63e89f6c80697b5f908dfef",
+      "scope": "EXECUTION_CONTRACT_R0002.authorizedPaths, restricted to the buildWritePaths subset",
+      "status": "ACTIVE"
+    },
+    "additionalGovernanceBoundary": "Owner mission authorization is a governance boundary observed in the mission, not a cryptographic artifact to produce."
+  },
+  "nextAuthorityAfterBuild": {
+    "transitionType": "AGENT_CLOSURE",
+    "requiredAuthorityForm": "GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY",
+    "expectedPathPattern": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_GATE22_AGENT_CLOSURE_R1.json",
+    "referencePrecedent": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_GATE21_AGENT_CLOSURE_R1.json",
+    "validator": "node governance/tools/validate-post-freeze-maintenance-authority.mjs",
+    "notPreparedByThisMission": true,
+    "reason": "Closure authority is issued after the BUILD produces its evidence, never before."
+  },
+  "precontractConsumptionAnchor": {
+    "gateId": "GATE22",
+    "currentVerdict": "BLOCKED",
+    "currentFinding": "CONSUMPTION_RECEIPT_NOT_ANCHORED",
+    "requiredForContractSuccession": false,
+    "requiredForContractSuccessionProof": "validate-status-ledger validateContractSuccession() reads only documentKind, gateId, authorityMode, maxUse, predecessor/successor contract bytes and the state pin; it never consults the precontract anchor. The only consumers of evaluatePrecontractAnchorEnforcement are final-gate-integrity-auditor.mjs and gate-fast-path-control-plane.mjs.",
+    "appendableNow": false,
+    "appendableNowProof": "PRECONTRACT_CONSUMPTION_ANCHOR_TRANSITIONS admits only NOT_STARTED->NOT_STARTED and COMPLETE_AGENT->COMPLETE_AGENT. GATE22 is IN_PROGRESS, so the transition table forbids the event at this point in the lifecycle.",
+    "nextLegalWindow": "COMPLETE_AGENT -> COMPLETE_AGENT, after AGENT_CLOSURE and before the final integrity audit",
+    "requiredBeforeClosureAudit": true,
+    "remediation": "node governance/tools/anchor-precontract-consumption.mjs --root . --authority governance/authority/precontract/GATE22/PRECONTRACT_CONSUMPTION_ANCHOR_AUTHORITY_R1.json --apply",
+    "referencePrecedent": "governance/authority/precontract/GATE21/PRECONTRACT_CONSUMPTION_ANCHOR_AUTHORITY_R1.json",
+    "treatedByThisMission": false
+  },
+  "prohibitedUnderBuild": [
+    "START",
+    "SECOND_START",
+    "AGENT_CLOSURE",
+    "EXTERNAL_CONFIRMATION",
+    "COMPLETE_CONFIRMED",
+    "ACTIVE_GATE_SWITCH",
+    "GEE_R8",
+    "LEDGER_REWRITE",
+    "GATE21_MUTATION",
+    "DIRECTIONAL_LAB_MUTATION",
+    "GATE23_IMPLEMENTATION",
+    "EIGHTH_CONTRACT",
+    "GIT_COMMIT",
+    "GIT_PUSH"
+  ]
+}

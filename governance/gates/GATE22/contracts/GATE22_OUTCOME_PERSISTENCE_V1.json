@@ -1,0 +1,144 @@
+{
+  "document": "GATE22_DOMAIN_CONTRACT",
+  "schemaVersion": 1,
+  "gateId": "GATE22",
+  "contractKey": "C2",
+  "contractId": "GATE22_OUTCOME_PERSISTENCE_V1",
+  "version": 1,
+  "designFreezeRef": "TARGET_BOUNDARY_CONTRACT_V1",
+  "materializedAt": "2026-08-23T11:00:00.000Z",
+  "materializedBy": {
+    "eventId": "GATE22_CONTRACT_SUCCESSION_R0002_R1",
+    "transitionType": "CONTRACT_SUCCESSION",
+    "executionContractRevision": "R0002",
+    "executionContractPath": "governance/gates/GATE22/contracts/EXECUTION_CONTRACT_R0002.json",
+    "executionContractSha256": "62354d05f100678cfa8f852e6dcf6f590c0a1f37d8eab2406a76288b58a8780b",
+    "stateRevision": "R0003"
+  },
+  "authority": {
+    "mandateDocumentId": "GATE22_CANONICAL_MANDATE_R0",
+    "mandatePath": "governance/sources/GATE22_CANONICAL_MANDATE_R0.json",
+    "mandateSha256": "1d101e0da4a21f2561055993d17779ade6f9c5bc339fe91abaee390e10eb95bb",
+    "mandateByteLength": 41184,
+    "mandatePointer": "/domainContracts/contracts/1",
+    "mandateProjectionSha256": "866c80713da1b1e327d1e4b71b7d84b59bded3593aa5bfe34ae767173931df4c",
+    "projectionRule": "sha256(canonicalJson(mandate#/domainContracts/contracts/1))",
+    "projectionSetPath": "governance/gates/GATE22/prestart/GATE22_START_DOMAIN_CONTRACT_SET_V1.json",
+    "projectionSetSha256": "e01835fb7474680297db166180005a1a5f5c791b707f46a7228afa4756f32eac",
+    "ownerDecisionId": "D-1",
+    "ownerDecisionPointer": "/ownerDecisions/0",
+    "ratificationOnlyMandate": true,
+    "grantsBuild": false
+  },
+  "mandateProjection": {
+    "contractKey": "C2",
+    "contractId": "GATE22_OUTCOME_PERSISTENCE_V1",
+    "version": 1,
+    "designFreezeRef": "TARGET_BOUNDARY_CONTRACT_V1",
+    "purpose": "Outcome persistence and missingness routing. Before the Outcome Dataset asOf is reached no Outcome record and no OutcomeId exist. After it, the record carries RESOLVED, INSUFFICIENT_DATA or FAIL_CLOSED. Append-only, no historical mutation. Hosts the internal OutcomeMissingReason structure ratified by B-2.",
+    "consumesGate21Pins": [
+      "MissingReasonsV1",
+      "coverage",
+      "DatasetSnapshotRecord",
+      "SnapshotDatasetManifestV1"
+    ],
+    "consumesGate22SuccessorPins": [],
+    "outcomeStatus": {
+      "values": [
+        "RESOLVED",
+        "INSUFFICIENT_DATA",
+        "FAIL_CLOSED"
+      ],
+      "count": 3,
+      "notYetResolvedIsNotAnEnumValue": true,
+      "notYetResolvedRepresentation": "absence of an Outcome record, never a stored value",
+      "appendOnly": true,
+      "historicalMutation": "FORBIDDEN_ALWAYS"
+    },
+    "outcomeMissingReason": {
+      "classification": "INTERNAL_STRUCTURE_OF_C2",
+      "isNewContract": false,
+      "isNewStatus": false,
+      "isNewPrimitive": false,
+      "reasonClass": [
+        "INPUT",
+        "WINDOW",
+        "BASIS"
+      ],
+      "inputCause": "value of MissingReasonsV1 (GATE21 pin) or null",
+      "windowCause": "value of OutcomeWindowCause/1 (local to C2) or null",
+      "exactlyOneOfInputCauseOrWindowCauseIsNonNull": true,
+      "reasonParticipatesInOutcomeId": false,
+      "resolvedIffReasonIsNull": "OutcomeStatus === RESOLVED if and only if OutcomeMissingReason === null"
+    },
+    "outcomeWindowCauseV1": {
+      "surfaceVersionedWith": "GATE22_OUTCOME_PERSISTENCE_V1",
+      "count": 4,
+      "values": [
+        {
+          "cause": "INSUFFICIENT_SESSIONS_IN_WINDOW",
+          "routesTo": "INSUFFICIENT_DATA",
+          "decidability": "calendar fact, decidable at T against the pinned calendar registry"
+        },
+        {
+          "cause": "CALENDAR_GAP_IN_WINDOW",
+          "routesTo": "INSUFFICIENT_DATA",
+          "decidability": "calendar fact, decidable at T against the pinned calendar registry"
+        },
+        {
+          "cause": "PRICE_BASIS_MIXED_IN_WINDOW",
+          "routesTo": "FAIL_CLOSED",
+          "decidability": "settled bars, observed mixture at the asOf"
+        },
+        {
+          "cause": "PRICE_BASIS_UNAVAILABLE_FOR_WINDOW",
+          "routesTo": "FAIL_CLOSED",
+          "decidability": "settled bars, basis absent at the asOf"
+        }
+      ],
+      "retired": [
+        {
+          "cause": "OUTCOME_WINDOW_TRUNCATED_BY_DATASET_END",
+          "retiredBy": "O-3",
+          "reason": "its instantiation would require knowing the future non-arrival of data, which is a latent NO_FUTURE_LEAKAGE violation and, under the C-2 asOf rule, dead vocabulary"
+        }
+      ]
+    },
+    "nonEmissionRule": {
+      "rule": "No Outcome record and no OutcomeId exist while the C5 asOf is not reached, whether the absence is temporary or permanent.",
+      "absenceNeverConvertedToStatus": true,
+      "settlementBoundExists": false,
+      "note": "the system never has to decide whether the data will arrive one day; temporary and permanent absence receive the same treatment, which is why no settlement bound is required and no new rule enters the mandate"
+    }
+  },
+  "consumesGate21Pins": [
+    "MissingReasonsV1",
+    "coverage",
+    "DatasetSnapshotRecord",
+    "SnapshotDatasetManifestV1"
+  ],
+  "consumesGate21PinCount": 4,
+  "consumesGate22SuccessorPins": [],
+  "consumesGate22SuccessorPinCount": 0,
+  "successorPinSurface": null,
+  "classification": {
+    "isExecutionContract": true,
+    "countedInContractCount": true,
+    "isEighthContract": false,
+    "renamed": false,
+    "merged": false,
+    "versionChanged": false,
+    "newDecisionIntroduced": false,
+    "designFreezeIdPromotedToContract": false
+  },
+  "buildDisposition": {
+    "status": "MATERIALIZED_AWAITING_BUILD",
+    "buildExecuted": false,
+    "functionalImplementationPresent": false,
+    "implementationPath": null,
+    "labelProduced": false,
+    "observationProduced": false,
+    "outcomeProduced": false,
+    "datasetProduced": false
+  }
+}

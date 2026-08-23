@@ -1,0 +1,110 @@
+{
+  "document": "GATE22_SUCCESSOR_SCHEMA_PINS",
+  "schemaVersion": 1,
+  "surfaceName": "GATE22_SUCCESSOR_SCHEMA_PINS",
+  "owner": "GATE22",
+  "materializes": "PROMO-1_OPTION_B",
+  "materialized": true,
+  "materializedAt": "2026-08-23T00:00:00.000Z",
+  "requiredBeforeStart": true,
+  "authority": {
+    "ownerDecisionId": "PROMO-1_OPTION_B",
+    "mandatePath": "governance/sources/GATE22_CANONICAL_MANDATE_R0.json",
+    "mandateSha256": "1d101e0da4a21f2561055993d17779ade6f9c5bc339fe91abaee390e10eb95bb",
+    "mandateByteLength": 41184,
+    "mandatePointer": "/gate22SuccessorPinVocabulary",
+    "mandateProjectionSha256": "b906aaca85658387e8837b2911a5e77e5f0936eec3759abbd96fadf9201b8cf3",
+    "ownerDecisionPointer": "/ownerDecisions/9",
+    "preconditionPointer": "/gate21DependencyPreconditions/0",
+    "ratificationOnlyMandate": true,
+    "grantsStart": false,
+    "grantsBuild": false
+  },
+  "classification": {
+    "isContract": false,
+    "isEighthContract": false,
+    "countedInContractCount": false,
+    "isExtensionOfGate21LabSchemaPins": false,
+    "isSecondaryAuthorityOverGate21Pins": false,
+    "additive": true,
+    "wrapOnly": true,
+    "fork": false,
+    "newIdentityAlgebra": false,
+    "newPrimitive": false,
+    "newContract": false,
+    "declaringField": "consumesGate22SuccessorPins",
+    "governedByI12": false,
+    "governedByI12Rationale": "I-12 governs consumesGate21Pins against LAB_SCHEMA_PINS only; this namespace is disjoint from it, so I-12 stays literally true and unweakened"
+  },
+  "referencedModule": {
+    "path": "research/directional-lab/src/contracts/instrumentIdentityV1.mjs",
+    "sha256": "9535f6a5d8347f99c7a0222479d27b5a9fd6c1d9f5bb4de7a699a80b23e8ee2e",
+    "byteLength": 44338,
+    "modified": false,
+    "forked": false,
+    "reanalysed": false,
+    "role": "CANONICAL_SOURCE_OF_INSTRUMENT_IDENTITY_REFERENCED_NOT_REDEFINED"
+  },
+  "pins": [
+    {
+      "pinKey": "instrumentIdentityV1",
+      "pinContent": [
+        "InstrumentIdentityAuthorityPolicy/1",
+        "InstrumentIdentityCore/1",
+        "InstrumentIdentityRecord/1",
+        "InstrumentDescriptorCore/1",
+        "SymbolNamespacePolicy/1",
+        "InstrumentAliasBindingCore/1",
+        "ProviderInstrumentBindingCore/1",
+        "InstrumentAliasRevocationCore/1",
+        "ProviderInstrumentRevocationCore/1",
+        "InstrumentIdentityManifest/1",
+        "InstrumentIdentityRegistryManifest/1",
+        "DatasetSnapshotInstrumentBinding/1"
+      ],
+      "pinContentCount": 12,
+      "pinContentSource": "governance/sources/GATE22_CANONICAL_MANDATE_R0.json#/gate22SuccessorPinVocabulary/pinContent",
+      "pinContentSha256": "1224219848a0744d63f3b01f679ffee9c5b8a65f150a92dc0315e7be6b3bbeff",
+      "consumedByContracts": [
+        "GATE22_IDENTITY_MODEL_V1",
+        "GATE22_DATASET_SEPARATION_V1"
+      ]
+    }
+  ],
+  "pinCount": 1,
+  "gate21Invariance": {
+    "labSchemaPinsAuthority": "GATE21_LabImportAdapter/1 :: LAB_SCHEMA_PINS",
+    "labSchemaPinsPath": "governance/gates/GATE21/implementation/lab-import-adapter.mjs",
+    "labSchemaPinsSha256": "64f8807149adadf6ac71d23daae749f80cfc8032bc24aa9791d58967cfcd9a88",
+    "labSchemaPinsKeyCount": 27,
+    "labSchemaPinsFrozen": true,
+    "instrumentIdentityV1InGate21Vocabulary": false,
+    "gate21BindingV1Path": "governance/gates/GATE21/contracts/GATE21_BINDING_V1.json",
+    "gate21BindingV1Sha256": "c8982c5c857759dd4204670e514c6b447b573140552d188012b9c9dedc5e9607",
+    "modifiesGate21": false,
+    "modifiesGate21BindingV1": false,
+    "modifiesGate21RevisionsR0001ToR0005": false,
+    "modifiesDirectionalLab": false
+  },
+  "schemaDependencyPartition": {
+    "gate21Pins": 18,
+    "gate22SuccessorPins": 1,
+    "total": 19,
+    "note": "the audited total of 19 distinct schema dependencies is preserved; only its partition across two namespaces changed, so that I-12 holds against the frozen 27-key GATE21 vocabulary"
+  },
+  "emission": {
+    "observation": false,
+    "outcome": false,
+    "label": false,
+    "observationIdChanged": false,
+    "outcomeIdChanged": false,
+    "businessEmission": false
+  },
+  "disposition": {
+    "executionAuthorized": false,
+    "startAuthorized": false,
+    "buildAuthorized": false,
+    "statusTransitionAuthorized": false,
+    "note": "This surface materializes the PROMO-1 Option B successor namespace only. It executes nothing, starts nothing and emits nothing."
+  }
+}

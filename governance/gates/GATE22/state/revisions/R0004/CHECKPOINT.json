@@ -1,0 +1,15 @@
+{
+  "gateId": "GATE22",
+  "stateRevision": "R0004",
+  "milestone": "GATE22_AGENT_CLOSURE",
+  "resumePoint": "COMPLETE_AGENT",
+  "completedTasks": [
+    "GATE22_FUNCTIONAL_BUILD"
+  ],
+  "openTasks": [],
+  "reusableEvidence": [],
+  "invalidatedEvidence": [],
+  "requiredNextActions": [],
+  "protectedHashes": [],
+  "createdAt": "2026-08-23T14:30:00.000Z"
+}

@@ -1,0 +1,172 @@
+{
+  "document": "GATE22_PRESTART_CLOSURE_EVIDENCE",
+  "schemaVersion": 1,
+  "gateId": "GATE22",
+  "preparedAt": "2026-08-23T00:00:00.000Z",
+  "isAuthority": false,
+  "isClosureEvidence": false,
+  "isStartEvidence": false,
+  "purpose": "Machine-readable precondition evidence enabling an independent auditor to answer READY_FOR_GATE22_START. It closes nothing and authorizes nothing.",
+  "h1Restoration": {
+    "path": "governance/gates/GATE21/evidence/BUILD_CANDIDATE_RECEIPT.json",
+    "expectedSealedSha256": "817ce16bb9ee214c59024aff1e5c63f3cd77736d59b444557dda307d3aba19d2",
+    "actualSha256": "817ce16bb9ee214c59024aff1e5c63f3cd77736d59b444557dda307d3aba19d2",
+    "match": true,
+    "byteLength": 14615,
+    "driftClass": "CRLF_ONLY",
+    "restorationMethod": "git checkout -- <single path>",
+    "semanticChange": false,
+    "semanticCanonicalSha256Before": "1b444c1a2567a4be3363460524b109c2611cd608aa9e154fdda847992e434afe",
+    "semanticCanonicalSha256After": "1b444c1a2567a4be3363460524b109c2611cd608aa9e154fdda847992e434afe",
+    "lifecycleClosureFieldReaudited": false,
+    "lifecycleClosureFieldMeaning": "NOT_PERFORMED on this receipt means BUILD receipt R0002 non-closure only; it does not mean GATE21 is open."
+  },
+  "gate21": {
+    "status": "COMPLETE_CONFIRMED",
+    "stateRevision": "R0005",
+    "terminalOrdinal": 89,
+    "reopened": false,
+    "r0006Created": false,
+    "agentClosureRepeated": false,
+    "externalConfirmationRepeated": false,
+    "labSchemaPinsKeyCount": 27,
+    "labSchemaPinsPath": "governance/gates/GATE21/implementation/lab-import-adapter.mjs",
+    "labSchemaPinsSha256": "64f8807149adadf6ac71d23daae749f80cfc8032bc24aa9791d58967cfcd9a88",
+    "bindingV1Sha256": "c8982c5c857759dd4204670e514c6b447b573140552d188012b9c9dedc5e9607",
+    "mutatedPaths": []
+  },
+  "mandate": {
+    "path": "governance/sources/GATE22_CANONICAL_MANDATE_R0.json",
+    "expectedSha256": "1d101e0da4a21f2561055993d17779ade6f9c5bc339fe91abaee390e10eb95bb",
+    "actualSha256": "1d101e0da4a21f2561055993d17779ade6f9c5bc339fe91abaee390e10eb95bb",
+    "match": true,
+    "byteLength": 41184,
+    "expectedByteLength": 41184,
+    "readOnly": true,
+    "mutated": false,
+    "designFreezeReopened": false
+  },
+  "promo1": {
+    "form": "PROMO-1_OPTION_B",
+    "materialized": true,
+    "materializedPath": "governance/gates/GATE22/pins/GATE22_SUCCESSOR_SCHEMA_PINS.json",
+    "owner": "GATE22",
+    "namespace": "GATE22_SUCCESSOR_SCHEMA_PINS",
+    "declaringField": "consumesGate22SuccessorPins",
+    "pinCount": 1,
+    "pinContentCount": 12,
+    "referencedModulePath": "research/directional-lab/src/contracts/instrumentIdentityV1.mjs",
+    "referencedModuleSha256": "9535f6a5d8347f99c7a0222479d27b5a9fd6c1d9f5bb4de7a699a80b23e8ee2e",
+    "referencedModuleMutated": false,
+    "forked": false,
+    "instrumentIdentityV1InGate21LabSchemaPins": false,
+    "instrumentIdentityV1InAnyConsumesGate21Pins": false,
+    "instrumentIdentityV1InConsumesGate22SuccessorPins": [
+      "GATE22_IDENTITY_MODEL_V1",
+      "GATE22_DATASET_SEPARATION_V1"
+    ],
+    "directionalLabBytesChanged": false,
+    "gate21HistoricalMutation": false,
+    "isEighthContract": false,
+    "countedInContractCount": false
+  },
+  "contracts": {
+    "declaredCount": 7,
+    "mandateCount": 7,
+    "match": true,
+    "contractIds": [
+      "GATE22_TEMPORAL_HORIZON_V1",
+      "GATE22_OUTCOME_PERSISTENCE_V1",
+      "GATE22_IDENTITY_MODEL_V1",
+      "GATE22_PRICE_BASIS_V1",
+      "GATE22_DATASET_SEPARATION_V1",
+      "GATE22_TAXONOMY_V1",
+      "GATE22_CONSUMPTION_BOUNDARY_V1"
+    ],
+    "contractKeys": [
+      "C1",
+      "C2",
+      "C3",
+      "C4",
+      "C5",
+      "C6",
+      "C7"
+    ],
+    "eighthContractPresent": false,
+    "divergenceFromMandate": false,
+    "setPath": "governance/gates/GATE22/prestart/GATE22_START_DOMAIN_CONTRACT_SET_V1.json"
+  },
+  "startNotExecuted": {
+    "startExecuted": false,
+    "startAuthorityIssued": false,
+    "startAuthorityConsumed": false,
+    "ledgerPath": "governance/state/GATE_STATUS_LEDGER.ndjson",
+    "ledgerSha256": "2b5a028825727230e299f4c15f47b5a8b478552883ed40c48af34847e7644150",
+    "ledgerLineCount": 89,
+    "ledgerEventsAppended": 0,
+    "gate22TerminalOrdinal": 23,
+    "gate22Status": "NOT_STARTED",
+    "currentStateCreated": false,
+    "stateRevisionCreated": false,
+    "statusTransitionPerformed": false,
+    "activeGateMutated": false,
+    "canonicalContractDirectoryCreated": false,
+    "canonicalCurrentContractCreated": false,
+    "functionalBuildPerformed": false,
+    "labelEmitted": false,
+    "observationEmitted": false,
+    "outcomeEmitted": false,
+    "gitCommit": false,
+    "gitPush": false
+  },
+  "package": {
+    "files": [
+      {
+        "path": "governance/gates/GATE22/pins/GATE22_SUCCESSOR_SCHEMA_PINS.json",
+        "sha256": "5e28fa6ce6b4af6b2fe52440eb209411b8d584c39284ba305bc9f9bf2057c931",
+        "byteLength": 4389
+      },
+      {
+        "path": "governance/gates/GATE22/prestart/GATE22_MANDATE_BINDING.json",
+        "sha256": "4fcab271e6e08954f860d190b470545447d3c9140af4b93f1324386eae0379f3",
+        "byteLength": 2695
+      },
+      {
+        "path": "governance/gates/GATE22/prestart/GATE22_START_DOMAIN_CONTRACT_SET_V1.json",
+        "sha256": "e01835fb7474680297db166180005a1a5f5c791b707f46a7228afa4756f32eac",
+        "byteLength": 11383
+      },
+      {
+        "path": "governance/gates/GATE22/prestart/GATE22_START_WORKSET_MANIFEST.json",
+        "sha256": "e19b9ba5cffcdd510425ac358df6d0bdb1e20a1b43d1144c73afd72fd4ef26e1",
+        "byteLength": 4723
+      },
+      {
+        "path": "governance/gates/GATE22/prestart/candidate/EXECUTION_CONTRACT_R0001.json",
+        "sha256": "76b6d6d9fe0938ea43e6e20710e1081e4918a72ecbab49072549b0450bb294e0",
+        "byteLength": 9783
+      },
+      {
+        "path": "governance/gates/GATE22/prestart/candidate/CANDIDATE_CONTRACT_POINTER.json",
+        "sha256": "cce9c5cdf28c28bdde7a61b567e6623d79a63c04438d37bf48646323936c186e",
+        "byteLength": 290
+      },
+      {
+        "path": "governance/gates/GATE22/prestart/candidate/PROJECT_OWNER_GATE_START_AUTHORITY_CANDIDATE.json",
+        "sha256": "05dd73f86501a39655b1fb8549a4df0ee2b8312cbce58a96c28e938c91f9f49d",
+        "byteLength": 3733
+      },
+      {
+        "path": "governance/gates/GATE22/prestart/PRESTART_CHECKPOINT.json",
+        "sha256": "d657171522d108584edfe604e5ec51cae393d76817e94bdb1c7359fec525b5dc",
+        "byteLength": 3159
+      }
+    ],
+    "fileCount": 8,
+    "packageDigestAlgorithm": "SHA256_CANONICAL_JSON_OF_PATH_SHA_PAIRS",
+    "packageDigest": "a7032340dd49f5e085089ad5c59fc6284c65893510f4038aadedb5053e934f21"
+  },
+  "verdictSupported": "READY_FOR_GATE22_START",
+  "verdictAuthority": "INDEPENDENT_AUDITOR_ONLY",
+  "verdictClaimedByThisPackage": false
+}

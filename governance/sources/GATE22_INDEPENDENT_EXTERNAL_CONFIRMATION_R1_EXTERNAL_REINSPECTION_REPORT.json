@@ -1,0 +1,163 @@
+{
+  "document": "EXTERNAL_REINSPECTION_REPORT",
+  "schemaVersion": 1,
+  "reportId": "GATE22_INDEPENDENT_EXTERNAL_CONFIRMATION_R1_EXTERNAL_REINSPECTION_REPORT",
+  "gateId": "GATE22",
+  "programId": "GATE22_INDEPENDENT_EXTERNAL_CONFIRMATION_R1",
+  "verifierId": "GATE22_INDEPENDENT_EXTERNAL_CONFIRMATION_R1",
+  "independentSession": true,
+  "verdict": "PASS",
+  "reinspectionBasis": "Independent external confirmation of GATE22 COMPLETE_AGENT. Live prestate remeasured: ledger 93 events SHA256 f93d4e7d4b58aa2298965165683b8a831a8b9c17795990cb2d44571015e9684b. GATE22 COMPLETE_AGENT R0004. CURRENT_CONTRACT R0002 SHA256 62354d05f100678cfa8f852e6dcf6f590c0a1f37d8eab2406a76288b58a8780b. CURRENT_STATE seal 17fb7350612b26044d94bacd960ff0bc6472bb1a3aadacfaf5f3c11f5dbd8b71. BUILD_CANDIDATE_RECEIPT file bytes 2c6e46e400b953cd23ead6511c5c82e120293fe5ee5e2a5f9453c4a0b2c133ff 12-path BUILD cohort drift 0. AGENT_CLOSURE GATE22_AGENT_CLOSURE_R1 ordinal 93 unique. START GATE22_START_R1 ordinal 91 unique. AGENT_CLOSURE consumption 2996fbfb9ba99ce5f767665a8a008ab25bb917d66d92109773be16183253eee9/3552. HEAD 337e4d2b465754a943668e9aca919f05b0b530b8. ACTIVE_GATE GATE13. GATE23 NOT_STARTED. R8 absent. Readiness audit GATE22_EXTERNAL_CONFIRMATION_AUDIT_PASS_READY_FOR_FINAL_CLOSURE. Functional tests not rerun because current BUILD bytes match the independently audited receipt. C1-C7=7, C8 absent. introducedBlockingLedgerFindingCount=0.",
+  "preState": {
+    "baseHead": "337e4d2b465754a943668e9aca919f05b0b530b8",
+    "ledgerEventCount": 93,
+    "ledgerPrefixSha256": "f93d4e7d4b58aa2298965165683b8a831a8b9c17795990cb2d44571015e9684b",
+    "gateStatus": "COMPLETE_AGENT",
+    "stateRevision": "R0004",
+    "contractRevision": "R0002",
+    "activeGate": "GATE13",
+    "R8ExpectedAbsent": true
+  },
+  "independentChecks": [
+    {
+      "check": "EXTERNAL_CONFIRMATION_READINESS_AUDIT",
+      "result": "GATE22_EXTERNAL_CONFIRMATION_AUDIT_PASS_READY_FOR_FINAL_CLOSURE"
+    },
+    {
+      "check": "LEDGER",
+      "eventCount": 93,
+      "sha256": "f93d4e7d4b58aa2298965165683b8a831a8b9c17795990cb2d44571015e9684b"
+    },
+    {
+      "check": "GATE22_STATUS",
+      "result": "COMPLETE_AGENT",
+      "stateRevision": "R0004",
+      "stateSealSha256": "17fb7350612b26044d94bacd960ff0bc6472bb1a3aadacfaf5f3c11f5dbd8b71",
+      "previousStateSealSha256": "b91797502e8e06d8702dd0660fa10bdf2964bb980685d1dab58b885a94d5950f"
+    },
+    {
+      "check": "COMPLETE_AGENT_EVENT",
+      "eventId": "GATE22_AGENT_CLOSURE_R1",
+      "ordinal": 93,
+      "transitionType": "AGENT_CLOSURE",
+      "eventPayloadSha256": "ef879db283410c32b0c3f62fa2c3b040db4a2503893271ecba729b8b9547ee04",
+      "unique": true
+    },
+    {
+      "check": "START_EVENT",
+      "eventId": "GATE22_START_R1",
+      "ordinal": 91,
+      "unique": true
+    },
+    {
+      "check": "CURRENT_CONTRACT",
+      "contractRevision": "R0002",
+      "sha256": "62354d05f100678cfa8f852e6dcf6f590c0a1f37d8eab2406a76288b58a8780b"
+    },
+    {
+      "check": "BUILD_CANDIDATE_RECEIPT",
+      "path": "governance/gates/GATE22/evidence/BUILD_CANDIDATE_RECEIPT.json",
+      "fileSha256": "2c6e46e400b953cd23ead6511c5c82e120293fe5ee5e2a5f9453c4a0b2c133ff",
+      "byteLength": 4022,
+      "artifactDriftCount": 0,
+      "testsRerun": false
+    },
+    {
+      "check": "BUILD_12_PATH_COHORT",
+      "result": "PASS",
+      "paths": [
+        {
+          "path": "governance/gates/GATE22/implementation/temporal-horizon-v1.mjs",
+          "sha256": "80d07930f4f74b4a729af88960ce1e4d1df4e94889b090ac78043aa7571e8a57"
+        },
+        {
+          "path": "governance/gates/GATE22/implementation/outcome-persistence-v1.mjs",
+          "sha256": "12fbafee9ff063e2794db08d542ee2b9581fba9b97637be7c405d1b445e0934f"
+        },
+        {
+          "path": "governance/gates/GATE22/implementation/identity-model-v1.mjs",
+          "sha256": "badc4c6fa4c2dc62a8df91257547a49a4f87c148de82dc2c41f5569edc76c131"
+        },
+        {
+          "path": "governance/gates/GATE22/implementation/price-basis-v1.mjs",
+          "sha256": "320f05610372fb5b6897c5d18ffea1f5bcb08b6d1af0dcb360dabebce1236309"
+        },
+        {
+          "path": "governance/gates/GATE22/implementation/dataset-separation-v1.mjs",
+          "sha256": "14ba2de930d766e47f39e2c50b8cb0204f9ca99a0ed507beb798fefbb8dc36a7"
+        },
+        {
+          "path": "governance/gates/GATE22/implementation/taxonomy-v1.mjs",
+          "sha256": "803a17e08328643ac7b071f49f4f376a6aaa86144a6c8495a5cb0c8f4ee0402c"
+        },
+        {
+          "path": "governance/gates/GATE22/implementation/consumption-boundary-v1.mjs",
+          "sha256": "54f4a55a9a59b410b31dd46c365f2475f3c2577865e1500cc3e93d18c0f8dc67"
+        },
+        {
+          "path": "governance/gates/GATE22/implementation/label-engine-v1.mjs",
+          "sha256": "bfe87a2993996f73824cf2adf84fcb0d7881710d8c82b4ff1d2c2c3a8a2a4458"
+        },
+        {
+          "path": "governance/gates/GATE22/tests/gate22-foundation.test.mjs",
+          "sha256": "0eac5c2babfaa79766691a918ac39f1b427f7882af401af7f4df912b733298d4"
+        },
+        {
+          "path": "governance/gates/GATE22/tests/gate22-hostiles.test.mjs",
+          "sha256": "5e6730acb950d633e83c5653de905cc152f892018e233e93151c050025d70936"
+        },
+        {
+          "path": "governance/gates/GATE22/tests/gate22-evolvability.test.mjs",
+          "sha256": "54379a8eb4c7e07bffdb51432c571895439adb09c7fa7cd39153317c3b8ab5f3"
+        },
+        {
+          "path": "governance/gates/GATE22/fixtures/label-consumer-fixture.mjs",
+          "sha256": "1ad9b522d3fd25ac4738fe608226b0e0f0bc2b789b26889ba04cf06aa7e206c6"
+        },
+        {
+          "path": "governance/gates/GATE22/evidence/BUILD_CANDIDATE_RECEIPT.json",
+          "sha256": "2c6e46e400b953cd23ead6511c5c82e120293fe5ee5e2a5f9453c4a0b2c133ff"
+        }
+      ]
+    },
+    {
+      "check": "AGENT_CLOSURE_CONSUMPTION",
+      "path": "governance/historical-architecture/GATE22_AGENT_CLOSURE_CONSUMPTION_R1.json",
+      "sha256": "2996fbfb9ba99ce5f767665a8a008ab25bb917d66d92109773be16183253eee9",
+      "byteLength": 3552
+    },
+    {
+      "check": "GATE23_STATUS",
+      "result": "NOT_STARTED"
+    },
+    {
+      "check": "R8",
+      "result": "ABSENT"
+    },
+    {
+      "check": "OPEN_DEFECTS",
+      "stateRevision": "R0004",
+      "blockingDefectCount": 0
+    },
+    {
+      "check": "EXTERNAL_CONFIRMATION_ABSENT",
+      "result": true
+    },
+    {
+      "check": "C1_C7",
+      "contractCount": 7,
+      "eighthContractPresent": false
+    },
+    {
+      "check": "INTRODUCED_BLOCKING_LEDGER_FINDINGS",
+      "count": 0
+    }
+  ],
+  "closureDisposition": {
+    "requiredTransition": "EXTERNAL_CONFIRMATION",
+    "resultingStatus": "COMPLETE_CONFIRMED",
+    "exactlyOneEvent": true,
+    "GATE23RemainNotStarted": true
+  },
+  "createdAt": "2026-08-23T23:19:27.401Z"
+}

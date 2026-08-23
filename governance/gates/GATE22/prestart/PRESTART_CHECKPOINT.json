@@ -1,0 +1,80 @@
+{
+  "document": "GATE22_PRESTART_CHECKPOINT",
+  "schemaVersion": 1,
+  "gateId": "GATE22",
+  "milestone": "GATE22_PRESTART_CLOSURE",
+  "resumePoint": "PRESTART_PACKAGE_PREPARED_START_NOT_EXECUTED",
+  "startExecuted": false,
+  "startAuthorityIssued": false,
+  "startAuthorityConsumed": false,
+  "gate22Status": "NOT_STARTED",
+  "stateRevision": null,
+  "stateRevisionCreated": false,
+  "ledgerEventsAppended": 0,
+  "statusTransition": "NONE",
+  "activeGateMutated": false,
+  "functionalBuildPerformed": false,
+  "createdAt": "2026-08-23T00:00:00.000Z",
+  "completedTasks": [
+    "H-1 restored to the sealed LF bytes of governance/gates/GATE21/evidence/BUILD_CANDIDATE_RECEIPT.json",
+    "PROMO-1 Option B materialized as the GATE22-owned successor pin surface",
+    "GATE22 canonical mandate bound by its audited SHA-256",
+    "C1..C7 projected as a machine-readable seven-contract set",
+    "Exact START workset and authorized path manifest prepared",
+    "Candidate non-consumed START authority and candidate execution contract prepared",
+    "PRE-START evidence bundle emitted"
+  ],
+  "openTasks": [
+    "Independent audit of this PRE-START package",
+    "Owner issuance of a real GATE22 START authority",
+    "GATE22 AUTHORIZATION and START lifecycle execution under that authority"
+  ],
+  "reusableEvidence": [
+    {
+      "path": "governance/sources/GATE22_CANONICAL_MANDATE_R0.json",
+      "sha256": "1d101e0da4a21f2561055993d17779ade6f9c5bc339fe91abaee390e10eb95bb"
+    },
+    {
+      "path": "governance/gates/GATE21/evidence/BUILD_CANDIDATE_RECEIPT.json",
+      "sha256": "817ce16bb9ee214c59024aff1e5c63f3cd77736d59b444557dda307d3aba19d2"
+    },
+    {
+      "path": "governance/gates/GATE21/state/revisions/R0005/STATE_SEAL.json",
+      "sha256": "36e7e648cddf1cd9b54e95f747934f67c2e27f20c4526156611da7fb60c76dba"
+    },
+    {
+      "path": "governance/gates/GATE22/pins/GATE22_SUCCESSOR_SCHEMA_PINS.json"
+    }
+  ],
+  "invalidatedEvidence": [],
+  "requiredNextActions": [
+    "Do not execute START from this package.",
+    "Submit this package to an independent auditor for READY_FOR_GATE22_START."
+  ],
+  "protectedHashes": [
+    {
+      "path": "governance/sources/GATE22_CANONICAL_MANDATE_R0.json",
+      "sha256": "1d101e0da4a21f2561055993d17779ade6f9c5bc339fe91abaee390e10eb95bb"
+    },
+    {
+      "path": "governance/gates/GATE21/evidence/BUILD_CANDIDATE_RECEIPT.json",
+      "sha256": "817ce16bb9ee214c59024aff1e5c63f3cd77736d59b444557dda307d3aba19d2"
+    },
+    {
+      "path": "governance/gates/GATE21/implementation/lab-import-adapter.mjs",
+      "sha256": "64f8807149adadf6ac71d23daae749f80cfc8032bc24aa9791d58967cfcd9a88"
+    },
+    {
+      "path": "governance/gates/GATE21/contracts/GATE21_BINDING_V1.json",
+      "sha256": "c8982c5c857759dd4204670e514c6b447b573140552d188012b9c9dedc5e9607"
+    },
+    {
+      "path": "research/directional-lab/src/contracts/instrumentIdentityV1.mjs",
+      "sha256": "9535f6a5d8347f99c7a0222479d27b5a9fd6c1d9f5bb4de7a699a80b23e8ee2e"
+    },
+    {
+      "path": "governance/state/GATE_STATUS_LEDGER.ndjson",
+      "sha256": "2b5a028825727230e299f4c15f47b5a8b478552883ed40c48af34847e7644150"
+    }
+  ]
+}

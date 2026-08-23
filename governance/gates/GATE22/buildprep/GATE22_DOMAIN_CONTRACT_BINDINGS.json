@@ -1,0 +1,130 @@
+{
+  "document": "GATE22_DOMAIN_CONTRACT_BINDINGS",
+  "schemaVersion": 1,
+  "gateId": "GATE22",
+  "preparedAt": "2026-08-23T11:00:00.000Z",
+  "contractCount": 7,
+  "declaredContractCount": 7,
+  "contractCountInvariant": "contractCount === 7",
+  "eighthContractPresent": false,
+  "mandate": {
+    "path": "governance/sources/GATE22_CANONICAL_MANDATE_R0.json",
+    "sha256": "1d101e0da4a21f2561055993d17779ade6f9c5bc339fe91abaee390e10eb95bb",
+    "byteLength": 41184,
+    "pointer": "/domainContracts"
+  },
+  "projectionSet": {
+    "path": "governance/gates/GATE22/prestart/GATE22_START_DOMAIN_CONTRACT_SET_V1.json",
+    "sha256": "e01835fb7474680297db166180005a1a5f5c791b707f46a7228afa4756f32eac"
+  },
+  "bindingRule": "sha256(canonicalJson(materializedContract.mandateProjection)) === materializedContract.authority.mandateProjectionSha256 === mandate#/domainContracts/contracts/<i> projection digest",
+  "verificationCommand": "node governance/gates/GATE22/tests/gate22-foundation.test.mjs",
+  "bindings": [
+    {
+      "contractKey": "C1",
+      "contractId": "GATE22_TEMPORAL_HORIZON_V1",
+      "version": 1,
+      "mandatePointer": "/domainContracts/contracts/0",
+      "mandateProjectionSha256": "951fbf834b2f513e64f9f8ced3a6a95dbb4ab063b7b10aced58d80e627fa387b",
+      "contractPath": "governance/gates/GATE22/contracts/GATE22_TEMPORAL_HORIZON_V1.json",
+      "contractSha256": "c53ec179919f90593efdaad625187bc56218a4615bd7d0cecb415a27d4b55783",
+      "contractByteLength": 3998,
+      "materialized": true,
+      "functionalImplementationPresent": false,
+      "plannedImplementationPath": "governance/gates/GATE22/implementation/temporal-horizon-v1.mjs"
+    },
+    {
+      "contractKey": "C2",
+      "contractId": "GATE22_OUTCOME_PERSISTENCE_V1",
+      "version": 1,
+      "mandatePointer": "/domainContracts/contracts/1",
+      "mandateProjectionSha256": "866c80713da1b1e327d1e4b71b7d84b59bded3593aa5bfe34ae767173931df4c",
+      "contractPath": "governance/gates/GATE22/contracts/GATE22_OUTCOME_PERSISTENCE_V1.json",
+      "contractSha256": "f2b54bb09888dad767db6ef438b7dea914c3ee8d9fd6fe67eb8061635e8fa7ea",
+      "contractByteLength": 5757,
+      "materialized": true,
+      "functionalImplementationPresent": false,
+      "plannedImplementationPath": "governance/gates/GATE22/implementation/outcome-persistence-v1.mjs"
+    },
+    {
+      "contractKey": "C3",
+      "contractId": "GATE22_IDENTITY_MODEL_V1",
+      "version": 1,
+      "mandatePointer": "/domainContracts/contracts/2",
+      "mandateProjectionSha256": "ca0fd44951511564095444c00ffbf2212c881d13fc4d1d2d99555cddea4f2c09",
+      "contractPath": "governance/gates/GATE22/contracts/GATE22_IDENTITY_MODEL_V1.json",
+      "contractSha256": "4f754354b8c6b93f0b8a7dea2ffb295a79c63502f641acc60f4ae6008a0fa796",
+      "contractByteLength": 5047,
+      "materialized": true,
+      "functionalImplementationPresent": false,
+      "plannedImplementationPath": "governance/gates/GATE22/implementation/identity-model-v1.mjs"
+    },
+    {
+      "contractKey": "C4",
+      "contractId": "GATE22_PRICE_BASIS_V1",
+      "version": 1,
+      "mandatePointer": "/domainContracts/contracts/3",
+      "mandateProjectionSha256": "6f6bc7e3a4a3d93de080ede2650434dc4dbb00c806c1df23f6072f25d8939f86",
+      "contractPath": "governance/gates/GATE22/contracts/GATE22_PRICE_BASIS_V1.json",
+      "contractSha256": "99af1fcddc7d6f57e3f54c28cfdd1d6afda1888e44fb531de751a8eac7ad4434",
+      "contractByteLength": 3860,
+      "materialized": true,
+      "functionalImplementationPresent": false,
+      "plannedImplementationPath": "governance/gates/GATE22/implementation/price-basis-v1.mjs"
+    },
+    {
+      "contractKey": "C5",
+      "contractId": "GATE22_DATASET_SEPARATION_V1",
+      "version": 1,
+      "mandatePointer": "/domainContracts/contracts/4",
+      "mandateProjectionSha256": "c931402f55af5f62a749152d2c42e165cb1836db9f84ddc1ef2c6b8bacb02bdc",
+      "contractPath": "governance/gates/GATE22/contracts/GATE22_DATASET_SEPARATION_V1.json",
+      "contractSha256": "002d1d9c051ef5862ec7e404171b1599a38e57c457de06a2a4ea8bfebae87e2b",
+      "contractByteLength": 5340,
+      "materialized": true,
+      "functionalImplementationPresent": false,
+      "plannedImplementationPath": "governance/gates/GATE22/implementation/dataset-separation-v1.mjs"
+    },
+    {
+      "contractKey": "C6",
+      "contractId": "GATE22_TAXONOMY_V1",
+      "version": 1,
+      "mandatePointer": "/domainContracts/contracts/5",
+      "mandateProjectionSha256": "5dc1d70738f39794873a0edefdfb5e708bd9bda6d4f612abab6d6a06f9ce64d0",
+      "contractPath": "governance/gates/GATE22/contracts/GATE22_TAXONOMY_V1.json",
+      "contractSha256": "a1fbb5e23f60b6bff7c814d57f277bc1eef501db60926391f9008e3a3099c0f5",
+      "contractByteLength": 3343,
+      "materialized": true,
+      "functionalImplementationPresent": false,
+      "plannedImplementationPath": "governance/gates/GATE22/implementation/taxonomy-v1.mjs"
+    },
+    {
+      "contractKey": "C7",
+      "contractId": "GATE22_CONSUMPTION_BOUNDARY_V1",
+      "version": 1,
+      "mandatePointer": "/domainContracts/contracts/6",
+      "mandateProjectionSha256": "fc130141a33c229271ba9412327cdd0b1f95ecdf69dedc182a7d2a7465bd1daa",
+      "contractPath": "governance/gates/GATE22/contracts/GATE22_CONSUMPTION_BOUNDARY_V1.json",
+      "contractSha256": "3e33b498ee24139e04b654c269c3a9fb2ba9b08421b641876d69fce56e05cd60",
+      "contractByteLength": 3131,
+      "materialized": true,
+      "functionalImplementationPresent": false,
+      "plannedImplementationPath": "governance/gates/GATE22/implementation/consumption-boundary-v1.mjs"
+    }
+  ],
+  "divergenceProof": {
+    "contractIdsEqualMandate": true,
+    "contractOrderEqualMandate": true,
+    "contractsRenamed": false,
+    "contractsMerged": false,
+    "versionChanged": false,
+    "outcomeIdModified": false,
+    "observationIdModified": false,
+    "taxonomyChanged": false,
+    "horizonChanged": false,
+    "priceBasisChanged": false,
+    "consumptionBoundaryChanged": false,
+    "designFreezeIdPromotedToContract": false,
+    "newDecisionIntroduced": false
+  }
+}

@@ -1,0 +1,82 @@
+{
+  "document": "PROJECT_OWNER_GATE_START_AUTHORITY_CANDIDATE",
+  "schemaVersion": 1,
+  "candidate": true,
+  "issued": false,
+  "consumed": false,
+  "consumedUse": 0,
+  "maxUse": 0,
+  "authorityMode": "CANDIDATE_FORM_NOT_ISSUED",
+  "projectId": "WHEEL",
+  "gateId": "GATE22",
+  "purpose": "CANDIDATE_FORM_OF_A_FUTURE_START_PLUS_EXECUTION_AUTHORITY",
+  "preparedAt": "2026-08-23T00:00:00.000Z",
+  "startAuthorized": false,
+  "executionAuthorized": false,
+  "statusTransitionAuthorized": false,
+  "buildAuthorized": false,
+  "requiresOwnerIssuance": true,
+  "requiresSeparateIndependentAudit": true,
+  "wouldTransition": {
+    "transitionType": "START",
+    "fromStatus": "AUTHORIZED_NOT_STARTED",
+    "toStatus": "IN_PROGRESS"
+  },
+  "preState": {
+    "gate22Status": "NOT_STARTED",
+    "gate22TerminalEventId": "GENESIS_IMPORT_GATE22",
+    "gate22TerminalOrdinal": 23,
+    "ledgerPath": "governance/state/GATE_STATUS_LEDGER.ndjson",
+    "ledgerSha256": "2b5a028825727230e299f4c15f47b5a8b478552883ed40c48af34847e7644150",
+    "ledgerLineCount": 89,
+    "activeGatePath": "governance/active/ACTIVE_GATE.json",
+    "activeGateSha256": "34fcbfd9bb068cf2adfd973a73db4c4da297e9300242c1d04c08571968a417b9"
+  },
+  "dependencyProof": {
+    "gateId": "GATE21",
+    "status": "COMPLETE_CONFIRMED",
+    "stateRevision": "R0005",
+    "authorityPath": "GATE21_INDEPENDENT_EXTERNAL_CONFIRMATION_R1_EXTERNAL_REINSPECTION_REPORT",
+    "authoritySha256": "4962e8cb12fab276630ce6b402aa4ccbff4586318d8efcd040721b155ec57f14",
+    "terminalOrdinal": 89
+  },
+  "candidateContractPath": "governance/gates/GATE22/prestart/candidate/EXECUTION_CONTRACT_R0001.json",
+  "candidateContractSha256": "76b6d6d9fe0938ea43e6e20710e1081e4918a72ecbab49072549b0450bb294e0",
+  "proposedAuthorizedStartWritePaths": [
+    "governance/authority/authorizations/GATE22/PROJECT_OWNER_GATE_AUTHORIZATION_AUTHORITY.json",
+    "governance/authority/authorizations/GATE22/GATE_AUTHORIZATION_RECORD.json",
+    "governance/authority/authorizations/GATE22/PROJECT_OWNER_GATE_START_AUTHORITY.json",
+    "governance/authority/authorizations/GATE22/GATE_START_RECORD.json",
+    "governance/state/GATE_STATUS_LEDGER.ndjson",
+    "governance/gates/GATE22/state/CURRENT_STATE.json",
+    "governance/gates/GATE22/state/revisions/R0001/CHECKPOINT.json",
+    "governance/gates/GATE22/state/revisions/R0001/OPEN_DEFECTS.json",
+    "governance/gates/GATE22/state/revisions/R0001/STATE_SEAL.json",
+    "governance/gates/GATE22/state/revisions/R0002/CHECKPOINT.json",
+    "governance/gates/GATE22/state/revisions/R0002/OPEN_DEFECTS.json",
+    "governance/gates/GATE22/state/revisions/R0002/STATE_SEAL.json",
+    "governance/state/generated/GATE_STATUS_SNAPSHOT.json",
+    "governance/generated/ACTIVE_GATE_CONTEXT.json",
+    "governance/generated/ACTIVE_GATE_CONTEXT.md"
+  ],
+  "proposedFunctionalExecutionScope": [
+    "governance/gates/GATE22/contracts/EXECUTION_CONTRACT_R0001.json",
+    "governance/gates/GATE22/contracts/CURRENT_CONTRACT.json",
+    "governance/gates/GATE22/contracts/PRECONTRACT_AUTHORITY_CONSUMPTION_R1.json"
+  ],
+  "prohibitedOperations": [
+    "START_EXECUTION_UNDER_THIS_CANDIDATE",
+    "LEDGER_APPEND",
+    "STATE_REVISION_CREATION",
+    "ACTIVE_GATE_MUTATION",
+    "FUNCTIONAL_BUILD",
+    "LABEL_EMISSION",
+    "OBSERVATION_EMISSION",
+    "OUTCOME_EMISSION",
+    "GATE21_MUTATION",
+    "DIRECTIONAL_LAB_MUTATION",
+    "GIT_COMMIT",
+    "GIT_PUSH"
+  ],
+  "note": "This is the candidate FORM of a START authority. No Owner START authority has been issued and none has been consumed. It is deliberately stored inside the GATE22 prestart namespace and NOT under governance/authority/authorizations/GATE22/, so that no authority source can resolve it as a live authority."
+}

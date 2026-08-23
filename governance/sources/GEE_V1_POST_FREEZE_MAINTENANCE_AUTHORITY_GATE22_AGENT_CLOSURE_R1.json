@@ -1,0 +1,40 @@
+{
+  "document": "GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY",
+  "schemaVersion": 2,
+  "authorityId": "GATE22_FINAL_CLOSURE_LOCAL_AUTHORITY_R1",
+  "authorityClass": "PROJECT_OWNER_POST_FREEZE_MAINTENANCE_AUTHORITY",
+  "authorityMode": "LOCAL_EXPLICIT_AUTHORITY",
+  "issuedBy": "PROJECT_OWNER",
+  "createdAt": "2026-08-23T14:30:00.000Z",
+  "expiresAt": "2026-12-31T23:59:59.000Z",
+  "targetSystem": "PROJECT_GOVERNANCE",
+  "programId": "GATE22_AGENT_CLOSURE_BUILD_2C6E46E400B953CD23EAD6511C5C82E120293FE5EE5E2A5F9453C4A0B2C133FF_R1",
+  "authorityPurpose": "GATE_FINAL_CLOSURE",
+  "resumePoint": "GATE22_R0003_R0002_BUILD_RECEIPT_2C6E46E400B953CD23EAD6511C5C82E120293FE5EE5E2A5F9453C4A0B2C133FF",
+  "maxUse": 1,
+  "preState": {
+    "baseHead": "337e4d2b465754a943668e9aca919f05b0b530b8",
+    "ledgerEventCount": 92,
+    "ledgerPrefixSha256": "c0870f31e06fefa68840e1a33ef86678dee9c6ad81591b28a9cf21c702e09079",
+    "gateId": "GATE22",
+    "gateStatus": "IN_PROGRESS",
+    "stateRevision": "R0003",
+    "contractRevision": "R0002",
+    "activeGate": "GATE13",
+    "R8ExpectedAbsent": true
+  },
+  "authorizedPathManifestPath": "governance/historical-architecture/GATE22_AGENT_CLOSURE_AUTHORIZED_PATHS_R1.json",
+  "authorizedPathManifestSha256": "47c656109c02eb7a5274c72af48e4c1e200d9a0291b1ae033e104c6356860af3",
+  "authorizedOperationClasses": ["AGENT_CLOSURE"],
+  "commitPolicy": {
+    "maxCommitCount": 1,
+    "allowedGitOperations": ["GIT_ADD_PATHSPEC", "GIT_COMMIT"],
+    "commitMessage": "governance: close GATE22 under final closure authority",
+    "thirdCommitAuthorized": false
+  },
+  "pushAuthorized": false,
+  "authorityPredecessor": null,
+  "authorityHeadBinding": { "mode": "BASE_HEAD", "baseHead": "337e4d2b465754a943668e9aca919f05b0b530b8" },
+  "consumptionRecordPath": "governance/historical-architecture/GATE22_AGENT_CLOSURE_CONSUMPTION_R1.json",
+  "prohibitedOperations": ["START", "SECOND_START", "AGENT_CLOSURE", "EXTERNAL_CONFIRMATION", "COMPLETE_AGENT", "COMPLETE_CONFIRMED", "ACTIVE_GATE_SWITCH", "GEE_R8", "GIT_PUSH", "HISTORY_REWRITE", "THIRD_COMMIT", "UNRELATED_WRITE"]
+}

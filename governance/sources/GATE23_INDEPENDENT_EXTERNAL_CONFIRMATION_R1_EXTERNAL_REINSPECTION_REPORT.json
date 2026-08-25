@@ -1,0 +1,230 @@
+{
+  "document": "EXTERNAL_REINSPECTION_REPORT",
+  "schemaVersion": 1,
+  "reportId": "GATE23_INDEPENDENT_EXTERNAL_CONFIRMATION_R1_EXTERNAL_REINSPECTION_REPORT",
+  "gateId": "GATE23",
+  "programId": "GATE23_INDEPENDENT_EXTERNAL_CONFIRMATION_R1",
+  "verifierId": "GATE23_INDEPENDENT_EXTERNAL_CONFIRMATION_R1",
+  "independentSession": true,
+  "reinspectionMission": "GATE23_EXTERNAL_REINSPECTION_R1",
+  "reinspectionVerdict": "READY_FOR_EXTERNAL_CONFIRMATION",
+  "applySessionDistinctFromReinspection": true,
+  "verdict": "PASS",
+  "reinspectionBasis": "Independent external confirmation of GATE23 COMPLETE_AGENT, referencing the already-completed GATE23_EXTERNAL_REINSPECTION_R1 session whose verdict was READY_FOR_EXTERNAL_CONFIRMATION with zero blocking defects. This APPLY session is distinct from BUILD, BUILD_VALIDATION, AGENT_CLOSURE, OWNER_RATIFICATION and EXTERNAL_REINSPECTION. Live prestate remeasured at apply: ledger 98 events SHA256 30b37e9572af4ecac53bad351429459e1bf46f296b9b73445398142c9ee42da0. GATE23 COMPLETE_AGENT R0004. CURRENT_CONTRACT R0002 SHA256 e341253918fe7b2e47823f899d71cfe5aa51ad81ebfea4bdb88eeb4ad7bbb84f. CURRENT_STATE seal ed93e92cc0fc750682d8c9445ab0c1166cd02548d2783bc96023e0846103947d. BUILD_CANDIDATE_RECEIPT file bytes d2c3369c20291b726936dfb4af77e906f87c3a49963e865e911ada56dd2621ea 27-path BUILD cohort drift 0. AGENT_CLOSURE GATE23_AGENT_CLOSURE_R1 ordinal 98 unique. START GATE23_START_R1 ordinal 96 unique. AGENT_CLOSURE consumption 3084235fe1eceba86d348a1558a0c37448389d76976d4d7c0eae232bf62e7dab/3165. EXTERNAL_CONFIRMATION_AUTHORITY 8d487a204a03d0b1f8e3dd9131d431d3f7e68db880874a2dc28ec01e7e4f2d34 ownerRatified=true maxUse=1 sameSessionApplyAuthorized=false independentReinspectionRequired=true. HEAD 47a1d0b85e3092981c38ffe76107ea7df3066b69. ACTIVE_GATE GATE13. GATE24 NOT_STARTED. Functional tests not rerun because current BUILD bytes match the independently audited receipt. introducedBlockingLedgerFindingCount=0. GEE not mutated.",
+  "preState": {
+    "baseHead": "47a1d0b85e3092981c38ffe76107ea7df3066b69",
+    "ledgerEventCount": 98,
+    "ledgerPrefixSha256": "30b37e9572af4ecac53bad351429459e1bf46f296b9b73445398142c9ee42da0",
+    "gateStatus": "COMPLETE_AGENT",
+    "stateRevision": "R0004",
+    "contractRevision": "R0002",
+    "activeGate": "GATE13",
+    "R8ExpectedAbsent": true
+  },
+  "independentChecks": [
+    {
+      "check": "EXTERNAL_CONFIRMATION_READINESS_AUDIT",
+      "result": "GATE23_EXTERNAL_REINSPECTION_R1_READY_FOR_EXTERNAL_CONFIRMATION"
+    },
+    {
+      "check": "LEDGER",
+      "eventCount": 98,
+      "sha256": "30b37e9572af4ecac53bad351429459e1bf46f296b9b73445398142c9ee42da0"
+    },
+    {
+      "check": "GATE23_STATUS",
+      "result": "COMPLETE_AGENT",
+      "stateRevision": "R0004",
+      "stateSealSha256": "ed93e92cc0fc750682d8c9445ab0c1166cd02548d2783bc96023e0846103947d",
+      "previousStateSealSha256": "963e8d514bc5c4c9935c9f3cf0e1d054e5cf1a8dcbef557ff8efd2a1dad73cce",
+      "checkpointSha256": "9338d206bbbfcbc9b1e1a3fa3364d3fdcb988d54aa90b20c40c6efd1a0091eea",
+      "openDefectsSha256": "4f75508969342864d1525ef3e50b549dd2d1366725d9b277abde9e8b0839f221"
+    },
+    {
+      "check": "COMPLETE_AGENT_EVENT",
+      "eventId": "GATE23_AGENT_CLOSURE_R1",
+      "ordinal": 98,
+      "transitionType": "AGENT_CLOSURE",
+      "eventPayloadSha256": "f1c7590edb89e539cf8843080eb42fd78021bad08e5c0c01fc61ab8b4e6fc3bc",
+      "unique": true
+    },
+    {
+      "check": "START_EVENT",
+      "eventId": "GATE23_START_R1",
+      "ordinal": 96,
+      "unique": true
+    },
+    {
+      "check": "CURRENT_CONTRACT",
+      "contractRevision": "R0002",
+      "pointerSha256": "c78c41661387d68f98ac3989683ee429c3a807e22c2418257ed7b4e3fbe5a5ec",
+      "executionContractSha256": "e341253918fe7b2e47823f899d71cfe5aa51ad81ebfea4bdb88eeb4ad7bbb84f"
+    },
+    {
+      "check": "BUILD_CANDIDATE_RECEIPT",
+      "path": "governance/gates/GATE23/evidence/BUILD_CANDIDATE_RECEIPT.json",
+      "fileSha256": "d2c3369c20291b726936dfb4af77e906f87c3a49963e865e911ada56dd2621ea",
+      "byteLength": 12975,
+      "artifactDriftCount": 0,
+      "testsRerun": false
+    },
+    {
+      "check": "BUILD_27_PATH_COHORT",
+      "result": "PASS",
+      "paths": [
+        {
+          "path": "governance/gates/GATE23/implementation/feature-identity-v1.mjs",
+          "sha256": "4b25e4e7bc474e8b0d9e75fec8ce5dcc9e3c221805d6b50a7d676992cb9119d0"
+        },
+        {
+          "path": "governance/gates/GATE23/implementation/causal-admission-v1.mjs",
+          "sha256": "e710f03939621196cffdda48b9dc63b71edf543ecac0bc363dbe68f216efc43f"
+        },
+        {
+          "path": "governance/gates/GATE23/implementation/feature-window-v1.mjs",
+          "sha256": "497afb30c2c70d8a51e00073754eb5449da765e29f2806097dc197922b4592aa"
+        },
+        {
+          "path": "governance/gates/GATE23/implementation/feature-registry-v1.mjs",
+          "sha256": "09616ddbcd091e718b99c47e8517ff5838627981b5baa65b1475f17c747c3b69"
+        },
+        {
+          "path": "governance/gates/GATE23/implementation/feature-families-v1.mjs",
+          "sha256": "08af2e9a97407261a64550bf29d70bc7fd923a83cced8c368992bcbab8aec21e"
+        },
+        {
+          "path": "governance/gates/GATE23/implementation/feature-materializer-v1.mjs",
+          "sha256": "42b74f82be8413b7cd7d4c26ddee4b593b2b5591812275c6d8256de6e546cd4c"
+        },
+        {
+          "path": "governance/gates/GATE23/implementation/feature-store-v1.mjs",
+          "sha256": "2fdfc46b3b523fc9c213dd7db20503dfdd3bb59c36e429974305c46b7e363be4"
+        },
+        {
+          "path": "governance/gates/GATE23/contracts/GATE23_BINDING_V1.json",
+          "sha256": "69d4453f61571a427acde1c770bb7625e205c2e0b935b18299dd089aefbe6365"
+        },
+        {
+          "path": "governance/gates/GATE23/contracts/GATE23_FEATURE_IDENTITY_V1.json",
+          "sha256": "05cd98166d7c10d18d65778c9c79ce222a177b863c634538e0a3f85bb5e4d6ac"
+        },
+        {
+          "path": "governance/gates/GATE23/contracts/GATE23_CAUSAL_ADMISSION_V1.json",
+          "sha256": "132092e70e9f9e2c7c8a82298101fb47f3ed55f2b70875edd850e58dfddf723d"
+        },
+        {
+          "path": "governance/gates/GATE23/contracts/GATE23_FEATURE_FAMILY_V1.json",
+          "sha256": "7acbc31755296fd7e8dfed7811d96e76748266b4903258df550ea0bf273053a1"
+        },
+        {
+          "path": "governance/gates/GATE23/contracts/GATE23_MATERIALIZATION_V1.json",
+          "sha256": "7f506ea3e6a127eff5dc42fb7650e52bcdd35882f1c3614c7a4b1255a0d3c7c2"
+        },
+        {
+          "path": "governance/gates/GATE23/contracts/GATE23_CONSUMPTION_BOUNDARY_V1.json",
+          "sha256": "1ba791f09541d50793b757d10f923730cf20a7f4e72569fc986e7a6364ba9ab2"
+        },
+        {
+          "path": "governance/gates/GATE23/tests/gate23-foundation.test.mjs",
+          "sha256": "78c7e41f1c02b791057f3adadc16f9823af6f0c8d6392e81065b745a52de3473"
+        },
+        {
+          "path": "governance/gates/GATE23/tests/gate23-hostiles.test.mjs",
+          "sha256": "e330a583ffa5ae07877a2b09a22ceda403d3c2194457e12bc2ddf90ed5ab013b"
+        },
+        {
+          "path": "governance/gates/GATE23/tests/gate23-replay.test.mjs",
+          "sha256": "3eb2ebba392507e2f70ab7794d47710df0bf5b8d475c08b4905e4635deca7946"
+        },
+        {
+          "path": "governance/gates/GATE23/tests/gate23-evolvability.test.mjs",
+          "sha256": "a3f77239f5bc97109aba337269c3c4bc27c58c7ccdebb2a03bae2df391b9af97"
+        },
+        {
+          "path": "governance/gates/GATE23/tests/gate23-performance.test.mjs",
+          "sha256": "55bfef8f1754d2ced8d5ae8826c769094c01343407fe1a3a3dff98302a7a0133"
+        },
+        {
+          "path": "governance/gates/GATE23/fixtures/causal-window-fixture.mjs",
+          "sha256": "1f56f4d1be073ac2152db623e4668334837f1951fe2451c07a65d06292c741aa"
+        },
+        {
+          "path": "governance/gates/GATE23/fixtures/outcome-leakage-fixture.mjs",
+          "sha256": "3cf33a2d93267d36607f93f5b4e3ad9ac149e63ee8b1031ec239f659515069cc"
+        },
+        {
+          "path": "governance/gates/GATE23/fixtures/calendar-window-fixture.mjs",
+          "sha256": "b3e1635433f8b633440f53ec6af272e882f007e64f58e7e96775b0fb301f50e9"
+        },
+        {
+          "path": "governance/gates/GATE23/fixtures/provenance-drift-fixture.mjs",
+          "sha256": "19e8019ad66a19c9bb0cecee12e0a859d996d422d697477a73fb3e49b36fd7c2"
+        },
+        {
+          "path": "governance/gates/GATE23/evidence/BUILD_CANDIDATE_RECEIPT.json",
+          "sha256": "d2c3369c20291b726936dfb4af77e906f87c3a49963e865e911ada56dd2621ea"
+        },
+        {
+          "path": "governance/gates/GATE23/evidence/GATE23_FEATURE_PROVENANCE_MANIFEST.json",
+          "sha256": "dcd87f3bf591690448ea988e92801a86ca7a904f7b411f02a31edc92f8603c1e"
+        },
+        {
+          "path": "governance/gates/GATE23/evidence/GATE23_MATERIALIZATION_VALIDATION_REPORT.json",
+          "sha256": "03df1c9d4344c1cd7daa700b852e37f95d2e8da4c2a95ce7711f0bad45ee2ec6"
+        },
+        {
+          "path": "governance/gates/GATE23/evidence/GATE23_PERFORMANCE_BUDGET_MEASUREMENT.json",
+          "sha256": "c59cf311dc58cebef1f6d2f7ba41fed5ef24eddcbbc4897adbb5bb7610beb23d"
+        },
+        {
+          "path": "governance/gates/GATE23/evidence/GATE23_HOSTILE_MATRIX_RESULT.json",
+          "sha256": "4218ccd8596eb7d2197d43cb382d4d7e5d483b1dc9de8639529ba8fb2b8cec83"
+        }
+      ]
+    },
+    {
+      "check": "AGENT_CLOSURE_CONSUMPTION",
+      "path": "governance/authority/authorizations/GATE23/GATE_AGENT_CLOSURE_CONSUMPTION_R1.json",
+      "sha256": "3084235fe1eceba86d348a1558a0c37448389d76976d4d7c0eae232bf62e7dab",
+      "byteLength": 3165
+    },
+    {
+      "check": "EXTERNAL_CONFIRMATION_AUTHORITY",
+      "path": "governance/authority/authorizations/GATE23/PROJECT_OWNER_GATE_EXTERNAL_CONFIRMATION_AUTHORITY.json",
+      "sha256": "8d487a204a03d0b1f8e3dd9131d431d3f7e68db880874a2dc28ec01e7e4f2d34",
+      "ownerRatified": true,
+      "maxUse": 1,
+      "sameSessionApplyAuthorized": false,
+      "independentReinspectionRequired": true
+    },
+    {
+      "check": "GATE24_STATUS",
+      "result": "NOT_STARTED"
+    },
+    {
+      "check": "R8",
+      "result": "ABSENT"
+    },
+    {
+      "check": "OPEN_DEFECTS",
+      "stateRevision": "R0004",
+      "blockingDefectCount": 0
+    },
+    {
+      "check": "EXTERNAL_CONFIRMATION_ABSENT",
+      "result": true
+    },
+    {
+      "check": "INTRODUCED_BLOCKING_LEDGER_FINDINGS",
+      "count": 0
+    }
+  ],
+  "closureDisposition": {
+    "requiredTransition": "EXTERNAL_CONFIRMATION",
+    "resultingStatus": "COMPLETE_CONFIRMED",
+    "exactlyOneEvent": true,
+    "GATE24RemainNotStarted": true,
+    "geeMutationForbidden": true
+  },
+  "createdAt": "2026-08-25T18:00:00.000Z"
+}

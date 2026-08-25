@@ -1,0 +1,445 @@
+{
+  "document": "GATE23_CANONICAL_MANDATE_R0",
+  "schemaVersion": 1,
+  "authorityId": "GATE23_CANONICAL_MANDATE_RATIFICATION_R0",
+  "issuedBy": "PROJECT_OWNER",
+  "temporary": false,
+  "canonical": true,
+  "ratificationOnly": true,
+  "executionAuthorized": false,
+  "startAuthorized": false,
+  "statusTransitionAuthorized": false,
+  "functionalImplementationAuthorized": false,
+  "precontractAuthorized": false,
+  "buildAuthorized": false,
+  "commitAuthorized": false,
+  "pushAuthorized": false,
+  "canonicalIdentity": {
+    "gateId": "GATE23",
+    "canonicalName": "CONFLUENCE FEATURE ENGINE",
+    "architecturalTerm": "FEATURE ENGINE",
+    "canonicalObjective": "Define a frozen, causal, point-in-time feature-record mandate for GATE23.",
+    "canonicalObjectiveBinding": {
+      "sourcePath": null,
+      "sourcePointer": null,
+      "sha256": null,
+      "lengthChars": null,
+      "lengthBytes": null,
+      "encoding": "UTF-8",
+      "normalizationApplied": false,
+      "rule": "Frozen Owner context packet; no registry rediscovery in GATE23 A1."
+    },
+    "officialNameBinding": {
+      "sourcePath": null,
+      "sourcePointer": null,
+      "value": "CONFLUENCE FEATURE ENGINE"
+    },
+    "strategicPurpose": "Produce causal feature records from observation data without Outcome or future provenance dependency."
+  },
+  "missionBoundary": {
+    "produces": {
+      "transform": "Observation(T) to FeatureRecord(T)",
+      "carries": [
+        "identity",
+        "knowledge cutoff",
+        "feature definition",
+        "formula",
+        "window binding",
+        "source binding",
+        "observation dataset",
+        "price basis",
+        "missingness state"
+      ]
+    },
+    "doesNotProduce": [
+      "Outcome",
+      "prediction",
+      "recommendation",
+      "Wheel decision",
+      "Market Regime",
+      "strategy",
+      "cross-sectional implementation"
+    ]
+  },
+  "ownerDecisions": [
+    {
+      "id": "OD-1",
+      "subject": "FeatureWindowSpec ladder",
+      "decision": "The admissible FeatureWindowSpec ladder is exactly [5,21,63,126,252]. It is admissible, not cartesian, and counts canonical DAILY trading-session units. TradingSessionUnit(T) is distinct from KnowledgeCutoffBoundary(K)."
+    },
+    {
+      "id": "OD-2",
+      "subject": "price basis",
+      "decision": "Price basis is SPLIT_ADJUSTED. Arbitrary valid ratios, including 2:1, 11:10, 3:2 and reverse 1:10, are supported without integer or >=1 assumptions. The rule is strict point-in-time: later corporate-action restatement does not rewrite historical FeatureRecords. SPLIT_ADJUSTED is not TOTAL_RETURN_ADJUSTED and no implicit dividend total return is allowed."
+    },
+    {
+      "id": "OD-3",
+      "subject": "cross-sectional scope",
+      "decision": "CROSS_SECTIONAL is DEFER. There is no cross-sectional implementation in V1."
+    },
+    {
+      "id": "OD-4",
+      "subject": "core feature resolution",
+      "decision": "CORE_FEATURE_SET is exactly (F1 simple-return, W5) and (F1 simple-return, W21). vectorStatus RESOLVED means the core is resolved, not that every non-core member is usable. A declared non-core member may be INSUFFICIENT_DATA or FAIL_CLOSED while vectorStatus remains RESOLVED if the core is resolved. A missing declared member remains fail-closed."
+    },
+    {
+      "id": "OD-5",
+      "subject": "KnowledgeCutoff V1",
+      "decision": "K(T) equals PinnedCanonicalSession(T).closeUtc, where PinnedCanonicalSession(T) is the unique canonical session record under the pinned calendar/session policy with sessionDate equal to T and sessionKind in allowedSessionKinds. HALF_DAY_SESSION and REGULAR_SESSION each use their own canonical closeUtc. marketSession.mjs::sessionCloseUtc and wall-clock constants are forbidden. INITIAL_ROOT settlingAt(T) is NOT_EXECUTABLE_WITH_CURRENT_PRIMITIVES and is a FUTURE_ADDITIVE_OPTION."
+    }
+  ],
+  "gate21DependencyPreconditions": [],
+  "domainContracts": {
+    "contractCount": 0,
+    "contracts": [],
+    "note": "No execution contract is created or authorized by this ratification-only mandate."
+  },
+  "gate21PinVocabulary": {
+    "authoritySource": "GATE23 frozen Owner context packet",
+    "authorityRule": "This mandate performs no GATE21 pin discovery or mutation.",
+    "observedKeyCount": null,
+    "observedKeyCountPath": null,
+    "instrumentIdentityV1PresentInGate21Vocabulary": null,
+    "keyCountFrozenUnderOptionB": null,
+    "keyCountFrozenUnderOptionBNote": "Out of scope for GATE23 A1.",
+    "consumed": {
+      "count": 0,
+      "keys": [],
+      "arithmetic": "No pin inventory is materialized by this mandate."
+    },
+    "excluded": {
+      "count": 0,
+      "entries": []
+    },
+    "isImageOf": "No GATE21 inventory is re-audited by GATE23 A1."
+  },
+  "gate22SuccessorPinVocabulary": {
+    "surfaceName": "GATE23_FEATURE_DEPENDENCY_BOUNDARY",
+    "requiredBy": "T-CAUSAL",
+    "owner": "GATE23",
+    "isContract": false,
+    "isEighthContract": false,
+    "countedInContractCount": false,
+    "isExtensionOfGate21LabSchemaPins": false,
+    "isSecondaryAuthorityOverGate21Pins": false,
+    "additive": false,
+    "wrapOnly": false,
+    "referencesExistingModule": null,
+    "modifiesReferencedModule": false,
+    "modifiesGate21": false,
+    "modifiesGate21BindingV1": false,
+    "modifiesDirectionalLab": false,
+    "pins": [],
+    "pinCount": 0,
+    "pinContent": [],
+    "consumedByContracts": [],
+    "declaringField": "not materialized",
+    "declaringFieldNaming": "No dependency pin vocabulary is created by this mandate.",
+    "governedByI12": false,
+    "governedByI12Rationale": "GATE23 A1 creates no GATE21 pin surface.",
+    "executed": false,
+    "materialized": false,
+    "requiredBeforeStart": false,
+    "createdByThisDocument": false,
+    "totalDistinctSchemaDependencies": {
+      "gate21Pins": 0,
+      "gate22SuccessorPins": 0,
+      "total": 0,
+      "note": "Dependency implementation is not authorized in A1."
+    }
+  },
+  "registryCompatibility": {
+    "purpose": "GATE23 owner-ratified feature mandate; no registry projection is materialized in A1.",
+    "projection": [],
+    "properties": {
+      "registryConceptCount": 0,
+      "coveredCount": 0,
+      "activeCount": 0,
+      "deferredCount": 0,
+      "distinctPrimitivesUsed": 0,
+      "nonInjective": "not applicable",
+      "nonSurjective": "not applicable",
+      "taxonomyV1Unchanged": true
+    }
+  },
+  "immutableInvariants": [
+    {
+      "id": "I-DAILY-WINDOW-UNIT-STABILITY",
+      "rule": "FeatureWindowSpec counts canonical DAILY trading-session units and is distinct from KnowledgeCutoffBoundary."
+    },
+    {
+      "id": "I-VECTOR-RESOLVED-MEANS-CORE-RESOLVED",
+      "rule": "vectorStatus RESOLVED means exactly that the core feature set is resolved; it does not assert usability of every non-core member."
+    },
+    {
+      "id": "O-NON-CORE-STATUS-INSPECTION",
+      "rule": "Declared non-core members remain individually inspectable and may be INSUFFICIENT_DATA or FAIL_CLOSED; omission of a declared member is fail-closed."
+    },
+    {
+      "id": "I-NO-WALLCLOCK-CONSTANT",
+      "rule": "KnowledgeCutoff uses the canonical closeUtc of the unique pinned canonical session and no wall-clock constant."
+    },
+    {
+      "id": "I-CUTOFF-DISCLOSED",
+      "rule": "KnowledgeCutoff is disclosed as PinnedCanonicalSession(T).closeUtc under the pinned calendar/session policy."
+    },
+    {
+      "id": "O-CONSUMER-DECISION-CUTOFF",
+      "rule": "Consumers decide against the disclosed canonical-session cutoff; INITIAL_ROOT settlingAt(T) remains a future additive, non-executable option."
+    },
+    {
+      "id": "CALENDAR_POLICY_BINDING_NOT_SINGLE_VALUED",
+      "rule": "The calendar/session policy binding is not reduced to a single-valued wall-clock convention."
+    },
+    {
+      "id": "WINDOW_UNIT_NOT_DAILY_DISTINCT",
+      "rule": "Window units are canonical DAILY trading-session units; they are not a count of distinct calendar days."
+    },
+    {
+      "id": "T-CAUSAL-A",
+      "rule": "NO_OUTCOME_OR_FUTURE_PROVENANCE_DEPENDENCY."
+    },
+    {
+      "id": "T-CAUSAL-B",
+      "rule": "NO_FUTURE_WINDOW_ACCESS."
+    },
+    {
+      "id": "I-FEATURE-RECORD-ID-EXACT-ONLY",
+      "rule": "FeatureRecordId is sha256Canonical of exactly the ordered 11-member tuple declared in featureRecordIdentity; closureRule is EXACT_ONLY."
+    },
+    {
+      "id": "I-OUTCOME-FORBIDDEN-AS-GATE23-FEATURE",
+      "rule": "GATE22 Outcome is forbidden as a GATE23 feature directly, lagged, renamed, or through same-type laundering."
+    }
+  ],
+  "startBoundary": {
+    "does": [],
+    "doesNot": [
+      "creates no GATE23 start artifact",
+      "creates no mandate binding",
+      "creates no precontract authority",
+      "creates no execution contract",
+      "creates no feature record",
+      "modifies no implementation path"
+    ],
+    "startIsNotBuild": true,
+    "startDoesNotMergeRenameOrChoose": "START is not authorized by this document.",
+    "notAuthorizedByThisDocument": true
+  },
+  "entryConditions": [
+    "GATE23_DESIGN is FROZEN_BY_OWNER.",
+    "OD-1 through OD-5 are RATIFIED.",
+    "PASS_F_G23_D001_CLOSED and REMAINING_FINDINGS = NONE."
+  ],
+  "entryConditionsSource": "Frozen GATE23 execution context packet.",
+  "exitConditions": [
+    "FeatureRecordId has exactly 11 ordered members under EXACT_ONLY closure.",
+    "T-CAUSAL has exactly claims A and B.",
+    "Outcome is forbidden as a GATE23 feature.",
+    "The frozen 27-path BUILD workset is preserved without addition or removal."
+  ],
+  "exitConditionsSource": "Frozen GATE23 execution context packet.",
+  "forbiddenScope": [
+    "no START",
+    "no BUILD",
+    "no GATE23_MANDATE_BINDING",
+    "no PRESTART_CHECKPOINT",
+    "no PRESTART_CLOSURE_EVIDENCE",
+    "no EXECUTION_CONTRACT_R0001",
+    "no CURRENT_CONTRACT",
+    "no PRECONTRACT authority",
+    "no Owner permission",
+    "no Outcome feature direct, lagged, renamed, or same-type laundered",
+    "no future-window access",
+    "no wall-clock cutoff constant",
+    "no use of marketSession.mjs::sessionCloseUtc",
+    "no TOTAL_RETURN_ADJUSTED implication",
+    "no cross-sectional implementation"
+  ],
+  "downstreamGuarantees": {
+    "GATE23": "Consumes no Outcome as a feature and preserves T-CAUSAL A and B only.",
+    "GATE24": "No GATE24 scope is authorized by this mandate.",
+    "GATE25": "No GATE25 scope is authorized by this mandate."
+  },
+  "nextGate": null,
+  "sourceReferences": [
+    {
+      "sourceId": "GATE23_DESIGN_DEFINITION_R0",
+      "sourcePath": null,
+      "field": "logical design provenance reference",
+      "evidence": "Logical reference only; no SHA256 is invented for a noncanonical external report."
+    },
+    {
+      "sourceId": "GATE23_INDEPENDENT_HOSTILE_DESIGN_AUDIT_R0",
+      "sourcePath": null,
+      "field": "logical design provenance reference",
+      "evidence": "Logical reference only; no SHA256 is invented for a noncanonical external report."
+    },
+    {
+      "sourceId": "GATE23_DESIGN_DELTA_REPAIR_R1",
+      "sourcePath": null,
+      "field": "logical design provenance reference",
+      "evidence": "Logical reference only; no SHA256 is invented for a noncanonical external report."
+    },
+    {
+      "sourceId": "GATE23_OWNER_DECISIONS_MICRO_REFINEMENT_R2",
+      "sourcePath": null,
+      "field": "logical design provenance reference",
+      "evidence": "Logical reference only; no SHA256 is invented for a noncanonical external report."
+    },
+    {
+      "sourceId": "GATE23_OWNER_RATIFICATION_ADDENDUM_R2_1",
+      "sourcePath": null,
+      "field": "logical design provenance reference",
+      "evidence": "Logical reference only; no SHA256 is invented for a noncanonical external report."
+    },
+    {
+      "sourceId": "GATE23_OD5_CANONICAL_SESSION_CLOSE_RETARGET_R2_2",
+      "sourcePath": null,
+      "field": "logical design provenance reference",
+      "evidence": "Logical reference only; no SHA256 is invented for a noncanonical external report."
+    },
+    {
+      "sourceId": "GATE23_FINAL_INDEPENDENT_DELTA_REAUDIT_R0",
+      "sourcePath": null,
+      "field": "logical design provenance reference",
+      "evidence": "Logical reference only; no SHA256 is invented for a noncanonical external report."
+    },
+    {
+      "sourceId": "GATE23_F_G23_D001_FINAL_DELTA_RECHECK_R0",
+      "sourcePath": null,
+      "field": "logical design provenance reference",
+      "evidence": "Logical reference only; no SHA256 is invented for a noncanonical external report."
+    }
+  ],
+  "ownerDisposition": {
+    "status": "RATIFICATION_ONLY",
+    "execution": "NOT_AUTHORIZED_BY_THIS_DOCUMENT",
+    "start": "NOT_AUTHORIZED_BY_THIS_DOCUMENT",
+    "build": "NOT_AUTHORIZED_BY_THIS_DOCUMENT",
+    "precontract": "NOT_AUTHORIZED_BY_THIS_DOCUMENT",
+    "statusTransition": "NOT_AUTHORIZED_BY_THIS_DOCUMENT",
+    "commit": "NOT_AUTHORIZED_BY_THIS_DOCUMENT",
+    "push": "NOT_AUTHORIZED_BY_THIS_DOCUMENT",
+    "promo1": "NOT_APPLICABLE_TO_GATE23_A1",
+    "notes": "This document serializes the GATE23 canonical mandate only. It writes no file, creates no gate artifact, no ledger entry, no state transition and no evidence. Future GATE23 binding, precontract, START and BUILD phases are not authorized by this document."
+  },
+  "featureRecordIdentity": {
+    "identity": "FeatureRecordId = sha256Canonical(orderedMembers)",
+    "closureRule": "EXACT_ONLY",
+    "memberCount": 11,
+    "orderedMembers": [
+      "InstrumentIdentityId",
+      "SessionDate",
+      "KnowledgeCutoff",
+      "FeatureDefinitionId",
+      "FormulaId",
+      "FeatureWindowSpecId",
+      "CalendarWindowBindingId",
+      "SourceBindingId",
+      "DatasetId_observation",
+      "PriceBasisId",
+      "MissingnessStateId"
+    ]
+  },
+  "featureWindowPolicy": {
+    "admissibleFeatureWindowSpecs": [
+      5,
+      21,
+      63,
+      126,
+      252
+    ],
+    "cartesian": false,
+    "unit": "canonical DAILY trading-session units",
+    "coreFeatureSet": [
+      {
+        "feature": "F1 simple-return",
+        "window": 5
+      },
+      {
+        "feature": "F1 simple-return",
+        "window": 21
+      }
+    ]
+  },
+  "causalAdmission": {
+    "claims": [
+      "NO_OUTCOME_OR_FUTURE_PROVENANCE_DEPENDENCY",
+      "NO_FUTURE_WINDOW_ACCESS"
+    ],
+    "claimCount": 2,
+    "outcomeProhibition": [
+      "direct",
+      "lagged",
+      "renamed",
+      "same-type laundering"
+    ],
+    "preserved": "TRUSTED_CANONICAL_PRODUCER_V1"
+  },
+  "knowledgeCutoffPolicy": {
+    "formula": "K(T) = PinnedCanonicalSession(T).closeUtc",
+    "sessionPredicate": "sessionDate == T and sessionKind in allowedSessionKinds",
+    "halfDaySession": "uses its own canonical closeUtc",
+    "regularSession": "uses its own canonical closeUtc",
+    "forbiddenPrimitive": "marketSession.mjs::sessionCloseUtc",
+    "forbiddenWallClockConstants": [
+      "16:00",
+      "09:30",
+      "20:00",
+      "21:00"
+    ],
+    "optionB": "INITIAL_ROOT settlingAt(T)",
+    "optionBStatus": "NOT_EXECUTABLE_WITH_CURRENT_PRIMITIVES",
+    "optionBDisposition": "FUTURE_ADDITIVE_OPTION"
+  },
+  "buildWorkset": {
+    "pathCount": 27,
+    "add": "NONE",
+    "remove": "NONE",
+    "orderedPaths": [
+      "governance/gates/GATE23/implementation/feature-identity-v1.mjs",
+      "governance/gates/GATE23/implementation/causal-admission-v1.mjs",
+      "governance/gates/GATE23/implementation/feature-window-v1.mjs",
+      "governance/gates/GATE23/implementation/feature-registry-v1.mjs",
+      "governance/gates/GATE23/implementation/feature-families-v1.mjs",
+      "governance/gates/GATE23/implementation/feature-materializer-v1.mjs",
+      "governance/gates/GATE23/implementation/feature-store-v1.mjs",
+      "governance/gates/GATE23/contracts/GATE23_BINDING_V1.json",
+      "governance/gates/GATE23/contracts/GATE23_FEATURE_IDENTITY_V1.json",
+      "governance/gates/GATE23/contracts/GATE23_CAUSAL_ADMISSION_V1.json",
+      "governance/gates/GATE23/contracts/GATE23_FEATURE_FAMILY_V1.json",
+      "governance/gates/GATE23/contracts/GATE23_MATERIALIZATION_V1.json",
+      "governance/gates/GATE23/contracts/GATE23_CONSUMPTION_BOUNDARY_V1.json",
+      "governance/gates/GATE23/tests/gate23-foundation.test.mjs",
+      "governance/gates/GATE23/tests/gate23-hostiles.test.mjs",
+      "governance/gates/GATE23/tests/gate23-replay.test.mjs",
+      "governance/gates/GATE23/tests/gate23-evolvability.test.mjs",
+      "governance/gates/GATE23/tests/gate23-performance.test.mjs",
+      "governance/gates/GATE23/fixtures/causal-window-fixture.mjs",
+      "governance/gates/GATE23/fixtures/outcome-leakage-fixture.mjs",
+      "governance/gates/GATE23/fixtures/calendar-window-fixture.mjs",
+      "governance/gates/GATE23/fixtures/provenance-drift-fixture.mjs",
+      "governance/gates/GATE23/evidence/BUILD_CANDIDATE_RECEIPT.json",
+      "governance/gates/GATE23/evidence/GATE23_FEATURE_PROVENANCE_MANIFEST.json",
+      "governance/gates/GATE23/evidence/GATE23_MATERIALIZATION_VALIDATION_REPORT.json",
+      "governance/gates/GATE23/evidence/GATE23_PERFORMANCE_BUDGET_MEASUREMENT.json",
+      "governance/gates/GATE23/evidence/GATE23_HOSTILE_MATRIX_RESULT.json"
+    ],
+    "hostileCohort": {
+      "ranges": [
+        "H01-H34",
+        "H36-H43"
+      ],
+      "total": 42,
+      "excluded": "H35 = START_LIFECYCLE"
+    }
+  },
+  "designState": {
+    "gate23Design": "FROZEN_BY_OWNER",
+    "ownerDecisionStatus": "OD-1 through OD-5 = RATIFIED",
+    "finalIndependentState": "PASS_F_G23_D001_CLOSED",
+    "remainingFindings": "NONE",
+    "persistencePattern": "B"
+  }
+}

@@ -1,0 +1,82 @@
+{
+  "documentKind": "GATE_EXTERNAL_CONFIRMATION_AUTHORITY_CONSUMPTION",
+  "schemaVersion": 1,
+  "authorityId": "GATE23_EXTERNAL_CONFIRMATION_LOCAL_AUTHORITY_R1",
+  "authorityMode": "LOCAL_EXPLICIT_AUTHORITY",
+  "projectId": "WHEEL",
+  "gateId": "GATE23",
+  "consumedUse": 1,
+  "maxUse": 1,
+  "transactionId": "GATE23_EXTERNAL_CONFIRMATION_R1_TRANSACTION",
+  "recordedAt": "2026-08-25T18:00:00.000Z",
+  "baseHead": "47a1d0b85e3092981c38ffe76107ea7df3066b69",
+  "eventId": "GATE23_EXTERNAL_CONFIRMATION_R1",
+  "ordinal": 99,
+  "fromStatus": "COMPLETE_AGENT",
+  "toStatus": "COMPLETE_CONFIRMED",
+  "independentReinspectionMission": "GATE23_EXTERNAL_REINSPECTION_R1",
+  "independentReinspectionVerdict": "READY_FOR_EXTERNAL_CONFIRMATION",
+  "cohortSelfExclusion": {
+    "path": "governance/authority/authorizations/GATE23/GATE_EXTERNAL_CONFIRMATION_CONSUMPTION_R1.json",
+    "reason": "The consumption record cannot hash its own final bytes; its identity is bound by the authority instead."
+  },
+  "cohortPathCount": 8,
+  "cohort": [
+    {
+      "path": "governance/authority/authorizations/GATE23/PROJECT_OWNER_GATE_EXTERNAL_CONFIRMATION_AUTHORITY.json",
+      "sha256": "8d487a204a03d0b1f8e3dd9131d431d3f7e68db880874a2dc28ec01e7e4f2d34",
+      "byteLength": 6406,
+      "operation": "CREATE",
+      "reason": "Single-use LOCAL_EXPLICIT_AUTHORITY bound to the exact GATE23 EXTERNAL_CONFIRMATION pre-state."
+    },
+    {
+      "path": "governance/sources/GATE23_INDEPENDENT_EXTERNAL_CONFIRMATION_R1_EXTERNAL_REINSPECTION_REPORT.json",
+      "sha256": "a9b6abde76aaa6c3a1cd3ace2c69d19e893a7545d28d5942431b5bbd45847f1f",
+      "byteLength": 10768,
+      "operation": "CREATE",
+      "reason": "Independent external reinspection report bound to the GATE23 COMPLETE_AGENT pre-state and the already-completed GATE23_EXTERNAL_REINSPECTION_R1 session."
+    },
+    {
+      "path": "governance/gates/GATE23/state/revisions/R0005/CHECKPOINT.json",
+      "sha256": "e739b6dbda10a3b4c8d4544ba5a6778c1ac370b2eaf8d35ebe68244bffd5ab99",
+      "byteLength": 334,
+      "operation": "CREATE",
+      "reason": "New GATE23 confirmation checkpoint after the exact EXTERNAL_CONFIRMATION transition."
+    },
+    {
+      "path": "governance/gates/GATE23/state/revisions/R0005/OPEN_DEFECTS.json",
+      "sha256": "b6b47af81a9f3dea7115e637f4d50b92563b1c3041f1df8f7e71b66bff89787f",
+      "byteLength": 70,
+      "operation": "CREATE",
+      "reason": "Derived GATE23 confirmation defect projection preserving the zero blocking-defect state."
+    },
+    {
+      "path": "governance/gates/GATE23/state/revisions/R0005/STATE_SEAL.json",
+      "sha256": "4e4f54a694f244a0b9a169000875af2ef5e47c16e9961d0ee2e43a7c48d2c325",
+      "byteLength": 1359,
+      "operation": "CREATE",
+      "reason": "Native GATE23 state seal chained from R0004 and pinned by the EXTERNAL_CONFIRMATION event."
+    },
+    {
+      "path": "governance/gates/GATE23/state/CURRENT_STATE.json",
+      "sha256": "cb57be85380bd399cab084c17333a9697c7ad623a7f4d1f06482d1f70de44740",
+      "byteLength": 308,
+      "operation": "MODIFY",
+      "reason": "Advance the canonical GATE23 state pointer to R0005 COMPLETE_CONFIRMED."
+    },
+    {
+      "path": "governance/state/GATE_STATUS_LEDGER.ndjson",
+      "sha256": "2d2707462ef4e518abb5153376c1145c39a97981486066eea62edae043f54a57",
+      "byteLength": 60269,
+      "operation": "MODIFY",
+      "reason": "Append exactly one canonical GATE23 EXTERNAL_CONFIRMATION event; every earlier event stays byte-identical."
+    },
+    {
+      "path": "governance/state/generated/GATE_STATUS_SNAPSHOT.json",
+      "sha256": "0feac9fcb0271281bfde2bc6314afb7674e83d5c674675dccc59360a4c2de063",
+      "byteLength": 15919,
+      "operation": "MODIFY",
+      "reason": "Regenerate the derived status projection from the post-confirmation canonical ledger."
+    }
+  ]
+}

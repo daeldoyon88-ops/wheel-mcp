@@ -1,0 +1,74 @@
+{
+  "document": "GATE23_DOMAIN_CONTRACT",
+  "schemaVersion": 1,
+  "gateId": "GATE23",
+  "contractId": "GATE23_CONSUMPTION_BOUNDARY_V1",
+  "version": 1,
+  "role": "Downstream consumption boundary contract",
+  "classification": {
+    "isBuildOutput": true,
+    "isMandateProjection": false,
+    "countedInMandateContractCount": false,
+    "mandateDomainContractCount": 0
+  },
+  "authority": {
+    "mandatePath": "governance/sources/GATE23_CANONICAL_MANDATE_R0.json",
+    "mandateSha256": "b8230ac3e76145cd68a3e9499dd227642283236cab3755d0029856dc28b0dfc9",
+    "mandatePointer": "/downstreamGuarantees",
+    "requirementIds": ["G23-BUILD-02", "G23-BUILD-09", "G23-BUILD-11"]
+  },
+  "implementationPath": "governance/gates/GATE23/implementation/causal-admission-v1.mjs",
+  "upstreamBoundary": {
+    "consumes": [
+      "GATE21 causal observation records",
+      "the pinned calendar/session policy",
+      "the observation dataset vintage"
+    ],
+    "doesNotConsume": [
+      "GATE22 Outcome, directly",
+      "GATE22 Outcome, lagged",
+      "GATE22 Outcome, renamed",
+      "GATE22 Outcome, same-type laundered",
+      "any future-dated provenance"
+    ],
+    "gate21Mutation": "FORBIDDEN",
+    "gate22Mutation": "FORBIDDEN",
+    "geeMutation": "FORBIDDEN",
+    "directionalLabMutation": "FORBIDDEN"
+  },
+  "downstreamBoundary": {
+    "GATE23": "produces FeatureRecord(T) only, carrying identity, knowledge cutoff, feature definition, formula, window binding, source binding, observation dataset, price basis and missingness state",
+    "GATE24": "no GATE24 scope is authorized by GATE23; a GATE23 BUILD PASS is not a GATE24 authorization",
+    "GATE25": "no GATE25 scope is authorized by GATE23"
+  },
+  "consumerObligations": [
+    "consumers decide against the disclosed canonical-session cutoff K(T) carried on the record",
+    "consumers read vectorStatus as CORE_RESOLVED_ONLY and inspect declared non-core member statuses individually",
+    "consumers treat unknown additive fields as ignorable and never reinterpret a missing declared member as absent",
+    "consumers never reattach an Outcome to a FeatureRecord inside the GATE23 namespace"
+  ],
+  "consumptionDecisionReuse": {
+    "surface": "governance/gates/GATE22/implementation/consumption-boundary-v1.mjs",
+    "symbol": "authorizeConsumption",
+    "gate23Row": "features matching an Outcome token are BLOCKED with GATE23_OUTCOME_FEATURE_FORBIDDEN",
+    "mutated": false
+  },
+  "refusalCodes": {
+    "outcomeFeature": "GATE23_OUTCOME_FEATURE_FORBIDDEN",
+    "untrustedProducer": "UNTRUSTED_PRODUCER_FORBIDDEN",
+    "nonObservationRecordType": "NON_OBSERVATION_RECORD_TYPE_FORBIDDEN",
+    "futureProvenance": "FUTURE_PROVENANCE_DEPENDENCY_FORBIDDEN",
+    "futureWindow": "FUTURE_WINDOW_ACCESS_FORBIDDEN",
+    "crossSectional": "CROSS_SECTIONAL_DEFERRED_V1"
+  },
+  "nextGateAuthorization": {
+    "gate23BuildPassIsGate24Authorization": false,
+    "gate24RequiresSeparateExecutionContractAndAuthority": true
+  },
+  "buildDisposition": {
+    "status": "BUILD_CANDIDATE",
+    "buildExecuted": true,
+    "functionalImplementationPresent": true,
+    "outcomeProduced": false
+  }
+}

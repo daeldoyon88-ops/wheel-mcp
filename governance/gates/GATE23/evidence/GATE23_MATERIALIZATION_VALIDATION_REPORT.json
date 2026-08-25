@@ -1,0 +1,251 @@
+{
+  "document": "GATE23_MATERIALIZATION_VALIDATION_REPORT",
+  "schemaVersion": 1,
+  "gateId": "GATE23",
+  "authority": {
+    "mandatePath": "governance/sources/GATE23_CANONICAL_MANDATE_R0.json",
+    "mandateSha256": "b8230ac3e76145cd68a3e9499dd227642283236cab3755d0029856dc28b0dfc9",
+    "executionContractPath": "governance/gates/GATE23/contracts/EXECUTION_CONTRACT_R0002.json",
+    "executionContractSha256": "e341253918fe7b2e47823f899d71cfe5aa51ad81ebfea4bdb88eeb4ad7bbb84f",
+    "executionContractRevision": "R0002",
+    "stateRevision": "R0003",
+    "stateSealSha256": "963e8d514bc5c4c9935c9f3cf0e1d054e5cf1a8dcbef557ff8efd2a1dad73cce",
+    "buildAuthorityPath": "governance/authority/authorizations/GATE23/PROJECT_OWNER_GATE_FUNCTIONAL_BUILD_AUTHORITY.json",
+    "buildAuthoritySha256": "0104fac7cb6ac6a4ce1935e9657e6ad4f50d0527eac645db0a4225a09f5a733c",
+    "buildScope": "GATE23_R0002_FROZEN_27_PATHS_ONLY",
+    "maxUse": 1
+  },
+  "recalculatedFromBoundBytes": true,
+  "assertedPass": false,
+  "ownerDecisionEvidence": {
+    "OD-1": {
+      "subject": "FeatureWindowSpec ladder",
+      "admissible": [
+        5,
+        21,
+        63,
+        126,
+        252
+      ],
+      "cartesian": false,
+      "unit": "CANONICAL_DAILY_TRADING_SESSION",
+      "evidence": "declared members only; a families-by-windows product is refused as CARTESIAN_EXPANSION_FORBIDDEN (H19)",
+      "windowUnitProof": "calendarDaySpan=8 > sessions=6",
+      "verdict": "HELD"
+    },
+    "OD-2": {
+      "subject": "price basis",
+      "admissible": "SPLIT_ADJUSTED",
+      "observedPriceBasisId": "SPLIT_ADJUSTED",
+      "forbidden": [
+        "TOTAL_RETURN_ADJUSTED",
+        "DERIVED_ADJUSTED",
+        "implicit dividend total return"
+      ],
+      "arbitraryRatiosProof": "ARBITRARY_RATIOS_ADMITTED_RETURN_INVARIANT",
+      "pointInTimeProof": "FEATURE_STORE_RESTATEMENT_CONFLICT",
+      "verdict": "HELD"
+    },
+    "OD-3": {
+      "subject": "cross-sectional scope",
+      "disposition": "DEFER",
+      "v1Implementation": "NONE",
+      "refusalProof": "CROSS_SECTIONAL_DEFERRED_V1",
+      "verdict": "HELD"
+    },
+    "OD-4": {
+      "subject": "core feature resolution",
+      "coreFeatureSet": [
+        {
+          "featureDefinitionId": "F1_SIMPLE_RETURN",
+          "sessionCount": 5
+        },
+        {
+          "featureDefinitionId": "F1_SIMPLE_RETURN",
+          "sessionCount": 21
+        }
+      ],
+      "vectorStatus": "RESOLVED",
+      "vectorStatusMeaning": "CORE_RESOLVED_ONLY",
+      "nonCoreInsufficientWhileVectorResolved": true,
+      "declaredMemberOmittedProof": "DECLARED_MEMBER_MISSING",
+      "verdict": "HELD"
+    },
+    "OD-5": {
+      "subject": "KnowledgeCutoff V1",
+      "formula": "K(T) = PinnedCanonicalSession(T).closeUtc",
+      "regularSession": {
+        "sessionDate": "2025-03-19",
+        "sessionKind": "REGULAR_SESSION",
+        "knowledgeCutoff": "2025-03-19T21:00:00.000Z",
+        "equalsCanonicalCloseUtc": true
+      },
+      "halfDaySession": {
+        "sessionDate": "2024-12-24",
+        "sessionKind": "HALF_DAY_SESSION",
+        "knowledgeCutoff": "2024-12-24T18:00:00.000Z",
+        "equalsCanonicalCloseUtc": true
+      },
+      "forbiddenPrimitiveDivergenceProof": "K=2024-12-24T18:00:00.000Z != sessionCloseUtc=2024-12-24T21:00:00.000Z",
+      "optionB": {
+        "option": "INITIAL_ROOT settlingAt(T)",
+        "status": "NOT_EXECUTABLE_WITH_CURRENT_PRIMITIVES",
+        "disposition": "FUTURE_ADDITIVE_OPTION"
+      },
+      "verdict": "HELD"
+    }
+  },
+  "materializations": [
+    {
+      "anchor": "REGULAR_SESSION",
+      "sessionDate": "2025-03-19",
+      "sessionKind": "REGULAR_SESSION",
+      "knowledgeCutoff": "2025-03-19T21:00:00.000Z",
+      "priceBasisId": "SPLIT_ADJUSTED",
+      "vectorStatus": "RESOLVED",
+      "members": [
+        {
+          "memberKey": "F1_SIMPLE_RETURN@W5",
+          "core": true,
+          "status": "RESOLVED",
+          "code": null,
+          "value": 0.01247720510605621,
+          "missingnessState": "COMPLETE",
+          "observedSessionCount": 6,
+          "featureRecordId": "f7c1bbe228c4e959e6ad166a73cd128d2bb3aca8463809e0e2a3e01d39e9d2f9"
+        },
+        {
+          "memberKey": "F1_SIMPLE_RETURN@W21",
+          "core": true,
+          "status": "RESOLVED",
+          "code": null,
+          "value": -0.034681551976573965,
+          "missingnessState": "COMPLETE",
+          "observedSessionCount": 22,
+          "featureRecordId": "9f8547389905e832281b43eb70f13e96552ec021b21c29bca22e55514719be60"
+        },
+        {
+          "memberKey": "F1_SIMPLE_RETURN@W63",
+          "core": false,
+          "status": "RESOLVED",
+          "code": null,
+          "value": -0.019700771303782227,
+          "missingnessState": "COMPLETE",
+          "observedSessionCount": 64,
+          "featureRecordId": "ea06da193f61b21122765842a3745e9480481c11edccff3232e41c9f0c2765e7"
+        },
+        {
+          "memberKey": "F1_SIMPLE_RETURN@W126",
+          "core": false,
+          "status": "RESOLVED",
+          "code": null,
+          "value": -0.03864029891552001,
+          "missingnessState": "COMPLETE",
+          "observedSessionCount": 127,
+          "featureRecordId": "4d94cf9ff2477b2f7eb668f85092dea2512a8af227544a54c33e8d8d0ce9fe2c"
+        },
+        {
+          "memberKey": "F1_SIMPLE_RETURN@W252",
+          "core": false,
+          "status": "INSUFFICIENT_DATA",
+          "code": "INSUFFICIENT_SESSIONS_IN_WINDOW",
+          "value": null,
+          "missingnessState": "INSUFFICIENT_HISTORY",
+          "observedSessionCount": 0,
+          "featureRecordId": "4874ce00ce39a24b4d780c74b95209a8498e1acf5d8f5d8d9c768541b8de5ab2"
+        }
+      ]
+    },
+    {
+      "anchor": "HALF_DAY_SESSION",
+      "sessionDate": "2024-12-24",
+      "sessionKind": "HALF_DAY_SESSION",
+      "knowledgeCutoff": "2024-12-24T18:00:00.000Z",
+      "priceBasisId": "SPLIT_ADJUSTED",
+      "vectorStatus": "RESOLVED",
+      "members": [
+        {
+          "memberKey": "F1_SIMPLE_RETURN@W5",
+          "core": true,
+          "status": "RESOLVED",
+          "code": null,
+          "value": 0.012051543524612907,
+          "missingnessState": "COMPLETE",
+          "observedSessionCount": 6,
+          "featureRecordId": "4fa5e0c9cd7a3ded9a4e3e6fdc00c257b0878aca59bcace1abdc0456c9d53cdc"
+        },
+        {
+          "memberKey": "F1_SIMPLE_RETURN@W21",
+          "core": true,
+          "status": "RESOLVED",
+          "code": null,
+          "value": 0.052646803586925195,
+          "missingnessState": "COMPLETE",
+          "observedSessionCount": 22,
+          "featureRecordId": "c8b38745f82435fd55ada08098b5bcfc4393728385032327271c151aaf7fdcc6"
+        },
+        {
+          "memberKey": "F1_SIMPLE_RETURN@W63",
+          "core": false,
+          "status": "RESOLVED",
+          "code": null,
+          "value": 0.06987455899647199,
+          "missingnessState": "COMPLETE",
+          "observedSessionCount": 64,
+          "featureRecordId": "059a360e085bb43cd706b0dbe4643543c67917d7b3aec63a806e5dc72cd685d8"
+        },
+        {
+          "memberKey": "F1_SIMPLE_RETURN@W126",
+          "core": false,
+          "status": "RESOLVED",
+          "code": null,
+          "value": 0.04809907834101379,
+          "missingnessState": "COMPLETE",
+          "observedSessionCount": 127,
+          "featureRecordId": "8d3f4b7e96bdc6637380fe3519d24cb008cc2c5b1a5c03b54cc59eb221f9d4b5"
+        },
+        {
+          "memberKey": "F1_SIMPLE_RETURN@W252",
+          "core": false,
+          "status": "INSUFFICIENT_DATA",
+          "code": "INSUFFICIENT_SESSIONS_IN_WINDOW",
+          "value": null,
+          "missingnessState": "INSUFFICIENT_HISTORY",
+          "observedSessionCount": 0,
+          "featureRecordId": "257603e30bd0fb9493f5234d116ccdc722f0387216dce955b5a9d2090fc1eb6e"
+        }
+      ]
+    }
+  ],
+  "missionBoundary": {
+    "produced": [
+      "FeatureRecord"
+    ],
+    "doesNotProduce": [
+      "Outcome",
+      "prediction",
+      "recommendation",
+      "Wheel decision",
+      "Market Regime",
+      "strategy",
+      "cross-sectional implementation"
+    ],
+    "outcomeProduced": false,
+    "predictionProduced": false,
+    "recommendationProduced": false,
+    "wheelDecisionProduced": false,
+    "marketRegimeProduced": false,
+    "strategyProduced": false,
+    "crossSectionalImplementationProduced": false
+  },
+  "tCausal": {
+    "claims": [
+      "NO_OUTCOME_OR_FUTURE_PROVENANCE_DEPENDENCY",
+      "NO_FUTURE_WINDOW_ACCESS"
+    ],
+    "claimCount": 2,
+    "thirdClaimIntroduced": false,
+    "futureLeakageDetected": false,
+    "outcomeLeakageDetected": false
+  }
+}

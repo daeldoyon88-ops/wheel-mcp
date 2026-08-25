@@ -1,0 +1,90 @@
+{
+  "document": "GATE23_DOMAIN_CONTRACT",
+  "schemaVersion": 1,
+  "gateId": "GATE23",
+  "contractId": "GATE23_FEATURE_FAMILY_V1",
+  "version": 1,
+  "role": "Feature family contract",
+  "classification": {
+    "isBuildOutput": true,
+    "isMandateProjection": false,
+    "countedInMandateContractCount": false,
+    "mandateDomainContractCount": 0
+  },
+  "authority": {
+    "mandatePath": "governance/sources/GATE23_CANONICAL_MANDATE_R0.json",
+    "mandateSha256": "b8230ac3e76145cd68a3e9499dd227642283236cab3755d0029856dc28b0dfc9",
+    "mandatePointer": "/featureWindowPolicy",
+    "ownerDecisionIds": ["OD-1", "OD-3", "OD-4"],
+    "invariantIds": [
+      "I-DAILY-WINDOW-UNIT-STABILITY",
+      "I-VECTOR-RESOLVED-MEANS-CORE-RESOLVED",
+      "O-NON-CORE-STATUS-INSPECTION",
+      "WINDOW_UNIT_NOT_DAILY_DISTINCT"
+    ],
+    "requirementIds": ["G23-BUILD-03", "G23-BUILD-05", "G23-BUILD-06"]
+  },
+  "implementationPaths": [
+    "governance/gates/GATE23/implementation/feature-families-v1.mjs",
+    "governance/gates/GATE23/implementation/feature-window-v1.mjs",
+    "governance/gates/GATE23/implementation/feature-registry-v1.mjs"
+  ],
+  "moduleVersions": {
+    "featureFamily": "GATE23_FeatureFamily/1",
+    "featureWindowSpec": "GATE23_FeatureWindowSpec/1",
+    "featureRegistry": "GATE23_FeatureRegistry/1"
+  },
+  "featureWindowPolicy": {
+    "admissibleFeatureWindowSpecs": [5, 21, 63, 126, 252],
+    "cartesian": false,
+    "cartesianRefusalCode": "CARTESIAN_EXPANSION_FORBIDDEN",
+    "unit": "CANONICAL_DAILY_TRADING_SESSION",
+    "unitReading": "canonical DAILY trading-session units, never a count of distinct calendar days",
+    "windowShape": "a W-session window is anchored at T and observes W + 1 canonical session closes, all at or before T",
+    "distinctFrom": "KnowledgeCutoffBoundary(K)"
+  },
+  "families": [
+    {
+      "familyId": "F1_SIMPLE_RETURN",
+      "featureDefinitionId": "F1_SIMPLE_RETURN",
+      "formulaId": "GATE23_SIMPLE_RETURN/1",
+      "formulaVersion": "1",
+      "formula": "close(T) / close(T - W) - 1",
+      "requiredObservedFields": ["close"]
+    }
+  ],
+  "coreFeatureSet": [
+    { "featureDefinitionId": "F1_SIMPLE_RETURN", "sessionCount": 5 },
+    { "featureDefinitionId": "F1_SIMPLE_RETURN", "sessionCount": 21 }
+  ],
+  "coreFeatureSetCount": 2,
+  "coreFeatureSetClosure": "EXACTLY_THESE_TWO",
+  "vectorStatusRule": {
+    "RESOLVED": "the core feature set is resolved; this does not assert usability of any non-core member",
+    "nonCoreMemberMayBe": ["INSUFFICIENT_DATA", "FAIL_CLOSED"],
+    "declaredMemberOmitted": "FAIL_CLOSED",
+    "declaredMemberOmittedCode": "DECLARED_MEMBER_MISSING",
+    "coreFailClosed": "FAIL_CLOSED",
+    "coreInsufficient": "INSUFFICIENT_DATA",
+    "nonCoreStatusRemainsIndividuallyInspectable": true
+  },
+  "crossSectional": {
+    "disposition": "DEFER",
+    "v1Implementation": "NONE",
+    "refusalCode": "CROSS_SECTIONAL_DEFERRED_V1"
+  },
+  "registryEvolution": {
+    "evolution": "ADDITIVE_VERSIONED",
+    "unknownFields": "CONSUMERS_IGNORE",
+    "behaviouralChange": "REQUIRES_NEW_FORMULA_ID",
+    "requiredFieldRemoval": "REQUIRES_VERSION_BUMP_AND_NAMED_SUCCESSOR",
+    "deprecation": "BY_VERSION_ID_NEVER_SILENT_REWRITE",
+    "definitionMutation": "FEATURE_DEFINITION_IMMUTABLE"
+  },
+  "buildDisposition": {
+    "status": "BUILD_CANDIDATE",
+    "buildExecuted": true,
+    "functionalImplementationPresent": true,
+    "outcomeProduced": false
+  }
+}

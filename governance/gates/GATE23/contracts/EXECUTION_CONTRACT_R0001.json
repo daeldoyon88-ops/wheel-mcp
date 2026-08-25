@@ -1,0 +1,238 @@
+{
+  "gateId": "GATE23",
+  "contractRevision": "R0001",
+  "strategicRegistryReference": {
+    "registryPath": "governance/GATE_REGISTRY_00_40.json",
+    "registrySha256": "76d5f9ff0a21f8c1eadaf9ccd9e48c9087d12655fac6a5c9215584053652a56b",
+    "gateId": "GATE23",
+    "canonicalObjectiveSha256": "65d20e803448e0ca3ecdc617b94359650c994013a03004b24291b54c416162fb"
+  },
+  "canonicalRequirements": [
+    {
+      "requirementId": "G23-PRESTART-01",
+      "statement": "Bind the GATE23 canonical mandate candidate by its exact SHA-256; the mandate is ratification only and grants neither START nor BUILD.",
+      "normativeSource": "governance/sources/GATE23_CANONICAL_MANDATE_R0.json"
+    },
+    {
+      "requirementId": "G23-PRESTART-02",
+      "statement": "Bind the unpublished GATE23 prestart candidates A2-A5 (workset, mandate binding, checkpoint, closure evidence) by their exact SHA-256; they are not published canonical artifacts and this cohort does not publish them.",
+      "normativeSource": "governance/gates/GATE23/prestart/GATE23_START_WORKSET_MANIFEST.json"
+    },
+    {
+      "requirementId": "G23-PRESTART-03",
+      "statement": "Preserve GATE23 as NOT_STARTED and GATE22 as COMPLETE_CONFIRMED; this cohort creates no ledger event, no state revision and no ACTIVE_GATE mutation.",
+      "normativeSource": "governance/state/GATE_STATUS_LEDGER.ndjson"
+    },
+    {
+      "requirementId": "G23-PRESTART-04",
+      "statement": "The only authorized cohort is the precontract contract, its pointer and the primitive-generated consumption receipt; functional implementation stays unauthorized because START is not BUILD.",
+      "normativeSource": "governance/sources/GATE23_CANONICAL_MANDATE_R0.json"
+    },
+    {
+      "requirementId": "G23-PRESTART-05",
+      "statement": "GATE21 and GATE22 surfaces stay unmodified; this cohort authorizes no GATE21 mutation, no GATE22 mutation, and no research/directional-lab write.",
+      "normativeSource": "governance/gates/GATE22/state/CURRENT_STATE.json"
+    },
+    {
+      "requirementId": "G23-PRESTART-06",
+      "statement": "This document is a NON_ACTIVATED CANDIDATE. It grants neither START nor BUILD and does not activate CURRENT_CONTRACT.",
+      "normativeSource": "governance/sources/GATE23_CANONICAL_MANDATE_R0.json"
+    }
+  ],
+  "requiredInputs": [
+    {
+      "path": "governance/sources/GATE23_CANONICAL_MANDATE_R0.json",
+      "sha256": "b8230ac3e76145cd68a3e9499dd227642283236cab3755d0029856dc28b0dfc9",
+      "role": "CANONICAL_RATIFICATION_ONLY_MANDATE"
+    },
+    {
+      "path": "governance/gates/GATE23/prestart/GATE23_START_WORKSET_MANIFEST.json",
+      "sha256": "7dab37a4bc11c0e6be603c54afa034cb504492f2cc8a97d1c2b680b4e5921782",
+      "role": "GATE23_START_WORKSET_MANIFEST_CANDIDATE"
+    },
+    {
+      "path": "governance/gates/GATE23/prestart/GATE23_MANDATE_BINDING.json",
+      "sha256": "c13a808a4bdbdaaf3b6f3501fee7d6392e585e501a4efb8ac8ce4e1b7134eb6a",
+      "role": "GATE23_MANDATE_BINDING_CANDIDATE"
+    },
+    {
+      "path": "governance/gates/GATE23/prestart/PRESTART_CHECKPOINT.json",
+      "sha256": "94fd6a57c796f5bb515aaa079295460fe621a77b78b458773e6d62bef21aecbb",
+      "role": "GATE23_PRESTART_CHECKPOINT_CANDIDATE"
+    },
+    {
+      "path": "governance/gates/GATE23/prestart/evidence/PRESTART_CLOSURE_EVIDENCE.json",
+      "sha256": "90cf690015e2d3356660533c2f2d8461a4669fc70aae7500eca2b808e030c78c",
+      "role": "GATE23_PRESTART_CLOSURE_EVIDENCE_CANDIDATE"
+    },
+    {
+      "path": "governance/GATE_REGISTRY_00_40.json",
+      "sha256": "76d5f9ff0a21f8c1eadaf9ccd9e48c9087d12655fac6a5c9215584053652a56b",
+      "role": "STRATEGIC_REGISTRY"
+    },
+    {
+      "path": "governance/gates/GATE22/state/CURRENT_STATE.json",
+      "sha256": "9a4d0ac7ac334a1f8e9822b41dfb87e7d43185bc9be2c61ae5bd06e1762ba5a2",
+      "role": "GATE22_DEPENDENCY_PRESTATE"
+    },
+    {
+      "path": "governance/gates/GATE22/evidence/BUILD_CANDIDATE_RECEIPT.json",
+      "sha256": "2c6e46e400b953cd23ead6511c5c82e120293fe5ee5e2a5f9453c4a0b2c133ff",
+      "role": "GATE22_SEALED_BUILD_CANDIDATE_RECEIPT"
+    },
+    {
+      "path": "governance/state/GATE_STATUS_LEDGER.ndjson",
+      "sha256": "3c98102b722a8bc265bb6d6a0dd1466c54d4fcc306fc28d24624beaf2ad78cb1",
+      "role": "LIFECYCLE_AND_DEPENDENCY_PRESTATE"
+    }
+  ],
+  "requiredOutputs": [
+    {
+      "ordinal": 1,
+      "path": "governance/gates/GATE23/contracts/EXECUTION_CONTRACT_R0001.json",
+      "role": "Versioned precontract-only execution contract"
+    },
+    {
+      "ordinal": 2,
+      "path": "governance/gates/GATE23/contracts/CURRENT_CONTRACT.json",
+      "role": "Pointer to the exact versioned contract"
+    },
+    {
+      "ordinal": 3,
+      "path": "governance/gates/GATE23/contracts/PRECONTRACT_AUTHORITY_CONSUMPTION_R1.json",
+      "role": "Primitive-generated single-use consumption receipt"
+    }
+  ],
+  "validators": [
+    "node governance/tools/validate-gate-contract.mjs --contract governance/gates/GATE23/contracts/EXECUTION_CONTRACT_R0001.json --pointer governance/gates/GATE23/contracts/CURRENT_CONTRACT.json",
+    "node governance/tools/validate-precontract-authority.mjs --gate GATE23",
+    "node governance/tools/validate-status-ledger.mjs"
+  ],
+  "positiveTests": [
+    {
+      "testId": "G23-PRE-POS-01",
+      "case": "the candidate contract and pointer bytes validate against the canonical contract schema",
+      "expected": "AUTHORIZED"
+    },
+    {
+      "testId": "G23-PRE-POS-02",
+      "case": "A1-A5 requiredInputs bind the verified candidate SHA-256 values exactly",
+      "expected": "AUTHORIZED"
+    },
+    {
+      "testId": "G23-PRE-POS-03",
+      "case": "GATE23 remains NOT_STARTED and GATE22 remains COMPLETE_CONFIRMED",
+      "expected": "AUTHORIZED"
+    }
+  ],
+  "negativeTests": [
+    {
+      "testId": "G23-PRE-NEG-01",
+      "case": "START, BUILD or lifecycle transition request under this candidate",
+      "expected": "BLOCKED"
+    },
+    {
+      "testId": "G23-PRE-NEG-02",
+      "case": "any write to a GATE21 or GATE22 surface or to research/directional-lab",
+      "expected": "BLOCKED"
+    },
+    {
+      "testId": "G23-PRE-NEG-03",
+      "case": "publication of A1-A5 or of this candidate at a canonical repository path under this cohort",
+      "expected": "BLOCKED"
+    },
+    {
+      "testId": "G23-PRE-NEG-04",
+      "case": "any write outside the three authorized contract paths",
+      "expected": "BLOCKED"
+    }
+  ],
+  "countertests": [
+    {
+      "testId": "G23-PRE-CTR-01",
+      "case": "this candidate presented as an activated CURRENT_CONTRACT for GATE23",
+      "expected": "BLOCKED"
+    },
+    {
+      "testId": "G23-PRE-CTR-02",
+      "case": "this candidate presented as a consumed Owner START authority",
+      "expected": "BLOCKED"
+    },
+    {
+      "testId": "G23-PRE-CTR-03",
+      "case": "mandate bytes changed after this binding",
+      "expected": "BLOCKED"
+    }
+  ],
+  "reuseRules": [
+    "Reuse the GATE22 precontract cohort format and the existing GEE precontract primitives without modification.",
+    "Reuse the verified A1-A5 candidate SHA-256 values; do not reserialize or republish them.",
+    "Reuse GATE22 COMPLETE_CONFIRMED as the sole predecessor terminal proof."
+  ],
+  "invalidationRules": [
+    "Any drift of a hash-pinned required input blocks this candidate.",
+    "Any loss of GATE22 COMPLETE_CONFIRMED blocks this candidate.",
+    "Any change of GATE23 away from NOT_STARTED blocks this candidate.",
+    "Any GATE21 or GATE22 mutation blocks this candidate."
+  ],
+  "forbiddenReplays": [
+    "GATE23 START",
+    "GATE23 BUILD",
+    "GATE22 mutation",
+    "GATE21 mutation",
+    "GATE21 R0006",
+    "AGENT_CLOSURE",
+    "EXTERNAL_CONFIRMATION",
+    "ledger mutation",
+    "ACTIVE_GATE mutation",
+    "git commit",
+    "git push"
+  ],
+  "closureConditions": [
+    "This document is a NON_ACTIVATED CANDIDATE. It is not published at governance/gates/GATE23/contracts/, it is not pointed to by any live CURRENT_CONTRACT and no authority has been consumed for it in the repository.",
+    "This candidate is not closure, not confirmation, not START and not BUILD.",
+    "A later separately authorized lifecycle may publish an identical contract at the canonical path only under its own Owner authority."
+  ],
+  "nextGateAuthorizationConditions": [
+    "No next-Gate authorization is created by this candidate."
+  ],
+  "performanceBudget": {
+    "targetMinutes": 5,
+    "expectedMaximumMinutes": 20,
+    "closeoutStartMinutes": 10,
+    "absoluteMaximumMinutes": 60
+  },
+  "checkpointPolicy": {
+    "resume": "A1-A5 verified candidates; PRESTART_SERIALIZATION_COMPLETE; precontract bytes not published",
+    "reuse": "GATE22 precontract cohort format and GEE precontract primitives",
+    "independentConfirmation": "required separately before START is executed"
+  },
+  "authorizedPaths": [
+    "governance/gates/GATE23/contracts/EXECUTION_CONTRACT_R0001.json",
+    "governance/gates/GATE23/contracts/CURRENT_CONTRACT.json",
+    "governance/gates/GATE23/contracts/PRECONTRACT_AUTHORITY_CONSUMPTION_R1.json"
+  ],
+  "requiredPolicyIds": [
+    "AUTHORIZED_PATHS_ONLY",
+    "NO_HARDCODED_PASS",
+    "NO_CIRCULAR_VALIDATION",
+    "DETERMINISTIC_OPERATIONS_LOCAL",
+    "NO_FUTURE_LEAKAGE",
+    "NO_GATE_MANDATE_REDEFINITION",
+    "GIT_WRITES_FORBIDDEN_BY_DEFAULT"
+  ],
+  "sourceReferences": [
+    {
+      "sourcePath": "governance/GATE_REGISTRY_00_40.json",
+      "sourceSha256": "76d5f9ff0a21f8c1eadaf9ccd9e48c9087d12655fac6a5c9215584053652a56b",
+      "sourceLocation": "/gates/GATE23",
+      "field": "canonicalObjective"
+    },
+    {
+      "sourcePath": "governance/sources/GATE23_CANONICAL_MANDATE_R0.json",
+      "sourceSha256": "b8230ac3e76145cd68a3e9499dd227642283236cab3755d0029856dc28b0dfc9",
+      "sourceLocation": "/",
+      "field": "canonicalObjective"
+    }
+  ]
+}

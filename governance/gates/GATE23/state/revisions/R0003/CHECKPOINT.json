@@ -1,0 +1,19 @@
+{
+  "gateId": "GATE23",
+  "stateRevision": "R0003",
+  "milestone": "GATE23_CONTRACT_SUCCESSION",
+  "resumePoint": "IN_PROGRESS_BUILD_AUTHORIZED",
+  "completedTasks": [
+    "GATE23_CONTRACT_SUCCESSION_R0001_TO_R0002"
+  ],
+  "openTasks": [
+    "GATE23_FUNCTIONAL_BUILD"
+  ],
+  "reusableEvidence": [],
+  "invalidatedEvidence": [],
+  "requiredNextActions": [
+    "GATE23_FUNCTIONAL_BUILD"
+  ],
+  "protectedHashes": [],
+  "createdAt": "2026-08-25T14:00:00.000Z"
+}

@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 1,
+  "gateId": "GATE23",
+  "stateRevision": "R0001",
+  "sealedMembers": [
+    {
+      "repoRelativePath": "governance/gates/GATE23/contracts/CURRENT_CONTRACT.json",
+      "sha256": "ef5d6f12bce4bcdebd2cfe30bb9dc6831db45f957288c9cc25c24b6e635b3f68",
+      "byteLength": 281
+    },
+    {
+      "repoRelativePath": "governance/gates/GATE23/state/revisions/R0001/CHECKPOINT.json",
+      "sha256": "fb1b90403a8251586d698aa23322a785299b6a74ca3390aad414a5861c961c6c",
+      "byteLength": 330
+    },
+    {
+      "repoRelativePath": "governance/gates/GATE23/state/revisions/R0001/OPEN_DEFECTS.json",
+      "sha256": "6581927e41571d0474999c6a0ae6312246fd59d7f8a985258f6becac64f0360a",
+      "byteLength": 70
+    }
+  ],
+  "previousStateSealSha256": null,
+  "sealedAt": "2026-08-25T12:00:00.000Z",
+  "payload": {
+    "gateId": "GATE23",
+    "stateRevision": "R0001",
+    "executionStatus": "AUTHORIZED_NOT_STARTED",
+    "contractSha256": "31efbac39ed0aab51477c384688522afba8dc20f1e62f2596fe80a630c83af80",
+    "previousStateSealSha256": null,
+    "sealedMembersDigest": "ccd23918b520e8e6ff6bed725ed4e5c15593e8fb3cb96c77390f5fd91064ad59"
+  },
+  "payloadSha256": "df6842e47c1376273bf84563a5fbf151f540053ca8202ca7f62bca1f3e6bfa98"
+}

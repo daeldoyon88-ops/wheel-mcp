@@ -1,0 +1,159 @@
+{
+  "document": "GATE23_DOMAIN_CONTRACT",
+  "schemaVersion": 1,
+  "gateId": "GATE23",
+  "contractId": "GATE23_BINDING_V1",
+  "version": 1,
+  "role": "GATE23 binding pins and consumption surface",
+  "classification": {
+    "isBuildOutput": true,
+    "isMandateProjection": false,
+    "countedInMandateContractCount": false,
+    "mandateDomainContractCount": 0,
+    "note": "GATE23_CANONICAL_MANDATE_R0 creates no domain contract. This file is an output of the authorized GATE23 functional BUILD under EXECUTION_CONTRACT_R0002, not a GATE22-style C1..C7 mandate projection."
+  },
+  "authority": {
+    "mandatePath": "governance/sources/GATE23_CANONICAL_MANDATE_R0.json",
+    "mandateSha256": "b8230ac3e76145cd68a3e9499dd227642283236cab3755d0029856dc28b0dfc9",
+    "executionContractPath": "governance/gates/GATE23/contracts/EXECUTION_CONTRACT_R0002.json",
+    "executionContractSha256": "e341253918fe7b2e47823f899d71cfe5aa51ad81ebfea4bdb88eeb4ad7bbb84f",
+    "executionContractRevision": "R0002",
+    "stateRevision": "R0003",
+    "stateSealSha256": "963e8d514bc5c4c9935c9f3cf0e1d054e5cf1a8dcbef557ff8efd2a1dad73cce",
+    "buildAuthorityPath": "governance/authority/authorizations/GATE23/PROJECT_OWNER_GATE_FUNCTIONAL_BUILD_AUTHORITY.json",
+    "buildAuthoritySha256": "0104fac7cb6ac6a4ce1935e9657e6ad4f50d0527eac645db0a4225a09f5a733c",
+    "buildScope": "GATE23_R0002_FROZEN_27_PATHS_ONLY"
+  },
+  "moduleVersions": {
+    "featureRecordIdentity": "GATE23_FeatureRecordIdentity/1",
+    "causalAdmission": "GATE23_CausalAdmission/1",
+    "featureWindowSpec": "GATE23_FeatureWindowSpec/1",
+    "calendarWindowBinding": "GATE23_CalendarWindowBinding/1",
+    "featureRegistry": "GATE23_FeatureRegistry/1",
+    "featureDefinition": "GATE23_FeatureDefinition/1",
+    "featureFamily": "GATE23_FeatureFamily/1",
+    "featureMaterializer": "GATE23_FeatureMaterializer/1",
+    "featureRecord": "GATE23_FeatureRecord/1",
+    "missingnessState": "GATE23_MissingnessState/1",
+    "featureStore": "GATE23_FeatureStore/1"
+  },
+  "consumedUpstreamSurfaces": [
+    {
+      "surface": "governance/tools/canonical-json.mjs",
+      "symbols": ["sha256Canonical"],
+      "mutated": false
+    },
+    {
+      "surface": "governance/gates/GATE22/implementation/price-basis-v1.mjs",
+      "symbols": ["validatePriceBasisWindow"],
+      "mutated": false
+    },
+    {
+      "surface": "governance/gates/GATE22/implementation/consumption-boundary-v1.mjs",
+      "symbols": ["authorizeConsumption"],
+      "mutated": false
+    },
+    {
+      "surface": "governance/gates/GATE22/implementation/taxonomy-v1.mjs",
+      "symbols": ["TAXONOMY_PRIMITIVES"],
+      "mutated": false
+    },
+    {
+      "surface": "research/directional-lab/src/contracts/dailyBarV1.mjs",
+      "symbols": ["isStrictUtcIsoInstant"],
+      "mutated": false
+    },
+    {
+      "surface": "research/directional-lab/src/contracts/missingReasonsV1.mjs",
+      "symbols": ["MISSING_REASONS"],
+      "mutated": false
+    },
+    {
+      "surface": "research/directional-lab/src/contracts/marketCalendarL3V1.mjs",
+      "symbols": ["MARKET_CALENDAR_SESSION_KINDS"],
+      "mutated": false
+    },
+    {
+      "surface": "research/directional-lab/src/time/civilDate.mjs",
+      "symbols": ["isValidCivilDate"],
+      "mutated": false
+    }
+  ],
+  "forbiddenUpstreamSurfaces": [
+    {
+      "surface": "research/directional-lab/src/time/marketSession.mjs",
+      "symbol": "sessionCloseUtc",
+      "reason": "OD-5 forbids deriving K(T) from a wall-clock convention; K(T) is read from the pinned canonical session record",
+      "referencedByImplementation": false,
+      "referencedByFixtures": false,
+      "referencedByHostileTestAsNegativeControl": true
+    }
+  ],
+  "notModified": [
+    "governance/gates/GATE21",
+    "governance/gates/GATE22",
+    "governance/gee-v1",
+    "research/directional-lab"
+  ],
+  "transform": "Observation(T) -> FeatureRecord(T)",
+  "doesNotProduce": [
+    "Outcome",
+    "prediction",
+    "recommendation",
+    "Wheel decision",
+    "Market Regime",
+    "strategy",
+    "cross-sectional implementation"
+  ],
+  "ownerDecisionBindings": {
+    "OD-1": "governance/gates/GATE23/implementation/feature-window-v1.mjs",
+    "OD-2": "governance/gates/GATE23/implementation/feature-materializer-v1.mjs",
+    "OD-3": "governance/gates/GATE23/implementation/feature-families-v1.mjs",
+    "OD-4": "governance/gates/GATE23/implementation/feature-families-v1.mjs",
+    "OD-5": "governance/gates/GATE23/implementation/feature-window-v1.mjs"
+  },
+  "exactWorkset": [
+    "governance/gates/GATE23/implementation/feature-identity-v1.mjs",
+    "governance/gates/GATE23/implementation/causal-admission-v1.mjs",
+    "governance/gates/GATE23/implementation/feature-window-v1.mjs",
+    "governance/gates/GATE23/implementation/feature-registry-v1.mjs",
+    "governance/gates/GATE23/implementation/feature-families-v1.mjs",
+    "governance/gates/GATE23/implementation/feature-materializer-v1.mjs",
+    "governance/gates/GATE23/implementation/feature-store-v1.mjs",
+    "governance/gates/GATE23/contracts/GATE23_BINDING_V1.json",
+    "governance/gates/GATE23/contracts/GATE23_FEATURE_IDENTITY_V1.json",
+    "governance/gates/GATE23/contracts/GATE23_CAUSAL_ADMISSION_V1.json",
+    "governance/gates/GATE23/contracts/GATE23_FEATURE_FAMILY_V1.json",
+    "governance/gates/GATE23/contracts/GATE23_MATERIALIZATION_V1.json",
+    "governance/gates/GATE23/contracts/GATE23_CONSUMPTION_BOUNDARY_V1.json",
+    "governance/gates/GATE23/tests/gate23-foundation.test.mjs",
+    "governance/gates/GATE23/tests/gate23-hostiles.test.mjs",
+    "governance/gates/GATE23/tests/gate23-replay.test.mjs",
+    "governance/gates/GATE23/tests/gate23-evolvability.test.mjs",
+    "governance/gates/GATE23/tests/gate23-performance.test.mjs",
+    "governance/gates/GATE23/fixtures/causal-window-fixture.mjs",
+    "governance/gates/GATE23/fixtures/outcome-leakage-fixture.mjs",
+    "governance/gates/GATE23/fixtures/calendar-window-fixture.mjs",
+    "governance/gates/GATE23/fixtures/provenance-drift-fixture.mjs",
+    "governance/gates/GATE23/evidence/BUILD_CANDIDATE_RECEIPT.json",
+    "governance/gates/GATE23/evidence/GATE23_FEATURE_PROVENANCE_MANIFEST.json",
+    "governance/gates/GATE23/evidence/GATE23_MATERIALIZATION_VALIDATION_REPORT.json",
+    "governance/gates/GATE23/evidence/GATE23_PERFORMANCE_BUDGET_MEASUREMENT.json",
+    "governance/gates/GATE23/evidence/GATE23_HOSTILE_MATRIX_RESULT.json"
+  ],
+  "exactWorksetCount": 27,
+  "add": "NONE",
+  "remove": "NONE",
+  "wildcard": false,
+  "directoryWidePath": false,
+  "buildprepPath": false,
+  "buildDisposition": {
+    "status": "BUILD_CANDIDATE",
+    "buildExecuted": true,
+    "functionalImplementationPresent": true,
+    "outcomeProduced": false,
+    "closureExecuted": false,
+    "agentClosureExecuted": false,
+    "externalConfirmationExecuted": false
+  }
+}

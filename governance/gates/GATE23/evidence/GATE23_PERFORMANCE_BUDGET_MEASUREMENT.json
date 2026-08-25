@@ -1,0 +1,54 @@
+{
+  "document": "GATE23_PERFORMANCE_BUDGET_MEASUREMENT",
+  "schemaVersion": 1,
+  "gateId": "GATE23",
+  "authority": {
+    "mandatePath": "governance/sources/GATE23_CANONICAL_MANDATE_R0.json",
+    "mandateSha256": "b8230ac3e76145cd68a3e9499dd227642283236cab3755d0029856dc28b0dfc9",
+    "executionContractPath": "governance/gates/GATE23/contracts/EXECUTION_CONTRACT_R0002.json",
+    "executionContractSha256": "e341253918fe7b2e47823f899d71cfe5aa51ad81ebfea4bdb88eeb4ad7bbb84f",
+    "executionContractRevision": "R0002",
+    "stateRevision": "R0003",
+    "stateSealSha256": "963e8d514bc5c4c9935c9f3cf0e1d054e5cf1a8dcbef557ff8efd2a1dad73cce",
+    "buildAuthorityPath": "governance/authority/authorizations/GATE23/PROJECT_OWNER_GATE_FUNCTIONAL_BUILD_AUTHORITY.json",
+    "buildAuthoritySha256": "0104fac7cb6ac6a4ce1935e9657e6ad4f50d0527eac645db0a4225a09f5a733c",
+    "buildScope": "GATE23_R0002_FROZEN_27_PATHS_ONLY",
+    "maxUse": 1
+  },
+  "measuredBy": "governance/gates/GATE23/tests/gate23-performance.test.mjs",
+  "measuredAt": "2026-08-25T14:33:38.588Z",
+  "runtimeBudget": {
+    "singleVectorMaterializationMs": 250,
+    "batchAnchorCount": 50,
+    "batchMaterializationMs": 8000,
+    "perFeatureRecordMs": 20,
+    "storeAppendMs": 2000,
+    "perScanApiCalls": 0,
+    "perRecordFilesystemReads": 0
+  },
+  "runtimeMeasurements": {
+    "singleVectorMs": 5.079,
+    "batchAnchorCount": 50,
+    "batchMs": 175.333,
+    "featureRecordCount": 250,
+    "perFeatureRecordMs": 0.7013,
+    "storeAppendMs": 2.72,
+    "storeRecordCount": 250
+  },
+  "runtimeVerdict": "WITHIN_BUDGET",
+  "structuralGuarantees": {
+    "perRecordFilesystemAccess": "NONE",
+    "perRecordNetworkAccess": "NONE",
+    "liveScanCriticalPath": "NOT_LENGTHENED",
+    "historicalWork": "OFF_SCAN",
+    "wheelScannerCoupling": "NONE"
+  },
+  "contractPerformanceBudget": {
+    "source": "governance/gates/GATE23/contracts/EXECUTION_CONTRACT_R0002.json#/performanceBudget",
+    "targetMinutes": 120,
+    "expectedMaximumMinutes": 240,
+    "closeoutStartMinutes": 200,
+    "absoluteMaximumMinutes": 480,
+    "scope": "BUILD ceremony duration, distinct from the runtime budget measured above"
+  }
+}

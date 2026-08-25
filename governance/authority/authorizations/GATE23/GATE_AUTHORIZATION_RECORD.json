@@ -1,0 +1,84 @@
+{
+  "schemaVersion": 1,
+  "authorityMode": "LOCAL_EXPLICIT_AUTHORITY",
+  "projectId": "WHEEL",
+  "gateId": "GATE23",
+  "purpose": "GATE_NORMAL_AUTHORIZATION",
+  "transitionType": "AUTHORIZATION",
+  "fromStatus": "NOT_STARTED",
+  "toStatus": "AUTHORIZED_NOT_STARTED",
+  "recordedAt": "2026-08-25T12:00:00.000Z",
+  "baseCommit": "47a1d0b85e3092981c38ffe76107ea7df3066b69",
+  "preLedgerSha256": "3c98102b722a8bc265bb6d6a0dd1466c54d4fcc306fc28d24624beaf2ad78cb1",
+  "previousEventSha256": "587bc324163642b5cef3407a961298efeb88da1042f8b4ecef1ba971e6cf64dc",
+  "contractSha256": "31efbac39ed0aab51477c384688522afba8dc20f1e62f2596fe80a630c83af80",
+  "currentContractSha256": "ef5d6f12bce4bcdebd2cfe30bb9dc6831db45f957288c9cc25c24b6e635b3f68",
+  "dependencyProof": {
+    "gateId": "GATE22",
+    "status": "COMPLETE_CONFIRMED",
+    "authorityPath": "GATE22_INDEPENDENT_EXTERNAL_CONFIRMATION_R1_EXTERNAL_REINSPECTION_REPORT",
+    "authoritySha256": "720fc2566823ab6fce5a502a19d2fe8434cf3851205a317cbfa470858ae7a502"
+  },
+  "stateRevision": "R0001",
+  "document": "GATE_AUTHORIZATION_RECORD",
+  "authorizationId": "GATE_AUTHORIZATION_GATE23_R1",
+  "authorizedStateArtifacts": [
+    {
+      "cohortRole": "CURRENT_STATE",
+      "repoRelativePath": "governance/gates/GATE23/state/CURRENT_STATE.json",
+      "sha256": "786430f86fbb00a7f704a4a8b6bd99df6a5d8f34494b1c8d9a8c04064ea1d6ce",
+      "byteLength": 300
+    },
+    {
+      "cohortRole": "CHECKPOINT",
+      "repoRelativePath": "governance/gates/GATE23/state/revisions/R0001/CHECKPOINT.json",
+      "sha256": "fb1b90403a8251586d698aa23322a785299b6a74ca3390aad414a5861c961c6c",
+      "byteLength": 330
+    },
+    {
+      "cohortRole": "OPEN_DEFECTS",
+      "repoRelativePath": "governance/gates/GATE23/state/revisions/R0001/OPEN_DEFECTS.json",
+      "sha256": "6581927e41571d0474999c6a0ae6312246fd59d7f8a985258f6becac64f0360a",
+      "byteLength": 70
+    },
+    {
+      "cohortRole": "STATE_SEAL",
+      "repoRelativePath": "governance/gates/GATE23/state/revisions/R0001/STATE_SEAL.json",
+      "sha256": "131a02ba9b3d4fa712fe66149e3b413217bd3e62a7021ba8865f77cb925364b4",
+      "byteLength": 1239
+    }
+  ],
+  "authorizedDerivedArtifacts": [
+    {
+      "cohortRole": "GATE_STATUS_SNAPSHOT",
+      "repoRelativePath": "governance/state/generated/GATE_STATUS_SNAPSHOT.json"
+    },
+    {
+      "cohortRole": "ACTIVE_GATE",
+      "repoRelativePath": "governance/active/ACTIVE_GATE.json"
+    },
+    {
+      "cohortRole": "ACTIVE_GATE_CONTEXT_JSON",
+      "repoRelativePath": "governance/generated/ACTIVE_GATE_CONTEXT.json"
+    },
+    {
+      "cohortRole": "ACTIVE_GATE_CONTEXT_MD",
+      "repoRelativePath": "governance/generated/ACTIVE_GATE_CONTEXT.md"
+    }
+  ],
+  "prohibitedOperations": [
+    "START",
+    "GATE_EXECUTION",
+    "AGENT_CLOSURE",
+    "EXTERNAL_CONFIRMATION",
+    "COMPLETE_CONFIRMED",
+    "ARBITRARY_LEDGER_TRANSITION",
+    "LEDGER_REWRITE",
+    "GIT_PUSH",
+    "ARBITRARY_GOVERNANCE_WRITE",
+    "OTHER_GATE",
+    "GEE_REVISION_CREATION"
+  ],
+  "executionAuthorized": false,
+  "reason": "Local explicit AUTHORIZATION for GATE23. Grants neither START nor BUILD."
+}

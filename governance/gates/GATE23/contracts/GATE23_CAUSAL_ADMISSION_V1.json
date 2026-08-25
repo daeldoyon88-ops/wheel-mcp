@@ -1,0 +1,63 @@
+{
+  "document": "GATE23_DOMAIN_CONTRACT",
+  "schemaVersion": 1,
+  "gateId": "GATE23",
+  "contractId": "GATE23_CAUSAL_ADMISSION_V1",
+  "version": 1,
+  "role": "Causal admission contract",
+  "classification": {
+    "isBuildOutput": true,
+    "isMandateProjection": false,
+    "countedInMandateContractCount": false,
+    "mandateDomainContractCount": 0
+  },
+  "authority": {
+    "mandatePath": "governance/sources/GATE23_CANONICAL_MANDATE_R0.json",
+    "mandateSha256": "b8230ac3e76145cd68a3e9499dd227642283236cab3755d0029856dc28b0dfc9",
+    "mandatePointer": "/causalAdmission",
+    "invariantIds": ["T-CAUSAL-A", "T-CAUSAL-B", "I-OUTCOME-FORBIDDEN-AS-GATE23-FEATURE"],
+    "requirementId": "G23-BUILD-09"
+  },
+  "implementationPath": "governance/gates/GATE23/implementation/causal-admission-v1.mjs",
+  "moduleVersion": "GATE23_CausalAdmission/1",
+  "claims": [
+    "NO_OUTCOME_OR_FUTURE_PROVENANCE_DEPENDENCY",
+    "NO_FUTURE_WINDOW_ACCESS"
+  ],
+  "claimCount": 2,
+  "claimClosure": "EXACT_TWO_CLAIMS_NO_THIRD",
+  "outcomeProhibition": ["direct", "lagged", "renamed", "same-type laundering"],
+  "outcomeProhibitionCodes": {
+    "direct": "OUTCOME_DIRECT_FORBIDDEN",
+    "lagged": "OUTCOME_LAGGED_FORBIDDEN",
+    "renamed": "OUTCOME_RENAMED_FORBIDDEN",
+    "same-type laundering": "OUTCOME_SAME_TYPE_LAUNDERING_FORBIDDEN"
+  },
+  "detection": {
+    "direct": "name or featureDefinitionId matches an Outcome token or a GATE22 taxonomy primitive",
+    "lagged": "a lag is declared over an input whose provenance carries Outcome ancestry or an Outcome origin type",
+    "renamed": "the derivedFrom chain carries an Outcome recordType or a GATE22 producer at any depth up to 16",
+    "same-type laundering": "recordType is Observation while provenance.originRecordType is an Outcome type"
+  },
+  "preserved": "TRUSTED_CANONICAL_PRODUCER_V1",
+  "trustedProducerGateIds": ["GATE21", "GATE23"],
+  "admittedRecordType": "Observation",
+  "futureProvenanceRule": "an input is admissible only if provenance.availableAt <= K(T); a missing availableAt or a missing K(T) is fail-closed",
+  "futureWindowRule": "no session after T may appear in a window, and the window must be anchored at T",
+  "consumptionBoundaryReuse": {
+    "surface": "governance/gates/GATE22/implementation/consumption-boundary-v1.mjs",
+    "symbol": "authorizeConsumption",
+    "usage": "the GATE22 GATE23-row decision is reused verbatim and the GATE23 detector is applied on top of it",
+    "mutated": false
+  },
+  "notAThirdClaim": [
+    "no third T-CAUSAL claim is introduced by this contract",
+    "TRUSTED_CANONICAL_PRODUCER_V1 is preserved, not restated as a claim"
+  ],
+  "buildDisposition": {
+    "status": "BUILD_CANDIDATE",
+    "buildExecuted": true,
+    "functionalImplementationPresent": true,
+    "outcomeProduced": false
+  }
+}

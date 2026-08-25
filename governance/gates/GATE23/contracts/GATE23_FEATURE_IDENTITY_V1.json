@@ -1,0 +1,70 @@
+{
+  "document": "GATE23_DOMAIN_CONTRACT",
+  "schemaVersion": 1,
+  "gateId": "GATE23",
+  "contractId": "GATE23_FEATURE_IDENTITY_V1",
+  "version": 1,
+  "role": "Feature identity contract",
+  "classification": {
+    "isBuildOutput": true,
+    "isMandateProjection": false,
+    "countedInMandateContractCount": false,
+    "mandateDomainContractCount": 0
+  },
+  "authority": {
+    "mandatePath": "governance/sources/GATE23_CANONICAL_MANDATE_R0.json",
+    "mandateSha256": "b8230ac3e76145cd68a3e9499dd227642283236cab3755d0029856dc28b0dfc9",
+    "mandatePointer": "/featureRecordIdentity",
+    "invariantId": "I-FEATURE-RECORD-ID-EXACT-ONLY",
+    "requirementId": "G23-BUILD-08"
+  },
+  "implementationPath": "governance/gates/GATE23/implementation/feature-identity-v1.mjs",
+  "moduleVersion": "GATE23_FeatureRecordIdentity/1",
+  "identity": "FeatureRecordId = sha256Canonical(orderedMembers)",
+  "digest": "sha256Canonical",
+  "closureRule": "EXACT_ONLY",
+  "closureRuleReading": "EXACT_ONLY: no optional member, no interpretable member, no implicit extension, no at-minimum reading",
+  "memberCount": 11,
+  "orderedMembers": [
+    "InstrumentIdentityId",
+    "SessionDate",
+    "KnowledgeCutoff",
+    "FeatureDefinitionId",
+    "FormulaId",
+    "FeatureWindowSpecId",
+    "CalendarWindowBindingId",
+    "SourceBindingId",
+    "DatasetId_observation",
+    "PriceBasisId",
+    "MissingnessStateId"
+  ],
+  "forbiddenInIdentityDigest": [
+    "ticker",
+    "symbol",
+    "alias",
+    "temporaryAlias",
+    "ObservationId",
+    "OutcomeId",
+    "OutcomeStatus",
+    "OutcomeMissingReason",
+    "OutcomeWindowCause",
+    "HorizonId",
+    "DatasetId_outcome",
+    "TaxonomyVersion",
+    "featureValue",
+    "value",
+    "status",
+    "vectorStatus"
+  ],
+  "readingPrinciple": "The FeatureRecordId identifies the question asked, never the answer; status, value and vectorStatus are therefore excluded, which is the GATE23 generalization of the GATE22 identity rule.",
+  "formulaIdRule": "FormulaId is behaviour; a behavioural change produces a new FormulaId and therefore a new FeatureRecordId.",
+  "instrumentIdentityRule": "InstrumentIdentityId is the single canonical source of instrument identity; ticker is not identity.",
+  "missingnessInIdentityRule": "MissingnessStateId is a declared state of the observed window, not an answer, and is therefore an identity member.",
+  "replayRule": "Identical inputs replay to an identical FeatureRecordId; any drift in a single member moves the identity.",
+  "buildDisposition": {
+    "status": "BUILD_CANDIDATE",
+    "buildExecuted": true,
+    "functionalImplementationPresent": true,
+    "outcomeProduced": false
+  }
+}

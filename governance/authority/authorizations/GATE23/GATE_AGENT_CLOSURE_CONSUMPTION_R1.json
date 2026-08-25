@@ -1,0 +1,73 @@
+{
+  "documentKind": "GATE_AGENT_CLOSURE_AUTHORITY_CONSUMPTION",
+  "schemaVersion": 1,
+  "authorityId": "GATE23_AGENT_CLOSURE_AUTHORIZATION_LOCAL_R1_CANDIDATE",
+  "authorityMode": "LOCAL_EXPLICIT_AUTHORITY",
+  "projectId": "WHEEL",
+  "gateId": "GATE23",
+  "consumedUse": 1,
+  "maxUse": 1,
+  "transactionId": "GATE23_AGENT_CLOSURE_R1_TRANSACTION",
+  "recordedAt": "2026-08-25T16:00:00.000Z",
+  "baseHead": "47a1d0b85e3092981c38ffe76107ea7df3066b69",
+  "eventId": "GATE23_AGENT_CLOSURE_R1",
+  "ordinal": 98,
+  "fromStatus": "IN_PROGRESS",
+  "toStatus": "COMPLETE_AGENT",
+  "cohortSelfExclusion": {
+    "path": "governance/authority/authorizations/GATE23/GATE_AGENT_CLOSURE_CONSUMPTION_R1.json",
+    "reason": "The consumption record cannot hash its own final bytes; its identity is bound by the authority instead."
+  },
+  "cohortPathCount": 7,
+  "cohort": [
+    {
+      "path": "governance/authority/authorizations/GATE23/PROJECT_OWNER_GATE_AGENT_CLOSURE_AUTHORITY.json",
+      "sha256": "84425553ca5a61e36a08aa25d220f5b5a27d39c7f98eb21a6b3c8081b9ccd34a",
+      "byteLength": 5474,
+      "operation": "CREATE",
+      "reason": "Single-use LOCAL_EXPLICIT_AUTHORITY bound to the exact GATE23 AGENT_CLOSURE pre-state."
+    },
+    {
+      "path": "governance/gates/GATE23/state/revisions/R0004/CHECKPOINT.json",
+      "sha256": "9338d206bbbfcbc9b1e1a3fa3364d3fdcb988d54aa90b20c40c6efd1a0091eea",
+      "byteLength": 404,
+      "operation": "CREATE",
+      "reason": "New GATE23 closure checkpoint after the exact AGENT_CLOSURE transition."
+    },
+    {
+      "path": "governance/gates/GATE23/state/revisions/R0004/OPEN_DEFECTS.json",
+      "sha256": "4f75508969342864d1525ef3e50b549dd2d1366725d9b277abde9e8b0839f221",
+      "byteLength": 70,
+      "operation": "CREATE",
+      "reason": "Derived GATE23 closure defect projection preserving the zero blocking-defect state."
+    },
+    {
+      "path": "governance/gates/GATE23/state/revisions/R0004/STATE_SEAL.json",
+      "sha256": "ed93e92cc0fc750682d8c9445ab0c1166cd02548d2783bc96023e0846103947d",
+      "byteLength": 1355,
+      "operation": "CREATE",
+      "reason": "Native GATE23 state seal chained from R0003 and pinned by the AGENT_CLOSURE event."
+    },
+    {
+      "path": "governance/gates/GATE23/state/CURRENT_STATE.json",
+      "sha256": "45046b994ac004be87a584389ff2aa3947607791edf15fd8933c53e6ef896aca",
+      "byteLength": 300,
+      "operation": "MODIFY",
+      "reason": "Advance the canonical GATE23 state pointer to R0004 COMPLETE_AGENT."
+    },
+    {
+      "path": "governance/state/GATE_STATUS_LEDGER.ndjson",
+      "sha256": "30b37e9572af4ecac53bad351429459e1bf46f296b9b73445398142c9ee42da0",
+      "byteLength": 59537,
+      "operation": "MODIFY",
+      "reason": "Append exactly one canonical GATE23 AGENT_CLOSURE event; every earlier event stays byte-identical."
+    },
+    {
+      "path": "governance/state/generated/GATE_STATUS_SNAPSHOT.json",
+      "sha256": "6e93e5079c54ec9fbb24db57b9d98faf7b69185319d8c8f9ed17e7d385866a8e",
+      "byteLength": 15901,
+      "operation": "MODIFY",
+      "reason": "Regenerate the derived status projection from the post-closure canonical ledger."
+    }
+  ]
+}

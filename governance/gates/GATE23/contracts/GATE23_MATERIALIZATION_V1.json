@@ -1,0 +1,118 @@
+{
+  "document": "GATE23_DOMAIN_CONTRACT",
+  "schemaVersion": 1,
+  "gateId": "GATE23",
+  "contractId": "GATE23_MATERIALIZATION_V1",
+  "version": 1,
+  "role": "Materialization contract",
+  "classification": {
+    "isBuildOutput": true,
+    "isMandateProjection": false,
+    "countedInMandateContractCount": false,
+    "mandateDomainContractCount": 0
+  },
+  "authority": {
+    "mandatePath": "governance/sources/GATE23_CANONICAL_MANDATE_R0.json",
+    "mandateSha256": "b8230ac3e76145cd68a3e9499dd227642283236cab3755d0029856dc28b0dfc9",
+    "mandatePointers": ["/missionBoundary", "/knowledgeCutoffPolicy", "/ownerDecisions/1", "/ownerDecisions/4"],
+    "ownerDecisionIds": ["OD-2", "OD-5"],
+    "invariantIds": [
+      "I-NO-WALLCLOCK-CONSTANT",
+      "I-CUTOFF-DISCLOSED",
+      "O-CONSUMER-DECISION-CUTOFF",
+      "CALENDAR_POLICY_BINDING_NOT_SINGLE_VALUED"
+    ],
+    "requirementIds": ["G23-BUILD-02", "G23-BUILD-04", "G23-BUILD-07"]
+  },
+  "implementationPaths": [
+    "governance/gates/GATE23/implementation/feature-materializer-v1.mjs",
+    "governance/gates/GATE23/implementation/feature-store-v1.mjs"
+  ],
+  "moduleVersions": {
+    "featureMaterializer": "GATE23_FeatureMaterializer/1",
+    "featureRecord": "GATE23_FeatureRecord/1",
+    "missingnessState": "GATE23_MissingnessState/1",
+    "featureStore": "GATE23_FeatureStore/1"
+  },
+  "transform": "Observation(T) -> FeatureRecord(T)",
+  "carries": [
+    "identity",
+    "knowledge cutoff",
+    "feature definition",
+    "formula",
+    "window binding",
+    "source binding",
+    "observation dataset",
+    "price basis",
+    "missingness state"
+  ],
+  "doesNotProduce": [
+    "Outcome",
+    "prediction",
+    "recommendation",
+    "Wheel decision",
+    "Market Regime",
+    "strategy",
+    "cross-sectional implementation"
+  ],
+  "knowledgeCutoffPolicy": {
+    "formula": "K(T) = PinnedCanonicalSession(T).closeUtc",
+    "sessionPredicate": "sessionDate == T and sessionKind in allowedSessionKinds",
+    "uniqueness": "exactly one canonical session record; zero is PINNED_CANONICAL_SESSION_ABSENT and more than one is PINNED_CANONICAL_SESSION_NOT_UNIQUE",
+    "regularSession": "uses its own canonical closeUtc",
+    "halfDaySession": "uses its own canonical closeUtc",
+    "forbiddenPrimitive": "marketSession.mjs::sessionCloseUtc",
+    "forbiddenPrimitiveCode": "FORBIDDEN_CUTOFF_PRIMITIVE",
+    "forbiddenWallClockConstants": ["16:00", "09:30", "20:00", "21:00"],
+    "forbiddenWallClockCode": "WALL_CLOCK_CUTOFF_CONSTANT_FORBIDDEN",
+    "prohibitionReading": "the prohibition is on the derivation, not on the value; a canonical session may legitimately close at 21:00Z, but K(T) may never be derived from a wall-clock convention or from the forbidden primitive",
+    "admissibleCutoffDerivation": "PINNED_CANONICAL_SESSION_CLOSE_UTC",
+    "disclosure": "K(T), the sessionKind and the CalendarWindowBindingId are disclosed on every materialization result",
+    "optionB": "INITIAL_ROOT settlingAt(T)",
+    "optionBStatus": "NOT_EXECUTABLE_WITH_CURRENT_PRIMITIVES",
+    "optionBDisposition": "FUTURE_ADDITIVE_OPTION"
+  },
+  "priceBasisPolicy": {
+    "admissible": "SPLIT_ADJUSTED",
+    "admissibleClosure": "SPLIT_ADJUSTED_ONLY",
+    "forbidden": ["TOTAL_RETURN_ADJUSTED", "DERIVED_ADJUSTED"],
+    "forbiddenCode": "PRICE_BASIS_TOTAL_RETURN_FORBIDDEN",
+    "nonAdmittedCode": "PRICE_BASIS_NOT_ADMITTED_V1",
+    "mixedBasisCode": "PRICE_BASIS_MIXED_IN_WINDOW",
+    "implicitDividendTotalReturn": "FORBIDDEN",
+    "implicitDividendCode": "IMPLICIT_DIVIDEND_TOTAL_RETURN_FORBIDDEN",
+    "splitRatios": "any strictly positive finite ratio, including 2:1, 11:10, 3:2 and reverse 1:10; no integer assumption and no >= 1 assumption",
+    "invalidRatioCode": "SPLIT_RATIO_INVALID",
+    "pointInTimeRule": "a later corporate-action restatement never rewrites a historical FeatureRecord",
+    "pointInTimeMechanism": "a restatement under the same DatasetId_observation keeps the FeatureRecordId and is refused by the store as FEATURE_STORE_RESTATEMENT_CONFLICT; a restatement published under a new DatasetId_observation is a new FeatureRecordId and leaves history intact",
+    "mixedBasisReuse": "governance/gates/GATE22/implementation/price-basis-v1.mjs::validatePriceBasisWindow"
+  },
+  "missingnessPolicy": {
+    "states": ["COMPLETE", "VOLUME_MISSING", "INPUT_MISSING", "INSUFFICIENT_HISTORY", "INVALID_INPUT"],
+    "vocabularyReuse": "research/directional-lab/src/contracts/missingReasonsV1.mjs::MISSING_REASONS",
+    "missingNotZero": true,
+    "coerceMissingToZero": "BLOCKED",
+    "coerceMissingToZeroCode": "MISSING_NOT_ZERO",
+    "forwardFill": "BLOCKED",
+    "forwardFillCode": "FORWARD_FILL_FORBIDDEN",
+    "missingnessIsAnIdentityMember": true
+  },
+  "featureStorePolicy": {
+    "append": "APPEND_ONLY",
+    "key": "FeatureRecordId",
+    "identicalReplay": "IDEMPOTENT",
+    "divergentReplayUnderSameKey": "REFUSED",
+    "divergentReplayCode": "FEATURE_STORE_RESTATEMENT_CONFLICT",
+    "outcomeRecords": "FORBIDDEN",
+    "outcomeRecordCode": "GATE23_PRODUCES_NO_OUTCOME"
+  },
+  "buildDisposition": {
+    "status": "BUILD_CANDIDATE",
+    "buildExecuted": true,
+    "functionalImplementationPresent": true,
+    "featureRecordProduced": true,
+    "outcomeProduced": false,
+    "predictionProduced": false,
+    "crossSectionalProduced": false
+  }
+}

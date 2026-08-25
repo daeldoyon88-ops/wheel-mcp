@@ -1,0 +1,298 @@
+{
+  "document": "GATE23_HOSTILE_MATRIX_RESULT",
+  "schemaVersion": 1,
+  "gateId": "GATE23",
+  "authority": {
+    "mandatePath": "governance/sources/GATE23_CANONICAL_MANDATE_R0.json",
+    "mandateSha256": "b8230ac3e76145cd68a3e9499dd227642283236cab3755d0029856dc28b0dfc9",
+    "executionContractPath": "governance/gates/GATE23/contracts/EXECUTION_CONTRACT_R0002.json",
+    "executionContractSha256": "e341253918fe7b2e47823f899d71cfe5aa51ad81ebfea4bdb88eeb4ad7bbb84f",
+    "executionContractRevision": "R0002",
+    "stateRevision": "R0003",
+    "stateSealSha256": "963e8d514bc5c4c9935c9f3cf0e1d054e5cf1a8dcbef557ff8efd2a1dad73cce",
+    "buildAuthorityPath": "governance/authority/authorizations/GATE23/PROJECT_OWNER_GATE_FUNCTIONAL_BUILD_AUTHORITY.json",
+    "buildAuthoritySha256": "0104fac7cb6ac6a4ce1935e9657e6ad4f50d0527eac645db0a4225a09f5a733c",
+    "buildScope": "GATE23_R0002_FROZEN_27_PATHS_ONLY",
+    "maxUse": 1
+  },
+  "executedBy": "governance/gates/GATE23/tests/gate23-hostiles.test.mjs",
+  "executedAt": "2026-08-25T14:33:38.590Z",
+  "cohort": {
+    "ranges": [
+      "H01-H34",
+      "H36-H43"
+    ],
+    "total": 42,
+    "excluded": "H35 = START_LIFECYCLE"
+  },
+  "h35Exclusion": {
+    "id": "H35",
+    "name": "START_LIFECYCLE",
+    "disposition": "OUT_OF_BUILD_SCOPE",
+    "reason": "START lifecycle is not replayable under this BUILD authority; the mandate excludes H35 from the BUILD hostile cohort",
+    "faked": false
+  },
+  "executedCount": 42,
+  "allRefused": true,
+  "verdictTally": {
+    "REFUSED": 14,
+    "BLOCKED": 14,
+    "INVARIANT_HELD": 6,
+    "FAIL_CLOSED": 8
+  },
+  "assertedPass": false,
+  "results": [
+    {
+      "id": "H01",
+      "name": "FeatureRecordId with ten members",
+      "verdict": "REFUSED",
+      "proof": "FEATURE_RECORD_ID_EXACT_ONLY"
+    },
+    {
+      "id": "H02",
+      "name": "FeatureRecordId with a twelfth neutral member",
+      "verdict": "REFUSED",
+      "proof": "FEATURE_RECORD_ID_EXACT_ONLY"
+    },
+    {
+      "id": "H03",
+      "name": "FeatureRecordId carrying ticker instead of InstrumentIdentityId",
+      "verdict": "REFUSED",
+      "proof": "FEATURE_RECORD_ID_FORBIDDEN_MEMBER"
+    },
+    {
+      "id": "H04",
+      "name": "FeatureRecordId carrying an Outcome member",
+      "verdict": "REFUSED",
+      "proof": "FEATURE_RECORD_ID_FORBIDDEN_MEMBER"
+    },
+    {
+      "id": "H05",
+      "name": "FeatureRecordId with an empty member value",
+      "verdict": "REFUSED",
+      "proof": "FEATURE_RECORD_ID_MEMBER_INVALID"
+    },
+    {
+      "id": "H06",
+      "name": "FeatureRecordId with a non-string member",
+      "verdict": "REFUSED",
+      "proof": "FEATURE_RECORD_ID_MEMBER_INVALID"
+    },
+    {
+      "id": "H07",
+      "name": "identity answers may not enter the digest",
+      "verdict": "REFUSED",
+      "proof": "QUESTION_NOT_ANSWER"
+    },
+    {
+      "id": "H08",
+      "name": "Outcome as a GATE23 feature, mode direct",
+      "verdict": "BLOCKED",
+      "proof": "OUTCOME_DIRECT_FORBIDDEN"
+    },
+    {
+      "id": "H09",
+      "name": "Outcome as a GATE23 feature, mode lagged",
+      "verdict": "BLOCKED",
+      "proof": "OUTCOME_LAGGED_FORBIDDEN"
+    },
+    {
+      "id": "H10",
+      "name": "Outcome as a GATE23 feature, mode renamed",
+      "verdict": "BLOCKED",
+      "proof": "OUTCOME_RENAMED_FORBIDDEN"
+    },
+    {
+      "id": "H11",
+      "name": "Outcome as a GATE23 feature, mode same-type laundering",
+      "verdict": "BLOCKED",
+      "proof": "OUTCOME_SAME_TYPE_LAUNDERING_FORBIDDEN"
+    },
+    {
+      "id": "H12",
+      "name": "GATE22 taxonomy primitive presented as a GATE23 feature",
+      "verdict": "BLOCKED",
+      "proof": "OUTCOME_DIRECT_FORBIDDEN"
+    },
+    {
+      "id": "H13",
+      "name": "observation visible only after K(T)",
+      "verdict": "BLOCKED",
+      "proof": "FUTURE_PROVENANCE_DEPENDENCY_FORBIDDEN"
+    },
+    {
+      "id": "H14",
+      "name": "untrusted producer outside TRUSTED_CANONICAL_PRODUCER_V1",
+      "verdict": "BLOCKED",
+      "proof": "UNTRUSTED_PRODUCER_FORBIDDEN"
+    },
+    {
+      "id": "H15",
+      "name": "a third T-CAUSAL claim is asserted",
+      "verdict": "REFUSED",
+      "proof": "EXACT_TWO_CLAIMS_NO_THIRD"
+    },
+    {
+      "id": "H16",
+      "name": "Outcome-shaped feature names offered at the consumption boundary",
+      "verdict": "BLOCKED",
+      "proof": "GATE23_OUTCOME_FEATURE_FORBIDDEN"
+    },
+    {
+      "id": "H17",
+      "name": "a window outside the admissible ladder",
+      "verdict": "REFUSED",
+      "proof": "FEATURE_WINDOW_NOT_ADMITTED"
+    },
+    {
+      "id": "H18",
+      "name": "a degenerate or non-integer window",
+      "verdict": "REFUSED",
+      "proof": "FEATURE_WINDOW_NOT_ADMITTED"
+    },
+    {
+      "id": "H19",
+      "name": "families crossed with the ladder as a cartesian expansion",
+      "verdict": "BLOCKED",
+      "proof": "CARTESIAN_EXPANSION_FORBIDDEN"
+    },
+    {
+      "id": "H20",
+      "name": "a vector declared without the core feature set",
+      "verdict": "REFUSED",
+      "proof": "CORE_FEATURE_SET_INCOMPLETE"
+    },
+    {
+      "id": "H21",
+      "name": "a vector declaring the same member twice",
+      "verdict": "REFUSED",
+      "proof": "FEATURE_VECTOR_DUPLICATE_MEMBER"
+    },
+    {
+      "id": "H22",
+      "name": "window units read as distinct calendar days",
+      "verdict": "INVARIANT_HELD",
+      "proof": "calendarDaySpan=8 > sessions=6"
+    },
+    {
+      "id": "H23",
+      "name": "a window reaching past T",
+      "verdict": "BLOCKED",
+      "proof": "FUTURE_WINDOW_ACCESS_FORBIDDEN"
+    },
+    {
+      "id": "H24",
+      "name": "K(T) drifting from the regular canonical session close",
+      "verdict": "INVARIANT_HELD",
+      "proof": "K_EQUALS_REGULAR_SESSION_CLOSE_UTC"
+    },
+    {
+      "id": "H25",
+      "name": "a half-day session forced onto the regular close",
+      "verdict": "INVARIANT_HELD",
+      "proof": "HALF_DAY_USES_ITS_OWN_CLOSE_UTC"
+    },
+    {
+      "id": "H26",
+      "name": "K(T) derived from marketSession.mjs::sessionCloseUtc",
+      "verdict": "BLOCKED",
+      "proof": "K=2024-12-24T18:00:00.000Z != sessionCloseUtc=2024-12-24T21:00:00.000Z"
+    },
+    {
+      "id": "H27",
+      "name": "two canonical session records for the same session date",
+      "verdict": "FAIL_CLOSED",
+      "proof": "PINNED_CANONICAL_SESSION_NOT_UNIQUE"
+    },
+    {
+      "id": "H28",
+      "name": "a session date with no admissible canonical session",
+      "verdict": "FAIL_CLOSED",
+      "proof": "PINNED_CANONICAL_SESSION_ABSENT"
+    },
+    {
+      "id": "H29",
+      "name": "a wall-clock cutoff constant or the forbidden primitive as derivation",
+      "verdict": "BLOCKED",
+      "proof": "WALL_CLOCK_AND_FORBIDDEN_PRIMITIVE_REFUSED"
+    },
+    {
+      "id": "H30",
+      "name": "TOTAL_RETURN_ADJUSTED offered as the price basis",
+      "verdict": "FAIL_CLOSED",
+      "proof": "PRICE_BASIS_TOTAL_RETURN_FORBIDDEN"
+    },
+    {
+      "id": "H31",
+      "name": "a non-admitted price basis offered in place of SPLIT_ADJUSTED",
+      "verdict": "FAIL_CLOSED",
+      "proof": "PRICE_BASIS_NOT_ADMITTED_V1"
+    },
+    {
+      "id": "H32",
+      "name": "a price basis that changes inside the window",
+      "verdict": "FAIL_CLOSED",
+      "proof": "PRICE_BASIS_MIXED_IN_WINDOW"
+    },
+    {
+      "id": "H33",
+      "name": "implicit dividend total return folded into SPLIT_ADJUSTED closes",
+      "verdict": "FAIL_CLOSED",
+      "proof": "IMPLICIT_DIVIDEND_TOTAL_RETURN_FORBIDDEN"
+    },
+    {
+      "id": "H34",
+      "name": "split ratios assumed integer or >= 1",
+      "verdict": "INVARIANT_HELD",
+      "proof": "ARBITRARY_RATIOS_ADMITTED_RETURN_INVARIANT"
+    },
+    {
+      "id": "H36",
+      "name": "a missing close silently imputed inside a core window",
+      "verdict": "FAIL_CLOSED",
+      "proof": "INPUT_MISSING"
+    },
+    {
+      "id": "H37",
+      "name": "a missing volume treated as identity-neutral",
+      "verdict": "INVARIANT_HELD",
+      "proof": "MISSINGNESS_STATE_IS_AN_IDENTITY_MEMBER"
+    },
+    {
+      "id": "H38",
+      "name": "forward fill or missing-as-zero requested",
+      "verdict": "BLOCKED",
+      "proof": "FORWARD_FILL_FORBIDDEN"
+    },
+    {
+      "id": "H39",
+      "name": "a declared member omitted from the results",
+      "verdict": "FAIL_CLOSED",
+      "proof": "DECLARED_MEMBER_MISSING"
+    },
+    {
+      "id": "H40",
+      "name": "vectorStatus read as every member usable",
+      "verdict": "INVARIANT_HELD",
+      "proof": "RESOLVED_MEANS_CORE_RESOLVED_ONLY"
+    },
+    {
+      "id": "H41",
+      "name": "a cross-sectional feature requested in V1",
+      "verdict": "BLOCKED",
+      "proof": "CROSS_SECTIONAL_DEFERRED_V1"
+    },
+    {
+      "id": "H42",
+      "name": "a later restatement rewriting a historical FeatureRecord",
+      "verdict": "REFUSED",
+      "proof": "FEATURE_STORE_RESTATEMENT_CONFLICT"
+    },
+    {
+      "id": "H43",
+      "name": "an Outcome record stored in the feature store, or a 28th BUILD path",
+      "verdict": "REFUSED",
+      "proof": "WORKSET_FROZEN_AT_27"
+    }
+  ]
+}

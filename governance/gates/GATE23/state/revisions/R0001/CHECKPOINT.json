@@ -1,0 +1,13 @@
+{
+  "gateId": "GATE23",
+  "stateRevision": "R0001",
+  "milestone": "GATE23_AUTHORIZATION",
+  "resumePoint": "AUTHORIZED_NOT_STARTED",
+  "completedTasks": [],
+  "openTasks": [],
+  "reusableEvidence": [],
+  "invalidatedEvidence": [],
+  "requiredNextActions": [],
+  "protectedHashes": [],
+  "createdAt": "2026-08-25T12:00:00.000Z"
+}

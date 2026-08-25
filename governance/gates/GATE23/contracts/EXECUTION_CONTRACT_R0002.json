@@ -1,0 +1,446 @@
+{
+  "gateId": "GATE23",
+  "contractRevision": "R0002",
+  "previousContractPath": "governance/gates/GATE23/contracts/EXECUTION_CONTRACT_R0001.json",
+  "previousContractSha256": "31efbac39ed0aab51477c384688522afba8dc20f1e62f2596fe80a630c83af80",
+  "strategicRegistryReference": {
+    "registryPath": "governance/GATE_REGISTRY_00_40.json",
+    "registrySha256": "76d5f9ff0a21f8c1eadaf9ccd9e48c9087d12655fac6a5c9215584053652a56b",
+    "gateId": "GATE23",
+    "canonicalObjectiveSha256": "65d20e803448e0ca3ecdc617b94359650c994013a03004b24291b54c416162fb"
+  },
+  "canonicalRequirements": [
+    {
+      "requirementId": "G23-BUILD-01",
+      "statement": "Preserve the frozen 27-path BUILD workset exactly; add NONE and remove NONE; no wildcard, no directory-wide path, no buildprep path, and no 28th path.",
+      "normativeSource": "governance/sources/GATE23_CANONICAL_MANDATE_R0.json#/buildWorkset"
+    },
+    {
+      "requirementId": "G23-BUILD-02",
+      "statement": "Implement Observation(T) to FeatureRecord(T) only; produce no Outcome, prediction, recommendation, Wheel decision, Market Regime, strategy, or cross-sectional implementation.",
+      "normativeSource": "governance/sources/GATE23_CANONICAL_MANDATE_R0.json#/missionBoundary"
+    },
+    {
+      "requirementId": "G23-BUILD-03",
+      "statement": "The admissible FeatureWindowSpec ladder is exactly [5,21,63,126,252]; it is not cartesian; units are canonical DAILY trading-session units distinct from KnowledgeCutoffBoundary.",
+      "normativeSource": "governance/sources/GATE23_CANONICAL_MANDATE_R0.json#/ownerDecisions/0"
+    },
+    {
+      "requirementId": "G23-BUILD-04",
+      "statement": "Price basis is SPLIT_ADJUSTED under strict point-in-time restatement; TOTAL_RETURN_ADJUSTED and implicit dividend total return are forbidden.",
+      "normativeSource": "governance/sources/GATE23_CANONICAL_MANDATE_R0.json#/ownerDecisions/1"
+    },
+    {
+      "requirementId": "G23-BUILD-05",
+      "statement": "CROSS_SECTIONAL is DEFER; V1 has no cross-sectional implementation.",
+      "normativeSource": "governance/sources/GATE23_CANONICAL_MANDATE_R0.json#/ownerDecisions/2"
+    },
+    {
+      "requirementId": "G23-BUILD-06",
+      "statement": "CORE_FEATURE_SET is exactly (F1 simple-return, W5) and (F1 simple-return, W21); vectorStatus RESOLVED means the core is resolved, not that every non-core member is usable.",
+      "normativeSource": "governance/sources/GATE23_CANONICAL_MANDATE_R0.json#/ownerDecisions/3"
+    },
+    {
+      "requirementId": "G23-BUILD-07",
+      "statement": "K(T) equals PinnedCanonicalSession(T).closeUtc; marketSession.mjs::sessionCloseUtc and wall-clock constants are forbidden; INITIAL_ROOT settlingAt(T) stays NOT_EXECUTABLE_WITH_CURRENT_PRIMITIVES.",
+      "normativeSource": "governance/sources/GATE23_CANONICAL_MANDATE_R0.json#/ownerDecisions/4"
+    },
+    {
+      "requirementId": "G23-BUILD-08",
+      "statement": "FeatureRecordId is sha256Canonical of exactly the ordered 11-member tuple; closureRule is EXACT_ONLY.",
+      "normativeSource": "governance/sources/GATE23_CANONICAL_MANDATE_R0.json#/featureRecordIdentity"
+    },
+    {
+      "requirementId": "G23-BUILD-09",
+      "statement": "T-CAUSAL admits exactly NO_OUTCOME_OR_FUTURE_PROVENANCE_DEPENDENCY and NO_FUTURE_WINDOW_ACCESS; GATE22 Outcome is forbidden as a GATE23 feature directly, lagged, renamed, or through same-type laundering.",
+      "normativeSource": "governance/sources/GATE23_CANONICAL_MANDATE_R0.json#/causalAdmission"
+    },
+    {
+      "requirementId": "G23-BUILD-10",
+      "statement": "Preserve EXECUTION_CONTRACT_R0001 bytes and the GATE23 START binding; this revision activates BUILD scope only and does not close, confirm, replay START, or execute the functional BUILD.",
+      "normativeSource": "governance/gates/GATE23/contracts/EXECUTION_CONTRACT_R0001.json"
+    },
+    {
+      "requirementId": "G23-BUILD-11",
+      "statement": "GATE21 and GATE22 surfaces and research/directional-lab stay unmodified; no GATE21 R0006 and no GATE22 mutation.",
+      "normativeSource": "governance/gates/GATE22/state/CURRENT_STATE.json"
+    },
+    {
+      "requirementId": "G23-BUILD-12",
+      "statement": "domainContracts remain uncreated by the mandate (contractCount 0); the six GATE23 JSON contracts in the workset are BUILD outputs, not a GATE22-style C1..C7 mandate projection set.",
+      "normativeSource": "governance/sources/GATE23_CANONICAL_MANDATE_R0.json#/domainContracts"
+    }
+  ],
+  "requiredInputs": [
+    {
+      "path": "governance/sources/GATE23_CANONICAL_MANDATE_R0.json",
+      "sha256": "b8230ac3e76145cd68a3e9499dd227642283236cab3755d0029856dc28b0dfc9",
+      "role": "CANONICAL_RATIFICATION_ONLY_MANDATE"
+    },
+    {
+      "path": "governance/gates/GATE23/contracts/EXECUTION_CONTRACT_R0001.json",
+      "sha256": "31efbac39ed0aab51477c384688522afba8dc20f1e62f2596fe80a630c83af80",
+      "role": "IMMUTABLE_PREDECESSOR_PRECONTRACT"
+    },
+    {
+      "path": "governance/GATE_REGISTRY_00_40.json",
+      "sha256": "76d5f9ff0a21f8c1eadaf9ccd9e48c9087d12655fac6a5c9215584053652a56b",
+      "role": "STRATEGIC_REGISTRY"
+    },
+    {
+      "path": "governance/gates/GATE22/state/CURRENT_STATE.json",
+      "sha256": "9a4d0ac7ac334a1f8e9822b41dfb87e7d43185bc9be2c61ae5bd06e1762ba5a2",
+      "role": "GATE22_DEPENDENCY_PRESTATE"
+    },
+    {
+      "path": "governance/gates/GATE22/evidence/BUILD_CANDIDATE_RECEIPT.json",
+      "sha256": "2c6e46e400b953cd23ead6511c5c82e120293fe5ee5e2a5f9453c4a0b2c133ff",
+      "role": "GATE22_SEALED_BUILD_CANDIDATE_RECEIPT"
+    },
+    {
+      "path": "governance/state/GATE_STATUS_LEDGER.ndjson",
+      "sha256": "170c695cc8ae8d05a52c1e513580822a662da0d2fc9af5cfb775086bf14f0806",
+      "role": "LIFECYCLE_AND_DEPENDENCY_PRESTATE_REBIND_AT_APPLY"
+    }
+  ],
+  "requiredOutputs": [
+    {
+      "ordinal": 1,
+      "path": "governance/gates/GATE23/implementation/feature-identity-v1.mjs",
+      "role": "FeatureRecordId EXACT_ONLY 11-tuple identity"
+    },
+    {
+      "ordinal": 2,
+      "path": "governance/gates/GATE23/implementation/causal-admission-v1.mjs",
+      "role": "T-CAUSAL A/B admission and Outcome prohibition"
+    },
+    {
+      "ordinal": 3,
+      "path": "governance/gates/GATE23/implementation/feature-window-v1.mjs",
+      "role": "FeatureWindowSpec ladder and DAILY session units"
+    },
+    {
+      "ordinal": 4,
+      "path": "governance/gates/GATE23/implementation/feature-registry-v1.mjs",
+      "role": "Versioned feature definition registry"
+    },
+    {
+      "ordinal": 5,
+      "path": "governance/gates/GATE23/implementation/feature-families-v1.mjs",
+      "role": "Feature family declarations including core F1/W5 and F1/W21"
+    },
+    {
+      "ordinal": 6,
+      "path": "governance/gates/GATE23/implementation/feature-materializer-v1.mjs",
+      "role": "Point-in-time FeatureRecord materializer"
+    },
+    {
+      "ordinal": 7,
+      "path": "governance/gates/GATE23/implementation/feature-store-v1.mjs",
+      "role": "Causal feature store persistence"
+    },
+    {
+      "ordinal": 8,
+      "path": "governance/gates/GATE23/contracts/GATE23_BINDING_V1.json",
+      "role": "GATE23 binding pins and consumption surface"
+    },
+    {
+      "ordinal": 9,
+      "path": "governance/gates/GATE23/contracts/GATE23_FEATURE_IDENTITY_V1.json",
+      "role": "Feature identity contract"
+    },
+    {
+      "ordinal": 10,
+      "path": "governance/gates/GATE23/contracts/GATE23_CAUSAL_ADMISSION_V1.json",
+      "role": "Causal admission contract"
+    },
+    {
+      "ordinal": 11,
+      "path": "governance/gates/GATE23/contracts/GATE23_FEATURE_FAMILY_V1.json",
+      "role": "Feature family contract"
+    },
+    {
+      "ordinal": 12,
+      "path": "governance/gates/GATE23/contracts/GATE23_MATERIALIZATION_V1.json",
+      "role": "Materialization contract"
+    },
+    {
+      "ordinal": 13,
+      "path": "governance/gates/GATE23/contracts/GATE23_CONSUMPTION_BOUNDARY_V1.json",
+      "role": "Downstream consumption boundary contract"
+    },
+    {
+      "ordinal": 14,
+      "path": "governance/gates/GATE23/tests/gate23-foundation.test.mjs",
+      "role": "Positive foundation tests"
+    },
+    {
+      "ordinal": 15,
+      "path": "governance/gates/GATE23/tests/gate23-hostiles.test.mjs",
+      "role": "Hostile matrix H01-H34 and H36-H43"
+    },
+    {
+      "ordinal": 16,
+      "path": "governance/gates/GATE23/tests/gate23-replay.test.mjs",
+      "role": "Replay identity tests"
+    },
+    {
+      "ordinal": 17,
+      "path": "governance/gates/GATE23/tests/gate23-evolvability.test.mjs",
+      "role": "Evolvability tests"
+    },
+    {
+      "ordinal": 18,
+      "path": "governance/gates/GATE23/tests/gate23-performance.test.mjs",
+      "role": "Performance budget tests"
+    },
+    {
+      "ordinal": 19,
+      "path": "governance/gates/GATE23/fixtures/causal-window-fixture.mjs",
+      "role": "Causal window fixture"
+    },
+    {
+      "ordinal": 20,
+      "path": "governance/gates/GATE23/fixtures/outcome-leakage-fixture.mjs",
+      "role": "Outcome leakage fixture"
+    },
+    {
+      "ordinal": 21,
+      "path": "governance/gates/GATE23/fixtures/calendar-window-fixture.mjs",
+      "role": "Calendar window fixture"
+    },
+    {
+      "ordinal": 22,
+      "path": "governance/gates/GATE23/fixtures/provenance-drift-fixture.mjs",
+      "role": "Provenance drift fixture"
+    },
+    {
+      "ordinal": 23,
+      "path": "governance/gates/GATE23/evidence/BUILD_CANDIDATE_RECEIPT.json",
+      "role": "Build-candidate proof receipt, not closure"
+    },
+    {
+      "ordinal": 24,
+      "path": "governance/gates/GATE23/evidence/GATE23_FEATURE_PROVENANCE_MANIFEST.json",
+      "role": "Feature provenance manifest"
+    },
+    {
+      "ordinal": 25,
+      "path": "governance/gates/GATE23/evidence/GATE23_MATERIALIZATION_VALIDATION_REPORT.json",
+      "role": "Materialization validation report"
+    },
+    {
+      "ordinal": 26,
+      "path": "governance/gates/GATE23/evidence/GATE23_PERFORMANCE_BUDGET_MEASUREMENT.json",
+      "role": "Performance budget measurement"
+    },
+    {
+      "ordinal": 27,
+      "path": "governance/gates/GATE23/evidence/GATE23_HOSTILE_MATRIX_RESULT.json",
+      "role": "Hostile matrix result"
+    }
+  ],
+  "validators": [
+    "node governance/tools/validate-gate-contract.mjs --contract governance/gates/GATE23/contracts/EXECUTION_CONTRACT_R0002.json --pointer governance/gates/GATE23/contracts/CURRENT_CONTRACT.json",
+    "node governance/tools/validate-state-seal.mjs --seal governance/gates/GATE23/state/revisions/R0003/STATE_SEAL.json",
+    "node governance/tools/validate-state-revision.mjs --gate-id GATE23 --contract governance/gates/GATE23/contracts/EXECUTION_CONTRACT_R0002.json",
+    "node governance/tools/validate-status-ledger.mjs",
+    "node governance/tools/governance-preflight.mjs",
+    "node governance/gates/GATE23/tests/gate23-foundation.test.mjs",
+    "node governance/gates/GATE23/tests/gate23-hostiles.test.mjs",
+    "node governance/gates/GATE23/tests/gate23-replay.test.mjs",
+    "node governance/gates/GATE23/tests/gate23-evolvability.test.mjs",
+    "node governance/gates/GATE23/tests/gate23-performance.test.mjs"
+  ],
+  "positiveTests": [
+    {
+      "testId": "G23-POS-01",
+      "case": "FeatureRecordId is sha256Canonical of the exact 11 ordered members and replays identically",
+      "expected": "PASS"
+    },
+    {
+      "testId": "G23-POS-02",
+      "case": "core (F1,W5) and (F1,W21) resolve while a declared non-core member may be INSUFFICIENT_DATA without flipping vectorStatus away from RESOLVED",
+      "expected": "PASS"
+    },
+    {
+      "testId": "G23-POS-03",
+      "case": "K(T) equals PinnedCanonicalSession(T).closeUtc for REGULAR_SESSION and HALF_DAY_SESSION independently",
+      "expected": "PASS"
+    },
+    {
+      "testId": "G23-POS-04",
+      "case": "the 27 workset paths exist and no additional BUILD path is present",
+      "expected": "PASS"
+    }
+  ],
+  "negativeTests": [
+    {
+      "testId": "G23-NEG-01",
+      "case": "Outcome is supplied as a GATE23 feature directly, lagged, renamed, or same-type laundered",
+      "expected": "BLOCKED"
+    },
+    {
+      "testId": "G23-NEG-02",
+      "case": "a 28th path, wildcard, directory-wide path, or buildprep path is presented",
+      "expected": "BLOCKED"
+    },
+    {
+      "testId": "G23-NEG-03",
+      "case": "marketSession.mjs::sessionCloseUtc or a wall-clock cutoff constant is used",
+      "expected": "BLOCKED"
+    },
+    {
+      "testId": "G23-NEG-04",
+      "case": "TOTAL_RETURN_ADJUSTED or implicit dividend total return is used as price basis",
+      "expected": "BLOCKED"
+    },
+    {
+      "testId": "G23-NEG-05",
+      "case": "cross-sectional implementation is requested in V1",
+      "expected": "BLOCKED"
+    },
+    {
+      "testId": "G23-NEG-06",
+      "case": "GATE21 or GATE22 surface or research/directional-lab is written",
+      "expected": "BLOCKED"
+    }
+  ],
+  "countertests": [
+    {
+      "testId": "G23-CTR-01",
+      "case": "this contract presented as executed functional BUILD without a later Owner-authorized BUILD mission",
+      "expected": "BLOCKED"
+    },
+    {
+      "testId": "G23-CTR-02",
+      "case": "START is replayed or R0001 bytes are mutated",
+      "expected": "BLOCKED"
+    },
+    {
+      "testId": "G23-CTR-03",
+      "case": "asserted PASS without hostile matrix evidence for H01-H34 and H36-H43",
+      "expected": "BLOCKED"
+    }
+  ],
+  "reuseRules": [
+    "Reuse GATE_CONTRACT_SUCCESSION_LOCAL_AUTHORITY and the GATE22 succession lineage checks without modifying GEE core.",
+    "Reuse the restored GATE23_CANONICAL_MANDATE_R0 bytes as the sole design authority; do not rediscover OD-1..OD-5 or the 27-path workset.",
+    "Reuse GATE22 COMPLETE_CONFIRMED as the sole predecessor terminal proof.",
+    "Do not copy GATE22 buildprep paths into GATE23 authorizedPaths."
+  ],
+  "invalidationRules": [
+    "Any mutation of EXECUTION_CONTRACT_R0001 invalidates this succession.",
+    "Any authorizedPath outside the frozen 27, or any wildcard, directory-wide, or buildprep path, invalidates this contract.",
+    "Any drift of the mandate SHA-256 invalidates this contract.",
+    "Any GATE21 or GATE22 mutation or directional-lab write invalidates this contract.",
+    "Any Outcome-as-feature path invalidates this contract."
+  ],
+  "forbiddenReplays": [
+    "GATE23 START",
+    "SECOND_START",
+    "G23_FUNCTIONAL_BUILD_EXECUTION under this succession mission",
+    "GATE21 mutation",
+    "GATE22 mutation",
+    "GATE21 R0006",
+    "directional-lab mutation",
+    "AGENT_CLOSURE",
+    "EXTERNAL_CONFIRMATION",
+    "COMPLETE_CONFIRMED",
+    "ACTIVE_GATE mutation",
+    "ledger rewrite",
+    "buildprep addition",
+    "28th BUILD path",
+    "git commit",
+    "git push"
+  ],
+  "closureConditions": [
+    "CLOSURE_PATH_PROOF recalculated from bound bytes, not asserted PASS.",
+    "FeatureRecordId, T-CAUSAL A/B, Outcome prohibition, window units, knowledge cutoff and the 27-path freeze are each evidenced.",
+    "This contract does not itself COMPLETE_AGENT, EXTERNAL_CONFIRM, or authorize GATE24.",
+    "This succession does not execute the functional BUILD."
+  ],
+  "nextGateAuthorizationConditions": [
+    "GATE23 BUILD PASS is not GATE24 authorization.",
+    "GATE24 requires a later separate execution contract and authority."
+  ],
+  "performanceBudget": {
+    "targetMinutes": 120,
+    "expectedMaximumMinutes": 240,
+    "closeoutStartMinutes": 200,
+    "absoluteMaximumMinutes": 480
+  },
+  "checkpointPolicy": {
+    "resume": "IN_PROGRESS under EXECUTION_CONTRACT_R0002; BUILD scope activated; next exact step is a separately authorized BUILD_PREP/BUILD over the frozen 27 paths; this succession does not execute BUILD",
+    "reuse": "GATE23 frozen mandate, GATE22 COMPLETE_CONFIRMED proof, and GATE_CONTRACT_SUCCESSION_LOCAL_AUTHORITY",
+    "independentConfirmation": "required separately after BUILD; not this succession"
+  },
+  "authorizedPaths": [
+    "governance/gates/GATE23/implementation/feature-identity-v1.mjs",
+    "governance/gates/GATE23/implementation/causal-admission-v1.mjs",
+    "governance/gates/GATE23/implementation/feature-window-v1.mjs",
+    "governance/gates/GATE23/implementation/feature-registry-v1.mjs",
+    "governance/gates/GATE23/implementation/feature-families-v1.mjs",
+    "governance/gates/GATE23/implementation/feature-materializer-v1.mjs",
+    "governance/gates/GATE23/implementation/feature-store-v1.mjs",
+    "governance/gates/GATE23/contracts/GATE23_BINDING_V1.json",
+    "governance/gates/GATE23/contracts/GATE23_FEATURE_IDENTITY_V1.json",
+    "governance/gates/GATE23/contracts/GATE23_CAUSAL_ADMISSION_V1.json",
+    "governance/gates/GATE23/contracts/GATE23_FEATURE_FAMILY_V1.json",
+    "governance/gates/GATE23/contracts/GATE23_MATERIALIZATION_V1.json",
+    "governance/gates/GATE23/contracts/GATE23_CONSUMPTION_BOUNDARY_V1.json",
+    "governance/gates/GATE23/tests/gate23-foundation.test.mjs",
+    "governance/gates/GATE23/tests/gate23-hostiles.test.mjs",
+    "governance/gates/GATE23/tests/gate23-replay.test.mjs",
+    "governance/gates/GATE23/tests/gate23-evolvability.test.mjs",
+    "governance/gates/GATE23/tests/gate23-performance.test.mjs",
+    "governance/gates/GATE23/fixtures/causal-window-fixture.mjs",
+    "governance/gates/GATE23/fixtures/outcome-leakage-fixture.mjs",
+    "governance/gates/GATE23/fixtures/calendar-window-fixture.mjs",
+    "governance/gates/GATE23/fixtures/provenance-drift-fixture.mjs",
+    "governance/gates/GATE23/evidence/BUILD_CANDIDATE_RECEIPT.json",
+    "governance/gates/GATE23/evidence/GATE23_FEATURE_PROVENANCE_MANIFEST.json",
+    "governance/gates/GATE23/evidence/GATE23_MATERIALIZATION_VALIDATION_REPORT.json",
+    "governance/gates/GATE23/evidence/GATE23_PERFORMANCE_BUDGET_MEASUREMENT.json",
+    "governance/gates/GATE23/evidence/GATE23_HOSTILE_MATRIX_RESULT.json"
+  ],
+  "requiredPolicyIds": [
+    "MAIN_AGENT_ONLY",
+    "SUBAGENTS_FORBIDDEN_BY_DEFAULT",
+    "NETWORK_FORBIDDEN_BY_DEFAULT",
+    "GIT_WRITES_FORBIDDEN_BY_DEFAULT",
+    "DANGEROUS_GIT_COMMANDS_FORBIDDEN",
+    "AUTHORIZED_PATHS_ONLY",
+    "NO_RESTART_FROM_ZERO",
+    "RESUME_FROM_CHECKPOINT",
+    "NO_HARDCODED_PASS",
+    "NO_CIRCULAR_VALIDATION",
+    "NO_FUTURE_LEAKAGE",
+    "NO_GATE_MANDATE_REDEFINITION",
+    "BLOCK_ON_AUTHORITY_CONFLICT",
+    "DETERMINISTIC_OPERATIONS_LOCAL",
+    "SEPARATE_SESSION_REINSPECTION",
+    "GENERATED_FILES_NON_CANONICAL",
+    "HISTORICAL_REJECTED_NOT_ACTIVE"
+  ],
+  "sourceReferences": [
+    {
+      "sourcePath": "governance/GATE_REGISTRY_00_40.json",
+      "sourceSha256": "76d5f9ff0a21f8c1eadaf9ccd9e48c9087d12655fac6a5c9215584053652a56b",
+      "sourceLocation": "/gates/GATE23",
+      "field": "canonicalObjective"
+    },
+    {
+      "sourcePath": "governance/sources/GATE23_CANONICAL_MANDATE_R0.json",
+      "sourceSha256": "b8230ac3e76145cd68a3e9499dd227642283236cab3755d0029856dc28b0dfc9",
+      "sourceLocation": "/buildWorkset",
+      "field": "orderedPaths"
+    },
+    {
+      "sourcePath": "governance/sources/GATE23_CANONICAL_MANDATE_R0.json",
+      "sourceSha256": "b8230ac3e76145cd68a3e9499dd227642283236cab3755d0029856dc28b0dfc9",
+      "sourceLocation": "/ownerDecisions",
+      "field": "OD-1 through OD-5"
+    }
+  ]
+}

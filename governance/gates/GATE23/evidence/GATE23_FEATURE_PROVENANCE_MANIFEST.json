@@ -1,0 +1,270 @@
+{
+  "document": "GATE23_FEATURE_PROVENANCE_MANIFEST",
+  "schemaVersion": 1,
+  "gateId": "GATE23",
+  "authority": {
+    "mandatePath": "governance/sources/GATE23_CANONICAL_MANDATE_R0.json",
+    "mandateSha256": "b8230ac3e76145cd68a3e9499dd227642283236cab3755d0029856dc28b0dfc9",
+    "executionContractPath": "governance/gates/GATE23/contracts/EXECUTION_CONTRACT_R0002.json",
+    "executionContractSha256": "e341253918fe7b2e47823f899d71cfe5aa51ad81ebfea4bdb88eeb4ad7bbb84f",
+    "executionContractRevision": "R0002",
+    "stateRevision": "R0003",
+    "stateSealSha256": "963e8d514bc5c4c9935c9f3cf0e1d054e5cf1a8dcbef557ff8efd2a1dad73cce",
+    "buildAuthorityPath": "governance/authority/authorizations/GATE23/PROJECT_OWNER_GATE_FUNCTIONAL_BUILD_AUTHORITY.json",
+    "buildAuthoritySha256": "0104fac7cb6ac6a4ce1935e9657e6ad4f50d0527eac645db0a4225a09f5a733c",
+    "buildScope": "GATE23_R0002_FROZEN_27_PATHS_ONLY",
+    "maxUse": 1
+  },
+  "transform": "Observation(T) -> FeatureRecord(T)",
+  "featureRecordIdentity": {
+    "schemaVersion": "GATE23_FeatureRecordIdentity/1",
+    "identity": "FeatureRecordId = sha256Canonical(orderedMembers)",
+    "closureRule": "EXACT_ONLY",
+    "memberCount": 11,
+    "orderedMembers": [
+      "InstrumentIdentityId",
+      "SessionDate",
+      "KnowledgeCutoff",
+      "FeatureDefinitionId",
+      "FormulaId",
+      "FeatureWindowSpecId",
+      "CalendarWindowBindingId",
+      "SourceBindingId",
+      "DatasetId_observation",
+      "PriceBasisId",
+      "MissingnessStateId"
+    ],
+    "forbiddenMembers": [
+      "ticker",
+      "symbol",
+      "alias",
+      "temporaryAlias",
+      "ObservationId",
+      "OutcomeId",
+      "OutcomeStatus",
+      "OutcomeMissingReason",
+      "OutcomeWindowCause",
+      "HorizonId",
+      "DatasetId_outcome",
+      "TaxonomyVersion",
+      "featureValue",
+      "value",
+      "status",
+      "vectorStatus"
+    ]
+  },
+  "causalAdmission": {
+    "schemaVersion": "GATE23_CausalAdmission/1",
+    "claims": [
+      "NO_OUTCOME_OR_FUTURE_PROVENANCE_DEPENDENCY",
+      "NO_FUTURE_WINDOW_ACCESS"
+    ],
+    "claimCount": 2,
+    "outcomeProhibition": [
+      "direct",
+      "lagged",
+      "renamed",
+      "same-type laundering"
+    ],
+    "preserved": "TRUSTED_CANONICAL_PRODUCER_V1"
+  },
+  "consumedUpstreamSurfaces": [
+    {
+      "path": "governance/tools/canonical-json.mjs",
+      "sha256": "c48a0c999ab05c06da45e9963cae95f3801789f08609f50dd5b3c5649b728b32",
+      "mutated": false,
+      "access": "READ_ONLY"
+    },
+    {
+      "path": "governance/gates/GATE22/implementation/price-basis-v1.mjs",
+      "sha256": "320f05610372fb5b6897c5d18ffea1f5bcb08b6d1af0dcb360dabebce1236309",
+      "mutated": false,
+      "access": "READ_ONLY"
+    },
+    {
+      "path": "governance/gates/GATE22/implementation/consumption-boundary-v1.mjs",
+      "sha256": "54f4a55a9a59b410b31dd46c365f2475f3c2577865e1500cc3e93d18c0f8dc67",
+      "mutated": false,
+      "access": "READ_ONLY"
+    },
+    {
+      "path": "governance/gates/GATE22/implementation/taxonomy-v1.mjs",
+      "sha256": "803a17e08328643ac7b071f49f4f376a6aaa86144a6c8495a5cb0c8f4ee0402c",
+      "mutated": false,
+      "access": "READ_ONLY"
+    },
+    {
+      "path": "research/directional-lab/src/contracts/dailyBarV1.mjs",
+      "sha256": "6e29a4e12260dd0faf1988c84661168ffc030c421374e345853e09b4d3ddfe99",
+      "mutated": false,
+      "access": "READ_ONLY"
+    },
+    {
+      "path": "research/directional-lab/src/contracts/missingReasonsV1.mjs",
+      "sha256": "1b03f59d87c5c5612a92198969194196bfb4da164a1bfe4570e18eebbc9750a2",
+      "mutated": false,
+      "access": "READ_ONLY"
+    },
+    {
+      "path": "research/directional-lab/src/contracts/marketCalendarL3V1.mjs",
+      "sha256": "a8cfbbc359d35e8ea83c0f7c8858b262bb86a464cd379e5f5dedfbe97bd78e8d",
+      "mutated": false,
+      "access": "READ_ONLY"
+    },
+    {
+      "path": "research/directional-lab/src/time/civilDate.mjs",
+      "sha256": "4b45436168c438acaee0c1f15876b0938f032ef933905eb10ed6f1c7a2334efa",
+      "mutated": false,
+      "access": "READ_ONLY"
+    }
+  ],
+  "forbiddenUpstreamSurface": {
+    "path": "research/directional-lab/src/time/marketSession.mjs",
+    "symbol": "sessionCloseUtc",
+    "sha256": "1a806b28563fc6a7eeb1ec09be44ceafd590afde27bc84940e56b4a703714c0a",
+    "referencedByImplementation": false,
+    "referencedByFixtures": false,
+    "referencedByHostileTestAsNegativeControl": true,
+    "negativeControlHostileId": "H26"
+  },
+  "provenanceChain": [
+    {
+      "memberKey": "F1_SIMPLE_RETURN@W5",
+      "core": true,
+      "featureRecordId": "f7c1bbe228c4e959e6ad166a73cd128d2bb3aca8463809e0e2a3e01d39e9d2f9",
+      "identity": {
+        "InstrumentIdentityId": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "SessionDate": "2025-03-19",
+        "KnowledgeCutoff": "2025-03-19T21:00:00.000Z",
+        "FeatureDefinitionId": "F1_SIMPLE_RETURN",
+        "FormulaId": "GATE23_SIMPLE_RETURN/1",
+        "FeatureWindowSpecId": "8583e2cee1eee45853505745413c72283e7293f988292adfc2e69307c40e8759",
+        "CalendarWindowBindingId": "df2f4340d7b04a165611e0fefe34092708a77668181624876164dd10fa93c090",
+        "SourceBindingId": "GATE21_BINDING_V1",
+        "DatasetId_observation": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "PriceBasisId": "SPLIT_ADJUSTED",
+        "MissingnessStateId": "GATE23_MissingnessState/1:COMPLETE"
+      },
+      "identityMemberCount": 11,
+      "status": "RESOLVED",
+      "missingnessStateId": "GATE23_MissingnessState/1:COMPLETE",
+      "observedSessionCount": 6,
+      "observationWindowDigest": "dfcc3c255c9b0d5165d203a7a1da8a3c79d8b5acab6857807a431b54205eef44"
+    },
+    {
+      "memberKey": "F1_SIMPLE_RETURN@W21",
+      "core": true,
+      "featureRecordId": "9f8547389905e832281b43eb70f13e96552ec021b21c29bca22e55514719be60",
+      "identity": {
+        "InstrumentIdentityId": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "SessionDate": "2025-03-19",
+        "KnowledgeCutoff": "2025-03-19T21:00:00.000Z",
+        "FeatureDefinitionId": "F1_SIMPLE_RETURN",
+        "FormulaId": "GATE23_SIMPLE_RETURN/1",
+        "FeatureWindowSpecId": "791ea80ce7ee486be00aced862f3ff0dac24932a046c791851ff3dd44f41eeb2",
+        "CalendarWindowBindingId": "df2f4340d7b04a165611e0fefe34092708a77668181624876164dd10fa93c090",
+        "SourceBindingId": "GATE21_BINDING_V1",
+        "DatasetId_observation": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "PriceBasisId": "SPLIT_ADJUSTED",
+        "MissingnessStateId": "GATE23_MissingnessState/1:COMPLETE"
+      },
+      "identityMemberCount": 11,
+      "status": "RESOLVED",
+      "missingnessStateId": "GATE23_MissingnessState/1:COMPLETE",
+      "observedSessionCount": 22,
+      "observationWindowDigest": "4d9797f9bb77d33e44614d4572c30915b2a7c64c427c17ba2a2d9f6f29d2386e"
+    },
+    {
+      "memberKey": "F1_SIMPLE_RETURN@W63",
+      "core": false,
+      "featureRecordId": "ea06da193f61b21122765842a3745e9480481c11edccff3232e41c9f0c2765e7",
+      "identity": {
+        "InstrumentIdentityId": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "SessionDate": "2025-03-19",
+        "KnowledgeCutoff": "2025-03-19T21:00:00.000Z",
+        "FeatureDefinitionId": "F1_SIMPLE_RETURN",
+        "FormulaId": "GATE23_SIMPLE_RETURN/1",
+        "FeatureWindowSpecId": "0324a200ec7f47bdc6ee91a6ab0a333a317a6c868e85bbefac2772a1d8cb36bc",
+        "CalendarWindowBindingId": "df2f4340d7b04a165611e0fefe34092708a77668181624876164dd10fa93c090",
+        "SourceBindingId": "GATE21_BINDING_V1",
+        "DatasetId_observation": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "PriceBasisId": "SPLIT_ADJUSTED",
+        "MissingnessStateId": "GATE23_MissingnessState/1:COMPLETE"
+      },
+      "identityMemberCount": 11,
+      "status": "RESOLVED",
+      "missingnessStateId": "GATE23_MissingnessState/1:COMPLETE",
+      "observedSessionCount": 64,
+      "observationWindowDigest": "3d089d83cb4b8bc07ca1cf507f101f9fff91ade69b2f1895758f4bfaa2918935"
+    },
+    {
+      "memberKey": "F1_SIMPLE_RETURN@W126",
+      "core": false,
+      "featureRecordId": "4d94cf9ff2477b2f7eb668f85092dea2512a8af227544a54c33e8d8d0ce9fe2c",
+      "identity": {
+        "InstrumentIdentityId": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "SessionDate": "2025-03-19",
+        "KnowledgeCutoff": "2025-03-19T21:00:00.000Z",
+        "FeatureDefinitionId": "F1_SIMPLE_RETURN",
+        "FormulaId": "GATE23_SIMPLE_RETURN/1",
+        "FeatureWindowSpecId": "a69fbe3916fab14a56d5eee061dc1054271bbdd29ec552a86bf1ec2b25ea0c8c",
+        "CalendarWindowBindingId": "df2f4340d7b04a165611e0fefe34092708a77668181624876164dd10fa93c090",
+        "SourceBindingId": "GATE21_BINDING_V1",
+        "DatasetId_observation": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "PriceBasisId": "SPLIT_ADJUSTED",
+        "MissingnessStateId": "GATE23_MissingnessState/1:COMPLETE"
+      },
+      "identityMemberCount": 11,
+      "status": "RESOLVED",
+      "missingnessStateId": "GATE23_MissingnessState/1:COMPLETE",
+      "observedSessionCount": 127,
+      "observationWindowDigest": "b0e43bbfe41eb304af502270de4de284617554f63dfde2b76fd90f8f0521af66"
+    },
+    {
+      "memberKey": "F1_SIMPLE_RETURN@W252",
+      "core": false,
+      "featureRecordId": "4874ce00ce39a24b4d780c74b95209a8498e1acf5d8f5d8d9c768541b8de5ab2",
+      "identity": {
+        "InstrumentIdentityId": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "SessionDate": "2025-03-19",
+        "KnowledgeCutoff": "2025-03-19T21:00:00.000Z",
+        "FeatureDefinitionId": "F1_SIMPLE_RETURN",
+        "FormulaId": "GATE23_SIMPLE_RETURN/1",
+        "FeatureWindowSpecId": "b1dc79ecb7db27513b4684fb60ee84da5f028e146f78009badcc8673f45617ee",
+        "CalendarWindowBindingId": "df2f4340d7b04a165611e0fefe34092708a77668181624876164dd10fa93c090",
+        "SourceBindingId": "GATE21_BINDING_V1",
+        "DatasetId_observation": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "PriceBasisId": "SPLIT_ADJUSTED",
+        "MissingnessStateId": "GATE23_MissingnessState/1:INSUFFICIENT_HISTORY"
+      },
+      "identityMemberCount": 11,
+      "status": "INSUFFICIENT_DATA",
+      "missingnessStateId": "GATE23_MissingnessState/1:INSUFFICIENT_HISTORY",
+      "observedSessionCount": 0,
+      "observationWindowDigest": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    }
+  ],
+  "observationBinding": {
+    "instrumentIdentityId": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "datasetIdObservation": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "sourceBindingId": "GATE21_BINDING_V1",
+    "calendarWindowBindingId": "df2f4340d7b04a165611e0fefe34092708a77668181624876164dd10fa93c090",
+    "calendarWindowBinding": {
+      "schemaVersion": "GATE23_CalendarWindowBinding/1",
+      "calendarAuthorityPolicyId": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+      "calendarRegistryManifestId": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+      "allowedSessionKinds": [
+        "HALF_DAY_SESSION",
+        "REGULAR_SESSION"
+      ],
+      "calendarNamespaceVersion": "GATE23_FIXTURE_CALENDAR/1",
+      "unit": "CANONICAL_DAILY_TRADING_SESSION",
+      "knowledgeCutoffBoundary": "PINNED_CANONICAL_SESSION_CLOSE_UTC",
+      "cutoffDerivation": "PINNED_CANONICAL_SESSION_CLOSE_UTC",
+      "calendarWindowBindingId": "df2f4340d7b04a165611e0fefe34092708a77668181624876164dd10fa93c090"
+    },
+    "pinnedSessionCount": 200
+  },
+  "outcomeProvenancePresent": false,
+  "futureProvenancePresent": false
+}

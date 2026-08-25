@@ -1,0 +1,16 @@
+{
+  "gateId": "GATE23",
+  "stateRevision": "R0004",
+  "milestone": "GATE23_AGENT_CLOSURE",
+  "resumePoint": "COMPLETE_AGENT",
+  "completedTasks": [
+    "GATE23_CONTRACT_SUCCESSION_R0001_TO_R0002",
+    "GATE23_FUNCTIONAL_BUILD"
+  ],
+  "openTasks": [],
+  "reusableEvidence": [],
+  "invalidatedEvidence": [],
+  "requiredNextActions": [],
+  "protectedHashes": [],
+  "createdAt": "2026-08-25T16:00:00.000Z"
+}

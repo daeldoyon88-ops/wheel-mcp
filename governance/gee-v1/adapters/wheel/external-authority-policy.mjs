@@ -105,6 +105,20 @@ const EXTERNAL_REINSPECTION_DECLARATIONS = Object.freeze([
       gateId: 'GATE22',
       programId: 'GATE22_INDEPENDENT_EXTERNAL_CONFIRMATION_R1',
       reportShape: STANDARD_EXTERNAL_REINSPECTION_REPORT
+    },
+    {
+      // GATE23 cited its reinspection report by REPOSITORY PATH, where GATE19-22
+      // cited a bare logical id. `resolveAuthority` matches a declaration by exact
+      // string equality against `event.authorityPath`, so `authorityId` here is the
+      // path itself — the ledger is append-only and its ordinal 99 payload digest
+      // anchors the chain, so the declaration aligns to the event, never the reverse.
+      authorityId: 'governance/sources/GATE23_INDEPENDENT_EXTERNAL_CONFIRMATION_R1_EXTERNAL_REINSPECTION_REPORT.json',
+      classification: 'EXTERNAL_REINSPECTION_REPORT',
+      path: 'governance/sources/GATE23_INDEPENDENT_EXTERNAL_CONFIRMATION_R1_EXTERNAL_REINSPECTION_REPORT.json',
+      sha256: 'a9b6abde76aaa6c3a1cd3ace2c69d19e893a7545d28d5942431b5bbd45847f1f',
+      gateId: 'GATE23',
+      programId: 'GATE23_INDEPENDENT_EXTERNAL_CONFIRMATION_R1',
+      reportShape: STANDARD_EXTERNAL_REINSPECTION_REPORT
     }
   ]);
 

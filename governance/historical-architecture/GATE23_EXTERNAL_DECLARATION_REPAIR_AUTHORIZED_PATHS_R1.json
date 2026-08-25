@@ -1,0 +1,62 @@
+{
+  "documentKind": "POST_FREEZE_MAINTENANCE_AUTHORIZED_PATH_MANIFEST",
+  "schemaVersion": 2,
+  "manifestId": "GATE23_EXTERNAL_DECLARATION_REPAIR_AUTHORIZED_PATHS_R1",
+  "programId": "GATE23_EXTERNAL_DECLARATION_REPAIR_R1",
+  "prestateSelfExclusion": [
+    {
+      "path": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_GATE23_EXTERNAL_DECLARATION_REPAIR_R1.json",
+      "role": "AUTHORITY_DOCUMENT",
+      "reason": "The authority document must already exist for its own evaluator to read it; it stays inside the cohort and is verified byte-for-byte at consumption."
+    },
+    {
+      "path": "governance/historical-architecture/GATE23_EXTERNAL_DECLARATION_REPAIR_AUTHORIZED_PATHS_R1.json",
+      "role": "AUTHORIZED_PATH_MANIFEST",
+      "reason": "The manifest must already exist to be digest-pinned by the authority; it stays inside the cohort and is verified byte-for-byte at consumption."
+    }
+  ],
+  "paths": [
+    {
+      "path": "governance/gee-v1/adapters/wheel/external-authority-policy.mjs",
+      "operation": "MODIFY",
+      "phase": "EXTERNAL_BINDING_REPAIR",
+      "reason": "Register the already-existing, byte-verified GATE23 independent external reinspection report as a declared EXTERNAL_REINSPECTION_REPORT authority so resolveAuthority can classify it. The ledger event at ordinal 99 cites the report by its repository path, which no declaration matched, so the authority resolved as CANONICAL_EVIDENCE and COMPLETE_CONFIRMED_WITHOUT_INDEPENDENT_REINSPECTION was raised against a confirmation that is in fact valid. No new evidence is introduced and no verdict rule is changed; the existing STANDARD_EXTERNAL_REINSPECTION_REPORT shape check applies unmodified.",
+      "artifactClass": "EXTERNAL_BINDING_REPAIR",
+      "prestate": {
+        "state": "PRESENT",
+        "sha256": "ec82feda6f84be92cdc85dfb5c997909828a27f425c1958b66b0a3a543727395",
+        "byteLength": 7587
+      }
+    },
+    {
+      "path": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_GATE23_EXTERNAL_DECLARATION_REPAIR_R1.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE_AUTHORITY_RECORDS",
+      "reason": "Single-use LOCAL_EXPLICIT_AUTHORITY bound to the exact post-GATE23-closure repository pre-state; predecessor maintenance authorities are single-use and already consumed and are not reused.",
+      "artifactClass": "EXTERNAL_BINDING_REPAIR",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "governance/historical-architecture/GATE23_EXTERNAL_DECLARATION_REPAIR_AUTHORIZED_PATHS_R1.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE_AUTHORITY_RECORDS",
+      "reason": "Exact finite four-path cohort with declared per-path pre-state; no wildcard, no directory blanket and no lifecycle path.",
+      "artifactClass": "EXTERNAL_BINDING_REPAIR",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "governance/historical-architecture/GATE23_EXTERNAL_DECLARATION_REPAIR_CONSUMPTION_R1.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE_AUTHORITY_RECORDS",
+      "reason": "Single-use consumption record binding this authority, its manifest digest and its transaction.",
+      "artifactClass": "EXTERNAL_BINDING_REPAIR",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    }
+  ]
+}

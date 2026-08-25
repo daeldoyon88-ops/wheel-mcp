@@ -1,0 +1,61 @@
+{
+  "document": "GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY",
+  "schemaVersion": 2,
+  "authorityId": "GATE23_EXTERNAL_DECLARATION_REPAIR_LOCAL_AUTHORITY_R1",
+  "authorityClass": "PROJECT_OWNER_POST_FREEZE_MAINTENANCE_AUTHORITY",
+  "authorityMode": "LOCAL_EXPLICIT_AUTHORITY",
+  "issuedBy": "PROJECT_OWNER",
+  "createdAt": "2026-08-25T20:00:00.000Z",
+  "expiresAt": "2026-12-31T23:59:59.000Z",
+  "targetSystem": "PROJECT_GOVERNANCE",
+  "programId": "GATE23_EXTERNAL_DECLARATION_REPAIR_R1",
+  "authorityPurpose": "NORMAL_MAINTENANCE",
+  "resumePoint": "CP-GATE23-EXTERNAL-DECLARATION-REPAIR-R1",
+  "maxUse": 1,
+  "preState": {
+    "baseHead": "4ad76b33757ee59a3a6bfd916b4d871d7c7ea57b",
+    "ledgerEventCount": 99,
+    "ledgerPrefixSha256": "2d2707462ef4e518abb5153376c1145c39a97981486066eea62edae043f54a57",
+    "gateId": "GATE23",
+    "gateStatus": "COMPLETE_CONFIRMED",
+    "stateRevision": "R0005",
+    "contractRevision": "R0002",
+    "activeGate": "GATE13",
+    "R8ExpectedAbsent": true
+  },
+  "authorizedPathManifestPath": "governance/historical-architecture/GATE23_EXTERNAL_DECLARATION_REPAIR_AUTHORIZED_PATHS_R1.json",
+  "authorizedPathManifestSha256": "edb50eeeb939e0280a80bb9fa70f416bfa7a1cefa58f7510b5d52b27cc541f62",
+  "authorizedOperationClasses": [
+    "EXTERNAL_BINDING_REPAIR"
+  ],
+  "commitPolicy": {
+    "maxCommitCount": 1,
+    "allowedGitOperations": [
+      "GIT_ADD_PATHSPEC",
+      "GIT_COMMIT"
+    ],
+    "commitMessage": "governance: declare the GATE23 external reinspection report in the wheel external authority policy",
+    "thirdCommitAuthorized": false
+  },
+  "pushAuthorized": false,
+  "authorityPredecessor": null,
+  "authorityHeadBinding": {
+    "mode": "BASE_HEAD",
+    "baseHead": "4ad76b33757ee59a3a6bfd916b4d871d7c7ea57b"
+  },
+  "consumptionRecordPath": "governance/historical-architecture/GATE23_EXTERNAL_DECLARATION_REPAIR_CONSUMPTION_R1.json",
+  "prohibitedOperations": [
+    "START",
+    "SECOND_START",
+    "AGENT_CLOSURE",
+    "EXTERNAL_CONFIRMATION",
+    "COMPLETE_AGENT",
+    "COMPLETE_CONFIRMED",
+    "ACTIVE_GATE_SWITCH",
+    "GEE_R8",
+    "GIT_PUSH",
+    "HISTORY_REWRITE",
+    "THIRD_COMMIT",
+    "UNRELATED_WRITE"
+  ]
+}

@@ -1,0 +1,43 @@
+{
+  "documentKind": "POST_FREEZE_MAINTENANCE_AUTHORITY_CONSUMPTION",
+  "schemaVersion": 2,
+  "authorityId": "GATE23_EXTERNAL_DECLARATION_REPAIR_LOCAL_AUTHORITY_R1",
+  "programId": "GATE23_EXTERNAL_DECLARATION_REPAIR_R1",
+  "manifestSha256": "edb50eeeb939e0280a80bb9fa70f416bfa7a1cefa58f7510b5d52b27cc541f62",
+  "baseHead": "4ad76b33757ee59a3a6bfd916b4d871d7c7ea57b",
+  "consumedUse": 1,
+  "transactionId": "GATE23_EXTERNAL_DECLARATION_REPAIR_R1_TRANSACTION",
+  "recordedAt": "2026-08-25T20:15:00.000Z",
+  "commitMessage": "governance: declare the GATE23 external reinspection report in the wheel external authority policy",
+  "cohortSelfExclusion": {
+    "path": "governance/historical-architecture/GATE23_EXTERNAL_DECLARATION_REPAIR_CONSUMPTION_R1.json",
+    "reason": "The consumption record cannot hash its own final bytes; its identity is bound by the authority and manifest instead."
+  },
+  "cohortPathCount": 4,
+  "cohort": [
+    {
+      "path": "governance/gee-v1/adapters/wheel/external-authority-policy.mjs",
+      "sha256": "394f25e4b2649da0ccc0a260ec44648a5c714345e3bd36eb023a6feaefce1b84",
+      "byteLength": 8535,
+      "operation": "MODIFY",
+      "reason": "Register the already-existing, byte-verified GATE23 independent external reinspection report as a declared EXTERNAL_REINSPECTION_REPORT authority so resolveAuthority can classify it. The ledger event at ordinal 99 cites the report by its repository path, which no declaration matched, so the authority resolved as CANONICAL_EVIDENCE and COMPLETE_CONFIRMED_WITHOUT_INDEPENDENT_REINSPECTION was raised against a confirmation that is in fact valid. No new evidence is introduced and no verdict rule is changed; the existing STANDARD_EXTERNAL_REINSPECTION_REPORT shape check applies unmodified.",
+      "artifactClass": "EXTERNAL_BINDING_REPAIR"
+    },
+    {
+      "path": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_GATE23_EXTERNAL_DECLARATION_REPAIR_R1.json",
+      "sha256": "c35ecbb28efd60df6c6ee6f80b1bc428cbd155582b33602d100eb9fb2e355d7c",
+      "byteLength": 2167,
+      "operation": "CREATE",
+      "reason": "Single-use LOCAL_EXPLICIT_AUTHORITY bound to the exact post-GATE23-closure repository pre-state; predecessor maintenance authorities are single-use and already consumed and are not reused.",
+      "artifactClass": "EXTERNAL_BINDING_REPAIR"
+    },
+    {
+      "path": "governance/historical-architecture/GATE23_EXTERNAL_DECLARATION_REPAIR_AUTHORIZED_PATHS_R1.json",
+      "sha256": "edb50eeeb939e0280a80bb9fa70f416bfa7a1cefa58f7510b5d52b27cc541f62",
+      "byteLength": 3315,
+      "operation": "CREATE",
+      "reason": "Exact finite four-path cohort with declared per-path pre-state; no wildcard, no directory blanket and no lifecycle path.",
+      "artifactClass": "EXTERNAL_BINDING_REPAIR"
+    }
+  ]
+}

@@ -2,7 +2,7 @@
 <!-- generatedBy=governance/tools/generate-governance-docs.mjs -->
 <!-- generatedFrom=governance/PROJECT_CONSTITUTION.json -->
 <!-- generatedAt=2026-08-01T16:00:00.000Z -->
-<!-- sourceDigest=3a87c8188dcd88cd48b3aa4aba28252b2f876f54ac0694a116484877b8a05b41 -->
+<!-- sourceDigest=a11ef7d534a4b1662e3befd6753e5e8fac28be8ce7d95ac895c4601f98b23575 -->
 
 # PROJECT_CONSTITUTION
 
@@ -25,3 +25,4 @@ Non-canonique : vue générée depuis PROJECT_CONSTITUTION.json.
 - SEPARATE_SESSION_REINSPECTION — BLOCKING — Réinspection en session séparée
 - GENERATED_FILES_NON_CANONICAL — BLOCKING — Fichiers générés non canoniques
 - HISTORICAL_REJECTED_NOT_ACTIVE — BLOCKING — Autorité rejetée jamais active
+- DEFERRED_CAPABILITY_MUST_BE_DURABLY_REGISTERED — BLOCKING — Capacité différée enregistrée de façon durable

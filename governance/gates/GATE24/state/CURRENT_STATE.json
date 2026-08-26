@@ -1,0 +1,8 @@
+{
+  "schemaVersion": 1,
+  "gateId": "GATE24",
+  "stateRevision": "R0005",
+  "revisionPath": "governance/gates/GATE24/state/revisions/R0005",
+  "stateSealSha256": "ebcbfca74ddfd1dae0b9814ac284438951b9aace2c7c70c9ba9f6f0e4527fe9f",
+  "committedByTransactionId": "GATE24_EXTERNAL_CONFIRMATION_R1_TRANSACTION"
+}

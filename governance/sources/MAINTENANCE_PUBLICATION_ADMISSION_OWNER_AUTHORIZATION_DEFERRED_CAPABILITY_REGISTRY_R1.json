@@ -1,0 +1,25 @@
+{
+  "document": "MAINTENANCE_PUBLICATION_ADMISSION_OWNER_AUTHORIZATION",
+  "schemaVersion": 1,
+  "authorityId": "DEFERRED_CAPABILITY_REGISTRY_V1_STEP1_PUBLICATION_OWNER_AUTHORIZATION_R1",
+  "authorityClass": "PROJECT_OWNER_MAINTENANCE_PUBLICATION_ADMISSION_AUTHORITY",
+  "authorityMode": "LOCAL_EXPLICIT_AUTHORITY",
+  "issuedBy": "PROJECT_OWNER",
+  "issuedAtUtc": "2026-08-25T20:00:00.000Z",
+  "decisionId": "DEFERRED_CAPABILITY_REGISTRY_V1_STEP1_OWNER_DECISION_R1",
+  "purpose": "MAINTENANCE_PUBLICATION_ADMISSION",
+  "reexecutionAuthorized": false,
+  "grantsFutureBytePermission": false,
+  "genericV1Admission": false,
+  "admittedPublications": [
+    {
+      "admissionId": "DEFERRED_CAPABILITY_REGISTRY_V1_STEP1_PUBLICATION_ADMISSION_R1",
+      "projectId": "WHEEL",
+      "gateId": "GATE24",
+      "programId": "DEFERRED_CAPABILITY_REGISTRY_V1_STEP1_R1",
+      "admissionPath": "governance/authority/publication-admissions/GATE24/DEFERRED_CAPABILITY_REGISTRY_V1_STEP1_PUBLICATION_ADMISSION_R1.json",
+      "admissionDigest": "92dc0a4b265025d50b3a60fc98c201ec231b14316d75234ef506ac2ecd09f936"
+    }
+  ],
+  "registryDigest": "8249d7e3f4ee5bb3027a5ed453c527f7e7030a09aa53a5a2ce0e69fd07ce534c"
+}

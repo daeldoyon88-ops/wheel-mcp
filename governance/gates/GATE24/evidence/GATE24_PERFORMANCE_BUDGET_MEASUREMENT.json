@@ -1,0 +1,27 @@
+{
+  "document": "GATE24_PERFORMANCE_BUDGET_MEASUREMENT",
+  "schemaVersion": 1,
+  "gateId": "GATE24",
+  "generatedBy": "governance/gates/GATE24/tests/gate24-performance.test.mjs",
+  "verdict": "PASS",
+  "budget": {
+    "classifierNetworkCalls": 0,
+    "macroFetchesPerTicker": 0,
+    "livePathMacroIngestion": 0,
+    "snapshotComputeOnce": 1,
+    "latencyTargetDelta": "ZERO",
+    "batchTickerCount": 40,
+    "batchClassificationMs": 8000
+  },
+  "measurements": {
+    "batchTickerCount": 40,
+    "batchMs": 39.466,
+    "networkCalls": 0,
+    "macroFetchesPerTicker": 0,
+    "snapshotComputes": 1,
+    "snapshotReuses": 39,
+    "ingestionCalls": 0,
+    "latencyTargetDelta": "ZERO"
+  },
+  "digest": "073b3fbc921cf4500385b0bd21b490b8dbf4484185aae66f6f130e2d9d85b94e"
+}

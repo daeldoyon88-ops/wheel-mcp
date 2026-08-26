@@ -544,3 +544,50 @@ test('the auditor writes nothing into the repository it audits', () => {
     assert.ok(checked > 400, 'the whole governance tree should have been compared');
   } finally { discard(root); }
 });
+
+test('DEFERRED_CAPABILITY: GATE17 family ran with zero findings independently of global FGI verdict', () => {
+  const report = audit(REPO_ROOT);
+  assert.equal(report.version, 'R2');
+  assert.ok(report.familiesRun.includes('DEFERRED_CAPABILITY'));
+  assert.equal(report.findings.filter((item) => item.family === 'DEFERRED_CAPABILITY').length, 0);
+});
+
+test('DEFERRED_CAPABILITY: missing prospective declaration blocks', () => {
+  const root = scratchRoot('dc-missing');
+  try {
+    const constitution = readJson(root, 'governance/PROJECT_CONSTITUTION.json');
+    const rule = constitution.rules.find((entry) => entry.ruleId === 'DEFERRED_CAPABILITY_MUST_BE_DURABLY_REGISTERED');
+    rule.effectiveFromGate = 'GATE17';
+    writeJson(root, 'governance/PROJECT_CONSTITUTION.json', constitution);
+    const report = audit(root);
+    assert.equal(report.FINAL_GATE_INTEGRITY, 'FAIL');
+    assert.ok(classes(report).includes('DEFERRED_CAPABILITY_DECLARATION_MISSING'));
+  } finally { discard(root); }
+});
+
+test('DEFERRED_CAPABILITY: empty declaration passes when the rule is in force on GATE17', () => {
+  const root = scratchRoot('dc-empty');
+  try {
+    const constitution = readJson(root, 'governance/PROJECT_CONSTITUTION.json');
+    const rule = constitution.rules.find((entry) => entry.ruleId === 'DEFERRED_CAPABILITY_MUST_BE_DURABLY_REGISTERED');
+    rule.effectiveFromGate = 'GATE17';
+    writeJson(root, 'governance/PROJECT_CONSTITUTION.json', constitution);
+    writeJson(root, 'governance/gates/GATE17/state/revisions/R0004/DEFERRED_CAPABILITY_DECLARATION.json', {
+      deferredCapabilitiesIntroduced: []
+    });
+    const report = audit(root);
+    assert.ok(report.familiesRun.includes('DEFERRED_CAPABILITY'));
+    assert.equal(report.findings.filter((item) => item.family === 'DEFERRED_CAPABILITY').length, 0);
+  } finally { discard(root); }
+});
+
+test('DEFERRED_CAPABILITY: FGI remains read-only against registry and ledger bytes', () => {
+  const registryPath = path.join(REPO_ROOT, 'governance/master-matrix/DEFERRED_CAPABILITY_REGISTRY.ndjson');
+  const ledgerPath = path.join(REPO_ROOT, LEDGER);
+  const beforeRegistry = sha256Bytes(fs.readFileSync(registryPath));
+  const beforeLedger = sha256Bytes(fs.readFileSync(ledgerPath));
+  audit(REPO_ROOT);
+  assert.equal(sha256Bytes(fs.readFileSync(registryPath)), beforeRegistry);
+  assert.equal(sha256Bytes(fs.readFileSync(ledgerPath)), beforeLedger);
+});
+

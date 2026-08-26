@@ -1,0 +1,66 @@
+{
+  "document": "GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY",
+  "schemaVersion": 2,
+  "authorityId": "GATE24_INDEPENDENT_EXTERNAL_CONFIRMATION_LOCAL_AUTHORITY_R2",
+  "authorityClass": "PROJECT_OWNER_POST_FREEZE_MAINTENANCE_AUTHORITY",
+  "authorityMode": "LOCAL_EXPLICIT_AUTHORITY",
+  "issuedBy": "PROJECT_OWNER",
+  "createdAt": "2026-08-26T19:00:00.000Z",
+  "expiresAt": "2026-12-31T23:59:59.000Z",
+  "targetSystem": "PROJECT_GOVERNANCE",
+  "programId": "GATE24_INDEPENDENT_EXTERNAL_CONFIRMATION_R2",
+  "authorityPurpose": "GATE_EXTERNAL_CONFIRMATION",
+  "resumePoint": "GATE24_INDEPENDENT_EXTERNAL_CONFIRMATION_R2",
+  "maxUse": 1,
+  "preState": {
+    "baseHead": "36de5ca2337624090ed32c2ef4b1567add2ce0b3",
+    "ledgerEventCount": 103,
+    "ledgerPrefixSha256": "30bba27b2a3e7b7191700639f8f83a5490cda377f1ac9ec04764e4dd33ec23cf",
+    "gateId": "GATE24",
+    "gateStatus": "COMPLETE_AGENT",
+    "stateRevision": "R0004",
+    "contractRevision": "R0002",
+    "activeGate": "GATE13",
+    "R8ExpectedAbsent": true
+  },
+  "authorizedPathManifestPath": "governance/historical-architecture/GATE24_EXTERNAL_CONFIRMATION_AUTHORIZED_PATHS_R2.json",
+  "authorizedPathManifestSha256": "97b1512377a477dce712b821909a7d46b96d330c306fbb19e88b0784df75f41f",
+  "authorizedOperationClasses": [
+    "EXTERNAL_CONFIRMATION"
+  ],
+  "commitPolicy": {
+    "maxCommitCount": 1,
+    "allowedGitOperations": [
+      "GIT_ADD_PATHSPEC",
+      "GIT_COMMIT"
+    ],
+    "commitMessage": "governance: confirm GATE24 with independent confirmation",
+    "thirdCommitAuthorized": false
+  },
+  "pushAuthorized": false,
+  "authorityPredecessor": {
+    "authorityId": "GATE24_FINAL_CLOSURE_LOCAL_AUTHORITY_R1",
+    "sha256": "9d0bf1a1891e0f8c6332e4869811bfa9d9367e95145d9f45144c2a192403779c"
+  },
+  "authorityHeadBinding": {
+    "mode": "BASE_HEAD",
+    "baseHead": "36de5ca2337624090ed32c2ef4b1567add2ce0b3"
+  },
+  "consumptionRecordPath": "governance/historical-architecture/GATE24_EXTERNAL_CONFIRMATION_CONSUMPTION_R2.json",
+  "prohibitedOperations": [
+    "START",
+    "SECOND_START",
+    "AGENT_CLOSURE",
+    "EXTERNAL_CONFIRMATION",
+    "COMPLETE_AGENT",
+    "COMPLETE_CONFIRMED",
+    "ACTIVE_GATE_SWITCH",
+    "GEE_R8",
+    "GIT_PUSH",
+    "HISTORY_REWRITE",
+    "THIRD_COMMIT",
+    "UNRELATED_WRITE"
+  ],
+  "externalReinspectionReportPath": "governance/sources/GATE24_INDEPENDENT_EXTERNAL_CONFIRMATION_R2_EXTERNAL_REINSPECTION_REPORT.json",
+  "externalReinspectionReportSha256": "54cea8f4226ba06c0f2c86215f317855652227023a2321884ddd86810f67e5d9"
+}

@@ -1,0 +1,25 @@
+{
+  "documentKind": "PRECONTRACT_AUTHORITY_CONSUMPTION",
+  "schemaVersion": 1,
+  "authorityId": "PRECONTRACT_BOOTSTRAP_GATE24_LOCAL_R1",
+  "authorityMode": "LOCAL_EXPLICIT_AUTHORITY",
+  "projectId": "WHEEL",
+  "gateId": "GATE24",
+  "approvedRequestDigest": "d19a37bb97de9ccb5980e8d279dad6e9496567c83ede62227feec09faaebc870",
+  "baseCommit": "36de5ca2337624090ed32c2ef4b1567add2ce0b3",
+  "baseTree": "573715ac4c18b53ce787b4f8394d1f619505aa70",
+  "consumedUse": 1,
+  "recordedAt": "2026-08-26T12:36:04.574Z",
+  "cohort": [
+    {
+      "path": "governance/gates/GATE24/contracts/EXECUTION_CONTRACT_R0001.json",
+      "sha256": "30e82ef56a07c881cb65166a8dc2e46ca23787de88197bbd7168a53c7541605d"
+    },
+    {
+      "path": "governance/gates/GATE24/contracts/CURRENT_CONTRACT.json",
+      "sha256": "f5311fe266aafd5b75989992588c2d9332ae3cb671aad9968385d49e65a5d552"
+    }
+  ],
+  "consumptionIdentityAlgorithm": "SHA256_CANONICAL_JSON_PRECONTRACT_CONSUMPTION_IDENTITY_V1",
+  "consumptionIdentityDigest": "8f96ab51d30915522504471e2d100fbcf14b10be6b90e2423b8ac466b6a0c6e9"
+}

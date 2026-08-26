@@ -1,0 +1,146 @@
+{
+  "documentKind": "POST_FREEZE_MAINTENANCE_AUTHORIZED_PATH_MANIFEST",
+  "schemaVersion": 2,
+  "manifestId": "DEFERRED_CAPABILITY_REGISTRY_STEP3_COMBINED_AUTHORIZED_PATHS_R1",
+  "programId": "DEFERRED_CAPABILITY_REGISTRY_V1_STEP3_COMBINED_R1",
+  "prestateSelfExclusion": [
+    {
+      "path": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_DEFERRED_CAPABILITY_REGISTRY_STEP3_COMBINED_R1.json",
+      "role": "AUTHORITY_DOCUMENT",
+      "reason": "The authority document is a causally prior publisher input and remains bound by the exact V2 self-exclusion."
+    },
+    {
+      "path": "governance/historical-architecture/DEFERRED_CAPABILITY_REGISTRY_STEP3_COMBINED_AUTHORIZED_PATHS_R1.json",
+      "role": "AUTHORIZED_PATH_MANIFEST",
+      "reason": "The manifest is a causally prior publisher input and remains bound by the exact V2 self-exclusion."
+    }
+  ],
+  "paths": [
+    {
+      "path": "governance/tools/append-deferred-capability-registry-events.mjs",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "Canonical append-only deferred-capability registry event producer.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "governance/tools/reconcile-historical-deferred-capabilities.mjs",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "One-time deterministic historical deferred-capability reconciler.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "governance/tools/bind-gate24-deferred-capabilities.mjs",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "GATE24 REFERENCE_ONLY IMPORT_BINDING producer.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "governance/historical-architecture/DEFERRED_CAPABILITY_HISTORICAL_RECONCILIATION_RECEIPT_R1.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "Historical reconciliation completion receipt.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "governance/tests/deferred-capability-step3-historical-hostile-battery.test.mjs",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "STEP3 historical reconciliation hostile battery S3-H01..H09 H14..H17 H19.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "governance/tests/deferred-capability-step3-gate24-binding-hostile-battery.test.mjs",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "STEP3 GATE24 IMPORT_BINDING hostile battery S3-H10..H13 H18 H20.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "governance/master-matrix/DEFERRED_CAPABILITY_REGISTRY.ndjson",
+      "operation": "MODIFY",
+      "phase": "MAINTENANCE",
+      "reason": "Append GATE24 IMPORT_BINDING events after zero historical REGISTER.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "PRESENT",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "byteLength": 0
+      }
+    },
+    {
+      "path": "governance/generated/DEFERRED_CAPABILITY_INDEX_V1.json",
+      "operation": "MODIFY",
+      "phase": "MAINTENANCE",
+      "reason": "Regenerate deferred-capability index from the post-append registry.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "PRESENT",
+        "sha256": "14c50a6c6a8c677d6b7d234dc36fae7454ef199cdac7065b248c61b653eda256",
+        "byteLength": 806
+      }
+    },
+    {
+      "path": "governance/generated/DEFERRED_CAPABILITY_INDEX_V1_PROVENANCE.json",
+      "operation": "MODIFY",
+      "phase": "MAINTENANCE",
+      "reason": "Regenerate deferred-capability index provenance from the post-append registry.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "PRESENT",
+        "sha256": "a158d128721d0642eb4614382f218a4863c95c1baba63f5baedb07cc4b9ff2b6",
+        "byteLength": 807
+      }
+    },
+    {
+      "path": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_DEFERRED_CAPABILITY_REGISTRY_STEP3_COMBINED_R1.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "Causally-prior authority document.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "governance/historical-architecture/DEFERRED_CAPABILITY_REGISTRY_STEP3_COMBINED_AUTHORIZED_PATHS_R1.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "Causally-prior authorized-path manifest.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "governance/historical-architecture/DEFERRED_CAPABILITY_REGISTRY_STEP3_COMBINED_CONSUMPTION_R1.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "Post-freeze maintenance publication consumption receipt generated by the publisher.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    }
+  ]
+}

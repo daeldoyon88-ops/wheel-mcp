@@ -1,0 +1,245 @@
+{
+  "document": "GATE24_HOSTILE_MATRIX_RESULT",
+  "schemaVersion": 1,
+  "gateId": "GATE24",
+  "generatedBy": "governance/gates/GATE24/tests/gate24-hostiles.test.mjs",
+  "verdict": "PASS",
+  "passCount": 38,
+  "failCount": 0,
+  "assertions": 352,
+  "caseCount": 38,
+  "digest": "6727847a9b03a88f7c15d8f5adb7270be0f707b69725cf18394b3bb59149436d",
+  "futureLeakage": 0,
+  "outcomeLeakage": 0,
+  "fixturePromotion": 0,
+  "results": [
+    {
+      "hostileId": "V-1",
+      "name": "FUTURE LEAKAGE HOSTILE",
+      "result": "PASS",
+      "assertionsExecuted": 4
+    },
+    {
+      "hostileId": "V-2",
+      "name": "VINTAGE LEAKAGE HOSTILE",
+      "result": "PASS",
+      "assertionsExecuted": 3
+    },
+    {
+      "hostileId": "V-3",
+      "name": "FOMC AS-OF",
+      "result": "PASS",
+      "assertionsExecuted": 2
+    },
+    {
+      "hostileId": "V-4",
+      "name": "TREASURY AS-OF",
+      "result": "PASS",
+      "assertionsExecuted": 2
+    },
+    {
+      "hostileId": "V-5",
+      "name": "MISSING CORE FAIL-CLOSED",
+      "result": "PASS",
+      "assertionsExecuted": 9
+    },
+    {
+      "hostileId": "V-6",
+      "name": "DEFERRED SERIES ABSENCE NON-BLOCKING",
+      "result": "PASS",
+      "assertionsExecuted": 3
+    },
+    {
+      "hostileId": "V-7",
+      "name": "PARAMETER VERSION MUTATION",
+      "result": "PASS",
+      "assertionsExecuted": 4
+    },
+    {
+      "hostileId": "V-8",
+      "name": "EXACT REPLAY",
+      "result": "PASS",
+      "assertionsExecuted": 3
+    },
+    {
+      "hostileId": "V-9",
+      "name": "TRANSITION PERSIST/CHANGE",
+      "result": "PASS",
+      "assertionsExecuted": 8
+    },
+    {
+      "hostileId": "V-10",
+      "name": "CHANGED DIMENSIONS",
+      "result": "PASS",
+      "assertionsExecuted": 4
+    },
+    {
+      "hostileId": "V-11",
+      "name": "CRISIS / FAST TRANSITION",
+      "result": "PASS",
+      "assertionsExecuted": 6
+    },
+    {
+      "hostileId": "V-12",
+      "name": "MACRO NETWORK OFF-SCAN",
+      "result": "PASS",
+      "assertionsExecuted": 6
+    },
+    {
+      "hostileId": "V-13",
+      "name": "COVERAGE REPORT",
+      "result": "PASS",
+      "assertionsExecuted": 4
+    },
+    {
+      "hostileId": "V-14",
+      "name": "PROVENANCE COMPLETENESS",
+      "result": "PASS",
+      "assertionsExecuted": 12
+    },
+    {
+      "hostileId": "V-15",
+      "name": "MACRO BINDING IDENTITY DIFFERENTIAL",
+      "result": "PASS",
+      "assertionsExecuted": 5
+    },
+    {
+      "hostileId": "V-16",
+      "name": "LIVE SCAN PERFORMANCE NON-REGRESSION",
+      "result": "PASS",
+      "assertionsExecuted": 5
+    },
+    {
+      "hostileId": "V-17",
+      "name": "TAXONOMY CLOSURE",
+      "result": "PASS",
+      "assertionsExecuted": 13
+    },
+    {
+      "hostileId": "V-18",
+      "name": "EXPLICIT NON-CLASSIFICATION",
+      "result": "PASS",
+      "assertionsExecuted": 5
+    },
+    {
+      "hostileId": "V-19",
+      "name": "MACRO PERIMETER INTEGRITY",
+      "result": "PASS",
+      "assertionsExecuted": 5
+    },
+    {
+      "hostileId": "V-20",
+      "name": "NO CARTESIAN LABEL",
+      "result": "PASS",
+      "assertionsExecuted": 5
+    },
+    {
+      "hostileId": "V-21",
+      "name": "CURVE MAPPING EXHAUSTIVENESS",
+      "result": "PASS",
+      "assertionsExecuted": 21
+    },
+    {
+      "hostileId": "V-22",
+      "name": "CURVE SHAPE AND DIRECTION INDEPENDENCE",
+      "result": "PASS",
+      "assertionsExecuted": 4
+    },
+    {
+      "hostileId": "V-23",
+      "name": "EXTENDED DIMENSION NON-BLOCKING",
+      "result": "PASS",
+      "assertionsExecuted": 12
+    },
+    {
+      "hostileId": "V-24",
+      "name": "MULTI_HORIZON_IDENTITY_DIFFERENTIAL",
+      "result": "PASS",
+      "assertionsExecuted": 6
+    },
+    {
+      "hostileId": "V-25",
+      "name": "MULTI_HORIZON_EXACT_REPLAY",
+      "result": "PASS",
+      "assertionsExecuted": 3
+    },
+    {
+      "hostileId": "V-26",
+      "name": "CONSUMER_HORIZON_BINDING",
+      "result": "PASS",
+      "assertionsExecuted": 6
+    },
+    {
+      "hostileId": "V-27",
+      "name": "DEFERRED_CAPABILITY_TRACEABILITY",
+      "result": "PASS",
+      "assertionsExecuted": 30
+    },
+    {
+      "hostileId": "V-28",
+      "name": "DEFERRED_PROMOTION_VERSIONING",
+      "result": "PASS",
+      "assertionsExecuted": 5
+    },
+    {
+      "hostileId": "V-29",
+      "name": "DEFERRED_REVISIT",
+      "result": "PASS",
+      "assertionsExecuted": 13
+    },
+    {
+      "hostileId": "V-30",
+      "name": "DEFERRED_REASON_VALIDITY",
+      "result": "PASS",
+      "assertionsExecuted": 48
+    },
+    {
+      "hostileId": "H-OUTCOME",
+      "name": "OUTCOME LEAKAGE / LAUNDERING",
+      "result": "PASS",
+      "assertionsExecuted": 16
+    },
+    {
+      "hostileId": "H-FIXTURE-CALENDAR",
+      "name": "FIXTURE CALENDAR REJECTION",
+      "result": "PASS",
+      "assertionsExecuted": 34
+    },
+    {
+      "hostileId": "H-CALENDAR-SINGLE-VALUED",
+      "name": "CALENDAR BINDING SINGLE-VALUEDNESS",
+      "result": "PASS",
+      "assertionsExecuted": 4
+    },
+    {
+      "hostileId": "H-CUTOFF",
+      "name": "WALL-CLOCK CUTOFF PROHIBITION",
+      "result": "PASS",
+      "assertionsExecuted": 8
+    },
+    {
+      "hostileId": "H-PARAMETER",
+      "name": "NO CODE-DEFAULT THRESHOLD",
+      "result": "PASS",
+      "assertionsExecuted": 2
+    },
+    {
+      "hostileId": "H-EVIDENCE",
+      "name": "CLASSIFICATION EVIDENCE INTEGRITY",
+      "result": "PASS",
+      "assertionsExecuted": 25
+    },
+    {
+      "hostileId": "H-IMMUTABLE-RECORD",
+      "name": "IMMUTABLE REGIME RECORD IDENTITY",
+      "result": "PASS",
+      "assertionsExecuted": 3
+    },
+    {
+      "hostileId": "H-HORIZON-REPLAY",
+      "name": "HORIZON REPLAY ISOLATION",
+      "result": "PASS",
+      "assertionsExecuted": 4
+    }
+  ]
+}

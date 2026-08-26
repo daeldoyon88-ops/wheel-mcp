@@ -1,0 +1,76 @@
+{
+  "documentKind": "POST_FREEZE_MAINTENANCE_AUTHORITY_CONSUMPTION",
+  "schemaVersion": 2,
+  "authorityId": "GATE24_POST_CLOSURE_TEST_HARNESS_FINALIZATION_LOCAL_AUTHORITY_R1",
+  "programId": "GATE24_POST_CLOSURE_TEST_HARNESS_FINALIZATION_R1",
+  "manifestSha256": "5f241fa418cdfd17b6e3966258e2ebb9bf5d1bdf237019ad4ab606e2f97a65ab",
+  "baseHead": "36de5ca2337624090ed32c2ef4b1567add2ce0b3",
+  "consumedUse": 1,
+  "transactionId": "GATE24_POST_CLOSURE_TEST_HARNESS_FINALIZATION_R1_TRANSACTION",
+  "recordedAt": "2026-08-26T00:00:00.000Z",
+  "commitMessage": "governance: finalize GATE24 post-closure test harness as read-only",
+  "publicationAdmission": null,
+  "cohortSelfExclusion": {
+    "path": "governance/historical-architecture/GATE24_POST_CLOSURE_TEST_HARNESS_FINALIZATION_CONSUMPTION_R1.json",
+    "reason": "The consumption record cannot hash its own final bytes; its identity is bound by the authority and manifest instead."
+  },
+  "cohortPathCount": 8,
+  "cohort": [
+    {
+      "path": "governance/gates/GATE24/tests/gate24-foundation.test.mjs",
+      "sha256": "733748831e9fc8775dadcc4fe925406f394e2e8175394d615833803ad3c38f11",
+      "byteLength": 17185,
+      "operation": "MODIFY",
+      "reason": "Ratify the lifecycle-stable BUILD-cohort inventory repair applied under the prior PROJECT_OWNER post-closure authorization; this program records the delta durably and does not re-modify the file.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "governance/gates/GATE24/tests/gate24-performance.test.mjs",
+      "sha256": "f27fb234c4a19614c8c3fd305a1bd69fd12d8ea384f580701c9b0cd52918c0f2",
+      "byteLength": 6153,
+      "operation": "MODIFY",
+      "reason": "Ratify the read-only performance-harness repair applied under the prior PROJECT_OWNER post-closure authorization; this program records the delta durably and does not re-modify the file.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "governance/gates/GATE24/tests/gate24-hostiles.test.mjs",
+      "sha256": "883ee8b63973bf3abc81ce3058e615e553a19e1ff0b7a91619bba49143a27ca1",
+      "byteLength": 37172,
+      "operation": "MODIFY",
+      "reason": "Remove canonical evidence regeneration so hostile-matrix execution is repository-read-only; the emitted bytes are now asserted equal to the pinned artifact instead of overwriting it.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "governance/gates/GATE24/tests/gate24-coverage.test.mjs",
+      "sha256": "733049f21a33966447239346e2fb50e56e9abd8366aa6e13a6abde3acbd892c5",
+      "byteLength": 7670,
+      "operation": "MODIFY",
+      "reason": "Remove canonical evidence regeneration so coverage execution is repository-read-only; the emitted bytes are now asserted equal to the pinned artifact instead of overwriting it.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_GATE24_POST_CLOSURE_TEST_HARNESS_FINALIZATION_R1.json",
+      "sha256": "5e52b22d6e7c1343b69aa820b1378875393d38fb5cc2410fef2f2db9c5a62102",
+      "byteLength": 2175,
+      "operation": "CREATE",
+      "reason": "Causally-prior authority document.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "governance/historical-architecture/GATE24_POST_CLOSURE_TEST_HARNESS_FINALIZATION_AUTHORIZED_PATHS_R1.json",
+      "sha256": "5f241fa418cdfd17b6e3966258e2ebb9bf5d1bdf237019ad4ab606e2f97a65ab",
+      "byteLength": 4608,
+      "operation": "CREATE",
+      "reason": "Causally-prior authorized-path manifest.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "governance/historical-architecture/GATE24_POST_CLOSURE_MAINTENANCE_DELTA_OVERLAY_R1.json",
+      "sha256": "975a06d12e259cfa8a863d0a9e240baadab6e2ee3cb6ce47c1f6dcd8637090d6",
+      "byteLength": 7145,
+      "operation": "CREATE",
+      "reason": "Durable GATE24 post-closure maintenance delta overlay binding the immutable historical BUILD receipt to the ratified maintenance hashes.",
+      "artifactClass": "MAINTENANCE"
+    }
+  ]
+}

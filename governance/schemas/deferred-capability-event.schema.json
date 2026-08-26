@@ -1,0 +1,65 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "deferred-capability-event.schema.json",
+  "title": "Append-only deferred capability registry event",
+  "description": "One line of governance/master-matrix/DEFERRED_CAPABILITY_REGISTRY.ndjson. The registry is a project-wide anti-forget spine for capabilities a gate deliberately deferred. It is NOT the GATE_STATUS_LEDGER, NOT a second gate lifecycle ledger, NOT an authority registry and NOT a defect registry: it carries no gate status transition and its events never authorize execution. Chain discipline mirrors the established non-lifecycle precedent in governance/authority/REGISTRY_AUTHORITY_MIGRATIONS.ndjson: previousEventSha256 pins the prior event's eventPayloadSha256, and the first event pins null. Identity is <sourceGate>-DC-<NN>, assigned once and never derived from content, so a legitimate RESTATE cannot change the id that consumers and revisit triggers depend on.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "eventId",
+    "ordinal",
+    "recordedAt",
+    "eventType",
+    "deferredCapabilityId",
+    "previousEventSha256",
+    "eventPayloadSha256",
+    "authorityPath",
+    "authoritySha256",
+    "payload"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "eventId": {
+      "type": "string",
+      "pattern": "^[A-Z][A-Z0-9_-]*$",
+      "description": "Unique event identity. Never reused, including after a terminal disposition."
+    },
+    "ordinal": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "1-based position in the stream. Must equal the line index; a gap or repeat is a broken stream, never a resolvable ambiguity."
+    },
+    "recordedAt": { "type": "string", "format": "date-time" },
+    "eventType": {
+      "type": "string",
+      "enum": ["REGISTER", "IMPORT_BINDING", "RESTATE", "DISPOSITION_DECISION", "PROMOTE", "SUPERSEDE", "RETIRE"]
+    },
+    "deferredCapabilityId": {
+      "type": "string",
+      "pattern": "^GATE[0-9]{2}-DC-[0-9]{2}$",
+      "description": "PERMANENT IDENTITY. Derived from exactly two inputs: the sourceGate that made the deferral decision, and a zero-padded ordinal assigned within that gate at first REGISTER. Deliberately NOT content-derived: a content hash would change on every legitimate RESTATE and break the identity revisit triggers and consumers reference."
+    },
+    "previousEventSha256": {
+      "type": ["string", "null"],
+      "pattern": "^[a-f0-9]{64}$",
+      "description": "The prior event's eventPayloadSha256; null only for ordinal 1."
+    },
+    "eventPayloadSha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$",
+      "description": "SHA256 over the canonical JSON projection of this event excluding previousEventSha256 and eventPayloadSha256. Always recomputed by the validator and never trusted as declared."
+    },
+    "authorityPath": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^governance/[A-Za-z0-9._-]+(/[A-Za-z0-9._-]+)*$",
+      "description": "Repo-relative governed path of the document that authorizes this event. Absolute, drive-relative, traversing and mixed-separator paths are rejected on every host. The registry itself may never appear here: an event cannot authorize itself."
+    },
+    "authoritySha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "payload": {
+      "type": "object",
+      "description": "Event-type specific body. REGISTER and IMPORT_BINDING carry the full entry; later events carry only what they change plus their required evidence."
+    }
+  }
+}

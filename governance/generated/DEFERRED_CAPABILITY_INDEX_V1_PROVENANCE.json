@@ -1,0 +1,21 @@
+{
+  "canonical": false,
+  "generatedBy": "governance/tools/generate-deferred-capability-index.mjs",
+  "generatedFrom": [
+    {
+      "path": "governance/master-matrix/DEFERRED_CAPABILITY_REGISTRY.ndjson",
+      "sha256": "c96ee7d3ab3c01aa482e82ba826091a44e1db45249ac6d59632e66e60d4bc821",
+      "byteLength": 19457
+    },
+    {
+      "path": "governance/master-matrix/DEFERRED_CAPABILITY_REASON_VOCABULARY_V1.json",
+      "sha256": "6c8acc9be6c4297e4f75a6d72ecb5e7e717c75c87759370afaa82da5ed8daa93"
+    },
+    {
+      "path": "governance/tools/generate-deferred-capability-index.mjs",
+      "sha256": "7b3ec3bae96585d2deeacf871770437323e29a3efd54cb6645307cb723425032"
+    }
+  ],
+  "generatedAt": "2026-08-26T15:00:00.000Z",
+  "sourceDigest": "c96ee7d3ab3c01aa482e82ba826091a44e1db45249ac6d59632e66e60d4bc821"
+}

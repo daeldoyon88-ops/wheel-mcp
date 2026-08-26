@@ -1,0 +1,69 @@
+{
+  "schemaVersion": 1,
+  "authorityMode": "LOCAL_EXPLICIT_AUTHORITY",
+  "document": "GATE_START_RECORD",
+  "recordId": "GATE_START_RECORD_GATE24_R1",
+  "projectId": "WHEEL",
+  "gateId": "GATE24",
+  "purpose": "START_PLUS_EXECUTION_AUTHORITY",
+  "eventId": "GATE24_START_R1",
+  "transitionType": "START",
+  "fromStatus": "AUTHORIZED_NOT_STARTED",
+  "toStatus": "IN_PROGRESS",
+  "recordedAt": "2026-08-26T13:00:00.000Z",
+  "baseCommit": "36de5ca2337624090ed32c2ef4b1567add2ce0b3",
+  "preStartLedgerSha256": "a488ea3d0145213624aa3bf54eddafd4adf79add0ee91f1e3c5729826e2c00a1",
+  "previousEventSha256": "bacbdc346b1cc8d3d453f624bab897382c889c8d1b664d6999f9e1c39d90119b",
+  "contractSha256": "30e82ef56a07c881cb65166a8dc2e46ca23787de88197bbd7168a53c7541605d",
+  "currentContractSha256": "f5311fe266aafd5b75989992588c2d9332ae3cb671aad9968385d49e65a5d552",
+  "preStateRevision": "R0001",
+  "preCurrentStateSha256": "5d9b72e3d1c5a418fffbc72b9d515f684b5372c18a1d963675cc83f65bcc355b",
+  "preStateSealSha256": "34627d832c0071c6f1b94522843418ed3adbd294cfc58bbe7005bb95df7c64e1",
+  "readinessDigest": "680c9b30c773a7bd11574a7f4143e42f558d18de7ba124e01197add5ccad1f0e",
+  "dependencyProof": {
+    "gateId": "GATE23",
+    "status": "COMPLETE_CONFIRMED",
+    "authorityPath": "governance/sources/GATE23_INDEPENDENT_EXTERNAL_CONFIRMATION_R1_EXTERNAL_REINSPECTION_REPORT.json",
+    "authoritySha256": "a9b6abde76aaa6c3a1cd3ace2c69d19e893a7545d28d5942431b5bbd45847f1f"
+  },
+  "activeGatePreState": {
+    "activeGate": "GATE13",
+    "sha256": "34fcbfd9bb068cf2adfd973a73db4c4da297e9300242c1d04c08571968a417b9",
+    "byteLength": 305
+  },
+  "authorizedStartWritePaths": [
+    "governance/authority/authorizations/GATE24/GATE_START_RECORD.json",
+    "governance/authority/authorizations/GATE24/PROJECT_OWNER_GATE_START_AUTHORITY.json",
+    "governance/state/GATE_STATUS_LEDGER.ndjson",
+    "governance/gates/GATE24/state/revisions/R0002/CHECKPOINT.json",
+    "governance/gates/GATE24/state/revisions/R0002/OPEN_DEFECTS.json",
+    "governance/gates/GATE24/state/revisions/R0002/STATE_SEAL.json",
+    "governance/gates/GATE24/state/CURRENT_STATE.json",
+    "governance/state/generated/GATE_STATUS_SNAPSHOT.json",
+    "governance/generated/ACTIVE_GATE_CONTEXT.json",
+    "governance/generated/ACTIVE_GATE_CONTEXT.md"
+  ],
+  "functionalExecutionScope": [
+    "governance/gates/GATE24/contracts/EXECUTION_CONTRACT_R0001.json",
+    "governance/gates/GATE24/contracts/CURRENT_CONTRACT.json",
+    "governance/gates/GATE24/contracts/PRECONTRACT_AUTHORITY_CONSUMPTION_R1.json"
+  ],
+  "expiresAtUtc": "2026-12-31T23:59:59.000Z",
+  "maxUse": 1,
+  "prohibitedOperations": [
+    "AUTHORIZATION",
+    "SECOND_START",
+    "AGENT_CLOSURE",
+    "EXTERNAL_CONFIRMATION",
+    "COMPLETE_CONFIRMED",
+    "OTHER_GATE",
+    "GEE_REVISION_CREATION",
+    "ARBITRARY_LEDGER_TRANSITION",
+    "LEDGER_REWRITE",
+    "ARBITRARY_GOVERNANCE_WRITE",
+    "GIT_PUSH"
+  ],
+  "startAuthorized": true,
+  "executionAuthorized": true,
+  "recordDigest": "4d21f22f82665ad1727487cbeb55bfe18f2980f77ed8c64f6078507c91c8d2a0"
+}

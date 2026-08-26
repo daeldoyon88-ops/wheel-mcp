@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "constitutionVersion": "R3",
+  "constitutionVersion": "R4",
   "governedRepository": {
     "repositoryName": "REPO-WHEEL-JARVISE-PRIMARY",
     "originUrl": "https://github.com/daeldoyon88-ops/wheel-mcp.git",
@@ -423,6 +423,29 @@
       "runtimeMeasurement": "INSTRUMENTED_VIA_PREFLIGHT",
       "severity": "BLOCKING",
       "violationStatus": "GOVERNANCE_VIOLATION_STALE_AUTHORITY"
+    },
+    {
+      "allowedOverrides": [],
+      "applicableWorkClasses": [
+        "CRITICAL_REASONING",
+        "TARGETED_IMPLEMENTATION",
+        "DETERMINISTIC_LOCAL",
+        "READONLY_AUDIT"
+      ],
+      "defaultState": "ENFORCED",
+      "description": "À la clôture d’une gate sujette à cette règle, une déclaration structurée DEFERRED_CAPABILITY_DECLARATION est obligatoire. [] est valide et signifie qu’aucune capacité newly-introduced n’est différée. Toute id non vide doit résoudre dans le registre canonique comme un deferral OPEN appartenant à ce sourceGate. La prose est irrelevante. La promotion reste une décision Owner distincte.",
+      "name": "Capacité différée enregistrée de façon durable",
+      "overrideAuthority": "NONE",
+      "requiredAdapterCoverage": [
+        "AGENTS.md",
+        "CLAUDE.md",
+        ".cursor/rules/00-wheel-critical-policy.mdc"
+      ],
+      "ruleId": "DEFERRED_CAPABILITY_MUST_BE_DURABLY_REGISTERED",
+      "runtimeMeasurement": "INSTRUMENTED_VIA_FINAL_GATE_INTEGRITY",
+      "severity": "BLOCKING",
+      "violationStatus": "GOVERNANCE_VIOLATION_DEFERRED_CAPABILITY",
+      "effectiveFromGate": "GATE24"
     }
   ],
   "adapterRegistry": [

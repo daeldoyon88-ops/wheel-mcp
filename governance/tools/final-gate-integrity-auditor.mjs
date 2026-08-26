@@ -89,9 +89,10 @@ import { deriveCanonicalAuthorizedCohort } from '../gee-v1/core/canonical-author
 import { deriveCurrentByteAuthorizationProofs, STATUS_AUTHORIZED } from '../gee-v1/core/current-byte-authorization.mjs';
 import { evaluatePrecontractAnchorEnforcement } from './precontract-anchor-enforcement.mjs';
 import { resolveDurableLifecycleRoot } from '../gee-v1/runtime/run-root-lifecycle.mjs';
+import { evaluateDeferredCapabilityClosureDeclaration } from './evaluate-deferred-capability-closure-declaration.mjs';
 
 export const AUDITOR_DOCUMENT = 'FINAL_GATE_INTEGRITY_AUDITOR';
-export const AUDITOR_VERSION = 'R1';
+export const AUDITOR_VERSION = 'R2';
 
 const LEDGER_PATH = 'governance/state/GATE_STATUS_LEDGER.ndjson';
 const REGISTRY_PATH = 'governance/GATE_REGISTRY_00_40.json';
@@ -109,7 +110,7 @@ const SHA256_RE = /^[a-f0-9]{64}$/;
  */
 export const CHECK_FAMILIES = Object.freeze([
   'GIT_COHORT', 'LIFECYCLE', 'LEDGER', 'STATE', 'AUTHORITY',
-  'EVIDENCE', 'GENERATED', 'TEMP', 'GLOBAL_BOUNDARIES'
+  'EVIDENCE', 'GENERATED', 'TEMP', 'GLOBAL_BOUNDARIES', 'DEFERRED_CAPABILITY'
 ]);
 
 function repoPath(root, relativePath) { return path.resolve(root, ...relativePath.split('/')); }
@@ -561,6 +562,25 @@ export function auditFinalGateIntegrity({
     }
   } catch (error) {
     blocking('STATE', 'STATE_REVISION_UNVALIDATABLE', { path: currentStatePath, expected: 'validator completes', actual: error.message });
+  }
+
+
+  /* ---- DEFERRED_CAPABILITY: prospective structured closure registration -- */
+  ran('DEFERRED_CAPABILITY');
+  const deferredCapability = evaluateDeferredCapabilityClosureDeclaration({
+    root,
+    gateId,
+    derivedStatus,
+    stateRevision: currentState?.stateRevision ?? null
+  });
+  for (const item of deferredCapability.findings ?? []) {
+    blocking('DEFERRED_CAPABILITY', item.code, {
+      path: item.path ?? null,
+      expected: item.expected ?? null,
+      actual: item.actual ?? null,
+      message: item.message ?? null,
+      affectedFrontier: 'DEFERRED_CAPABILITY'
+    });
   }
 
   /* ---- AUTHORITY: shape, binding, consumption --------------------------- */

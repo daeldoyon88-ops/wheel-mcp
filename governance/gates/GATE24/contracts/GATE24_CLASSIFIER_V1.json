@@ -1,0 +1,129 @@
+{
+  "document": "GATE24_DOMAIN_CONTRACT",
+  "schemaVersion": 1,
+  "gateId": "GATE24",
+  "contractId": "GATE24_CLASSIFIER_V1",
+  "version": 1,
+  "role": "Classifier and ParameterSet contract",
+  "classification": {
+    "isBuildOutput": true,
+    "isMandateProjection": false,
+    "countedInMandateContractCount": false,
+    "mandateDomainContractCount": 0
+  },
+  "authority": {
+    "mandatePath": "governance/sources/GATE24_CANONICAL_MANDATE_R0.json",
+    "requirementIds": ["G24-BUILD-09", "G24-BUILD-10", "G24-BUILD-11", "G24-BUILD-13"]
+  },
+  "implementationPath": "governance/gates/GATE24/implementation/regime-classifier-v1.mjs",
+  "classifierVersionSchema": "GATE24_ClassifierVersion/1",
+  "parameterSetSchema": "GATE24_ParameterSet/1",
+  "regimeVectorVersionId": "REGIME_VECTOR_V1",
+  "classifierVersionIdentity": {
+    "form": "classifierVersionId = sha256Canonical(payload)",
+    "closureRule": "EXACT_ONLY",
+    "payloadMembers": [
+      "schemaVersion",
+      "classifierVersionLabel",
+      "regimeVectorVersionId",
+      "dimensionTaxonomyVersionIds",
+      "activeRegimeHorizonSpecIds",
+      "classificationQualityRuleVersion",
+      "classificationEvidenceSchemaVersion",
+      "missingnessPolicyVersion"
+    ],
+    "parameterSetIdIsInput": false,
+    "activeRegimeHorizonSpecIds": "exactly one member in CORE_V1, pinned by id, never by a bare session count",
+    "concreteValuePinnedHere": false
+  },
+  "parameterSetIdentity": {
+    "form": "parameterSetId = sha256Canonical(payload)",
+    "closureRule": "EXACT_ONLY",
+    "payloadMembers": [
+      "schemaVersion",
+      "parameterSetLabel",
+      "regimeVectorVersionId",
+      "activeRegimeHorizonSpecIds",
+      "parameters"
+    ],
+    "parameterOrdering": "dimension asc, parameterName asc",
+    "inlineMagicConstants": "FORBIDDEN",
+    "unresolvedParameterCode": "PARAMETER_NOT_IN_BOUND_PARAMETER_SET",
+    "numericValuesPinnedHere": false
+  },
+  "declaredParameterPaths": [
+    "primaryMarketRegime.trendMemberKey",
+    "primaryMarketRegime.trendShortMemberKey",
+    "primaryMarketRegime.drawdownMemberKey",
+    "primaryMarketRegime.liquidityMemberKey",
+    "primaryMarketRegime.bullReturnMin",
+    "primaryMarketRegime.bearReturnMax",
+    "primaryMarketRegime.rangeAbsReturnMax",
+    "primaryMarketRegime.crisisDrawdownMax",
+    "primaryMarketRegime.liquidityStressRatioMin",
+    "primaryMarketRegime.recoveryShortReturnMin",
+    "volatilityState.volatilityMemberKey",
+    "volatilityState.calmMax",
+    "volatilityState.normalMax",
+    "volatilityState.volatileMax",
+    "inflationState.seriesCode",
+    "inflationState.inflationaryMin",
+    "inflationState.disinflationaryMax",
+    "ratesState.seriesCode",
+    "ratesState.risingDeltaMin",
+    "ratesState.fallingDeltaMax",
+    "yieldCurveShape.producerFeatureCode",
+    "yieldCurveDirection.producerFeatureCode"
+  ],
+  "classificationQuality": {
+    "schemaVersion": "GATE24_ClassificationQualityRule/1",
+    "values": ["COMPLETE", "PARTIAL", "INSUFFICIENT", "CONFLICTING"],
+    "evaluationOrder": ["CONFLICTING", "INSUFFICIENT", "PARTIAL", "COMPLETE"],
+    "firstMatchWins": true,
+    "computedOverDimensions": [
+      "primaryMarketRegime",
+      "volatilityState",
+      "inflationState",
+      "ratesState",
+      "yieldCurveShape",
+      "yieldCurveDirection"
+    ],
+    "conflictingDisposition": "NOT_REACHABLE_IN_CORE_V1",
+    "probabilityEmitted": false,
+    "confidenceEmitted": false,
+    "uncalibratedScoreEmitted": false,
+    "isMacroFeatureCompleteness": false
+  },
+  "classificationEvidence": {
+    "schemaVersion": "GATE24_ClassificationEvidence/1",
+    "familyCount": 9,
+    "families": [
+      "trend evidence",
+      "volatility evidence",
+      "drawdown evidence",
+      "liquidity evidence",
+      "inflation evidence",
+      "rates evidence",
+      "curve evidence",
+      "macro coverage",
+      "parameter set used"
+    ],
+    "containsFutureData": false,
+    "futureEnforcement": "max(availableAt) <= knowledgeCutoff",
+    "evidenceSetIdRule": "sha256Canonical of the ordered structure excluding evidenceSetId"
+  },
+  "missingnessPolicyVersion": "GATE24_MissingnessPolicy/1",
+  "missingnessModel": "DIMENSION_LOCAL_FAIL_CLOSED",
+  "inlineConstantsPresent": false,
+  "networkAccess": "NONE",
+  "wallClockAsInput": "NONE",
+  "outcomeAccess": "NONE",
+  "produces": ["RegimeVector(T)", "classificationQuality", "classificationEvidence"],
+  "doesNotProduce": ["prediction", "recommendation", "Wheel decision", "strategy", "calibration", "probability"],
+  "buildDisposition": {
+    "status": "BUILD_CANDIDATE",
+    "buildExecuted": true,
+    "functionalImplementationPresent": true,
+    "outcomeProduced": false
+  }
+}

@@ -1,0 +1,370 @@
+{
+  "document": "EXTERNAL_REINSPECTION_REPORT",
+  "schemaVersion": 1,
+  "reportId": "GATE24_INDEPENDENT_EXTERNAL_CONFIRMATION_R2_EXTERNAL_REINSPECTION_REPORT",
+  "gateId": "GATE24",
+  "programId": "GATE24_INDEPENDENT_EXTERNAL_CONFIRMATION_R2",
+  "verifierId": "GATE24_INDEPENDENT_EXTERNAL_CONFIRMATION_R2",
+  "independentSession": true,
+  "reinspectionMission": "GATE24_INDEPENDENT_EXTERNAL_CONFIRMATION_R2",
+  "reinspectionVerdict": "GATE24_REINSPECTION_PASS",
+  "applySessionDistinctFromReinspection": true,
+  "verdict": "PASS",
+  "reinspectionBasis": "Independent separate-session reinspection of GATE24 COMPLETE_AGENT R0004 / EXECUTION_CONTRACT_R0002. Live prestate remeasured: CURRENT_STATE e2c0794a229b3635ed45962c01ce66202c42561fc3fe57424fa38e073ebbea36; R0004 STATE_SEAL f2a049e3a664c57b47a8d589ef078bb8880b709b19d81bd84ce582f6151058c6; ledger 103 events SHA256 30bba27b2a3e7b7191700639f8f83a5490cda377f1ac9ec04764e4dd33ec23cf head GATE24_AGENT_CLOSURE_R1 ordinal 103; CURRENT_CONTRACT 38aeb21b922a09676c9f46aed9d570d1bb0a13889cfa8157996a74cd8d06b759; EXECUTION_CONTRACT_R0002 0112eee82e92f8f591dd6c4cbc8a9af2cfcea7d86e4e93ae5cabc814f5c82607 byteLength 30675; historical BUILD_CANDIDATE_RECEIPT e488ddc6168b4cae19789a051102ea22a88c242943a2e2f0589ebc2d3af62095; post-closure overlay 975a06d12e259cfa8a863d0a9e240baadab6e2ee3cb6ce47c1f6dcd8637090d6. R2 byte-validation: 24/24 non-maintained original pins, 4/4 maintained overlay pins, unexpectedDrift=0. Five-suite reinspection executed on current bytes: foundation PASS 173, hostiles PASS 352 cases=38 pass=38 fail=0, replay PASS 30, performance PASS 40, coverage PASS 34. Pre/post 29-path SHA/byteLength/mtime deltas all 0; repository test-write count 0. Domain checks from current bytes: CORE_V1 horizon 21 sessions only, activeHorizonCount=1, RegimeRecord EXACT_ONLY 11 members, production calendar BY_REFERENCE_FROM_BOUND_GATE23_FEATURE_SET, fixture calendar not production, classificationQuality CLOSED enumeration, classificationEvidence 9 causal families containsFutureData=false availableAt<=K(T), outcome leakage 0, future leakage 0, macro network 0, macro fetches per ticker 0, replay deterministic, transition PERSIST/CHANGE same RegimeHorizonSpecId only, five deferred dimensions inactive, provenance non-opaque. Lifecycle: R0004 seal valid, R0004 revision LEDGER_ANCHORED seal chain R0001-R0004, event 103 findings empty, GATE24 blocking findings 0, introducedBlockingLedgerFindingCount=0. Historical GATE15/16/17 blocking findings remain baseline. HEAD 36de5ca2337624090ed32c2ef4b1567add2ce0b3. ACTIVE_GATE GATE13. No GATE25 authorization.",
+  "preState": {
+    "baseHead": "36de5ca2337624090ed32c2ef4b1567add2ce0b3",
+    "ledgerEventCount": 103,
+    "ledgerPrefixSha256": "30bba27b2a3e7b7191700639f8f83a5490cda377f1ac9ec04764e4dd33ec23cf",
+    "gateStatus": "COMPLETE_AGENT",
+    "stateRevision": "R0004",
+    "contractRevision": "R0002",
+    "activeGate": "GATE13",
+    "R8ExpectedAbsent": true
+  },
+  "independentChecks": [
+    {
+      "check": "PRESTATE",
+      "result": "GATE24_EXTERNAL_CONFIRMATION_PRESTATE_VALID"
+    },
+    {
+      "check": "LEDGER",
+      "eventCount": 103,
+      "sha256": "30bba27b2a3e7b7191700639f8f83a5490cda377f1ac9ec04764e4dd33ec23cf",
+      "headEventId": "GATE24_AGENT_CLOSURE_R1",
+      "headOrdinal": 103
+    },
+    {
+      "check": "GATE24_STATUS",
+      "result": "COMPLETE_AGENT",
+      "stateRevision": "R0004",
+      "currentStateSha256": "e2c0794a229b3635ed45962c01ce66202c42561fc3fe57424fa38e073ebbea36",
+      "stateSealSha256": "f2a049e3a664c57b47a8d589ef078bb8880b709b19d81bd84ce582f6151058c6",
+      "previousStateSealSha256": "7f8abe9e62f5fd41093357840d2c548025174d014a74acdc44b4dd311f60837c",
+      "checkpointSha256": "f52dbce85c370c349fbc87bbd4b2cba108ff52fd6730e2fd67c0cf9c91435cd5",
+      "openDefectsSha256": "d16f9791533fea78aa310cad149734eff887c8e51cd01952d72d9f2e95dca5a1"
+    },
+    {
+      "check": "COMPLETE_AGENT_EVENT",
+      "eventId": "GATE24_AGENT_CLOSURE_R1",
+      "ordinal": 103,
+      "transitionType": "AGENT_CLOSURE",
+      "eventPayloadSha256": "7f9fde92a6a4b9d5e716ef165ffea7194611045ce422de770e97c8c098a3f563",
+      "unique": true
+    },
+    {
+      "check": "CURRENT_CONTRACT",
+      "contractRevision": "R0002",
+      "pointerSha256": "38aeb21b922a09676c9f46aed9d570d1bb0a13889cfa8157996a74cd8d06b759",
+      "executionContractSha256": "0112eee82e92f8f591dd6c4cbc8a9af2cfcea7d86e4e93ae5cabc814f5c82607",
+      "executionContractByteLength": 30675
+    },
+    {
+      "check": "BUILD_CANDIDATE_RECEIPT",
+      "path": "governance/gates/GATE24/evidence/BUILD_CANDIDATE_RECEIPT.json",
+      "fileSha256": "e488ddc6168b4cae19789a051102ea22a88c242943a2e2f0589ebc2d3af62095",
+      "disposition": "IMMUTABLE_HISTORICAL_BUILD_ATTESTATION",
+      "repinned": false
+    },
+    {
+      "check": "POST_CLOSURE_MAINTENANCE_OVERLAY",
+      "overlayPath": "governance/historical-architecture/GATE24_POST_CLOSURE_MAINTENANCE_DELTA_OVERLAY_R1.json",
+      "overlaySha256": "975a06d12e259cfa8a863d0a9e240baadab6e2ee3cb6ce47c1f6dcd8637090d6",
+      "authorityValid": true,
+      "manifestValid": true,
+      "consumptionValid": true,
+      "authorityPath": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_GATE24_POST_CLOSURE_TEST_HARNESS_FINALIZATION_R1.json",
+      "authoritySha256": "5e52b22d6e7c1343b69aa820b1378875393d38fb5cc2410fef2f2db9c5a62102",
+      "manifestSha256": "5f241fa418cdfd17b6e3966258e2ebb9bf5d1bdf237019ad4ab606e2f97a65ab",
+      "consumptionSha256": "d9693aaeeb5d80e13118344b2fe349021a6118514e5c04694c469185ca85f2e6"
+    },
+    {
+      "check": "R2_BYTE_VALIDATION",
+      "nonMaintainedOriginalPins": "24/24",
+      "maintainedOverlayPins": "4/4",
+      "unexpectedDrift": 0,
+      "receiptUnchanged": true
+    },
+    {
+      "check": "BUILD_EVIDENCE_PINS",
+      "COVERAGE_TRANSITION_REPORT": "a25eed1913499d6e99d383d9e00f4e5437e980ec9b1b99bd284a76963b159d8a",
+      "PERFORMANCE_BUDGET_MEASUREMENT": "69a70d7918719e4463a444f39401bf06f5eae3bb93d1515c1e23038d6f3f9da9",
+      "HOSTILE_MATRIX_RESULT": "af3f281e7a906e772eb2144c7e5bb58e628315df6ad017669fe1ddc56c58a429",
+      "REGIME_PROVENANCE_MANIFEST": "cc0c23ad8cf61c6a5925154da0993edabe7f69c02a43f2b10db3ca9886eef0b7"
+    },
+    {
+      "check": "FIVE_SUITE_REINSPECTION",
+      "testsRerun": true,
+      "foundation": "GATE24_FOUNDATION_PASS 173",
+      "hostiles": "GATE24_HOSTILES_PASS 352 cases=38 pass=38 fail=0",
+      "replay": "GATE24_REPLAY_PASS 30",
+      "performance": "GATE24_PERFORMANCE_PASS 40",
+      "coverage": "GATE24_COVERAGE_PASS 34"
+    },
+    {
+      "check": "READ_ONLY_PROOF",
+      "preTestSnapshotCapturedAt": "2026-08-26T18:51:54.839Z",
+      "postTestSnapshotCapturedAt": "2026-08-26T18:52:36.365Z",
+      "shaDeltaCount": 0,
+      "byteLengthDeltaCount": 0,
+      "mtimeDeltaCount": 0,
+      "repositoryTestWriteCount": 0
+    },
+    {
+      "check": "DOMAIN",
+      "authorizedBuildPaths": 29,
+      "authorizedEqualsRequired": true,
+      "unauthorizedFunctionalBuildPathCount": 0,
+      "coreV1ActiveHorizonSessions": 21,
+      "activeHorizonCount": 1,
+      "regimeRecordClosureRule": "EXACT_ONLY",
+      "regimeRecordMemberCount": 11,
+      "productionCalendarBinding": "BY_REFERENCE_FROM_BOUND_GATE23_FEATURE_SET",
+      "fixtureCalendarPromoted": false,
+      "classificationQualityValues": [
+        "COMPLETE",
+        "PARTIAL",
+        "INSUFFICIENT",
+        "CONFLICTING"
+      ],
+      "classificationEvidenceFamilyCount": 9,
+      "classificationEvidenceCausal": true,
+      "containsFutureData": false,
+      "futureLeakage": 0,
+      "outcomeLeakage": 0,
+      "fixturePromotion": 0,
+      "macroNetworkCalls": 0,
+      "macroFetchesPerTicker": 0,
+      "deterministicReplay": "PASS",
+      "transitionTypes": [
+        "PERSIST",
+        "CHANGE"
+      ],
+      "deferredInactiveDimensionCount": 5,
+      "opaqueRegimeEmitted": false
+    },
+    {
+      "check": "LIFECYCLE",
+      "r0004SealValid": true,
+      "r0004RevisionValid": true,
+      "r0004ResolvedBy": "NATIVE_EVENT_PIN",
+      "r0004AnchorState": "LEDGER_ANCHORED",
+      "event103Findings": 0,
+      "gate24BlockingCount": 0,
+      "introducedBlockingLedgerFindingCount": 0
+    },
+    {
+      "check": "ACTIVE_GATE",
+      "result": "GATE13"
+    },
+    {
+      "check": "HEAD",
+      "sha": "36de5ca2337624090ed32c2ef4b1567add2ce0b3"
+    }
+  ],
+  "buildCohortPins": [
+    {
+      "path": "governance/gates/GATE24/implementation/regime-identity-v1.mjs",
+      "role": "NON_MAINTAINED",
+      "sha256": "dc11037737f3a7a7cb78448bff03f604474e95e1c6d6d85c753da1229560c753",
+      "byteLength": 5516,
+      "match": true
+    },
+    {
+      "path": "governance/gates/GATE24/implementation/causal-admission-v1.mjs",
+      "role": "NON_MAINTAINED",
+      "sha256": "63272aa4dea28852b464572bf8220166ad44037a51bd4b223e4638a5254e55bb",
+      "byteLength": 8277,
+      "match": true
+    },
+    {
+      "path": "governance/gates/GATE24/implementation/regime-horizon-v1.mjs",
+      "role": "NON_MAINTAINED",
+      "sha256": "aed920baa756081efa160445cc80f40ad33c3197bbfef12da9b8d62ca2943b18",
+      "byteLength": 9563,
+      "match": true
+    },
+    {
+      "path": "governance/gates/GATE24/implementation/regime-taxonomy-v1.mjs",
+      "role": "NON_MAINTAINED",
+      "sha256": "29521d9397491cf75a98eca418795951426b1961dc32764dd82f1d26451d2ceb",
+      "byteLength": 12441,
+      "match": true
+    },
+    {
+      "path": "governance/gates/GATE24/implementation/regime-classifier-v1.mjs",
+      "role": "NON_MAINTAINED",
+      "sha256": "6a07315ba7241b98eedcd1413c6ba57f6b393287f0ffe0542f342d149003be28",
+      "byteLength": 31976,
+      "match": true
+    },
+    {
+      "path": "governance/gates/GATE24/implementation/regime-transition-v1.mjs",
+      "role": "NON_MAINTAINED",
+      "sha256": "a8ae51bcc34645f03c5c8b8bee0d732c8235d45439c756795f206b40061a83f7",
+      "byteLength": 8399,
+      "match": true
+    },
+    {
+      "path": "governance/gates/GATE24/implementation/macro-context-binding-v1.mjs",
+      "role": "NON_MAINTAINED",
+      "sha256": "8573c16c717ce89650ae5e18151c3e122ad4bb9223c7c1346cfb885aeb738e43",
+      "byteLength": 11984,
+      "match": true
+    },
+    {
+      "path": "governance/gates/GATE24/implementation/regime-store-v1.mjs",
+      "role": "NON_MAINTAINED",
+      "sha256": "95c51f7ede0961f6f82555ae23fd0af1562d1a11b404e59c755015617991df62",
+      "byteLength": 12937,
+      "match": true
+    },
+    {
+      "path": "governance/gates/GATE24/contracts/GATE24_BINDING_V1.json",
+      "role": "NON_MAINTAINED",
+      "sha256": "7c041d3bbb91ceeafd1029e5c10a2403207c9de5223e318017da5cb62f360650",
+      "byteLength": 7204,
+      "match": true
+    },
+    {
+      "path": "governance/gates/GATE24/contracts/GATE24_REGIME_IDENTITY_V1.json",
+      "role": "NON_MAINTAINED",
+      "sha256": "9a5fb945f4aa98618ab81d65bbd82ce29f15f04b1f7c5c3ba8428c3fd9ff47ec",
+      "byteLength": 3193,
+      "match": true
+    },
+    {
+      "path": "governance/gates/GATE24/contracts/GATE24_CAUSAL_ADMISSION_V1.json",
+      "role": "NON_MAINTAINED",
+      "sha256": "1f9261e932ac6d4e9e43413b5d6e70a3e9b99dca1fc307bf3247fb7d7d9b30d1",
+      "byteLength": 2390,
+      "match": true
+    },
+    {
+      "path": "governance/gates/GATE24/contracts/GATE24_TAXONOMY_V1.json",
+      "role": "NON_MAINTAINED",
+      "sha256": "81811eaa9c47880bff58137a6b5792d3379b13869334f952a6ad33496e71fe3e",
+      "byteLength": 4284,
+      "match": true
+    },
+    {
+      "path": "governance/gates/GATE24/contracts/GATE24_MACRO_CONTEXT_REGISTRY_V1.json",
+      "role": "NON_MAINTAINED",
+      "sha256": "25bcf28150392a8aa41a7c449d4831ce6c323b29d7f77a26e97cd736396380d8",
+      "byteLength": 3052,
+      "match": true
+    },
+    {
+      "path": "governance/gates/GATE24/contracts/GATE24_CLASSIFIER_V1.json",
+      "role": "NON_MAINTAINED",
+      "sha256": "f25e6fdc0de2601db20a8d63958f76cbbf07d55895aa695a2469b9900b16636c",
+      "byteLength": 4793,
+      "match": true
+    },
+    {
+      "path": "governance/gates/GATE24/contracts/GATE24_CONSUMPTION_BOUNDARY_V1.json",
+      "role": "NON_MAINTAINED",
+      "sha256": "781b5cba2123a5b65166bd3db742525b57eac9c38b9093b9bb10e4cdeeca29bf",
+      "byteLength": 3626,
+      "match": true
+    },
+    {
+      "path": "governance/gates/GATE24/tests/gate24-foundation.test.mjs",
+      "role": "MAINTAINED",
+      "sha256": "733748831e9fc8775dadcc4fe925406f394e2e8175394d615833803ad3c38f11",
+      "byteLength": 17185,
+      "match": true
+    },
+    {
+      "path": "governance/gates/GATE24/tests/gate24-hostiles.test.mjs",
+      "role": "MAINTAINED",
+      "sha256": "883ee8b63973bf3abc81ce3058e615e553a19e1ff0b7a91619bba49143a27ca1",
+      "byteLength": 37172,
+      "match": true
+    },
+    {
+      "path": "governance/gates/GATE24/tests/gate24-replay.test.mjs",
+      "role": "NON_MAINTAINED",
+      "sha256": "0a6f325ed73ef1bb9d3acb9a544b0aa4794abadab022248efb5f437a325fb18c",
+      "byteLength": 6136,
+      "match": true
+    },
+    {
+      "path": "governance/gates/GATE24/tests/gate24-performance.test.mjs",
+      "role": "MAINTAINED",
+      "sha256": "f27fb234c4a19614c8c3fd305a1bd69fd12d8ea384f580701c9b0cd52918c0f2",
+      "byteLength": 6153,
+      "match": true
+    },
+    {
+      "path": "governance/gates/GATE24/tests/gate24-coverage.test.mjs",
+      "role": "MAINTAINED",
+      "sha256": "733049f21a33966447239346e2fb50e56e9abd8366aa6e13a6abde3acbd892c5",
+      "byteLength": 7670,
+      "match": true
+    },
+    {
+      "path": "governance/gates/GATE24/fixtures/vintage-causality-fixture.mjs",
+      "role": "NON_MAINTAINED",
+      "sha256": "dbb1d462799c9c16976291b4710b68d7e559f061cf127d1c4f218f2eda48902c",
+      "byteLength": 11231,
+      "match": true
+    },
+    {
+      "path": "governance/gates/GATE24/fixtures/outcome-leakage-fixture.mjs",
+      "role": "NON_MAINTAINED",
+      "sha256": "486b5eb93f29af8de77b1cd405d02ba2d8a045667c28e58ebc3cd5bfde03a1a8",
+      "byteLength": 4155,
+      "match": true
+    },
+    {
+      "path": "governance/gates/GATE24/fixtures/missingness-horizon-fixture.mjs",
+      "role": "NON_MAINTAINED",
+      "sha256": "e46d9fa71fa7c2ea42095e237008bdf25942e03d238d0eecadd498de10608376",
+      "byteLength": 9755,
+      "match": true
+    },
+    {
+      "path": "governance/gates/GATE24/fixtures/deferred-exclusion-fixture.mjs",
+      "role": "NON_MAINTAINED",
+      "sha256": "245e15d595878eefcd3ca3bdc8af286094b1859903f8ce4599ad2ae76479b716",
+      "byteLength": 3897,
+      "match": true
+    },
+    {
+      "path": "governance/gates/GATE24/evidence/BUILD_CANDIDATE_RECEIPT.json",
+      "role": "RECEIPT_SELF",
+      "sha256": "e488ddc6168b4cae19789a051102ea22a88c242943a2e2f0589ebc2d3af62095",
+      "byteLength": 12700,
+      "match": true
+    },
+    {
+      "path": "governance/gates/GATE24/evidence/GATE24_COVERAGE_TRANSITION_REPORT.json",
+      "role": "NON_MAINTAINED",
+      "sha256": "a25eed1913499d6e99d383d9e00f4e5437e980ec9b1b99bd284a76963b159d8a",
+      "byteLength": 2164,
+      "match": true
+    },
+    {
+      "path": "governance/gates/GATE24/evidence/GATE24_PERFORMANCE_BUDGET_MEASUREMENT.json",
+      "role": "NON_MAINTAINED",
+      "sha256": "69a70d7918719e4463a444f39401bf06f5eae3bb93d1515c1e23038d6f3f9da9",
+      "byteLength": 766,
+      "match": true
+    },
+    {
+      "path": "governance/gates/GATE24/evidence/GATE24_HOSTILE_MATRIX_RESULT.json",
+      "role": "NON_MAINTAINED",
+      "sha256": "af3f281e7a906e772eb2144c7e5bb58e628315df6ad017669fe1ddc56c58a429",
+      "byteLength": 5739,
+      "match": true
+    },
+    {
+      "path": "governance/gates/GATE24/evidence/GATE24_REGIME_PROVENANCE_MANIFEST.json",
+      "role": "NON_MAINTAINED",
+      "sha256": "cc0c23ad8cf61c6a5925154da0993edabe7f69c02a43f2b10db3ca9886eef0b7",
+      "byteLength": 4100,
+      "match": true
+    }
+  ],
+  "recordedAt": "2026-08-26T19:00:00.000Z"
+}

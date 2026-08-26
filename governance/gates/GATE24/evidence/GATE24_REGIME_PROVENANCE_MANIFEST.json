@@ -1,0 +1,103 @@
+{
+  "document": "GATE24_REGIME_PROVENANCE_MANIFEST",
+  "schemaVersion": 1,
+  "gateId": "GATE24",
+  "generatedBy": "GATE24_FUNCTIONAL_BUILD_R1",
+  "opaqueRegimeEmitted": false,
+  "regimeRecordIdentity": {
+    "schemaVersion": "GATE24_RegimeRecordIdentity/1",
+    "identity": "RegimeRecordId = sha256Canonical(orderedMembers)",
+    "closureRule": "EXACT_ONLY",
+    "memberCount": 11,
+    "orderedMembers": [
+      "InstrumentIdentityId",
+      "SessionDate",
+      "KnowledgeCutoff",
+      "RegimeHorizonSpecId",
+      "FeatureVectorBindingId",
+      "MacroContextBindingId",
+      "RegimeTaxonomyVersionId",
+      "ClassifierVersionId",
+      "ParameterSetId",
+      "DatasetId_feature",
+      "MissingnessStateId"
+    ],
+    "canonicalization": "governance/tools/canonical-json.mjs::sha256Canonical"
+  },
+  "regimeHorizonSpec": {
+    "schemaVersion": "GATE24_RegimeHorizonSpec/1",
+    "identityForm": "regimeHorizonSpecId = sha256Canonical({ schemaVersion, sessionCount, unit, calendarWindowBindingId })",
+    "sessionCount": 21,
+    "unit": "CANONICAL_DAILY_TRADING_SESSION",
+    "observedSessionCount": 22,
+    "activeHorizonCount": 1,
+    "codeDefaultHorizon": null,
+    "patternSource": "governance/gates/GATE23/implementation/feature-window-v1.mjs",
+    "fixtureScopedRegimeHorizonSpecId": "5e6acd5d706fcba8f1d9b39bd89b5817d6ae889f99ca7bfc689aae291e5c0562",
+    "fixtureScope": "GATE24_FIXTURE_ONLY",
+    "productionValuePinned": false
+  },
+  "productionCalendarBinding": {
+    "resolution": "BY_REFERENCE_FROM_BOUND_GATE23_FEATURE_SET",
+    "createsNewCalendarConcept": false,
+    "literalCalendarBindingIdPresentInImplementationOrDomainContracts": false,
+    "forbiddenFixtureValue": "NOT_PROMOTED",
+    "forbiddenFixtureNamespace": "GATE23_FIXTURE_CALENDAR/1",
+    "buildTestSurfaceNamespace": "GATE24_FIXTURE_CALENDAR/1",
+    "buildTestSurfaceAdmission": {
+      "status": "BLOCKED",
+      "code": "FIXTURE_CALENDAR_NAMESPACE_FORBIDDEN",
+      "calendarWindowBindingId": null
+    },
+    "productionSingleValuedBindingResolved": false,
+    "failClosed": true,
+    "fixturePromoted": false
+  },
+  "classifierVersion": {
+    "schemaVersion": "GATE24_ClassifierVersion/1",
+    "closureRule": "EXACT_ONLY",
+    "parameterSetIdIsInput": false,
+    "activeHorizonPinnedById": true,
+    "fixtureScopedClassifierVersionId": "df58a70eb9f67bcbdb269719e481d750b7e33b0bf7d5f1d92f8f8db03222968c",
+    "fixtureScope": "GATE24_FIXTURE_ONLY",
+    "productionValuePinned": false
+  },
+  "parameterSet": {
+    "schemaVersion": "GATE24_ParameterSet/1",
+    "closureRule": "EXACT_ONLY",
+    "numericValuesPinnedInDomainContract": false,
+    "inlineMagicConstants": false,
+    "fixtureScopedParameterSetId": "2afeff7779ac29d114f412903bf51eef97c8c8652b49f3d387f0a65d0581538e",
+    "fixtureScope": "GATE24_FIXTURE_ONLY",
+    "productionValuePinned": false
+  },
+  "classificationQuality": {
+    "schemaVersion": "GATE24_ClassificationQualityRule/1",
+    "values": ["COMPLETE", "PARTIAL", "INSUFFICIENT", "CONFLICTING"],
+    "conflictingDisposition": "NOT_REACHABLE_IN_CORE_V1",
+    "probabilityEmitted": false
+  },
+  "classificationEvidence": {
+    "schemaVersion": "GATE24_ClassificationEvidence/1",
+    "familyCount": 9,
+    "containsFutureData": false,
+    "futureEnforcement": "max(availableAt) <= knowledgeCutoff"
+  },
+  "causalBoundary": {
+    "knowledgeCutoffFormula": "K(T) = PinnedCanonicalSession(T).closeUtc",
+    "outcomeAccess": "NONE",
+    "futureData": "FORBIDDEN"
+  },
+  "macroBoundary": {
+    "architectureChain": ["FETCH_ONCE", "NORMALIZE", "VERSION_CACHE", "PRECOMPUTE", "REUSE"],
+    "networkDuringClassification": "FORBIDDEN",
+    "perTickerMacroFetch": "FORBIDDEN",
+    "latencyTargetDelta": "ZERO"
+  },
+  "fixtureReplaySample": {
+    "scope": "GATE24_FIXTURE_ONLY",
+    "regimeRecordId": "9f04e4f89c096f1fe8340785e9db8e453c3e27dd78223d55a491cd64b3932ae2",
+    "evidenceSetId": "60f51c54c671e4fc6f891358475d4d6f525d0a8da7ff19c1574eff2e8b5ebe5a",
+    "classificationQuality": "COMPLETE"
+  }
+}

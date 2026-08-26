@@ -1,0 +1,40 @@
+{
+  "document": "GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY",
+  "schemaVersion": 2,
+  "authorityId": "DEFERRED_CAPABILITY_REGISTRY_V1_STEP1_LOCAL_AUTHORITY_R1",
+  "authorityClass": "PROJECT_OWNER_POST_FREEZE_MAINTENANCE_AUTHORITY",
+  "authorityMode": "LOCAL_EXPLICIT_AUTHORITY",
+  "issuedBy": "PROJECT_OWNER",
+  "createdAt": "2026-08-25T20:00:00.000Z",
+  "expiresAt": "2026-12-31T23:59:59.000Z",
+  "targetSystem": "PROJECT_GOVERNANCE",
+  "programId": "DEFERRED_CAPABILITY_REGISTRY_V1_STEP1_R1",
+  "authorityPurpose": "NORMAL_MAINTENANCE",
+  "resumePoint": "CP-DEFERRED-CAPABILITY-REGISTRY-V1-STEP1-R1",
+  "maxUse": 1,
+  "preState": {
+    "baseHead": "927d62362db4dcd175383ce4155e60f7c57f71b7",
+    "ledgerEventCount": 99,
+    "ledgerPrefixSha256": "2d2707462ef4e518abb5153376c1145c39a97981486066eea62edae043f54a57",
+    "gateId": "GATE24",
+    "gateStatus": "NOT_STARTED",
+    "stateRevision": null,
+    "contractRevision": null,
+    "activeGate": "GATE13",
+    "R8ExpectedAbsent": true
+  },
+  "authorizedPathManifestPath": "governance/historical-architecture/DEFERRED_CAPABILITY_REGISTRY_AUTHORIZED_PATHS_R1.json",
+  "authorizedPathManifestSha256": "9d622267fa89e14eb38252545f488da2715a9de151cd912659c32830287089eb",
+  "authorizedOperationClasses": ["MAINTENANCE"],
+  "commitPolicy": {
+    "maxCommitCount": 1,
+    "allowedGitOperations": ["GIT_ADD_PATHSPEC", "GIT_COMMIT"],
+    "commitMessage": "governance: add deferred capability registry v1",
+    "thirdCommitAuthorized": false
+  },
+  "pushAuthorized": false,
+  "authorityPredecessor": null,
+  "authorityHeadBinding": { "mode": "BASE_HEAD", "baseHead": "927d62362db4dcd175383ce4155e60f7c57f71b7" },
+  "consumptionRecordPath": "governance/historical-architecture/DEFERRED_CAPABILITY_REGISTRY_CONSUMPTION_R1.json",
+  "prohibitedOperations": ["START", "SECOND_START", "AGENT_CLOSURE", "EXTERNAL_CONFIRMATION", "COMPLETE_AGENT", "COMPLETE_CONFIRMED", "ACTIVE_GATE_SWITCH", "GEE_R8", "GIT_PUSH", "HISTORY_REWRITE", "THIRD_COMMIT", "UNRELATED_WRITE"]
+}

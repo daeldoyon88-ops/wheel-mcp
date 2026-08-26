@@ -1,0 +1,61 @@
+{
+  "document": "GATE24_DOMAIN_CONTRACT",
+  "schemaVersion": 1,
+  "gateId": "GATE24",
+  "contractId": "GATE24_CAUSAL_ADMISSION_V1",
+  "version": 1,
+  "role": "Causal admission contract",
+  "classification": {
+    "isBuildOutput": true,
+    "isMandateProjection": false,
+    "countedInMandateContractCount": false,
+    "mandateDomainContractCount": 0
+  },
+  "authority": {
+    "mandatePath": "governance/sources/GATE24_CANONICAL_MANDATE_R0.json",
+    "mandatePointer": "/knowledgeCutoffPolicy",
+    "requirementId": "G24-BUILD-07"
+  },
+  "implementationPath": "governance/gates/GATE24/implementation/causal-admission-v1.mjs",
+  "moduleVersion": "GATE24_CausalAdmission/1",
+  "knowledgeCutoffFormula": "K(T) = PinnedCanonicalSession(T).closeUtc",
+  "knowledgeCutoffBoundary": "PINNED_CANONICAL_SESSION_CLOSE_UTC",
+  "cutoffResolution": "read off the unique pinned canonical session record through the referenced CalendarWindowBinding; never derived from a wall-clock convention",
+  "claims": [
+    "NO_OUTCOME_OR_FUTURE_PROVENANCE_DEPENDENCY",
+    "NO_FUTURE_WINDOW_ACCESS"
+  ],
+  "claimCount": 2,
+  "containsFutureData": {
+    "literalBoolean": false,
+    "enforcement": "availableAt <= KnowledgeCutoff is asserted independently; the boolean alone is not proof"
+  },
+  "outcomeProhibition": ["direct", "lagged", "renamed", "same-type laundering"],
+  "forbiddenOutcomeSurfaces": [
+    "DatasetId_outcome",
+    "OutcomeId",
+    "OutcomeStatus",
+    "OutcomeMissingReason",
+    "OutcomeWindowCause",
+    "HorizonId"
+  ],
+  "forbiddenSubstitutionModes": [
+    "LATEST_VALUE_SUBSTITUTION",
+    "FUTURE_VINTAGE_LEAKAGE",
+    "FUTURE_BACKFILL",
+    "SILENT_INTERPOLATION",
+    "UNAUTHORIZED_PROXY_SUBSTITUTION",
+    "FORWARD_FILL_ACROSS_UNKNOWN_PUBLICATION"
+  ],
+  "forbiddenCutoffPrimitive": "marketSession.mjs::sessionCloseUtc",
+  "forbiddenWallClockConstants": ["16:00", "09:30", "20:00", "21:00"],
+  "preserved": "TRUSTED_CANONICAL_PRODUCER_V1",
+  "outcomeDetectorReusedFrom": "governance/gates/GATE23/implementation/causal-admission-v1.mjs",
+  "macroVintageRule": "a later revision of the same observation is a different vintage and may not be substituted backwards",
+  "buildDisposition": {
+    "status": "BUILD_CANDIDATE",
+    "buildExecuted": true,
+    "functionalImplementationPresent": true,
+    "outcomeProduced": false
+  }
+}

@@ -1,0 +1,72 @@
+{
+  "documentKind": "MAINTENANCE_PUBLICATION_ADMISSION",
+  "schemaVersion": 1,
+  "authorityMode": "LOCAL_EXPLICIT_AUTHORITY",
+  "issuedBy": "PROJECT_OWNER",
+  "admissionId": "DEFERRED_CAPABILITY_REGISTRY_V1_STEP2_PUBLICATION_ADMISSION_R1",
+  "decisionId": "DEFERRED_CAPABILITY_REGISTRY_V1_STEP2_OWNER_DECISION_R1",
+  "issuedAtUtc": "2026-08-26T03:30:00.000Z",
+  "expiresAtUtc": null,
+  "projectId": "WHEEL",
+  "repositoryId": "WHEEL_MCP_CANONICAL",
+  "gateId": "GATE24",
+  "programId": "DEFERRED_CAPABILITY_REGISTRY_V1_STEP2_R1",
+  "purpose": "MAINTENANCE_PUBLICATION_ADMISSION",
+  "publicationClass": "PATH_PRESTATE_PROGRAM_PUBLISHER",
+  "authorityPurpose": "NORMAL_MAINTENANCE",
+  "maxUse": 1,
+  "admissionStatement": "One exact Owner admission for the bounded DEFERRED_CAPABILITY_REGISTRY_V1 STEP2 project-wide governance maintenance publication. gateId GATE24 is an ADMINISTRATIVE FILING CONTEXT required by this primitive and nothing more: this admission grants no GATE24 PRECONTRACT, START, BUILD, lifecycle transition, gate execution authority or ACTIVE_GATE change.",
+  "admittedAuthority": {
+    "path": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_DEFERRED_CAPABILITY_REGISTRY_STEP2_R1.json",
+    "sha256": "e24dcfb02b9e3515f67c2a93ae6069a2ec37df7e1e1ced1d80552d2dc4d2f63f",
+    "byteLength": 2113,
+    "schemaVersion": 2,
+    "documentId": "DEFERRED_CAPABILITY_REGISTRY_V1_STEP2_LOCAL_AUTHORITY_R1"
+  },
+  "admittedManifest": {
+    "path": "governance/historical-architecture/DEFERRED_CAPABILITY_REGISTRY_STEP2_AUTHORIZED_PATHS_R1.json",
+    "sha256": "8313754cbe517946f5de5d5b532add106d57f4652dac08970f571d0657708319",
+    "byteLength": 6981,
+    "schemaVersion": 2,
+    "documentId": "DEFERRED_CAPABILITY_REGISTRY_STEP2_AUTHORIZED_PATHS_R1"
+  },
+  "admittedPrestate": {
+    "baseHead": "927d62362db4dcd175383ce4155e60f7c57f71b7",
+    "ledgerEventCount": 99,
+    "ledgerPrefixSha256": "2d2707462ef4e518abb5153376c1145c39a97981486066eea62edae043f54a57",
+    "gateId": "GATE24",
+    "gateStatus": "NOT_STARTED",
+    "stateRevision": null,
+    "contractRevision": null,
+    "activeGate": "GATE13",
+    "R8ExpectedAbsent": true
+  },
+  "admittedOperationClasses": [
+    "MAINTENANCE"
+  ],
+  "grantsFutureBytePermission": false,
+  "grantsGateAuthorizationPermission": false,
+  "grantsStartPermission": false,
+  "grantsStatusTransitionPermission": false,
+  "grantsHistoricalAdmissionWidening": false,
+  "genericV1Admission": false,
+  "derivedFromGitDelta": false,
+  "derivedFromFinalGateIntegrityFindings": false,
+  "prohibitedOperations": [
+    "START",
+    "SECOND_START",
+    "GATE_AUTHORIZATION",
+    "STATUS_TRANSITION",
+    "ACTIVE_GATE_SWITCH",
+    "GEE_R8",
+    "GIT_PUSH",
+    "HISTORY_REWRITE",
+    "GENERIC_V1_ADMISSION",
+    "HISTORICAL_ADMISSION_WIDENING",
+    "SELF_ADMISSION"
+  ],
+  "successorRequirement": "A later publication requires a new exact Owner admission over a new exact pre-state.",
+  "admissionDigest": "d20a61b902d0bbde6a6db981c34ff0477fd1c247aa6b5fcbca56e1af4ff1b38d",
+  "ownerAuthorizationPath": "governance/sources/MAINTENANCE_PUBLICATION_ADMISSION_OWNER_AUTHORIZATION_DEFERRED_CAPABILITY_REGISTRY_STEP2_R1.json",
+  "ownerAuthorizationSha256": "20b16f424616824d827b201f054e605bc1aba7a9cc1666e2803c496f832111a5"
+}

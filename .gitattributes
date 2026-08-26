@@ -7,3 +7,6 @@ research/directional-lab/test/fixtures/cas/** -text
 # preflight would report LEDGER_INVALID before any work could start. Same
 # reason, same mechanism as the content-addressed fixtures above.
 governance/** -text
+AGENTS.md text eol=lf
+CLAUDE.md text eol=lf
+.cursor/rules/00-wheel-critical-policy.mdc text eol=lf

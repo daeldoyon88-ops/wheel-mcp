@@ -1,0 +1,108 @@
+{
+  "documentKind": "POST_FREEZE_MAINTENANCE_AUTHORIZED_PATH_MANIFEST",
+  "schemaVersion": 2,
+  "manifestId": "GATE24_POST_CLOSURE_TEST_HARNESS_FINALIZATION_AUTHORIZED_PATHS_R1",
+  "programId": "GATE24_POST_CLOSURE_TEST_HARNESS_FINALIZATION_R1",
+  "prestateSelfExclusion": [
+    {
+      "path": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_GATE24_POST_CLOSURE_TEST_HARNESS_FINALIZATION_R1.json",
+      "role": "AUTHORITY_DOCUMENT",
+      "reason": "The authority document is a causally prior publisher input and remains bound by the exact V2 self-exclusion."
+    },
+    {
+      "path": "governance/historical-architecture/GATE24_POST_CLOSURE_TEST_HARNESS_FINALIZATION_AUTHORIZED_PATHS_R1.json",
+      "role": "AUTHORIZED_PATH_MANIFEST",
+      "reason": "The manifest is a causally prior publisher input and remains bound by the exact V2 self-exclusion."
+    }
+  ],
+  "paths": [
+    {
+      "path": "governance/gates/GATE24/tests/gate24-foundation.test.mjs",
+      "operation": "MODIFY",
+      "phase": "MAINTENANCE",
+      "reason": "Ratify the lifecycle-stable BUILD-cohort inventory repair applied under the prior PROJECT_OWNER post-closure authorization; this program records the delta durably and does not re-modify the file.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "PRESENT",
+        "sha256": "2bc50b74fb8b29822eb5a004b5b622e29e4fc4fe6d82898ff670a37fccfeff66",
+        "byteLength": 13133
+      }
+    },
+    {
+      "path": "governance/gates/GATE24/tests/gate24-performance.test.mjs",
+      "operation": "MODIFY",
+      "phase": "MAINTENANCE",
+      "reason": "Ratify the read-only performance-harness repair applied under the prior PROJECT_OWNER post-closure authorization; this program records the delta durably and does not re-modify the file.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "PRESENT",
+        "sha256": "1ae75e09ceaa7b266f5f29d21edac5061d1750c2a7f1ae02620fadcd1feb169a",
+        "byteLength": 4483
+      }
+    },
+    {
+      "path": "governance/gates/GATE24/tests/gate24-hostiles.test.mjs",
+      "operation": "MODIFY",
+      "phase": "MAINTENANCE",
+      "reason": "Remove canonical evidence regeneration so hostile-matrix execution is repository-read-only; the emitted bytes are now asserted equal to the pinned artifact instead of overwriting it.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "PRESENT",
+        "sha256": "d6efca54fe8ea436c20132855ff289937c7195af6273b6e62e518a8e4d190e01",
+        "byteLength": 36393
+      }
+    },
+    {
+      "path": "governance/gates/GATE24/tests/gate24-coverage.test.mjs",
+      "operation": "MODIFY",
+      "phase": "MAINTENANCE",
+      "reason": "Remove canonical evidence regeneration so coverage execution is repository-read-only; the emitted bytes are now asserted equal to the pinned artifact instead of overwriting it.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "PRESENT",
+        "sha256": "6a99fe2f091bd18703ca557dff5e2722eeb5e791e9b4cb7aa24414b333ebc13f",
+        "byteLength": 7217
+      }
+    },
+    {
+      "path": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_GATE24_POST_CLOSURE_TEST_HARNESS_FINALIZATION_R1.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "Causally-prior authority document.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "governance/historical-architecture/GATE24_POST_CLOSURE_TEST_HARNESS_FINALIZATION_AUTHORIZED_PATHS_R1.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "Causally-prior authorized-path manifest.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "governance/historical-architecture/GATE24_POST_CLOSURE_MAINTENANCE_DELTA_OVERLAY_R1.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "Durable GATE24 post-closure maintenance delta overlay binding the immutable historical BUILD receipt to the ratified maintenance hashes.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "governance/historical-architecture/GATE24_POST_CLOSURE_TEST_HARNESS_FINALIZATION_CONSUMPTION_R1.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "Post-freeze maintenance publication consumption receipt.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    }
+  ]
+}

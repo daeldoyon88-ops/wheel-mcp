@@ -1,0 +1,41 @@
+{
+  "document": "DEFERRED_CAPABILITY_REASON_VOCABULARY",
+  "schemaVersion": 1,
+  "vocabularyVersion": "V1",
+  "canonical": true,
+  "statement": "The closed set of reasons a capability may be deferred at vocabulary version V1. Every entry in the deferred capability registry pins the vocabulary version it was written against, so a later version can never retroactively change what a past event meant.",
+  "sourceOfTruth": {
+    "path": "governance/sources/GATE24_CANONICAL_MANDATE_R0.json",
+    "pointer": "/gate24DeferredCapabilities/reasonVocabulary",
+    "ratificationStatus": "OWNER_CONFIRMED_IN_REPAIR_4",
+    "bindingMode": "SEEDED_VERBATIM",
+    "note": "V1 is seeded verbatim from the Owner-ratified GATE24 mandate vocabulary. The mandate is not modified, referenced by path only, and remains the semantic authority for the tokens it defines."
+  },
+  "reasonRule": "Every deferred capability carries at least one reason from the pinned vocabulary version. A reason of \"later\", an empty reason or a missing reason is forbidden and is a defect.",
+  "extensionPolicy": {
+    "mode": "ADDITIVE_ONLY",
+    "renameForbidden": true,
+    "removalForbidden": true,
+    "requires": "A new vocabulary version document authorized by an explicit Owner decision. Renaming or removing a token would silently rewrite the meaning of already-written events.",
+    "nonAuthoritativeSpellings": [
+      "RELEASE_TIMESTAMP_UNCERTAIN",
+      "CLASSIFIER_ROLE_NOT_PROVEN",
+      "REDUNDANCY_NOT_EVALUATED",
+      "BELONGS_TO_LATER_PREDICTIVE_GATE",
+      "NOT_REQUIRED_BY_CURRENT_CORE"
+    ],
+    "nonAuthoritativeSpellingsNote": "Paraphrases that appeared in working prose. They are NOT vocabulary tokens and are rejected; the ratified spellings below are authoritative."
+  },
+  "reasons": [
+    { "token": "CAUSAL_VINTAGE_PROOF_INCOMPLETE", "meaning": "The causal vintage of the inputs is not yet proven." },
+    { "token": "CANONICAL_IDENTITY_ABSENT", "meaning": "The capability has no canonical identity yet." },
+    { "token": "AVAILABLE_AT_POLICY_INCOMPLETE", "meaning": "The availableAt policy is not yet complete." },
+    { "token": "RELEASE_TIMESTAMP_UNCERTAINTY", "meaning": "Release timestamps carry unresolved uncertainty." },
+    { "token": "HISTORICAL_COVERAGE_INSUFFICIENT", "meaning": "Historical coverage is insufficient to activate." },
+    { "token": "CLASSIFIER_ROLE_NOT_YET_PROVEN", "meaning": "The classifying role of the capability is not yet proven." },
+    { "token": "REDUNDANT_INFORMATION_NOT_YET_EVALUATED", "meaning": "Possible redundancy against active inputs is not yet evaluated." },
+    { "token": "PREDICTIVE_VALUE_BELONGS_TO_LATER_GATE", "meaning": "Predictive value is owned by a later gate, not this one." },
+    { "token": "TAXONOMY_INTENTIONALLY_DEFERRED", "meaning": "The taxonomy for this capability is intentionally deferred." },
+    { "token": "NOT_REQUIRED_BY_CORE_V1", "meaning": "The capability is not required by the current CORE_V1 scope." }
+  ]
+}

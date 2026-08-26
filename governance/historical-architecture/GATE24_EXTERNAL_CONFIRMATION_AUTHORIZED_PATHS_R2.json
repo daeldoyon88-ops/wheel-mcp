@@ -1,0 +1,85 @@
+{
+  "documentKind": "POST_FREEZE_MAINTENANCE_AUTHORIZED_PATH_MANIFEST",
+  "schemaVersion": 1,
+  "manifestId": "GATE24_EXTERNAL_CONFIRMATION_AUTHORIZED_PATHS_R2",
+  "programId": "GATE24_INDEPENDENT_EXTERNAL_CONFIRMATION_R2",
+  "paths": [
+    {
+      "path": "governance/sources/GATE24_INDEPENDENT_EXTERNAL_CONFIRMATION_R2_EXTERNAL_REINSPECTION_REPORT.json",
+      "operation": "CREATE",
+      "phase": "EXTERNAL_CONFIRMATION",
+      "reason": "Independent external reinspection report bound to the GATE24 COMPLETE_AGENT R0004 pre-state, historical BUILD receipt, post-closure overlay and five-suite reinspection.",
+      "artifactClass": "EXTERNAL_CONFIRMATION"
+    },
+    {
+      "path": "governance/gee-v1/adapters/wheel/external-authority-policy.mjs",
+      "operation": "MODIFY",
+      "phase": "EXTERNAL_CONFIRMATION",
+      "reason": "Registers the GATE24 independent reinspection report as the COMPLETE_CONFIRMED external authority, cited by repository path.",
+      "artifactClass": "EXTERNAL_CONFIRMATION"
+    },
+    {
+      "path": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_GATE24_EXTERNAL_CONFIRMATION_R2.json",
+      "operation": "CREATE",
+      "phase": "EXTERNAL_CONFIRMATION",
+      "reason": "Single-use LOCAL_EXPLICIT_AUTHORITY bound to the exact GATE24 COMPLETE_AGENT pre-state for one EXTERNAL_CONFIRMATION.",
+      "artifactClass": "EXTERNAL_CONFIRMATION"
+    },
+    {
+      "path": "governance/historical-architecture/GATE24_EXTERNAL_CONFIRMATION_AUTHORIZED_PATHS_R2.json",
+      "operation": "CREATE",
+      "phase": "EXTERNAL_CONFIRMATION",
+      "reason": "Finite exact-file GATE24 confirmation cohort with no wildcard or directory blanket.",
+      "artifactClass": "EXTERNAL_CONFIRMATION"
+    },
+    {
+      "path": "governance/historical-architecture/GATE24_EXTERNAL_CONFIRMATION_CONSUMPTION_R2.json",
+      "operation": "CREATE",
+      "phase": "EXTERNAL_CONFIRMATION",
+      "reason": "Single-use consumption record binding the GATE24 confirmation authority, manifest and transaction.",
+      "artifactClass": "EXTERNAL_CONFIRMATION"
+    },
+    {
+      "path": "governance/gates/GATE24/state/revisions/R0005/CHECKPOINT.json",
+      "operation": "CREATE",
+      "phase": "EXTERNAL_CONFIRMATION",
+      "reason": "Successor checkpoint consuming the R0004 COMPLETE_AGENT handoff.",
+      "artifactClass": "EXTERNAL_CONFIRMATION"
+    },
+    {
+      "path": "governance/gates/GATE24/state/revisions/R0005/OPEN_DEFECTS.json",
+      "operation": "CREATE",
+      "phase": "EXTERNAL_CONFIRMATION",
+      "reason": "Closed-world R0005 defect projection preserving the zero blocking-defect state.",
+      "artifactClass": "EXTERNAL_CONFIRMATION"
+    },
+    {
+      "path": "governance/gates/GATE24/state/revisions/R0005/STATE_SEAL.json",
+      "operation": "CREATE",
+      "phase": "EXTERNAL_CONFIRMATION",
+      "reason": "Native R0005 state seal chained from R0004 and pinned by the confirmation event.",
+      "artifactClass": "EXTERNAL_CONFIRMATION"
+    },
+    {
+      "path": "governance/gates/GATE24/state/CURRENT_STATE.json",
+      "operation": "MODIFY",
+      "phase": "EXTERNAL_CONFIRMATION",
+      "reason": "Advance the canonical GATE24 state pointer to COMPLETE_CONFIRMED R0005.",
+      "artifactClass": "EXTERNAL_CONFIRMATION"
+    },
+    {
+      "path": "governance/state/GATE_STATUS_LEDGER.ndjson",
+      "operation": "MODIFY",
+      "phase": "EXTERNAL_CONFIRMATION",
+      "reason": "Append exactly one canonical GATE24 EXTERNAL_CONFIRMATION event; every earlier event stays byte-identical.",
+      "artifactClass": "EXTERNAL_CONFIRMATION"
+    },
+    {
+      "path": "governance/state/generated/GATE_STATUS_SNAPSHOT.json",
+      "operation": "MODIFY",
+      "phase": "EXTERNAL_CONFIRMATION",
+      "reason": "Regenerate the derived status projection from the post-confirmation canonical ledger.",
+      "artifactClass": "EXTERNAL_CONFIRMATION"
+    }
+  ]
+}

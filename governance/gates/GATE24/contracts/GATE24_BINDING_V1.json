@@ -1,0 +1,157 @@
+{
+  "document": "GATE24_DOMAIN_CONTRACT",
+  "schemaVersion": 1,
+  "gateId": "GATE24",
+  "contractId": "GATE24_BINDING_V1",
+  "version": 1,
+  "role": "GATE24 binding pins and consumption surface",
+  "classification": {
+    "isBuildOutput": true,
+    "isMandateProjection": false,
+    "countedInMandateContractCount": false,
+    "mandateDomainContractCount": 0,
+    "note": "GATE24_CANONICAL_MANDATE_R0 creates no domain contract. This file is an output of the authorized GATE24 functional BUILD under EXECUTION_CONTRACT_R0002, not a mandate projection."
+  },
+  "authority": {
+    "mandatePath": "governance/sources/GATE24_CANONICAL_MANDATE_R0.json",
+    "executionContractPath": "governance/gates/GATE24/contracts/EXECUTION_CONTRACT_R0002.json",
+    "executionContractRevision": "R0002",
+    "stateRevision": "R0003",
+    "buildScope": "GATE24_R0002_FROZEN_29_PATHS_ONLY"
+  },
+  "moduleVersions": {
+    "regimeRecordIdentity": "GATE24_RegimeRecordIdentity/1",
+    "causalAdmission": "GATE24_CausalAdmission/1",
+    "regimeHorizonSpec": "GATE24_RegimeHorizonSpec/1",
+    "regimeTaxonomy": "GATE24_RegimeTaxonomy/1",
+    "classifierVersion": "GATE24_ClassifierVersion/1",
+    "parameterSet": "GATE24_ParameterSet/1",
+    "classificationQualityRule": "GATE24_ClassificationQualityRule/1",
+    "classificationEvidence": "GATE24_ClassificationEvidence/1",
+    "missingnessPolicy": "GATE24_MissingnessPolicy/1",
+    "macroContextBinding": "GATE24_MacroContextBinding/1",
+    "transitionSemantics": "GATE24_TransitionSemantics/1",
+    "regimeStore": "GATE24_RegimeStore/1",
+    "regimeRecord": "GATE24_RegimeRecord/1"
+  },
+  "consumedUpstreamSurfaces": [
+    {
+      "surface": "governance/tools/canonical-json.mjs",
+      "symbols": ["sha256Canonical", "canonicalize"],
+      "mutated": false
+    },
+    {
+      "surface": "governance/gates/GATE23/implementation/feature-window-v1.mjs",
+      "symbols": [
+        "FEATURE_WINDOW_LADDER_V1",
+        "TRADING_SESSION_UNIT_V1",
+        "resolvePinnedCanonicalSession",
+        "refuseWallClockCutoff",
+        "FORBIDDEN_CUTOFF_PRIMITIVE",
+        "FORBIDDEN_WALL_CLOCK_CONSTANTS",
+        "KNOWLEDGE_CUTOFF_BOUNDARY_V1"
+      ],
+      "mutated": false
+    },
+    {
+      "surface": "governance/gates/GATE23/implementation/causal-admission-v1.mjs",
+      "symbols": ["refuseOutcomeAsFeature", "TRUSTED_CANONICAL_PRODUCER_V1"],
+      "mutated": false
+    }
+  ],
+  "calendarWindowBinding": {
+    "createsNewCalendarConcept": false,
+    "constructsCalendarWindowBinding": false,
+    "callsCreateCalendarWindowBinding": false,
+    "resolution": "BY_REFERENCE_FROM_BOUND_GATE23_FEATURE_SET",
+    "singleValuedness": "FAIL_CLOSED_IF_NOT_SINGLE_VALUED",
+    "notSingleValuedCode": "CALENDAR_WINDOW_BINDING_NOT_SINGLE_VALUED",
+    "literalCalendarBindingIdPresent": false,
+    "forbiddenFixtureNamespaces": ["GATE23_FIXTURE_CALENDAR/1", "GATE24_FIXTURE_CALENDAR/1"],
+    "fixturePromotion": "FORBIDDEN",
+    "productionAdmission": "admitProductionCalendarWindowBinding",
+    "productionRuntimeSurface": "resolved when a GATE23 production FeatureSet is bound; BUILD does not invent a production CalendarWindowBinding"
+  },
+  "coreV1HorizonPolicy": {
+    "sessionCount": 21,
+    "activeHorizonCount": 1,
+    "unit": "CANONICAL_DAILY_TRADING_SESSION",
+    "observedSessionCount": 22,
+    "codeDefaultHorizon": null,
+    "consumerMustBindExplicitly": true,
+    "multiHorizonActivation": "DEFERRED_TO_FUTURE_VERSION"
+  },
+  "identityMaterialization": {
+    "regimeHorizonSpecId": "BUILD-materialized after resolving calendarWindowBindingId by reference; no concrete value is pinned here",
+    "classifierVersionId": "BUILD-materialized by sha256Canonical of GATE24_ClassifierVersion/1 payload; ParameterSetId is not an input",
+    "parameterSetId": "BUILD-materialized by sha256Canonical of GATE24_ParameterSet/1 payload; no numeric value is pinned here",
+    "fixtureScopedIdentities": "fixtures only; never production provenance"
+  },
+  "transform": "FeatureRecord(T) + prepared macro context -> RegimeRecord(T)",
+  "doesNotProduce": [
+    "prediction",
+    "recommendation",
+    "Wheel decision",
+    "strategy",
+    "calibration",
+    "probability",
+    "Outcome",
+    "CalendarWindowBinding"
+  ],
+  "notModified": [
+    "governance/gates/GATE21",
+    "governance/gates/GATE22",
+    "governance/gates/GATE23",
+    "governance/gee-v1",
+    "research/directional-lab",
+    "governance/master-matrix/DEFERRED_CAPABILITY_REGISTRY.ndjson",
+    "governance/generated/DEFERRED_CAPABILITY_INDEX_V1.json",
+    "governance/active/ACTIVE_GATE.json"
+  ],
+  "exactWorkset": [
+    "governance/gates/GATE24/implementation/regime-identity-v1.mjs",
+    "governance/gates/GATE24/implementation/causal-admission-v1.mjs",
+    "governance/gates/GATE24/implementation/regime-horizon-v1.mjs",
+    "governance/gates/GATE24/implementation/regime-taxonomy-v1.mjs",
+    "governance/gates/GATE24/implementation/regime-classifier-v1.mjs",
+    "governance/gates/GATE24/implementation/regime-transition-v1.mjs",
+    "governance/gates/GATE24/implementation/macro-context-binding-v1.mjs",
+    "governance/gates/GATE24/implementation/regime-store-v1.mjs",
+    "governance/gates/GATE24/contracts/GATE24_BINDING_V1.json",
+    "governance/gates/GATE24/contracts/GATE24_REGIME_IDENTITY_V1.json",
+    "governance/gates/GATE24/contracts/GATE24_CAUSAL_ADMISSION_V1.json",
+    "governance/gates/GATE24/contracts/GATE24_TAXONOMY_V1.json",
+    "governance/gates/GATE24/contracts/GATE24_MACRO_CONTEXT_REGISTRY_V1.json",
+    "governance/gates/GATE24/contracts/GATE24_CLASSIFIER_V1.json",
+    "governance/gates/GATE24/contracts/GATE24_CONSUMPTION_BOUNDARY_V1.json",
+    "governance/gates/GATE24/tests/gate24-foundation.test.mjs",
+    "governance/gates/GATE24/tests/gate24-hostiles.test.mjs",
+    "governance/gates/GATE24/tests/gate24-replay.test.mjs",
+    "governance/gates/GATE24/tests/gate24-performance.test.mjs",
+    "governance/gates/GATE24/tests/gate24-coverage.test.mjs",
+    "governance/gates/GATE24/fixtures/vintage-causality-fixture.mjs",
+    "governance/gates/GATE24/fixtures/outcome-leakage-fixture.mjs",
+    "governance/gates/GATE24/fixtures/missingness-horizon-fixture.mjs",
+    "governance/gates/GATE24/fixtures/deferred-exclusion-fixture.mjs",
+    "governance/gates/GATE24/evidence/BUILD_CANDIDATE_RECEIPT.json",
+    "governance/gates/GATE24/evidence/GATE24_COVERAGE_TRANSITION_REPORT.json",
+    "governance/gates/GATE24/evidence/GATE24_PERFORMANCE_BUDGET_MEASUREMENT.json",
+    "governance/gates/GATE24/evidence/GATE24_HOSTILE_MATRIX_RESULT.json",
+    "governance/gates/GATE24/evidence/GATE24_REGIME_PROVENANCE_MANIFEST.json"
+  ],
+  "exactWorksetCount": 29,
+  "add": "NONE",
+  "remove": "NONE",
+  "wildcard": false,
+  "directoryWidePath": false,
+  "buildprepPath": false,
+  "buildDisposition": {
+    "status": "BUILD_CANDIDATE",
+    "buildExecuted": true,
+    "functionalImplementationPresent": true,
+    "outcomeProduced": false,
+    "closureExecuted": false,
+    "agentClosureExecuted": false,
+    "externalConfirmationExecuted": false
+  }
+}

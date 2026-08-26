@@ -1,0 +1,120 @@
+{
+  "documentKind": "POST_FREEZE_MAINTENANCE_AUTHORITY_CONSUMPTION",
+  "schemaVersion": 2,
+  "authorityId": "DEFERRED_CAPABILITY_REGISTRY_V1_STEP1_LOCAL_AUTHORITY_R1",
+  "programId": "DEFERRED_CAPABILITY_REGISTRY_V1_STEP1_R1",
+  "manifestSha256": "9d622267fa89e14eb38252545f488da2715a9de151cd912659c32830287089eb",
+  "baseHead": "927d62362db4dcd175383ce4155e60f7c57f71b7",
+  "consumedUse": 1,
+  "transactionId": "DEFERRED_CAPABILITY_REGISTRY_V1_STEP1_R1_TRANSACTION",
+  "recordedAt": "2026-08-26T02:34:17.054Z",
+  "commitMessage": "governance: add deferred capability registry v1",
+  "publicationAdmission": {
+    "admissionId": "DEFERRED_CAPABILITY_REGISTRY_V1_STEP1_PUBLICATION_ADMISSION_R1",
+    "admissionPath": "governance/authority/publication-admissions/GATE24/DEFERRED_CAPABILITY_REGISTRY_V1_STEP1_PUBLICATION_ADMISSION_R1.json",
+    "admissionSha256": "4221d61c719e0ed52cec198dbee27c145030130ee8382730c2e4c38e506a3f0b"
+  },
+  "cohortSelfExclusion": {
+    "path": "governance/historical-architecture/DEFERRED_CAPABILITY_REGISTRY_CONSUMPTION_R1.json",
+    "reason": "The consumption record cannot hash its own final bytes; its identity is bound by the authority and manifest instead."
+  },
+  "cohortPathCount": 13,
+  "cohort": [
+    {
+      "path": "governance/schemas/deferred-capability-event.schema.json",
+      "sha256": "f5598efb591e34bc5f088e78cdb856729ad546693e97ddcd50f85a27b4135977",
+      "byteLength": 3585,
+      "operation": "CREATE",
+      "reason": "Registry event schema.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "governance/master-matrix/DEFERRED_CAPABILITY_REASON_VOCABULARY_V1.json",
+      "sha256": "6c8acc9be6c4297e4f75a6d72ecb5e7e717c75c87759370afaa82da5ed8daa93",
+      "byteLength": 2983,
+      "operation": "CREATE",
+      "reason": "Ratified deferred-capability reason vocabulary V1.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "governance/master-matrix/DEFERRED_CAPABILITY_REGISTRY.ndjson",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "byteLength": 0,
+      "operation": "CREATE",
+      "reason": "Canonical append-only hash-chained deferred capability registry.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "governance/tools/validate-deferred-capability-registry.mjs",
+      "sha256": "3826cf23ed5962b13ed761496050da288edda4cd1d04d6ce15a534dbefd097a6",
+      "byteLength": 23864,
+      "operation": "CREATE",
+      "reason": "Deterministic registry replay validator.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "governance/tools/generate-deferred-capability-index.mjs",
+      "sha256": "7b3ec3bae96585d2deeacf871770437323e29a3efd54cb6645307cb723425032",
+      "byteLength": 8599,
+      "operation": "CREATE",
+      "reason": "Generated deferred-capability index producer.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "governance/generated/DEFERRED_CAPABILITY_INDEX_V1.json",
+      "sha256": "14c50a6c6a8c677d6b7d234dc36fae7454ef199cdac7065b248c61b653eda256",
+      "byteLength": 806,
+      "operation": "CREATE",
+      "reason": "Generated non-canonical resolved deferred-capability projection.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "governance/generated/DEFERRED_CAPABILITY_INDEX_V1_PROVENANCE.json",
+      "sha256": "a158d128721d0642eb4614382f218a4863c95c1baba63f5baedb07cc4b9ff2b6",
+      "byteLength": 807,
+      "operation": "CREATE",
+      "reason": "Generated-document provenance for deferred-capability index.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "governance/tests/deferred-capability-registry.test.mjs",
+      "sha256": "b0ed68c88d5a6b41b9eacf35d2f53e98a2c3f3a13e51e58e1b5a7d8f87434264",
+      "byteLength": 14288,
+      "operation": "CREATE",
+      "reason": "Deferred-capability registry test suite.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "governance/tests/deferred-capability-hostile-battery.test.mjs",
+      "sha256": "58b473d5e181bb0a6e489c0ce9d6990cecc5c39c376f266956eee75c62668074",
+      "byteLength": 22755,
+      "operation": "CREATE",
+      "reason": "Independent hostile battery for deferred-capability registry.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "governance/tools/gate-preexecution-reuse-check.mjs",
+      "sha256": "862a8dc5608988918e7bc1e06db8feb867d4f07cfac14ea01097411f3ba89883",
+      "byteLength": 34436,
+      "operation": "MODIFY",
+      "reason": "Consume generated deferred-capability readiness projection.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_DEFERRED_CAPABILITY_REGISTRY_R1.json",
+      "sha256": "89fa96db0d9c1ba7bcf6b51bf3c91f482085042ad2dbdbe4feabf968afcce7ec",
+      "byteLength": 2000,
+      "operation": "CREATE",
+      "reason": "Causally-prior authority document.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "governance/historical-architecture/DEFERRED_CAPABILITY_REGISTRY_AUTHORIZED_PATHS_R1.json",
+      "sha256": "9d622267fa89e14eb38252545f488da2715a9de151cd912659c32830287089eb",
+      "byteLength": 4896,
+      "operation": "CREATE",
+      "reason": "Causally-prior authorized-path manifest.",
+      "artifactClass": "MAINTENANCE"
+    }
+  ]
+}

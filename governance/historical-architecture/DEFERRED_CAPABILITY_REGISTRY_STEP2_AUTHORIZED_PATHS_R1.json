@@ -1,0 +1,200 @@
+{
+  "documentKind": "POST_FREEZE_MAINTENANCE_AUTHORIZED_PATH_MANIFEST",
+  "schemaVersion": 2,
+  "manifestId": "DEFERRED_CAPABILITY_REGISTRY_STEP2_AUTHORIZED_PATHS_R1",
+  "programId": "DEFERRED_CAPABILITY_REGISTRY_V1_STEP2_R1",
+  "prestateSelfExclusion": [
+    {
+      "path": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_DEFERRED_CAPABILITY_REGISTRY_STEP2_R1.json",
+      "role": "AUTHORITY_DOCUMENT",
+      "reason": "The authority document is a causally prior publisher input and remains bound by the exact V2 self-exclusion."
+    },
+    {
+      "path": "governance/historical-architecture/DEFERRED_CAPABILITY_REGISTRY_STEP2_AUTHORIZED_PATHS_R1.json",
+      "role": "AUTHORIZED_PATH_MANIFEST",
+      "reason": "The manifest is a causally prior publisher input and remains bound by the exact V2 self-exclusion."
+    }
+  ],
+  "paths": [
+    {
+      "path": "governance/schemas/deferred-capability-declaration.schema.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "Structured deferred-capability closure declaration schema.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "governance/tools/evaluate-deferred-capability-closure-declaration.mjs",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "Read-only deferred-capability closure declaration evaluator.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "governance/tests/deferred-capability-closure-enforcement-hostile-battery.test.mjs",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "Independent hostile battery for deferred-capability closure enforcement.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "governance/PROJECT_CONSTITUTION.json",
+      "operation": "MODIFY",
+      "phase": "MAINTENANCE",
+      "reason": "Add DEFERRED_CAPABILITY_MUST_BE_DURABLY_REGISTERED as Constitution R4.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "PRESENT",
+        "sha256": "a26443b54c7168b2927e42e2b70bc480eba3aee8abdca10a56852d576d3d62c8",
+        "byteLength": 16370
+      }
+    },
+    {
+      "path": "governance/schemas/project-constitution.schema.json",
+      "operation": "MODIFY",
+      "phase": "MAINTENANCE",
+      "reason": "Raise constitution rule count to 18.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "PRESENT",
+        "sha256": "2b64468b04c1c638de1e9e8ffd1508bd547933930eb383315976143b50c1802b",
+        "byteLength": 542
+      }
+    },
+    {
+      "path": "governance/tools/validate-project-constitution.mjs",
+      "operation": "MODIFY",
+      "phase": "MAINTENANCE",
+      "reason": "Raise constitution validator rule count to 18.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "PRESENT",
+        "sha256": "c87f5c878d13a8d456c0b9fb26f1b78b668a1005c339b1d5f8c109aba52caff8",
+        "byteLength": 897
+      }
+    },
+    {
+      "path": "governance/tools/final-gate-integrity-auditor.mjs",
+      "operation": "MODIFY",
+      "phase": "MAINTENANCE",
+      "reason": "Read-only FGI hook for deferred-capability closure enforcement.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "PRESENT",
+        "sha256": "66e0af9181224576a1dd8272df1b5ddd59157f6b9b6f19e35e39026472ca2d36",
+        "byteLength": 50707
+      }
+    },
+    {
+      "path": "governance/tests/final-gate-integrity-auditor.test.mjs",
+      "operation": "MODIFY",
+      "phase": "MAINTENANCE",
+      "reason": "FGI tests for deferred-capability closure family.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "PRESENT",
+        "sha256": "7096968aeff33c081435f22b059aec8dfe2b977f321909d06af7b2958f4bed0c",
+        "byteLength": 26545
+      }
+    },
+    {
+      "path": "governance/generated/PROJECT_CONSTITUTION.md",
+      "operation": "MODIFY",
+      "phase": "MAINTENANCE",
+      "reason": "Generated non-canonical Constitution projection.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "PRESENT",
+        "sha256": "f9d07cb70a3f5f1ef97caed9a5dfafd9ecb3f893c0e8a31614392d4a8fc6b3ff",
+        "byteLength": 1695
+      }
+    },
+    {
+      "path": "AGENTS.md",
+      "operation": "MODIFY",
+      "phase": "MAINTENANCE",
+      "reason": "Constitution adapter parity.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "PRESENT",
+        "sha256": "b322696d61aac827b6b514d741c3bc811c0f4f126f98580d31bf12b86369d823",
+        "byteLength": 640
+      }
+    },
+    {
+      "path": "CLAUDE.md",
+      "operation": "MODIFY",
+      "phase": "MAINTENANCE",
+      "reason": "Constitution adapter parity.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "PRESENT",
+        "sha256": "a0e0e3009650701a7af4772ba65033905b692a42a8635433e0669817c02144e3",
+        "byteLength": 665
+      }
+    },
+    {
+      "path": ".cursor/rules/00-wheel-critical-policy.mdc",
+      "operation": "MODIFY",
+      "phase": "MAINTENANCE",
+      "reason": "Constitution adapter parity.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "PRESENT",
+        "sha256": "c6e2e01071f38c5199f98275a04eca2b886acf6117196eafbdce1b7c45782e06",
+        "byteLength": 516
+      }
+    },
+    {
+      "path": ".gitattributes",
+      "operation": "MODIFY",
+      "phase": "MAINTENANCE",
+      "reason": "Guarantee byte-stable LF checkout for the three Constitution adapters whose STEP2 predecessor validation otherwise fails under core.autocrlf=true.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "PRESENT",
+        "sha256": "5a5b5127cf9cadce46a0adb1581e7f35d776d567d9bd01b390528d958a4ab1fc",
+        "byteLength": 520
+      }
+    },
+    {
+      "path": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_DEFERRED_CAPABILITY_REGISTRY_STEP2_R1.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "Causally-prior authority document.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "governance/historical-architecture/DEFERRED_CAPABILITY_REGISTRY_STEP2_AUTHORIZED_PATHS_R1.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "Causally-prior authorized-path manifest.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "governance/historical-architecture/DEFERRED_CAPABILITY_REGISTRY_STEP2_CONSUMPTION_R1.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "Post-freeze maintenance publication consumption receipt generated by the publisher.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    }
+  ]
+}

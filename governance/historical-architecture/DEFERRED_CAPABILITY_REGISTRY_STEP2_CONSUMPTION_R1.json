@@ -1,0 +1,144 @@
+{
+  "documentKind": "POST_FREEZE_MAINTENANCE_AUTHORITY_CONSUMPTION",
+  "schemaVersion": 2,
+  "authorityId": "DEFERRED_CAPABILITY_REGISTRY_V1_STEP2_LOCAL_AUTHORITY_R1",
+  "programId": "DEFERRED_CAPABILITY_REGISTRY_V1_STEP2_R1",
+  "manifestSha256": "8313754cbe517946f5de5d5b532add106d57f4652dac08970f571d0657708319",
+  "baseHead": "927d62362db4dcd175383ce4155e60f7c57f71b7",
+  "consumedUse": 1,
+  "transactionId": "DEFERRED_CAPABILITY_REGISTRY_V1_STEP2_R1_TRANSACTION",
+  "recordedAt": "2026-08-26T03:40:40.968Z",
+  "commitMessage": "governance: enforce deferred capability closure registration",
+  "publicationAdmission": {
+    "admissionId": "DEFERRED_CAPABILITY_REGISTRY_V1_STEP2_PUBLICATION_ADMISSION_R1",
+    "admissionPath": "governance/authority/publication-admissions/GATE24/DEFERRED_CAPABILITY_REGISTRY_V1_STEP2_PUBLICATION_ADMISSION_R1.json",
+    "admissionSha256": "8133e30e5e59571b5c50f08bb9f88072bde23a10c7f7334648245a8ab5975c1b"
+  },
+  "cohortSelfExclusion": {
+    "path": "governance/historical-architecture/DEFERRED_CAPABILITY_REGISTRY_STEP2_CONSUMPTION_R1.json",
+    "reason": "The consumption record cannot hash its own final bytes; its identity is bound by the authority and manifest instead."
+  },
+  "cohortPathCount": 16,
+  "cohort": [
+    {
+      "path": "governance/schemas/deferred-capability-declaration.schema.json",
+      "sha256": "83fafbca236f7f870bfdb5e30145468fdf4ed9820908eb7a113d4f86722dcd07",
+      "byteLength": 1064,
+      "operation": "CREATE",
+      "reason": "Structured deferred-capability closure declaration schema.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "governance/tools/evaluate-deferred-capability-closure-declaration.mjs",
+      "sha256": "0f001092a660b6e1a8fada06cda69f5a55d6c8a8fdaad208d865f626a9809c84",
+      "byteLength": 8565,
+      "operation": "CREATE",
+      "reason": "Read-only deferred-capability closure declaration evaluator.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "governance/tests/deferred-capability-closure-enforcement-hostile-battery.test.mjs",
+      "sha256": "097b1e9c351fc868a393f99ae71b4e473debaa81e47dd9f8da422e7fec7d1683",
+      "byteLength": 16354,
+      "operation": "CREATE",
+      "reason": "Independent hostile battery for deferred-capability closure enforcement.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "governance/PROJECT_CONSTITUTION.json",
+      "sha256": "79a17db82bb95adca0ea9a24370ce76a04a5754322962cb32f64cb05594017ea",
+      "byteLength": 17552,
+      "operation": "MODIFY",
+      "reason": "Add DEFERRED_CAPABILITY_MUST_BE_DURABLY_REGISTERED as Constitution R4.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "governance/schemas/project-constitution.schema.json",
+      "sha256": "cbc44a5d2e64320402bca1c7e2596839ad7b6d9058c2f4129c7fac01d11cdeb0",
+      "byteLength": 542,
+      "operation": "MODIFY",
+      "reason": "Raise constitution rule count to 18.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "governance/tools/validate-project-constitution.mjs",
+      "sha256": "2a8c4078cb0826d077332004bb3ccc0695f0d859a00114a1b72d1840bdfabd9e",
+      "byteLength": 897,
+      "operation": "MODIFY",
+      "reason": "Raise constitution validator rule count to 18.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "governance/tools/final-gate-integrity-auditor.mjs",
+      "sha256": "ff5a9b628662ef9addd2e5d32be16fe57da9b2629b80186fe0387df514e4fb0f",
+      "byteLength": 51447,
+      "operation": "MODIFY",
+      "reason": "Read-only FGI hook for deferred-capability closure enforcement.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "governance/tests/final-gate-integrity-auditor.test.mjs",
+      "sha256": "b65767bd4bef555c3df5b91069c7df58a1943778c66d64d43fc1db1cf042818d",
+      "byteLength": 29026,
+      "operation": "MODIFY",
+      "reason": "FGI tests for deferred-capability closure family.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "governance/generated/PROJECT_CONSTITUTION.md",
+      "sha256": "a6a50f3c7fe5c7352c82d3c9b9ef4d4273abfef809da13685b89a918589cfbca",
+      "byteLength": 1813,
+      "operation": "MODIFY",
+      "reason": "Generated non-canonical Constitution projection.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "AGENTS.md",
+      "sha256": "e2efe74d549e46aabd92cf162fd4c2f935b9ae9ad4cfcd496e1dc188fe09524e",
+      "byteLength": 688,
+      "operation": "MODIFY",
+      "reason": "Constitution adapter parity.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "CLAUDE.md",
+      "sha256": "730467fffe4a44c8ae15473ce1716429e983ad3dee6c5a3b9615139570779416",
+      "byteLength": 713,
+      "operation": "MODIFY",
+      "reason": "Constitution adapter parity.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": ".cursor/rules/00-wheel-critical-policy.mdc",
+      "sha256": "df925af3dc007bd2110e5551a22fd1ff345b1b6a6f8d3dc345849140abf6f091",
+      "byteLength": 564,
+      "operation": "MODIFY",
+      "reason": "Constitution adapter parity.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": ".gitattributes",
+      "sha256": "f58d36e1223a8cd593c2d4ba63b34ff1e7d8d0836597ded6c2a762ecd0e21513",
+      "byteLength": 619,
+      "operation": "MODIFY",
+      "reason": "Guarantee byte-stable LF checkout for the three Constitution adapters whose STEP2 predecessor validation otherwise fails under core.autocrlf=true.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_DEFERRED_CAPABILITY_REGISTRY_STEP2_R1.json",
+      "sha256": "e24dcfb02b9e3515f67c2a93ae6069a2ec37df7e1e1ced1d80552d2dc4d2f63f",
+      "byteLength": 2113,
+      "operation": "CREATE",
+      "reason": "Causally-prior authority document.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "governance/historical-architecture/DEFERRED_CAPABILITY_REGISTRY_STEP2_AUTHORIZED_PATHS_R1.json",
+      "sha256": "8313754cbe517946f5de5d5b532add106d57f4652dac08970f571d0657708319",
+      "byteLength": 6981,
+      "operation": "CREATE",
+      "reason": "Causally-prior authorized-path manifest.",
+      "artifactClass": "MAINTENANCE"
+    }
+  ]
+}

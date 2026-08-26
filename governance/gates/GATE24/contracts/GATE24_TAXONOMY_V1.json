@@ -1,0 +1,119 @@
+{
+  "document": "GATE24_DOMAIN_CONTRACT",
+  "schemaVersion": 1,
+  "gateId": "GATE24",
+  "contractId": "GATE24_TAXONOMY_V1",
+  "version": 1,
+  "role": "Regime taxonomy contract",
+  "classification": {
+    "isBuildOutput": true,
+    "isMandateProjection": false,
+    "countedInMandateContractCount": false,
+    "mandateDomainContractCount": 0
+  },
+  "authority": {
+    "mandatePath": "governance/sources/GATE24_CANONICAL_MANDATE_R0.json",
+    "requirementIds": ["G24-BUILD-11", "G24-BUILD-14"]
+  },
+  "implementationPath": "governance/gates/GATE24/implementation/regime-taxonomy-v1.mjs",
+  "moduleVersion": "GATE24_RegimeTaxonomy/1",
+  "regimeTaxonomyVersionId": "REGIME_VECTOR_V1",
+  "closureRule": "EXACT_ONLY",
+  "cartesianLabelForbidden": true,
+  "dimensionCount": 11,
+  "activeDimensionCount": 6,
+  "inactiveDimensionCount": 5,
+  "activeDimensions": [
+    "primaryMarketRegime",
+    "volatilityState",
+    "inflationState",
+    "ratesState",
+    "yieldCurveShape",
+    "yieldCurveDirection"
+  ],
+  "inactiveDimensions": [
+    "growthState",
+    "laborState",
+    "creditState",
+    "liquidityState",
+    "fedPolicyState"
+  ],
+  "inactiveDisposition": "REGISTERED_NOT_ACTIVE_IN_CORE_V1",
+  "inactiveDeferredCapabilityIds": [
+    "GATE24-DC-01",
+    "GATE24-DC-02",
+    "GATE24-DC-03",
+    "GATE24-DC-04",
+    "GATE24-DC-05"
+  ],
+  "macroFedDimensions": [
+    "inflationState",
+    "ratesState",
+    "yieldCurveShape",
+    "yieldCurveDirection"
+  ],
+  "enumerations": {
+    "primaryMarketRegime": {
+      "status": "ACTIVE_IN_CORE_V1",
+      "taxonomyVersionId": "PRIMARY_MARKET_REGIME_V1",
+      "entries": ["BULL", "BEAR", "RANGE", "CRISIS", "RECOVERY", "TRANSITION", "LIQUIDITY_STRESS", "REGIME_UNKNOWN", "REGIME_INSUFFICIENT_DATA"],
+      "failClosedMembers": ["REGIME_UNKNOWN", "REGIME_INSUFFICIENT_DATA"]
+    },
+    "volatilityState": {
+      "status": "ACTIVE_IN_CORE_V1",
+      "taxonomyVersionId": "VOLATILITY_STATE_V1",
+      "entries": ["CALM", "NORMAL", "VOLATILE", "EXTREME", "UNKNOWN", "INSUFFICIENT_DATA"],
+      "failClosedMembers": ["UNKNOWN", "INSUFFICIENT_DATA"]
+    },
+    "inflationState": {
+      "status": "ACTIVE_IN_CORE_V1",
+      "taxonomyVersionId": "INFLATION_STATE_V1",
+      "entries": ["INFLATIONARY", "DISINFLATIONARY", "INFLATION_STABLE", "INFLATION_UNKNOWN", "INFLATION_INSUFFICIENT_DATA"],
+      "failClosedMembers": ["INFLATION_UNKNOWN", "INFLATION_INSUFFICIENT_DATA"]
+    },
+    "ratesState": {
+      "status": "ACTIVE_IN_CORE_V1",
+      "taxonomyVersionId": "RATES_STATE_V1",
+      "entries": ["RATES_RISING", "RATES_FALLING", "RATES_STABLE", "RATES_UNKNOWN", "RATES_INSUFFICIENT_DATA"],
+      "failClosedMembers": ["RATES_UNKNOWN", "RATES_INSUFFICIENT_DATA"],
+      "directionalOnly": true,
+      "distinctFrom": "fedPolicyState"
+    },
+    "yieldCurveShape": {
+      "status": "ACTIVE_IN_CORE_V1",
+      "taxonomyVersionId": "YIELD_CURVE_SHAPE_V1",
+      "entries": ["NORMAL", "FLAT", "PARTIALLY_INVERTED", "INVERTED", "MIXED", "UNKNOWN", "INSUFFICIENT_DATA"],
+      "failClosedMembers": ["UNKNOWN", "INSUFFICIENT_DATA"]
+    },
+    "yieldCurveDirection": {
+      "status": "ACTIVE_IN_CORE_V1",
+      "taxonomyVersionId": "YIELD_CURVE_DIRECTION_V1",
+      "entries": ["STEEPENING", "FLATTENING", "UNCHANGED", "MIXED", "UNKNOWN", "INSUFFICIENT_DATA"],
+      "failClosedMembers": ["UNKNOWN", "INSUFFICIENT_DATA"]
+    }
+  },
+  "curveMapping": {
+    "shapeAndDirectionIndependent": true,
+    "preservedTokens": ["PARTIALLY_INVERTED", "MIXED", "FLATTENING", "UNCHANGED"],
+    "notAvailableResolvesTo": "INSUFFICIENT_DATA",
+    "outOfVocabularyResolvesTo": "UNKNOWN",
+    "silentCollapseForbidden": true
+  },
+  "unresolvableInputReasons": [
+    "PRODUCER_VALUE_NOT_AVAILABLE",
+    "PRODUCER_VALUE_OUT_OF_VOCABULARY",
+    "PRODUCER_RECORD_ABSENT",
+    "CORE_INPUT_MISSING",
+    "MACRO_CONTEXT_ABSENT",
+    "INSUFFICIENT_HISTORY_IN_WINDOW",
+    "FEATURE_RECORD_FAIL_CLOSED",
+    "INPUT_NOT_AVAILABLE_AT_CUTOFF"
+  ],
+  "missingnessModel": "DIMENSION_LOCAL_FAIL_CLOSED",
+  "buildDisposition": {
+    "status": "BUILD_CANDIDATE",
+    "buildExecuted": true,
+    "functionalImplementationPresent": true,
+    "outcomeProduced": false
+  }
+}

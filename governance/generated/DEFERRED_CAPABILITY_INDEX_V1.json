@@ -1,0 +1,970 @@
+{
+  "document": "DEFERRED_CAPABILITY_INDEX",
+  "schemaVersion": 1,
+  "version": "V1",
+  "canonical": false,
+  "trustRoot": "governance/master-matrix/DEFERRED_CAPABILITY_REGISTRY.ndjson",
+  "trustStatement": "Derived projection. Canonical truth is a replay of the registry stream; this file is never a trust root and never an authority.",
+  "generatedFrom": {
+    "path": "governance/master-matrix/DEFERRED_CAPABILITY_REGISTRY.ndjson",
+    "sha256": "c96ee7d3ab3c01aa482e82ba826091a44e1db45249ac6d59632e66e60d4bc821",
+    "byteLength": 19457,
+    "eventCount": 12
+  },
+  "reasonVocabularyVersion": "V1",
+  "entryCount": 12,
+  "openCommitmentCount": 12,
+  "byId": {
+    "GATE24-DC-01": {
+      "deferredCapabilityId": "GATE24-DC-01",
+      "sourceGate": "GATE24",
+      "capabilityName": "growthState as an active classifying dimension",
+      "capabilityClass": "REGISTERED_NOT_ACTIVE_IN_CORE_V1",
+      "status": "REGISTERED",
+      "disposition": "OPEN",
+      "reasonDeferred": [
+        "TAXONOMY_INTENTIONALLY_DEFERRED",
+        "NOT_REQUIRED_BY_CORE_V1"
+      ],
+      "reasonVocabularyVersion": "V1",
+      "promotionRequirements": [
+        "Owner-ratified closed taxonomy for this dimension",
+        "declared CORE inputs with availableAt proof",
+        "classifier version bump and new taxonomy version",
+        "coverage and hostile tests for the new dimension",
+        "consumer compatibility check"
+      ],
+      "consumerCandidates": [
+        "GATE25 analogue selection",
+        "GATE26 and later model conditioning"
+      ],
+      "mustRevisitByGate": null,
+      "eventBasedRevisitTrigger": "eventBasedRevisitTrigger: an Owner-ratified taxonomy for this dimension, or promotion of its candidate inputs into CORE_V1",
+      "ownerPromotionRequired": true,
+      "currentVersion": "REGIME_VECTOR_V1",
+      "origin": "IMPORT_BINDING",
+      "provenance": {
+        "authorityPath": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_DEFERRED_CAPABILITY_REGISTRY_STEP3_COMBINED_R1.json",
+        "authoritySha256": "d7958c31b5b7d0481d24af9176058053631d64f8abdbbf7ba92e7db6c8d1c83d"
+      },
+      "supersededBy": null,
+      "dispositionDecisions": [],
+      "lastEventId": "STEP3_IMPORT_BINDING_GATE24_DC_01"
+    },
+    "GATE24-DC-02": {
+      "deferredCapabilityId": "GATE24-DC-02",
+      "sourceGate": "GATE24",
+      "capabilityName": "laborState as an active classifying dimension",
+      "capabilityClass": "REGISTERED_NOT_ACTIVE_IN_CORE_V1",
+      "status": "REGISTERED",
+      "disposition": "OPEN",
+      "reasonDeferred": [
+        "TAXONOMY_INTENTIONALLY_DEFERRED",
+        "NOT_REQUIRED_BY_CORE_V1"
+      ],
+      "reasonVocabularyVersion": "V1",
+      "promotionRequirements": [
+        "Owner-ratified closed taxonomy for this dimension",
+        "declared CORE inputs with availableAt proof",
+        "classifier version bump and new taxonomy version",
+        "coverage and hostile tests for the new dimension",
+        "consumer compatibility check"
+      ],
+      "consumerCandidates": [
+        "GATE25 analogue selection",
+        "GATE26 and later model conditioning"
+      ],
+      "mustRevisitByGate": null,
+      "eventBasedRevisitTrigger": "eventBasedRevisitTrigger: an Owner-ratified taxonomy for this dimension, or promotion of its candidate inputs into CORE_V1",
+      "ownerPromotionRequired": true,
+      "currentVersion": "REGIME_VECTOR_V1",
+      "origin": "IMPORT_BINDING",
+      "provenance": {
+        "authorityPath": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_DEFERRED_CAPABILITY_REGISTRY_STEP3_COMBINED_R1.json",
+        "authoritySha256": "d7958c31b5b7d0481d24af9176058053631d64f8abdbbf7ba92e7db6c8d1c83d"
+      },
+      "supersededBy": null,
+      "dispositionDecisions": [],
+      "lastEventId": "STEP3_IMPORT_BINDING_GATE24_DC_02"
+    },
+    "GATE24-DC-03": {
+      "deferredCapabilityId": "GATE24-DC-03",
+      "sourceGate": "GATE24",
+      "capabilityName": "creditState as an active classifying dimension",
+      "capabilityClass": "REGISTERED_NOT_ACTIVE_IN_CORE_V1",
+      "status": "REGISTERED",
+      "disposition": "OPEN",
+      "reasonDeferred": [
+        "TAXONOMY_INTENTIONALLY_DEFERRED",
+        "NOT_REQUIRED_BY_CORE_V1"
+      ],
+      "reasonVocabularyVersion": "V1",
+      "promotionRequirements": [
+        "Owner-ratified closed taxonomy for this dimension",
+        "declared CORE inputs with availableAt proof",
+        "classifier version bump and new taxonomy version",
+        "coverage and hostile tests for the new dimension",
+        "consumer compatibility check"
+      ],
+      "consumerCandidates": [
+        "GATE25 analogue selection",
+        "GATE26 and later model conditioning"
+      ],
+      "mustRevisitByGate": null,
+      "eventBasedRevisitTrigger": "eventBasedRevisitTrigger: an Owner-ratified taxonomy for this dimension, or promotion of its candidate inputs into CORE_V1",
+      "ownerPromotionRequired": true,
+      "currentVersion": "REGIME_VECTOR_V1",
+      "origin": "IMPORT_BINDING",
+      "provenance": {
+        "authorityPath": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_DEFERRED_CAPABILITY_REGISTRY_STEP3_COMBINED_R1.json",
+        "authoritySha256": "d7958c31b5b7d0481d24af9176058053631d64f8abdbbf7ba92e7db6c8d1c83d"
+      },
+      "supersededBy": null,
+      "dispositionDecisions": [],
+      "lastEventId": "STEP3_IMPORT_BINDING_GATE24_DC_03"
+    },
+    "GATE24-DC-04": {
+      "deferredCapabilityId": "GATE24-DC-04",
+      "sourceGate": "GATE24",
+      "capabilityName": "liquidityState as an active classifying dimension",
+      "capabilityClass": "REGISTERED_NOT_ACTIVE_IN_CORE_V1",
+      "status": "REGISTERED",
+      "disposition": "OPEN",
+      "reasonDeferred": [
+        "TAXONOMY_INTENTIONALLY_DEFERRED",
+        "NOT_REQUIRED_BY_CORE_V1"
+      ],
+      "reasonVocabularyVersion": "V1",
+      "promotionRequirements": [
+        "Owner-ratified closed taxonomy for this dimension",
+        "declared CORE inputs with availableAt proof",
+        "classifier version bump and new taxonomy version",
+        "coverage and hostile tests for the new dimension",
+        "consumer compatibility check"
+      ],
+      "consumerCandidates": [
+        "GATE25 analogue selection",
+        "GATE26 and later model conditioning"
+      ],
+      "mustRevisitByGate": null,
+      "eventBasedRevisitTrigger": "eventBasedRevisitTrigger: an Owner-ratified taxonomy for this dimension, or promotion of its candidate inputs into CORE_V1",
+      "ownerPromotionRequired": true,
+      "currentVersion": "REGIME_VECTOR_V1",
+      "origin": "IMPORT_BINDING",
+      "provenance": {
+        "authorityPath": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_DEFERRED_CAPABILITY_REGISTRY_STEP3_COMBINED_R1.json",
+        "authoritySha256": "d7958c31b5b7d0481d24af9176058053631d64f8abdbbf7ba92e7db6c8d1c83d"
+      },
+      "supersededBy": null,
+      "dispositionDecisions": [],
+      "lastEventId": "STEP3_IMPORT_BINDING_GATE24_DC_04"
+    },
+    "GATE24-DC-05": {
+      "deferredCapabilityId": "GATE24-DC-05",
+      "sourceGate": "GATE24",
+      "capabilityName": "fedPolicyState as an active classifying dimension",
+      "capabilityClass": "REGISTERED_NOT_ACTIVE_IN_CORE_V1",
+      "status": "REGISTERED",
+      "disposition": "OPEN",
+      "reasonDeferred": [
+        "TAXONOMY_INTENTIONALLY_DEFERRED",
+        "NOT_REQUIRED_BY_CORE_V1"
+      ],
+      "reasonVocabularyVersion": "V1",
+      "promotionRequirements": [
+        "Owner-ratified closed taxonomy for this dimension",
+        "declared CORE inputs with availableAt proof",
+        "classifier version bump and new taxonomy version",
+        "coverage and hostile tests for the new dimension",
+        "consumer compatibility check"
+      ],
+      "consumerCandidates": [
+        "GATE25 analogue selection",
+        "GATE26 and later model conditioning"
+      ],
+      "mustRevisitByGate": null,
+      "eventBasedRevisitTrigger": "eventBasedRevisitTrigger: an Owner-ratified taxonomy for this dimension, or promotion of its candidate inputs into CORE_V1",
+      "ownerPromotionRequired": true,
+      "currentVersion": "REGIME_VECTOR_V1",
+      "origin": "IMPORT_BINDING",
+      "provenance": {
+        "authorityPath": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_DEFERRED_CAPABILITY_REGISTRY_STEP3_COMBINED_R1.json",
+        "authoritySha256": "d7958c31b5b7d0481d24af9176058053631d64f8abdbbf7ba92e7db6c8d1c83d"
+      },
+      "supersededBy": null,
+      "dispositionDecisions": [],
+      "lastEventId": "STEP3_IMPORT_BINDING_GATE24_DC_05"
+    },
+    "GATE24-DC-06": {
+      "deferredCapabilityId": "GATE24-DC-06",
+      "sourceGate": "GATE24",
+      "capabilityName": "multi-horizon regime classification with more than one active horizon",
+      "capabilityClass": "DEFERRED_TO_FUTURE_VERSION",
+      "status": "READY",
+      "disposition": "OPEN",
+      "reasonDeferred": [
+        "NOT_REQUIRED_BY_CORE_V1",
+        "CLASSIFIER_ROLE_NOT_YET_PROVEN"
+      ],
+      "reasonVocabularyVersion": "V1",
+      "promotionRequirements": [
+        "explicit selection of the additional horizon, pinned by RegimeHorizonSpecId",
+        "classifier version bump",
+        "multi-horizon identity differential and replay tests",
+        "consumer horizon-binding compliance check"
+      ],
+      "consumerCandidates": [
+        "GATE25 analogue selection by horizon",
+        "GATE26 and later model conditioning by horizon"
+      ],
+      "mustRevisitByGate": null,
+      "eventBasedRevisitTrigger": "eventBasedRevisitTrigger: the first consumer requiring a second horizon",
+      "ownerPromotionRequired": true,
+      "currentVersion": "GATE24_RegimeHorizonSpec/1",
+      "origin": "IMPORT_BINDING",
+      "provenance": {
+        "authorityPath": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_DEFERRED_CAPABILITY_REGISTRY_STEP3_COMBINED_R1.json",
+        "authoritySha256": "d7958c31b5b7d0481d24af9176058053631d64f8abdbbf7ba92e7db6c8d1c83d"
+      },
+      "supersededBy": null,
+      "dispositionDecisions": [],
+      "lastEventId": "STEP3_IMPORT_BINDING_GATE24_DC_06"
+    },
+    "GATE24-DC-07": {
+      "deferredCapabilityId": "GATE24-DC-07",
+      "sourceGate": "GATE24",
+      "capabilityName": "REGISTERED_DEFERRED macro series without a canonical identifier",
+      "capabilityClass": "REGISTERED_DEFERRED",
+      "status": "DEFERRED",
+      "disposition": "OPEN",
+      "reasonDeferred": [
+        "CANONICAL_IDENTITY_ABSENT",
+        "CAUSAL_VINTAGE_PROOF_INCOMPLETE",
+        "AVAILABLE_AT_POLICY_INCOMPLETE"
+      ],
+      "reasonVocabularyVersion": "V1",
+      "promotionRequirements": [
+        "a canonical series identifier in the producer registry",
+        "a pinned release-time rule and complete availableAt evidence",
+        "complete vintage semantics and sufficient historical coverage",
+        "explicit Owner decision plus a new macro context registry version",
+        "classifier version bump and consumer compatibility check"
+      ],
+      "consumerCandidates": [
+        "growthState",
+        "laborState",
+        "creditState",
+        "liquidityState",
+        "fedPolicyState"
+      ],
+      "mustRevisitByGate": null,
+      "eventBasedRevisitTrigger": "eventBasedRevisitTrigger: registration of a canonical identifier and release-time rule for the series in the producer policy",
+      "ownerPromotionRequired": true,
+      "currentVersion": "MACRO_CONTEXT_REGISTRY_V1",
+      "origin": "IMPORT_BINDING",
+      "provenance": {
+        "authorityPath": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_DEFERRED_CAPABILITY_REGISTRY_STEP3_COMBINED_R1.json",
+        "authoritySha256": "d7958c31b5b7d0481d24af9176058053631d64f8abdbbf7ba92e7db6c8d1c83d"
+      },
+      "supersededBy": null,
+      "dispositionDecisions": [],
+      "lastEventId": "STEP3_IMPORT_BINDING_GATE24_DC_07"
+    },
+    "GATE24-DC-08": {
+      "deferredCapabilityId": "GATE24-DC-08",
+      "sourceGate": "GATE24",
+      "capabilityName": "US.BLS.ICSA initial claims consumption",
+      "capabilityClass": "REGISTERED_DEFERRED",
+      "status": "READY",
+      "disposition": "OPEN",
+      "reasonDeferred": [
+        "NOT_REQUIRED_BY_CORE_V1",
+        "CLASSIFIER_ROLE_NOT_YET_PROVEN"
+      ],
+      "reasonVocabularyVersion": "V1",
+      "promotionRequirements": [
+        "explicit Owner decision plus a new macro context registry version",
+        "a declared consuming dimension with a ratified taxonomy",
+        "classifier version bump and consumer compatibility check"
+      ],
+      "consumerCandidates": [
+        "laborState"
+      ],
+      "mustRevisitByGate": null,
+      "eventBasedRevisitTrigger": "eventBasedRevisitTrigger: ratification of a laborState taxonomy",
+      "ownerPromotionRequired": true,
+      "currentVersion": "MACRO_CONTEXT_REGISTRY_V1",
+      "origin": "IMPORT_BINDING",
+      "provenance": {
+        "authorityPath": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_DEFERRED_CAPABILITY_REGISTRY_STEP3_COMBINED_R1.json",
+        "authoritySha256": "d7958c31b5b7d0481d24af9176058053631d64f8abdbbf7ba92e7db6c8d1c83d"
+      },
+      "supersededBy": null,
+      "dispositionDecisions": [],
+      "lastEventId": "STEP3_IMPORT_BINDING_GATE24_DC_08"
+    },
+    "GATE24-DC-09": {
+      "deferredCapabilityId": "GATE24-DC-09",
+      "sourceGate": "GATE24",
+      "capabilityName": "FUTURE_EXTENSION directions",
+      "capabilityClass": "FUTURE_EXTENSION",
+      "status": "FUTURE",
+      "disposition": "OPEN",
+      "reasonDeferred": [
+        "REDUNDANT_INFORMATION_NOT_YET_EVALUATED",
+        "NOT_REQUIRED_BY_CORE_V1"
+      ],
+      "reasonVocabularyVersion": "V1",
+      "promotionRequirements": [
+        "promotion first into REGISTERED_DEFERRED with a canonical identifier where applicable",
+        "explicit Owner decision and a new registry version"
+      ],
+      "consumerCandidates": [
+        "yieldCurveShape",
+        "yieldCurveDirection",
+        "a future rate level dimension"
+      ],
+      "mustRevisitByGate": null,
+      "eventBasedRevisitTrigger": "eventBasedRevisitTrigger: an explicit Owner request for one of these directions",
+      "ownerPromotionRequired": true,
+      "currentVersion": "MACRO_CONTEXT_REGISTRY_V1",
+      "origin": "IMPORT_BINDING",
+      "provenance": {
+        "authorityPath": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_DEFERRED_CAPABILITY_REGISTRY_STEP3_COMBINED_R1.json",
+        "authoritySha256": "d7958c31b5b7d0481d24af9176058053631d64f8abdbbf7ba92e7db6c8d1c83d"
+      },
+      "supersededBy": null,
+      "dispositionDecisions": [],
+      "lastEventId": "STEP3_IMPORT_BINDING_GATE24_DC_09"
+    },
+    "GATE24-DC-10": {
+      "deferredCapabilityId": "GATE24-DC-10",
+      "sourceGate": "GATE24",
+      "capabilityName": "OPTIONAL_V1 tier population",
+      "capabilityClass": "OPTIONAL_LATER",
+      "status": "REGISTERED",
+      "disposition": "OPEN",
+      "reasonDeferred": [
+        "NOT_REQUIRED_BY_CORE_V1"
+      ],
+      "reasonVocabularyVersion": "V1",
+      "promotionRequirements": [
+        "explicit Owner decision and a new macro context registry version"
+      ],
+      "consumerCandidates": [
+        "any active dimension"
+      ],
+      "mustRevisitByGate": null,
+      "eventBasedRevisitTrigger": "eventBasedRevisitTrigger: a candidate series whose absence must not degrade CORE_V1",
+      "ownerPromotionRequired": true,
+      "currentVersion": "MACRO_CONTEXT_REGISTRY_V1",
+      "origin": "IMPORT_BINDING",
+      "provenance": {
+        "authorityPath": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_DEFERRED_CAPABILITY_REGISTRY_STEP3_COMBINED_R1.json",
+        "authoritySha256": "d7958c31b5b7d0481d24af9176058053631d64f8abdbbf7ba92e7db6c8d1c83d"
+      },
+      "supersededBy": null,
+      "dispositionDecisions": [],
+      "lastEventId": "STEP3_IMPORT_BINDING_GATE24_DC_10"
+    },
+    "GATE24-DC-11": {
+      "deferredCapabilityId": "GATE24-DC-11",
+      "sourceGate": "GATE24",
+      "capabilityName": "hysteresis and minimum dwell stabilization",
+      "capabilityClass": "DEFERRED_TO_FUTURE_VERSION",
+      "status": "DEFERRED",
+      "disposition": "OPEN",
+      "reasonDeferred": [
+        "CLASSIFIER_ROLE_NOT_YET_PROVEN",
+        "HISTORICAL_COVERAGE_INSUFFICIENT"
+      ],
+      "reasonVocabularyVersion": "V1",
+      "promotionRequirements": [
+        "measured real transition frequency from a first implementation",
+        "evidence and coverage tests supporting a specific dwell",
+        "strictly backward-looking formulation",
+        "new classifier version; no rewrite of emitted records"
+      ],
+      "consumerCandidates": [
+        "transition consumers"
+      ],
+      "mustRevisitByGate": null,
+      "eventBasedRevisitTrigger": "eventBasedRevisitTrigger: availability of measured transition frequency evidence",
+      "ownerPromotionRequired": true,
+      "currentVersion": "REGIME_VECTOR_V1",
+      "origin": "IMPORT_BINDING",
+      "provenance": {
+        "authorityPath": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_DEFERRED_CAPABILITY_REGISTRY_STEP3_COMBINED_R1.json",
+        "authoritySha256": "d7958c31b5b7d0481d24af9176058053631d64f8abdbbf7ba92e7db6c8d1c83d"
+      },
+      "supersededBy": null,
+      "dispositionDecisions": [],
+      "lastEventId": "STEP3_IMPORT_BINDING_GATE24_DC_11"
+    },
+    "GATE24-DC-12": {
+      "deferredCapabilityId": "GATE24-DC-12",
+      "sourceGate": "GATE24",
+      "capabilityName": "cross-sectional regime construction",
+      "capabilityClass": "OUT_OF_SCOPE_BUT_PLANNED",
+      "status": "DEFERRED",
+      "disposition": "OPEN",
+      "reasonDeferred": [
+        "NOT_REQUIRED_BY_CORE_V1",
+        "PREDICTIVE_VALUE_BELONGS_TO_LATER_GATE"
+      ],
+      "reasonVocabularyVersion": "V1",
+      "promotionRequirements": [
+        "explicit Owner decision",
+        "an upstream cross-sectional feature capability",
+        "new classifier and taxonomy versions"
+      ],
+      "consumerCandidates": [
+        "GATE25 and later"
+      ],
+      "mustRevisitByGate": null,
+      "eventBasedRevisitTrigger": "eventBasedRevisitTrigger: an upstream gate delivering cross-sectional features",
+      "ownerPromotionRequired": true,
+      "currentVersion": "REGIME_VECTOR_V1",
+      "origin": "IMPORT_BINDING",
+      "provenance": {
+        "authorityPath": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_DEFERRED_CAPABILITY_REGISTRY_STEP3_COMBINED_R1.json",
+        "authoritySha256": "d7958c31b5b7d0481d24af9176058053631d64f8abdbbf7ba92e7db6c8d1c83d"
+      },
+      "supersededBy": null,
+      "dispositionDecisions": [],
+      "lastEventId": "STEP3_IMPORT_BINDING_GATE24_DC_12"
+    }
+  },
+  "bySourceGate": {
+    "GATE24": [
+      "GATE24-DC-01",
+      "GATE24-DC-02",
+      "GATE24-DC-03",
+      "GATE24-DC-04",
+      "GATE24-DC-05",
+      "GATE24-DC-06",
+      "GATE24-DC-07",
+      "GATE24-DC-08",
+      "GATE24-DC-09",
+      "GATE24-DC-10",
+      "GATE24-DC-11",
+      "GATE24-DC-12"
+    ]
+  },
+  "byStatus": {
+    "DEFERRED": [
+      "GATE24-DC-07",
+      "GATE24-DC-11",
+      "GATE24-DC-12"
+    ],
+    "FUTURE": [
+      "GATE24-DC-09"
+    ],
+    "READY": [
+      "GATE24-DC-06",
+      "GATE24-DC-08"
+    ],
+    "REGISTERED": [
+      "GATE24-DC-01",
+      "GATE24-DC-02",
+      "GATE24-DC-03",
+      "GATE24-DC-04",
+      "GATE24-DC-05",
+      "GATE24-DC-10"
+    ]
+  },
+  "byDisposition": {
+    "OPEN": [
+      "GATE24-DC-01",
+      "GATE24-DC-02",
+      "GATE24-DC-03",
+      "GATE24-DC-04",
+      "GATE24-DC-05",
+      "GATE24-DC-06",
+      "GATE24-DC-07",
+      "GATE24-DC-08",
+      "GATE24-DC-09",
+      "GATE24-DC-10",
+      "GATE24-DC-11",
+      "GATE24-DC-12"
+    ]
+  },
+  "byConsumerCandidate": {
+    "GATE25 analogue selection": [
+      "GATE24-DC-01",
+      "GATE24-DC-02",
+      "GATE24-DC-03",
+      "GATE24-DC-04",
+      "GATE24-DC-05"
+    ],
+    "GATE25 analogue selection by horizon": [
+      "GATE24-DC-06"
+    ],
+    "GATE25 and later": [
+      "GATE24-DC-12"
+    ],
+    "GATE26 and later model conditioning": [
+      "GATE24-DC-01",
+      "GATE24-DC-02",
+      "GATE24-DC-03",
+      "GATE24-DC-04",
+      "GATE24-DC-05"
+    ],
+    "GATE26 and later model conditioning by horizon": [
+      "GATE24-DC-06"
+    ],
+    "a future rate level dimension": [
+      "GATE24-DC-09"
+    ],
+    "any active dimension": [
+      "GATE24-DC-10"
+    ],
+    "creditState": [
+      "GATE24-DC-07"
+    ],
+    "fedPolicyState": [
+      "GATE24-DC-07"
+    ],
+    "growthState": [
+      "GATE24-DC-07"
+    ],
+    "laborState": [
+      "GATE24-DC-07",
+      "GATE24-DC-08"
+    ],
+    "liquidityState": [
+      "GATE24-DC-07"
+    ],
+    "transition consumers": [
+      "GATE24-DC-11"
+    ],
+    "yieldCurveDirection": [
+      "GATE24-DC-09"
+    ],
+    "yieldCurveShape": [
+      "GATE24-DC-09"
+    ]
+  },
+  "openCommitmentsByTargetGate": {},
+  "entries": [
+    {
+      "deferredCapabilityId": "GATE24-DC-01",
+      "sourceGate": "GATE24",
+      "capabilityName": "growthState as an active classifying dimension",
+      "capabilityClass": "REGISTERED_NOT_ACTIVE_IN_CORE_V1",
+      "status": "REGISTERED",
+      "disposition": "OPEN",
+      "reasonDeferred": [
+        "TAXONOMY_INTENTIONALLY_DEFERRED",
+        "NOT_REQUIRED_BY_CORE_V1"
+      ],
+      "reasonVocabularyVersion": "V1",
+      "promotionRequirements": [
+        "Owner-ratified closed taxonomy for this dimension",
+        "declared CORE inputs with availableAt proof",
+        "classifier version bump and new taxonomy version",
+        "coverage and hostile tests for the new dimension",
+        "consumer compatibility check"
+      ],
+      "consumerCandidates": [
+        "GATE25 analogue selection",
+        "GATE26 and later model conditioning"
+      ],
+      "mustRevisitByGate": null,
+      "eventBasedRevisitTrigger": "eventBasedRevisitTrigger: an Owner-ratified taxonomy for this dimension, or promotion of its candidate inputs into CORE_V1",
+      "ownerPromotionRequired": true,
+      "currentVersion": "REGIME_VECTOR_V1",
+      "origin": "IMPORT_BINDING",
+      "provenance": {
+        "authorityPath": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_DEFERRED_CAPABILITY_REGISTRY_STEP3_COMBINED_R1.json",
+        "authoritySha256": "d7958c31b5b7d0481d24af9176058053631d64f8abdbbf7ba92e7db6c8d1c83d"
+      },
+      "supersededBy": null,
+      "dispositionDecisions": [],
+      "lastEventId": "STEP3_IMPORT_BINDING_GATE24_DC_01"
+    },
+    {
+      "deferredCapabilityId": "GATE24-DC-02",
+      "sourceGate": "GATE24",
+      "capabilityName": "laborState as an active classifying dimension",
+      "capabilityClass": "REGISTERED_NOT_ACTIVE_IN_CORE_V1",
+      "status": "REGISTERED",
+      "disposition": "OPEN",
+      "reasonDeferred": [
+        "TAXONOMY_INTENTIONALLY_DEFERRED",
+        "NOT_REQUIRED_BY_CORE_V1"
+      ],
+      "reasonVocabularyVersion": "V1",
+      "promotionRequirements": [
+        "Owner-ratified closed taxonomy for this dimension",
+        "declared CORE inputs with availableAt proof",
+        "classifier version bump and new taxonomy version",
+        "coverage and hostile tests for the new dimension",
+        "consumer compatibility check"
+      ],
+      "consumerCandidates": [
+        "GATE25 analogue selection",
+        "GATE26 and later model conditioning"
+      ],
+      "mustRevisitByGate": null,
+      "eventBasedRevisitTrigger": "eventBasedRevisitTrigger: an Owner-ratified taxonomy for this dimension, or promotion of its candidate inputs into CORE_V1",
+      "ownerPromotionRequired": true,
+      "currentVersion": "REGIME_VECTOR_V1",
+      "origin": "IMPORT_BINDING",
+      "provenance": {
+        "authorityPath": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_DEFERRED_CAPABILITY_REGISTRY_STEP3_COMBINED_R1.json",
+        "authoritySha256": "d7958c31b5b7d0481d24af9176058053631d64f8abdbbf7ba92e7db6c8d1c83d"
+      },
+      "supersededBy": null,
+      "dispositionDecisions": [],
+      "lastEventId": "STEP3_IMPORT_BINDING_GATE24_DC_02"
+    },
+    {
+      "deferredCapabilityId": "GATE24-DC-03",
+      "sourceGate": "GATE24",
+      "capabilityName": "creditState as an active classifying dimension",
+      "capabilityClass": "REGISTERED_NOT_ACTIVE_IN_CORE_V1",
+      "status": "REGISTERED",
+      "disposition": "OPEN",
+      "reasonDeferred": [
+        "TAXONOMY_INTENTIONALLY_DEFERRED",
+        "NOT_REQUIRED_BY_CORE_V1"
+      ],
+      "reasonVocabularyVersion": "V1",
+      "promotionRequirements": [
+        "Owner-ratified closed taxonomy for this dimension",
+        "declared CORE inputs with availableAt proof",
+        "classifier version bump and new taxonomy version",
+        "coverage and hostile tests for the new dimension",
+        "consumer compatibility check"
+      ],
+      "consumerCandidates": [
+        "GATE25 analogue selection",
+        "GATE26 and later model conditioning"
+      ],
+      "mustRevisitByGate": null,
+      "eventBasedRevisitTrigger": "eventBasedRevisitTrigger: an Owner-ratified taxonomy for this dimension, or promotion of its candidate inputs into CORE_V1",
+      "ownerPromotionRequired": true,
+      "currentVersion": "REGIME_VECTOR_V1",
+      "origin": "IMPORT_BINDING",
+      "provenance": {
+        "authorityPath": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_DEFERRED_CAPABILITY_REGISTRY_STEP3_COMBINED_R1.json",
+        "authoritySha256": "d7958c31b5b7d0481d24af9176058053631d64f8abdbbf7ba92e7db6c8d1c83d"
+      },
+      "supersededBy": null,
+      "dispositionDecisions": [],
+      "lastEventId": "STEP3_IMPORT_BINDING_GATE24_DC_03"
+    },
+    {
+      "deferredCapabilityId": "GATE24-DC-04",
+      "sourceGate": "GATE24",
+      "capabilityName": "liquidityState as an active classifying dimension",
+      "capabilityClass": "REGISTERED_NOT_ACTIVE_IN_CORE_V1",
+      "status": "REGISTERED",
+      "disposition": "OPEN",
+      "reasonDeferred": [
+        "TAXONOMY_INTENTIONALLY_DEFERRED",
+        "NOT_REQUIRED_BY_CORE_V1"
+      ],
+      "reasonVocabularyVersion": "V1",
+      "promotionRequirements": [
+        "Owner-ratified closed taxonomy for this dimension",
+        "declared CORE inputs with availableAt proof",
+        "classifier version bump and new taxonomy version",
+        "coverage and hostile tests for the new dimension",
+        "consumer compatibility check"
+      ],
+      "consumerCandidates": [
+        "GATE25 analogue selection",
+        "GATE26 and later model conditioning"
+      ],
+      "mustRevisitByGate": null,
+      "eventBasedRevisitTrigger": "eventBasedRevisitTrigger: an Owner-ratified taxonomy for this dimension, or promotion of its candidate inputs into CORE_V1",
+      "ownerPromotionRequired": true,
+      "currentVersion": "REGIME_VECTOR_V1",
+      "origin": "IMPORT_BINDING",
+      "provenance": {
+        "authorityPath": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_DEFERRED_CAPABILITY_REGISTRY_STEP3_COMBINED_R1.json",
+        "authoritySha256": "d7958c31b5b7d0481d24af9176058053631d64f8abdbbf7ba92e7db6c8d1c83d"
+      },
+      "supersededBy": null,
+      "dispositionDecisions": [],
+      "lastEventId": "STEP3_IMPORT_BINDING_GATE24_DC_04"
+    },
+    {
+      "deferredCapabilityId": "GATE24-DC-05",
+      "sourceGate": "GATE24",
+      "capabilityName": "fedPolicyState as an active classifying dimension",
+      "capabilityClass": "REGISTERED_NOT_ACTIVE_IN_CORE_V1",
+      "status": "REGISTERED",
+      "disposition": "OPEN",
+      "reasonDeferred": [
+        "TAXONOMY_INTENTIONALLY_DEFERRED",
+        "NOT_REQUIRED_BY_CORE_V1"
+      ],
+      "reasonVocabularyVersion": "V1",
+      "promotionRequirements": [
+        "Owner-ratified closed taxonomy for this dimension",
+        "declared CORE inputs with availableAt proof",
+        "classifier version bump and new taxonomy version",
+        "coverage and hostile tests for the new dimension",
+        "consumer compatibility check"
+      ],
+      "consumerCandidates": [
+        "GATE25 analogue selection",
+        "GATE26 and later model conditioning"
+      ],
+      "mustRevisitByGate": null,
+      "eventBasedRevisitTrigger": "eventBasedRevisitTrigger: an Owner-ratified taxonomy for this dimension, or promotion of its candidate inputs into CORE_V1",
+      "ownerPromotionRequired": true,
+      "currentVersion": "REGIME_VECTOR_V1",
+      "origin": "IMPORT_BINDING",
+      "provenance": {
+        "authorityPath": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_DEFERRED_CAPABILITY_REGISTRY_STEP3_COMBINED_R1.json",
+        "authoritySha256": "d7958c31b5b7d0481d24af9176058053631d64f8abdbbf7ba92e7db6c8d1c83d"
+      },
+      "supersededBy": null,
+      "dispositionDecisions": [],
+      "lastEventId": "STEP3_IMPORT_BINDING_GATE24_DC_05"
+    },
+    {
+      "deferredCapabilityId": "GATE24-DC-06",
+      "sourceGate": "GATE24",
+      "capabilityName": "multi-horizon regime classification with more than one active horizon",
+      "capabilityClass": "DEFERRED_TO_FUTURE_VERSION",
+      "status": "READY",
+      "disposition": "OPEN",
+      "reasonDeferred": [
+        "NOT_REQUIRED_BY_CORE_V1",
+        "CLASSIFIER_ROLE_NOT_YET_PROVEN"
+      ],
+      "reasonVocabularyVersion": "V1",
+      "promotionRequirements": [
+        "explicit selection of the additional horizon, pinned by RegimeHorizonSpecId",
+        "classifier version bump",
+        "multi-horizon identity differential and replay tests",
+        "consumer horizon-binding compliance check"
+      ],
+      "consumerCandidates": [
+        "GATE25 analogue selection by horizon",
+        "GATE26 and later model conditioning by horizon"
+      ],
+      "mustRevisitByGate": null,
+      "eventBasedRevisitTrigger": "eventBasedRevisitTrigger: the first consumer requiring a second horizon",
+      "ownerPromotionRequired": true,
+      "currentVersion": "GATE24_RegimeHorizonSpec/1",
+      "origin": "IMPORT_BINDING",
+      "provenance": {
+        "authorityPath": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_DEFERRED_CAPABILITY_REGISTRY_STEP3_COMBINED_R1.json",
+        "authoritySha256": "d7958c31b5b7d0481d24af9176058053631d64f8abdbbf7ba92e7db6c8d1c83d"
+      },
+      "supersededBy": null,
+      "dispositionDecisions": [],
+      "lastEventId": "STEP3_IMPORT_BINDING_GATE24_DC_06"
+    },
+    {
+      "deferredCapabilityId": "GATE24-DC-07",
+      "sourceGate": "GATE24",
+      "capabilityName": "REGISTERED_DEFERRED macro series without a canonical identifier",
+      "capabilityClass": "REGISTERED_DEFERRED",
+      "status": "DEFERRED",
+      "disposition": "OPEN",
+      "reasonDeferred": [
+        "CANONICAL_IDENTITY_ABSENT",
+        "CAUSAL_VINTAGE_PROOF_INCOMPLETE",
+        "AVAILABLE_AT_POLICY_INCOMPLETE"
+      ],
+      "reasonVocabularyVersion": "V1",
+      "promotionRequirements": [
+        "a canonical series identifier in the producer registry",
+        "a pinned release-time rule and complete availableAt evidence",
+        "complete vintage semantics and sufficient historical coverage",
+        "explicit Owner decision plus a new macro context registry version",
+        "classifier version bump and consumer compatibility check"
+      ],
+      "consumerCandidates": [
+        "growthState",
+        "laborState",
+        "creditState",
+        "liquidityState",
+        "fedPolicyState"
+      ],
+      "mustRevisitByGate": null,
+      "eventBasedRevisitTrigger": "eventBasedRevisitTrigger: registration of a canonical identifier and release-time rule for the series in the producer policy",
+      "ownerPromotionRequired": true,
+      "currentVersion": "MACRO_CONTEXT_REGISTRY_V1",
+      "origin": "IMPORT_BINDING",
+      "provenance": {
+        "authorityPath": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_DEFERRED_CAPABILITY_REGISTRY_STEP3_COMBINED_R1.json",
+        "authoritySha256": "d7958c31b5b7d0481d24af9176058053631d64f8abdbbf7ba92e7db6c8d1c83d"
+      },
+      "supersededBy": null,
+      "dispositionDecisions": [],
+      "lastEventId": "STEP3_IMPORT_BINDING_GATE24_DC_07"
+    },
+    {
+      "deferredCapabilityId": "GATE24-DC-08",
+      "sourceGate": "GATE24",
+      "capabilityName": "US.BLS.ICSA initial claims consumption",
+      "capabilityClass": "REGISTERED_DEFERRED",
+      "status": "READY",
+      "disposition": "OPEN",
+      "reasonDeferred": [
+        "NOT_REQUIRED_BY_CORE_V1",
+        "CLASSIFIER_ROLE_NOT_YET_PROVEN"
+      ],
+      "reasonVocabularyVersion": "V1",
+      "promotionRequirements": [
+        "explicit Owner decision plus a new macro context registry version",
+        "a declared consuming dimension with a ratified taxonomy",
+        "classifier version bump and consumer compatibility check"
+      ],
+      "consumerCandidates": [
+        "laborState"
+      ],
+      "mustRevisitByGate": null,
+      "eventBasedRevisitTrigger": "eventBasedRevisitTrigger: ratification of a laborState taxonomy",
+      "ownerPromotionRequired": true,
+      "currentVersion": "MACRO_CONTEXT_REGISTRY_V1",
+      "origin": "IMPORT_BINDING",
+      "provenance": {
+        "authorityPath": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_DEFERRED_CAPABILITY_REGISTRY_STEP3_COMBINED_R1.json",
+        "authoritySha256": "d7958c31b5b7d0481d24af9176058053631d64f8abdbbf7ba92e7db6c8d1c83d"
+      },
+      "supersededBy": null,
+      "dispositionDecisions": [],
+      "lastEventId": "STEP3_IMPORT_BINDING_GATE24_DC_08"
+    },
+    {
+      "deferredCapabilityId": "GATE24-DC-09",
+      "sourceGate": "GATE24",
+      "capabilityName": "FUTURE_EXTENSION directions",
+      "capabilityClass": "FUTURE_EXTENSION",
+      "status": "FUTURE",
+      "disposition": "OPEN",
+      "reasonDeferred": [
+        "REDUNDANT_INFORMATION_NOT_YET_EVALUATED",
+        "NOT_REQUIRED_BY_CORE_V1"
+      ],
+      "reasonVocabularyVersion": "V1",
+      "promotionRequirements": [
+        "promotion first into REGISTERED_DEFERRED with a canonical identifier where applicable",
+        "explicit Owner decision and a new registry version"
+      ],
+      "consumerCandidates": [
+        "yieldCurveShape",
+        "yieldCurveDirection",
+        "a future rate level dimension"
+      ],
+      "mustRevisitByGate": null,
+      "eventBasedRevisitTrigger": "eventBasedRevisitTrigger: an explicit Owner request for one of these directions",
+      "ownerPromotionRequired": true,
+      "currentVersion": "MACRO_CONTEXT_REGISTRY_V1",
+      "origin": "IMPORT_BINDING",
+      "provenance": {
+        "authorityPath": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_DEFERRED_CAPABILITY_REGISTRY_STEP3_COMBINED_R1.json",
+        "authoritySha256": "d7958c31b5b7d0481d24af9176058053631d64f8abdbbf7ba92e7db6c8d1c83d"
+      },
+      "supersededBy": null,
+      "dispositionDecisions": [],
+      "lastEventId": "STEP3_IMPORT_BINDING_GATE24_DC_09"
+    },
+    {
+      "deferredCapabilityId": "GATE24-DC-10",
+      "sourceGate": "GATE24",
+      "capabilityName": "OPTIONAL_V1 tier population",
+      "capabilityClass": "OPTIONAL_LATER",
+      "status": "REGISTERED",
+      "disposition": "OPEN",
+      "reasonDeferred": [
+        "NOT_REQUIRED_BY_CORE_V1"
+      ],
+      "reasonVocabularyVersion": "V1",
+      "promotionRequirements": [
+        "explicit Owner decision and a new macro context registry version"
+      ],
+      "consumerCandidates": [
+        "any active dimension"
+      ],
+      "mustRevisitByGate": null,
+      "eventBasedRevisitTrigger": "eventBasedRevisitTrigger: a candidate series whose absence must not degrade CORE_V1",
+      "ownerPromotionRequired": true,
+      "currentVersion": "MACRO_CONTEXT_REGISTRY_V1",
+      "origin": "IMPORT_BINDING",
+      "provenance": {
+        "authorityPath": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_DEFERRED_CAPABILITY_REGISTRY_STEP3_COMBINED_R1.json",
+        "authoritySha256": "d7958c31b5b7d0481d24af9176058053631d64f8abdbbf7ba92e7db6c8d1c83d"
+      },
+      "supersededBy": null,
+      "dispositionDecisions": [],
+      "lastEventId": "STEP3_IMPORT_BINDING_GATE24_DC_10"
+    },
+    {
+      "deferredCapabilityId": "GATE24-DC-11",
+      "sourceGate": "GATE24",
+      "capabilityName": "hysteresis and minimum dwell stabilization",
+      "capabilityClass": "DEFERRED_TO_FUTURE_VERSION",
+      "status": "DEFERRED",
+      "disposition": "OPEN",
+      "reasonDeferred": [
+        "CLASSIFIER_ROLE_NOT_YET_PROVEN",
+        "HISTORICAL_COVERAGE_INSUFFICIENT"
+      ],
+      "reasonVocabularyVersion": "V1",
+      "promotionRequirements": [
+        "measured real transition frequency from a first implementation",
+        "evidence and coverage tests supporting a specific dwell",
+        "strictly backward-looking formulation",
+        "new classifier version; no rewrite of emitted records"
+      ],
+      "consumerCandidates": [
+        "transition consumers"
+      ],
+      "mustRevisitByGate": null,
+      "eventBasedRevisitTrigger": "eventBasedRevisitTrigger: availability of measured transition frequency evidence",
+      "ownerPromotionRequired": true,
+      "currentVersion": "REGIME_VECTOR_V1",
+      "origin": "IMPORT_BINDING",
+      "provenance": {
+        "authorityPath": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_DEFERRED_CAPABILITY_REGISTRY_STEP3_COMBINED_R1.json",
+        "authoritySha256": "d7958c31b5b7d0481d24af9176058053631d64f8abdbbf7ba92e7db6c8d1c83d"
+      },
+      "supersededBy": null,
+      "dispositionDecisions": [],
+      "lastEventId": "STEP3_IMPORT_BINDING_GATE24_DC_11"
+    },
+    {
+      "deferredCapabilityId": "GATE24-DC-12",
+      "sourceGate": "GATE24",
+      "capabilityName": "cross-sectional regime construction",
+      "capabilityClass": "OUT_OF_SCOPE_BUT_PLANNED",
+      "status": "DEFERRED",
+      "disposition": "OPEN",
+      "reasonDeferred": [
+        "NOT_REQUIRED_BY_CORE_V1",
+        "PREDICTIVE_VALUE_BELONGS_TO_LATER_GATE"
+      ],
+      "reasonVocabularyVersion": "V1",
+      "promotionRequirements": [
+        "explicit Owner decision",
+        "an upstream cross-sectional feature capability",
+        "new classifier and taxonomy versions"
+      ],
+      "consumerCandidates": [
+        "GATE25 and later"
+      ],
+      "mustRevisitByGate": null,
+      "eventBasedRevisitTrigger": "eventBasedRevisitTrigger: an upstream gate delivering cross-sectional features",
+      "ownerPromotionRequired": true,
+      "currentVersion": "REGIME_VECTOR_V1",
+      "origin": "IMPORT_BINDING",
+      "provenance": {
+        "authorityPath": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_DEFERRED_CAPABILITY_REGISTRY_STEP3_COMBINED_R1.json",
+        "authoritySha256": "d7958c31b5b7d0481d24af9176058053631d64f8abdbbf7ba92e7db6c8d1c83d"
+      },
+      "supersededBy": null,
+      "dispositionDecisions": [],
+      "lastEventId": "STEP3_IMPORT_BINDING_GATE24_DC_12"
+    }
+  ]
+}

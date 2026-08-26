@@ -1,0 +1,99 @@
+{
+  "documentKind": "POST_FREEZE_MAINTENANCE_AUTHORITY_CONSUMPTION",
+  "schemaVersion": 2,
+  "authorityId": "GATE24_INDEPENDENT_EXTERNAL_CONFIRMATION_LOCAL_AUTHORITY_R2",
+  "programId": "GATE24_INDEPENDENT_EXTERNAL_CONFIRMATION_R2",
+  "manifestSha256": "97b1512377a477dce712b821909a7d46b96d330c306fbb19e88b0784df75f41f",
+  "baseHead": "36de5ca2337624090ed32c2ef4b1567add2ce0b3",
+  "consumedUse": 1,
+  "transactionId": "GATE24_EXTERNAL_CONFIRMATION_R1_TRANSACTION",
+  "recordedAt": "2026-08-26T19:00:00.000Z",
+  "commitMessage": "governance: confirm GATE24 with independent confirmation",
+  "cohortSelfExclusion": {
+    "path": "governance/historical-architecture/GATE24_EXTERNAL_CONFIRMATION_CONSUMPTION_R2.json",
+    "reason": "The consumption record cannot hash its own final bytes; its identity is bound by the authority and manifest instead."
+  },
+  "cohortPathCount": 11,
+  "cohort": [
+    {
+      "path": "governance/sources/GATE24_INDEPENDENT_EXTERNAL_CONFIRMATION_R2_EXTERNAL_REINSPECTION_REPORT.json",
+      "sha256": "54cea8f4226ba06c0f2c86215f317855652227023a2321884ddd86810f67e5d9",
+      "byteLength": 15837,
+      "operation": "CREATE",
+      "reason": "Independent external reinspection report bound to the GATE24 COMPLETE_AGENT R0004 pre-state, historical BUILD receipt, post-closure overlay and five-suite reinspection.",
+      "artifactClass": "EXTERNAL_CONFIRMATION"
+    },
+    {
+      "path": "governance/gee-v1/adapters/wheel/external-authority-policy.mjs",
+      "sha256": "2c8bd24fe00164b40d88df9ff1bc6baa3672d2e64a7599126be7ecfaa8bed9de",
+      "byteLength": 9299,
+      "operation": "MODIFY",
+      "reason": "Registers the GATE24 independent reinspection report as the COMPLETE_CONFIRMED external authority, cited by repository path.",
+      "artifactClass": "EXTERNAL_CONFIRMATION"
+    },
+    {
+      "path": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_GATE24_EXTERNAL_CONFIRMATION_R2.json",
+      "sha256": "3464e269322c83637102759259e94c50501116d5875bbe956d18c22717c37b47",
+      "byteLength": 2517,
+      "operation": "CREATE",
+      "reason": "Single-use LOCAL_EXPLICIT_AUTHORITY bound to the exact GATE24 COMPLETE_AGENT pre-state for one EXTERNAL_CONFIRMATION.",
+      "artifactClass": "EXTERNAL_CONFIRMATION"
+    },
+    {
+      "path": "governance/historical-architecture/GATE24_EXTERNAL_CONFIRMATION_AUTHORIZED_PATHS_R2.json",
+      "sha256": "97b1512377a477dce712b821909a7d46b96d330c306fbb19e88b0784df75f41f",
+      "byteLength": 3906,
+      "operation": "CREATE",
+      "reason": "Finite exact-file GATE24 confirmation cohort with no wildcard or directory blanket.",
+      "artifactClass": "EXTERNAL_CONFIRMATION"
+    },
+    {
+      "path": "governance/gates/GATE24/state/revisions/R0005/CHECKPOINT.json",
+      "sha256": "b4de5b3c3aeb687d84e75d519753f54cb81a2fcbc30dbf7ef10617a40181bc3f",
+      "byteLength": 334,
+      "operation": "CREATE",
+      "reason": "Successor checkpoint consuming the R0004 COMPLETE_AGENT handoff.",
+      "artifactClass": "EXTERNAL_CONFIRMATION"
+    },
+    {
+      "path": "governance/gates/GATE24/state/revisions/R0005/OPEN_DEFECTS.json",
+      "sha256": "eb592099be717238e8ad10a03a14e609c6a4f92e5e000a7f9f9369c374f2c155",
+      "byteLength": 70,
+      "operation": "CREATE",
+      "reason": "Closed-world R0005 defect projection preserving the zero blocking-defect state.",
+      "artifactClass": "EXTERNAL_CONFIRMATION"
+    },
+    {
+      "path": "governance/gates/GATE24/state/revisions/R0005/STATE_SEAL.json",
+      "sha256": "ebcbfca74ddfd1dae0b9814ac284438951b9aace2c7c70c9ba9f6f0e4527fe9f",
+      "byteLength": 1359,
+      "operation": "CREATE",
+      "reason": "Native R0005 state seal chained from R0004 and pinned by the confirmation event.",
+      "artifactClass": "EXTERNAL_CONFIRMATION"
+    },
+    {
+      "path": "governance/gates/GATE24/state/CURRENT_STATE.json",
+      "sha256": "e7719b557b2377243cacb6f4c3764d954c8606822ac2625735117163344d0050",
+      "byteLength": 308,
+      "operation": "MODIFY",
+      "reason": "Advance the canonical GATE24 state pointer to COMPLETE_CONFIRMED R0005.",
+      "artifactClass": "EXTERNAL_CONFIRMATION"
+    },
+    {
+      "path": "governance/state/GATE_STATUS_LEDGER.ndjson",
+      "sha256": "2def19c84b7581da0ab54d2d1ba9d68f5bc2ce40e108443cfbd086835a0116da",
+      "byteLength": 63787,
+      "operation": "MODIFY",
+      "reason": "Append exactly one canonical GATE24 EXTERNAL_CONFIRMATION event; every earlier event stays byte-identical.",
+      "artifactClass": "EXTERNAL_CONFIRMATION"
+    },
+    {
+      "path": "governance/state/generated/GATE_STATUS_SNAPSHOT.json",
+      "sha256": "5a4f9de7786b1f5de917ebfab386decc6fdd6e0dc0fd6d8acd23ff4f1eca4232",
+      "byteLength": 15998,
+      "operation": "MODIFY",
+      "reason": "Regenerate the derived status projection from the post-confirmation canonical ledger.",
+      "artifactClass": "EXTERNAL_CONFIRMATION"
+    }
+  ]
+}

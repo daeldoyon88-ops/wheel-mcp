@@ -119,6 +119,18 @@ const EXTERNAL_REINSPECTION_DECLARATIONS = Object.freeze([
       gateId: 'GATE23',
       programId: 'GATE23_INDEPENDENT_EXTERNAL_CONFIRMATION_R1',
       reportShape: STANDARD_EXTERNAL_REINSPECTION_REPORT
+    },
+    {
+      // GATE24 cites its reinspection report by REPOSITORY PATH, same as GATE23.
+      // `resolveAuthority` matches a declaration by exact string equality against
+      // `event.authorityPath`, so `authorityId` here is the path itself.
+      authorityId: 'governance/sources/GATE24_INDEPENDENT_EXTERNAL_CONFIRMATION_R2_EXTERNAL_REINSPECTION_REPORT.json',
+      classification: 'EXTERNAL_REINSPECTION_REPORT',
+      path: 'governance/sources/GATE24_INDEPENDENT_EXTERNAL_CONFIRMATION_R2_EXTERNAL_REINSPECTION_REPORT.json',
+      sha256: '54cea8f4226ba06c0f2c86215f317855652227023a2321884ddd86810f67e5d9',
+      gateId: 'GATE24',
+      programId: 'GATE24_INDEPENDENT_EXTERNAL_CONFIRMATION_R2',
+      reportShape: STANDARD_EXTERNAL_REINSPECTION_REPORT
     }
   ]);
 

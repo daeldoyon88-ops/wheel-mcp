@@ -1004,6 +1004,58 @@ test('a re-derived GATE17 AGENT_CLOSURE introduces no new ledger, seal or revisi
  * Atomicity — a rejected candidate never reaches canonical bytes
  * ---------------------------------------------------------------------- */
 
+test('AGENT_CLOSURE inherits predecessor task history instead of restarting from zero', () => {
+  const root = scratchRoot('closure-inherits-tasks');
+  const staging = fs.mkdtempSync(path.join(fs.realpathSync(os.tmpdir()), 'gate-lifecycle-stage-'));
+  try {
+    const authorizedAt = nextInstant(root);
+    const authorization = futureAuthorizationInputs(root, 'GATE18', 'GATE18_SYNTHETIC_AUTHORIZATION_R1', authorizedAt);
+    assert.equal(runLifecycleTransition({
+      root, stagingRoot: staging, gateId: 'GATE18', transitionType: 'AUTHORIZATION',
+      eventId: 'GATE18_SYNTHETIC_AUTHORIZATION_R1', authorityPath: authorization.recordPath, recordedAt: authorizedAt
+    }).result, 'APPLIED');
+    const startedAt = nextInstant(root);
+    const start = futureStartInputs(root, 'GATE18', 'GATE18_SYNTHETIC_START_R1', startedAt);
+    assert.equal(runLifecycleTransition({
+      root, stagingRoot: staging, gateId: 'GATE18', transitionType: 'START',
+      eventId: 'GATE18_SYNTHETIC_START_R1', authorityPath: start.recordPath, recordedAt: startedAt,
+      checkpoint: { completedTasks: ['X_PRIOR'], openTasks: ['X_BUILD'], requiredNextActions: ['X_BUILD'] }
+    }).result, 'APPLIED');
+
+    const closedAt = nextInstant(root);
+    const closure = futureMaintenanceInputs(root, 'GATE18', 'AGENT_CLOSURE', 'GATE18_SYNTHETIC_AGENT_CLOSURE_R1', closedAt);
+    const derived = deriveCandidateTransition({
+      root, gateId: 'GATE18', transitionType: 'AGENT_CLOSURE',
+      eventId: 'GATE18_SYNTHETIC_AGENT_CLOSURE_R1', authorityPath: closure.authorityPath, recordedAt: closedAt
+    });
+    assert.equal(derived.status, 'DERIVED', JSON.stringify(derived.findings));
+    assert.deepEqual(derived.candidate.checkpointDocument.completedTasks, ['X_PRIOR', 'X_BUILD']);
+    assert.deepEqual(derived.candidate.checkpointDocument.openTasks, []);
+    assert.deepEqual(derived.candidate.checkpointDocument.requiredNextActions, []);
+    const validation = validateCandidateInStagingRoot({ root, candidate: derived.candidate, stagingRoot: staging });
+    assert.equal(validation.valid, true, JSON.stringify(validation.findings));
+    assert.equal(validation.findings.filter((finding) => finding.defectClass === 'RESTART_FROM_ZERO_DETECTED').length, 0);
+  } finally { discard(root); discard(staging); }
+});
+
+test('AGENT_CLOSURE blocks when its predecessor checkpoint is unreadable', () => {
+  const root = scratchRoot('closure-unreadable-checkpoint');
+  const staging = fs.mkdtempSync(path.join(fs.realpathSync(os.tmpdir()), 'gate-lifecycle-stage-'));
+  try {
+    enterSyntheticFutureGate(root, staging);
+    const closedAt = nextInstant(root);
+    const closure = futureMaintenanceInputs(root, 'GATE18', 'AGENT_CLOSURE', 'GATE18_SYNTHETIC_AGENT_CLOSURE_R1', closedAt);
+    fs.rmSync(path.join(root, 'governance/gates/GATE18/state/revisions/R0002/CHECKPOINT.json'));
+    const result = deriveCandidateTransition({
+      root, gateId: 'GATE18', transitionType: 'AGENT_CLOSURE',
+      eventId: 'GATE18_SYNTHETIC_AGENT_CLOSURE_R1',
+      authorityPath: closure.authorityPath, recordedAt: closedAt
+    });
+    assert.equal(result.status, 'BLOCKED');
+    assert.ok(result.findings.some((finding) => finding.defectClass === 'PREVIOUS_CHECKPOINT_UNREADABLE'));
+  } finally { discard(root); discard(staging); }
+});
+
 test('a candidate rejected during validation leaves every canonical byte untouched', () => {
   const root = scratchRoot('atomicity');
   const staging = fs.mkdtempSync(path.join(fs.realpathSync(os.tmpdir()), 'gate-lifecycle-stage-'));

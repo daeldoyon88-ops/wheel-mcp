@@ -1,0 +1,56 @@
+{
+  "documentKind": "POST_FREEZE_MAINTENANCE_AUTHORITY_CONSUMPTION",
+  "schemaVersion": 2,
+  "authorityId": "DEFERRED_CAPABILITY_REGISTRY_V1_STEP2_TEST_REPAIR_LOCAL_AUTHORITY_R1",
+  "programId": "DEFERRED_CAPABILITY_REGISTRY_V1_STEP2_TEST_REPAIR_R1",
+  "manifestSha256": "2e8e34aa9da5cc6bad8769c2299a64cc3eaf8132be3c93d20d5cdd66d5be2c61",
+  "baseHead": "927d62362db4dcd175383ce4155e60f7c57f71b7",
+  "consumedUse": 1,
+  "transactionId": "DEFERRED_CAPABILITY_REGISTRY_V1_STEP2_TEST_REPAIR_R1_TRANSACTION",
+  "recordedAt": "2026-08-26T10:53:47.655Z",
+  "commitMessage": "governance: repair deferred capability STEP2 test expectations",
+  "publicationAdmission": {
+    "admissionId": "DEFERRED_CAPABILITY_REGISTRY_V1_STEP2_TEST_REPAIR_PUBLICATION_ADMISSION_R1",
+    "admissionPath": "governance/authority/publication-admissions/GATE24/DEFERRED_CAPABILITY_REGISTRY_V1_STEP2_TEST_REPAIR_PUBLICATION_ADMISSION_R1.json",
+    "admissionSha256": "0a830e86b3ab198c3e000354647e32e5d0f7b77598346dc40680b722fee237d7"
+  },
+  "cohortSelfExclusion": {
+    "path": "governance/historical-architecture/DEFERRED_CAPABILITY_REGISTRY_STEP2_TEST_REPAIR_CONSUMPTION_R1.json",
+    "reason": "The consumption record cannot hash its own final bytes; its identity is bound by the authority and manifest instead."
+  },
+  "cohortPathCount": 5,
+  "cohort": [
+    {
+      "path": "governance/tests/deferred-capability-closure-enforcement-hostile-battery.test.mjs",
+      "sha256": "24c4ecca2bb5172582c9943931be6fee9045ae7eb62c0e4c9e430f9ba977dd15",
+      "byteLength": 16855,
+      "operation": "MODIFY",
+      "reason": "Repair S2-H01 so it proves BELOW_EFFECTIVE_FROM_GATE family verdict rather than global live FGI PASS.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "governance/tests/final-gate-integrity-auditor.test.mjs",
+      "sha256": "3c7e011bb60a47844edd70e7450ba842d90b4f2208fa422b48624f2b3fef12bc",
+      "byteLength": 28960,
+      "operation": "MODIFY",
+      "reason": "Repair the two STEP2 FGI regressions so they judge the DEFERRED_CAPABILITY family independently of unrelated FGI families.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_DEFERRED_CAPABILITY_REGISTRY_STEP2_TEST_REPAIR_R1.json",
+      "sha256": "6dfbc38fd650d31d673af54ad7c264dcfa606328f0c018a5f4516e16d01af8c6",
+      "byteLength": 2175,
+      "operation": "CREATE",
+      "reason": "Causally-prior authority document.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "governance/historical-architecture/DEFERRED_CAPABILITY_REGISTRY_STEP2_TEST_REPAIR_AUTHORIZED_PATHS_R1.json",
+      "sha256": "2e8e34aa9da5cc6bad8769c2299a64cc3eaf8132be3c93d20d5cdd66d5be2c61",
+      "byteLength": 2984,
+      "operation": "CREATE",
+      "reason": "Causally-prior authorized-path manifest.",
+      "artifactClass": "MAINTENANCE"
+    }
+  ]
+}

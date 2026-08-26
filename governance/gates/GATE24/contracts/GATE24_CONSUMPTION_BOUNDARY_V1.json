@@ -1,0 +1,87 @@
+{
+  "document": "GATE24_DOMAIN_CONTRACT",
+  "schemaVersion": 1,
+  "gateId": "GATE24",
+  "contractId": "GATE24_CONSUMPTION_BOUNDARY_V1",
+  "version": 1,
+  "role": "Downstream consumption boundary contract",
+  "classification": {
+    "isBuildOutput": true,
+    "isMandateProjection": false,
+    "countedInMandateContractCount": false,
+    "mandateDomainContractCount": 0
+  },
+  "authority": {
+    "mandatePath": "governance/sources/GATE24_CANONICAL_MANDATE_R0.json",
+    "requirementIds": ["G24-BUILD-02", "G24-BUILD-04", "G24-BUILD-15", "G24-BUILD-16"]
+  },
+  "implementationPaths": [
+    "governance/gates/GATE24/implementation/regime-store-v1.mjs",
+    "governance/gates/GATE24/implementation/regime-transition-v1.mjs",
+    "governance/gates/GATE24/implementation/regime-horizon-v1.mjs"
+  ],
+  "upstreamBoundary": {
+    "consumes": [
+      "GATE23 FeatureRecords bound by FeatureVectorBindingId",
+      "prepared versioned macro context bound by MacroContextBindingId",
+      "the calendarWindowBindingId already carried by the bound GATE23 FeatureSet"
+    ],
+    "doesNotConsume": [
+      "GATE22 Outcome, directly",
+      "GATE22 Outcome, lagged",
+      "GATE22 Outcome, renamed",
+      "GATE22 Outcome, same-type laundered",
+      "any future-dated provenance",
+      "live macro fetches",
+      "per-ticker macro ingestion"
+    ],
+    "gate21Mutation": "FORBIDDEN",
+    "gate22Mutation": "FORBIDDEN",
+    "gate23Mutation": "FORBIDDEN",
+    "geeMutation": "FORBIDDEN",
+    "directionalLabMutation": "FORBIDDEN",
+    "deferredRegistryMutation": "FORBIDDEN"
+  },
+  "downstreamBoundary": {
+    "GATE24": "produces RegimeRecord(T) only, carrying identity, KnowledgeCutoff, RegimeHorizonSpecId, FeatureVectorBindingId, MacroContextBindingId, taxonomy, classifier, parameter set, feature dataset, missingness, RegimeVector, classificationQuality and classificationEvidence",
+    "GATE25": "no GATE25 scope is authorized by GATE24; a GATE24 BUILD PASS is not a GATE25 authorization"
+  },
+  "consumerObligations": [
+    "every consumer must bind its RegimeHorizonSpecId explicitly even while only one horizon is active",
+    "consumers never infer the horizon by default, ordering, recency or file position",
+    "consumers treat classificationQuality as the declared state over the six active dimensions and never copy MACRO_FEATURE_COMPLETENESS into it",
+    "consumers never reattach an Outcome to a RegimeRecord",
+    "cross-horizon comparison is not a transition"
+  ],
+  "transitionSemantics": {
+    "schemaVersion": "GATE24_TransitionSemantics/1",
+    "pair": "(RegimeRecord(T_prev), RegimeRecord(T))",
+    "primaryTransitionTypes": ["PERSIST", "CHANGE"],
+    "changedDimensionsRequired": true,
+    "regimeAgeSessionsRequired": true,
+    "lastTransitionSessionRequired": true,
+    "hysteresis": "DEFERRED",
+    "minimumDwell": "DEFERRED",
+    "crossHorizonComparison": "FORBIDDEN"
+  },
+  "storePolicy": {
+    "schemaVersion": "GATE24_RegimeStore/1",
+    "append": "APPEND_ONLY",
+    "key": "RegimeRecordId",
+    "identicalReplay": "IDEMPOTENT",
+    "divergentReplayUnderSameKey": "REFUSED",
+    "historicalRewriteOnMacroRevision": "FORBIDDEN",
+    "opaqueRegimeEmitted": false,
+    "silentSessionOmission": "FORBIDDEN"
+  },
+  "nextGateAuthorization": {
+    "gate24BuildPassIsGate25Authorization": false,
+    "gate25RequiresSeparateExecutionContractAndAuthority": true
+  },
+  "buildDisposition": {
+    "status": "BUILD_CANDIDATE",
+    "buildExecuted": true,
+    "functionalImplementationPresent": true,
+    "outcomeProduced": false
+  }
+}

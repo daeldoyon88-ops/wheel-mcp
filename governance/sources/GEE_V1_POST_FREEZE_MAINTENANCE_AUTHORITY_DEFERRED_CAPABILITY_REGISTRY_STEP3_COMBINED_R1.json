@@ -1,0 +1,61 @@
+{
+  "document": "GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY",
+  "schemaVersion": 2,
+  "authorityId": "DEFERRED_CAPABILITY_REGISTRY_V1_STEP3_COMBINED_LOCAL_AUTHORITY_R1",
+  "authorityClass": "PROJECT_OWNER_POST_FREEZE_MAINTENANCE_AUTHORITY",
+  "authorityMode": "LOCAL_EXPLICIT_AUTHORITY",
+  "issuedBy": "PROJECT_OWNER",
+  "createdAt": "2026-08-26T15:00:00.000Z",
+  "expiresAt": "2026-12-31T23:59:59.000Z",
+  "targetSystem": "PROJECT_GOVERNANCE",
+  "programId": "DEFERRED_CAPABILITY_REGISTRY_V1_STEP3_COMBINED_R1",
+  "authorityPurpose": "NORMAL_MAINTENANCE",
+  "resumePoint": "CP-DEFERRED-CAPABILITY-REGISTRY-V1-STEP3-COMBINED-R1",
+  "maxUse": 1,
+  "preState": {
+    "baseHead": "36de5ca2337624090ed32c2ef4b1567add2ce0b3",
+    "ledgerEventCount": 99,
+    "ledgerPrefixSha256": "2d2707462ef4e518abb5153376c1145c39a97981486066eea62edae043f54a57",
+    "gateId": "GATE24",
+    "gateStatus": "NOT_STARTED",
+    "stateRevision": null,
+    "contractRevision": null,
+    "activeGate": "GATE13",
+    "R8ExpectedAbsent": true
+  },
+  "authorizedPathManifestPath": "governance/historical-architecture/DEFERRED_CAPABILITY_REGISTRY_STEP3_COMBINED_AUTHORIZED_PATHS_R1.json",
+  "authorizedPathManifestSha256": "7f22392c7b4e7e5db8ad39980b04a7572cd365ce5d9f89cf42b32882f5f7d5ea",
+  "authorizedOperationClasses": [
+    "MAINTENANCE"
+  ],
+  "commitPolicy": {
+    "maxCommitCount": 1,
+    "allowedGitOperations": [
+      "GIT_ADD_PATHSPEC",
+      "GIT_COMMIT"
+    ],
+    "commitMessage": "governance: bind deferred capability registry for GATE24",
+    "thirdCommitAuthorized": false
+  },
+  "pushAuthorized": false,
+  "authorityPredecessor": null,
+  "authorityHeadBinding": {
+    "mode": "BASE_HEAD",
+    "baseHead": "36de5ca2337624090ed32c2ef4b1567add2ce0b3"
+  },
+  "consumptionRecordPath": "governance/historical-architecture/DEFERRED_CAPABILITY_REGISTRY_STEP3_COMBINED_CONSUMPTION_R1.json",
+  "prohibitedOperations": [
+    "START",
+    "SECOND_START",
+    "AGENT_CLOSURE",
+    "EXTERNAL_CONFIRMATION",
+    "COMPLETE_AGENT",
+    "COMPLETE_CONFIRMED",
+    "ACTIVE_GATE_SWITCH",
+    "GEE_R8",
+    "GIT_PUSH",
+    "HISTORY_REWRITE",
+    "THIRD_COMMIT",
+    "UNRELATED_WRITE"
+  ]
+}

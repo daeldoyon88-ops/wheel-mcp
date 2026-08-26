@@ -62,6 +62,14 @@ const REGISTRY_PATH = 'governance/GATE_REGISTRY_00_40.json';
 const LEDGER_PATH = 'governance/state/GATE_STATUS_LEDGER.ndjson';
 const GAP_REGISTER_PATH = 'governance/master-matrix/MASTER_GAP_REGISTER_V1.json';
 const REGRESSION_BASELINE_PATH = 'governance/master-matrix/REGRESSION_IDENTITY_BASELINE_V1.json';
+const DEFERRED_CAPABILITY_INDEX_PATH = 'governance/generated/DEFERRED_CAPABILITY_INDEX_V1.json';
+
+/**
+ * The dispositions a gate may record against a deferred capability that targets
+ * it. KEEP_DEFERRED is deliberately one of them: choosing to wait is a decision,
+ * and recording it is what stops a deferral from decaying into silence.
+ */
+const DEFERRED_CAPABILITY_DISPOSITIONS = Object.freeze(['PROMOTE', 'KEEP_DEFERRED', 'SUPERSEDE', 'RETIRE']);
 
 /** Primitive modules the generic Gate lifecycle is made of. Absence is SYSTEMIC. */
 const LIFECYCLE_PRIMITIVES = Object.freeze({
@@ -141,7 +149,10 @@ export function resolveGeeReferenceWorkUnit({ root, session }) {
 export async function runPreexecutionReuseCheck({ root, gateId, now = new Date() } = {}) {
   const checks = [];
   const errors = [];
-  const reuse = { priorResearchSources: [], unresolvedSources: [], geeReferenceWorkUnit: null };
+  const reuse = {
+    priorResearchSources: [], unresolvedSources: [], geeReferenceWorkUnit: null,
+    deferredCapabilityCommitments: []
+  };
 
   if (!GATE_RE.test(gateId || '')) {
     return {
@@ -436,6 +447,53 @@ export async function runPreexecutionReuseCheck({ root, gateId, now = new Date()
       : openBlocking === null ? 'The master gap register is absent; systemic state is unknown.'
         : 'The master gap register carries open P0/P1 findings.',
     { openP0P1: openBlocking }));
+
+  // ---- DEFERRED_CAPABILITY_COMMITMENTS ------------------------------------
+  //
+  // The anti-forget seam. A capability an earlier gate deliberately deferred and
+  // pointed at THIS gate must resurface here and be decided, not quietly inherited.
+  //
+  // Absence of the projection is PASS, not FAIL, and that is a deliberate choice
+  // rather than a soft spot: the registry is the trust root, this file only reads
+  // its projection, and a readiness check that started failing every gate the day
+  // before the registry existed would have been reverted long before it ever caught
+  // anything. What it does refuse is the real failure — a commitment that targets
+  // this gate and carries no recorded decision.
+  let deferredCheck = null;
+  try {
+    if (!exists(root, DEFERRED_CAPABILITY_INDEX_PATH)) {
+      deferredCheck = check('DEFERRED_CAPABILITY_COMMITMENTS', 'PASS', NONE,
+        'No deferred capability projection is present; no commitment targets this Gate.',
+        { indexPresent: false, targeted: 0, undecided: 0 });
+    } else {
+      const index = readJson(root, DEFERRED_CAPABILITY_INDEX_PATH);
+      const targeted = [...(index.openCommitmentsByTargetGate?.[gateId] ?? [])].sort();
+      const undecided = targeted.filter((id) => {
+        const decisions = index.byId?.[id]?.dispositionDecisions ?? [];
+        return !decisions.some((entry) => entry?.decidedAtGate === gateId
+          && DEFERRED_CAPABILITY_DISPOSITIONS.includes(entry?.decision));
+      });
+      reuse.deferredCapabilityCommitments = targeted.map((id) => ({
+        deferredCapabilityId: id,
+        status: index.byId?.[id]?.status ?? null,
+        disposition: index.byId?.[id]?.disposition ?? null,
+        sourceGate: index.byId?.[id]?.sourceGate ?? null,
+        decidedAtThisGate: !undecided.includes(id)
+      }));
+      deferredCheck = check('DEFERRED_CAPABILITY_COMMITMENTS',
+        undecided.length === 0 ? 'PASS' : 'FAIL',
+        undecided.length === 0 ? NONE : PREEXECUTION_GAP,
+        undecided.length === 0
+          ? 'Every deferred capability targeting this Gate carries a recorded disposition decision.'
+          : 'Deferred capabilities target this Gate with no recorded PROMOTE, KEEP_DEFERRED, SUPERSEDE or RETIRE decision.',
+        { indexPresent: true, targeted: targeted.length, undecided: undecided.length, undecidedIds: undecided });
+    }
+  } catch (error) {
+    errors.push(`DEFERRED_CAPABILITY_INDEX_UNREADABLE:${error.message}`);
+    deferredCheck = check('DEFERRED_CAPABILITY_COMMITMENTS', 'FAIL', PREEXECUTION_GAP,
+      'The deferred capability projection is present but unreadable; targeted commitments are unknown.');
+  }
+  checks.push(deferredCheck);
 
   const counts = {
     pass: checks.filter((entry) => entry.status === 'PASS').length,

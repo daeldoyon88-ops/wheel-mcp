@@ -1,0 +1,82 @@
+{
+  "document": "GATE24_DOMAIN_CONTRACT",
+  "schemaVersion": 1,
+  "gateId": "GATE24",
+  "contractId": "GATE24_MACRO_CONTEXT_REGISTRY_V1",
+  "version": 1,
+  "role": "Macro context registry contract",
+  "classification": {
+    "isBuildOutput": true,
+    "isMandateProjection": false,
+    "countedInMandateContractCount": false,
+    "mandateDomainContractCount": 0
+  },
+  "authority": {
+    "mandatePath": "governance/sources/GATE24_CANONICAL_MANDATE_R0.json",
+    "requirementIds": ["G24-BUILD-02", "G24-BUILD-12"]
+  },
+  "implementationPath": "governance/gates/GATE24/implementation/macro-context-binding-v1.mjs",
+  "moduleVersion": "GATE24_MacroContextBinding/1",
+  "registryVersionId": "MACRO_CONTEXT_REGISTRY_V1",
+  "boundaryName": "GATE24_MACRO_CONTEXT_BOUNDARY",
+  "direction": "GATE24 consumes prepared, versioned macro context; it never fetches, ingests or normalizes.",
+  "architectureChain": ["FETCH_ONCE", "NORMALIZE", "VERSION_CACHE", "PRECOMPUTE", "REUSE"],
+  "tiers": ["CORE_V1", "OPTIONAL_V1", "REGISTERED_DEFERRED", "FUTURE_EXTENSION"],
+  "coreV1BaseSeries": [
+    "US.FRB.DFEDTARU",
+    "US.FRB.DFEDTARL",
+    "US.NYFED.EFFR",
+    "US.NYFED.SOFR",
+    "US.FOMC.DECISION",
+    "US.TREAS.DGS3MO",
+    "US.TREAS.DGS2",
+    "US.TREAS.DGS5",
+    "US.TREAS.DGS10",
+    "US.TREAS.DGS30",
+    "US.BLS.CPIAUCSL",
+    "US.BLS.UNRATE"
+  ],
+  "coreV1BaseSeriesCount": 12,
+  "derivedFeatures": [
+    "SPREAD_10Y_2Y",
+    "SPREAD_10Y_3M",
+    "SPREAD_5Y_2Y",
+    "cpiMoM",
+    "cpiYoY",
+    "inversionFlags"
+  ],
+  "curveFeatureCodes": ["curveShape", "curveDirection"],
+  "curveFeatureCodesRealizeDeclaredDerivedFeature": "inversionFlags",
+  "optionalV1Members": [],
+  "optionalMemberCount": 0,
+  "macroFeatureCompleteness": ["COMPLETE", "PARTIAL", "UNAVAILABLE"],
+  "completenessIsClassificationQuality": false,
+  "macroFedDimensions": [
+    "inflationState",
+    "ratesState",
+    "yieldCurveShape",
+    "yieldCurveDirection"
+  ],
+  "networkDuringClassification": "FORBIDDEN",
+  "perTickerMacroFetch": "FORBIDDEN",
+  "liveMacroFetcher": "FORBIDDEN",
+  "historicalMacroPrecompute": "ALLOWED_OFF_SCAN",
+  "liveScanCriticalPath": "MUST_NOT_LENGTHEN",
+  "latencyTargetDelta": "ZERO",
+  "snapshotReuse": "one snapshot computed once and reused across N tickers",
+  "identityDifferential": "identical market features with a different macro vintage are a different MacroContextBindingId and therefore a different RegimeRecordId",
+  "refusalCodes": {
+    "network": "MACRO_NETWORK_DURING_CLASSIFICATION_FORBIDDEN",
+    "liveFetcher": "LIVE_MACRO_FETCHER_FORBIDDEN",
+    "perTicker": "PER_TICKER_MACRO_FETCH_FORBIDDEN",
+    "ingestion": "MACRO_INGESTION_NOT_IN_GATE24_SCOPE",
+    "silentPromotion": "SILENT_TIER_PROMOTION_FORBIDDEN",
+    "completenessInconsistent": "MACRO_COVERAGE_DECLARATION_INCONSISTENT"
+  },
+  "buildDisposition": {
+    "status": "BUILD_CANDIDATE",
+    "buildExecuted": true,
+    "functionalImplementationPresent": true,
+    "outcomeProduced": false
+  }
+}

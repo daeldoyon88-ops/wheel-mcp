@@ -1,0 +1,226 @@
+{
+  "gateId": "GATE24",
+  "contractRevision": "R0001",
+  "strategicRegistryReference": {
+    "registryPath": "governance/GATE_REGISTRY_00_40.json",
+    "registrySha256": "76d5f9ff0a21f8c1eadaf9ccd9e48c9087d12655fac6a5c9215584053652a56b",
+    "gateId": "GATE24",
+    "canonicalObjectiveSha256": "316e0ba5dbea03195035d465c4fd4e97504f56d725bd59cddcc3f849b92d9319"
+  },
+  "canonicalRequirements": [
+    {
+      "requirementId": "G24-PRESTART-01",
+      "statement": "Bind the Owner-ratified GATE24 canonical mandate by its exact SHA-256. The mandate freezes design scope only and confers no execution, START, BUILD, contract, precontract, status-transition, ledger, commit or push authority.",
+      "normativeSource": "governance/sources/GATE24_CANONICAL_MANDATE_R0.json"
+    },
+    {
+      "requirementId": "G24-PRESTART-02",
+      "statement": "This revision is PRECONTRACT ONLY. It authorizes no START, no BUILD and no lifecycle transition, and confers no execution authority unless and until later canonical authority exists.",
+      "normativeSource": "governance/sources/GATE24_CANONICAL_MANDATE_R0.json"
+    },
+    {
+      "requirementId": "G24-PRESTART-03",
+      "statement": "Reuse the GATE23 terminal dependency proof COMPLETE_CONFIRMED, bound by exact SHA-256. GATE23 is not re-audited and not reopened by this candidate.",
+      "normativeSource": "governance/sources/GATE23_INDEPENDENT_EXTERNAL_CONFIRMATION_R1_EXTERNAL_REINSPECTION_REPORT.json"
+    },
+    {
+      "requirementId": "G24-PRESTART-04",
+      "statement": "The six mandate deferredToContract items remain deliberately unbound in this revision: dimension thresholds and window selections, the classificationQuality definition, the classificationEvidence schema, the ordered RegimeRecordId tuple and canonicalization rules, the classificationQuality to macro-coverage relationship, and the active horizon session count. Binding them is reserved to the GATE24 R0002 contract succession before BUILD.",
+      "normativeSource": "governance/sources/GATE24_CANONICAL_MANDATE_R0.json"
+    },
+    {
+      "requirementId": "G24-PRESTART-05",
+      "statement": "The CORE_V1 active horizon sessionCount remains unresolved. Admissible candidates are exactly 5, 21, 63, 126 and 252 from the upstream GATE23 ladder; this revision selects none and may not imply one by code default. Selection is docketed to GATE24_R0002_OWNER_DECISION_ACTIVE_HORIZON as a genuine Owner decision.",
+      "normativeSource": "governance/sources/GATE24_CANONICAL_MANDATE_R0.json"
+    },
+    {
+      "requirementId": "G24-PRESTART-06",
+      "statement": "GATE21, GATE22 and GATE23 surfaces, research/directional-lab, the status ledger, ACTIVE_GATE, the deferred capability registry and index, and the GEE and Fast Gate core stay unmodified by this candidate.",
+      "normativeSource": "governance/PROJECT_CONSTITUTION.json"
+    }
+  ],
+  "requiredInputs": [
+    {
+      "path": "governance/sources/GATE24_CANONICAL_MANDATE_R0.json",
+      "sha256": "67bd631a77c87785d623ccbf1051c33b5b5bc9d57855167a8763d8586a55115f",
+      "role": "OWNER_RATIFIED_DESIGN_SCOPE_ONLY_MANDATE"
+    },
+    {
+      "path": "governance/GATE_REGISTRY_00_40.json",
+      "sha256": "76d5f9ff0a21f8c1eadaf9ccd9e48c9087d12655fac6a5c9215584053652a56b",
+      "role": "CANONICAL_STRATEGIC_REGISTRY"
+    },
+    {
+      "path": "governance/sources/GATE23_INDEPENDENT_EXTERNAL_CONFIRMATION_R1_EXTERNAL_REINSPECTION_REPORT.json",
+      "sha256": "a9b6abde76aaa6c3a1cd3ace2c69d19e893a7545d28d5942431b5bbd45847f1f",
+      "role": "GATE23_TERMINAL_DEPENDENCY_PROOF"
+    },
+    {
+      "path": "governance/gates/GATE23/state/CURRENT_STATE.json",
+      "sha256": "cb57be85380bd399cab084c17333a9697c7ad623a7f4d1f06482d1f70de44740",
+      "role": "GATE23_TERMINAL_STATE_R0005"
+    }
+  ],
+  "requiredOutputs": [
+    {
+      "ordinal": 1,
+      "path": "governance/gates/GATE24/contracts/EXECUTION_CONTRACT_R0001.json",
+      "role": "Versioned precontract-only execution contract"
+    },
+    {
+      "ordinal": 2,
+      "path": "governance/gates/GATE24/contracts/CURRENT_CONTRACT.json",
+      "role": "Pointer to the exact versioned contract"
+    },
+    {
+      "ordinal": 3,
+      "path": "governance/gates/GATE24/contracts/PRECONTRACT_AUTHORITY_CONSUMPTION_R1.json",
+      "role": "Primitive-generated single-use consumption receipt"
+    }
+  ],
+  "validators": [
+    "node governance/tools/validate-gate-contract.mjs --contract governance/gates/GATE24/contracts/EXECUTION_CONTRACT_R0001.json --pointer governance/gates/GATE24/contracts/CURRENT_CONTRACT.json",
+    "node governance/tools/validate-precontract-authority.mjs --gate GATE24",
+    "node governance/tools/validate-status-ledger.mjs"
+  ],
+  "positiveTests": [
+    {
+      "testId": "G24-PRE-POS-01",
+      "case": "the candidate contract and pointer bytes validate against the canonical contract schema",
+      "expected": "AUTHORIZED"
+    },
+    {
+      "testId": "G24-PRE-POS-02",
+      "case": "every requiredInput binds its verified SHA-256 exactly, mandate included",
+      "expected": "AUTHORIZED"
+    },
+    {
+      "testId": "G24-PRE-POS-03",
+      "case": "GATE24 remains NOT_STARTED and GATE23 remains COMPLETE_CONFIRMED",
+      "expected": "AUTHORIZED"
+    }
+  ],
+  "negativeTests": [
+    {
+      "testId": "G24-PRE-NEG-01",
+      "case": "START, BUILD or lifecycle transition request under this candidate",
+      "expected": "BLOCKED"
+    },
+    {
+      "testId": "G24-PRE-NEG-02",
+      "case": "any write to a GATE21, GATE22 or GATE23 surface or to research/directional-lab",
+      "expected": "BLOCKED"
+    },
+    {
+      "testId": "G24-PRE-NEG-03",
+      "case": "any write outside the three authorized contract paths",
+      "expected": "BLOCKED"
+    },
+    {
+      "testId": "G24-PRE-NEG-04",
+      "case": "any binding in this revision of a deferredToContract item reserved to R0002",
+      "expected": "BLOCKED"
+    },
+    {
+      "testId": "G24-PRE-NEG-05",
+      "case": "any selection or code-default implication of an active horizon sessionCount under this revision",
+      "expected": "BLOCKED"
+    }
+  ],
+  "countertests": [
+    {
+      "testId": "G24-PRE-CTR-01",
+      "case": "this candidate presented as an activated CURRENT_CONTRACT for GATE24",
+      "expected": "BLOCKED"
+    },
+    {
+      "testId": "G24-PRE-CTR-02",
+      "case": "this candidate presented as a consumed Owner START authority",
+      "expected": "BLOCKED"
+    },
+    {
+      "testId": "G24-PRE-CTR-03",
+      "case": "mandate bytes changed after this binding",
+      "expected": "BLOCKED"
+    },
+    {
+      "testId": "G24-PRE-CTR-04",
+      "case": "this candidate presented as authority to materialize R0002 domain bindings or the 29-path BUILD workset",
+      "expected": "BLOCKED"
+    }
+  ],
+  "reuseRules": [
+    "Reuse the GATE23 precontract cohort format and the existing GEE precontract primitives without modification.",
+    "Reuse the verified mandate and dependency SHA-256 values; do not reserialize or republish them.",
+    "Reuse GATE23 COMPLETE_CONFIRMED as the sole predecessor terminal proof."
+  ],
+  "invalidationRules": [
+    "Any drift of a hash-pinned required input blocks this candidate.",
+    "Any loss of GATE23 COMPLETE_CONFIRMED blocks this candidate.",
+    "Any change of GATE24 away from NOT_STARTED blocks this candidate.",
+    "Any GATE21, GATE22 or GATE23 mutation blocks this candidate.",
+    "Any binding of an R0002-reserved deferredToContract item into this revision blocks this candidate."
+  ],
+  "forbiddenReplays": [
+    "GATE24 START",
+    "GATE24 BUILD",
+    "GATE24 R0002 contract succession",
+    "GATE23 mutation",
+    "GATE22 mutation",
+    "GATE21 mutation",
+    "AGENT_CLOSURE",
+    "EXTERNAL_CONFIRMATION",
+    "ledger mutation",
+    "ACTIVE_GATE mutation",
+    "git commit",
+    "git push"
+  ],
+  "closureConditions": [
+    "This document is a NON_ACTIVATED CANDIDATE. It is not published at governance/gates/GATE24/contracts/, it is not pointed to by any live CURRENT_CONTRACT and no authority has been consumed for it in the repository.",
+    "This candidate is not closure, not confirmation, not START and not BUILD.",
+    "A later separately authorized lifecycle may publish an identical contract at the canonical path only under its own Owner authority."
+  ],
+  "nextGateAuthorizationConditions": [
+    "No next-Gate authorization is created by this candidate."
+  ],
+  "performanceBudget": {
+    "targetMinutes": 5,
+    "expectedMaximumMinutes": 20,
+    "closeoutStartMinutes": 10,
+    "absoluteMaximumMinutes": 60
+  },
+  "checkpointPolicy": {
+    "resume": "GATE24 mandate Owner-ratified; PRECONTRACT derivation accepted; phase check PASS; precontract bytes not published",
+    "reuse": "GATE23 precontract cohort format and GEE precontract primitives",
+    "independentConfirmation": "required separately before START is executed",
+    "deferred": "GATE24_R0002_OWNER_DECISION_ACTIVE_HORIZON remains open; admissible candidates 5, 21, 63, 126, 252; none selected"
+  },
+  "authorizedPaths": [
+    "governance/gates/GATE24/contracts/EXECUTION_CONTRACT_R0001.json",
+    "governance/gates/GATE24/contracts/CURRENT_CONTRACT.json",
+    "governance/gates/GATE24/contracts/PRECONTRACT_AUTHORITY_CONSUMPTION_R1.json"
+  ],
+  "requiredPolicyIds": [
+    "AUTHORIZED_PATHS_ONLY",
+    "NO_HARDCODED_PASS",
+    "NO_CIRCULAR_VALIDATION",
+    "DETERMINISTIC_OPERATIONS_LOCAL",
+    "NO_FUTURE_LEAKAGE",
+    "NO_GATE_MANDATE_REDEFINITION",
+    "GIT_WRITES_FORBIDDEN_BY_DEFAULT"
+  ],
+  "sourceReferences": [
+    {
+      "sourcePath": "governance/GATE_REGISTRY_00_40.json",
+      "sourceSha256": "76d5f9ff0a21f8c1eadaf9ccd9e48c9087d12655fac6a5c9215584053652a56b",
+      "sourceLocation": "/gates/GATE24",
+      "field": "canonicalObjective"
+    },
+    {
+      "sourcePath": "governance/sources/GATE24_CANONICAL_MANDATE_R0.json",
+      "sourceSha256": "67bd631a77c87785d623ccbf1051c33b5b5bc9d57855167a8763d8586a55115f",
+      "sourceLocation": "/",
+      "field": "canonicalIdentity, deferredToContract"
+    }
+  ]
+}

@@ -1,0 +1,13 @@
+{
+  "gateId": "GATE24",
+  "stateRevision": "R0005",
+  "milestone": "GATE24_EXTERNAL_CONFIRMATION",
+  "resumePoint": "COMPLETE_CONFIRMED",
+  "completedTasks": [],
+  "openTasks": [],
+  "reusableEvidence": [],
+  "invalidatedEvidence": [],
+  "requiredNextActions": [],
+  "protectedHashes": [],
+  "createdAt": "2026-08-26T19:00:00.000Z"
+}

@@ -1,0 +1,113 @@
+{
+  "document": "GATE24_POST_CLOSURE_MAINTENANCE_DELTA_OVERLAY",
+  "schemaVersion": 1,
+  "overlayId": "GATE24_POST_CLOSURE_MAINTENANCE_DELTA_OVERLAY_R1",
+  "gateId": "GATE24",
+  "reason": "POST_BUILD_TEST_HARNESS_MAINTENANCE",
+  "ownerAuthorityReference": "GATE24_POST_CLOSURE_TEST_HARNESS_FINALIZATION_LOCAL_AUTHORITY_R1",
+  "ownerAuthorityPath": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_GATE24_POST_CLOSURE_TEST_HARNESS_FINALIZATION_R1.json",
+  "maintenanceManifestPath": "governance/historical-architecture/GATE24_POST_CLOSURE_TEST_HARNESS_FINALIZATION_AUTHORIZED_PATHS_R1.json",
+  "maintenanceManifestSha256": "5f241fa418cdfd17b6e3966258e2ebb9bf5d1bdf237019ad4ab606e2f97a65ab",
+  "maintenanceConsumptionPath": "governance/historical-architecture/GATE24_POST_CLOSURE_TEST_HARNESS_FINALIZATION_CONSUMPTION_R1.json",
+  "originalBuildReceiptPath": "governance/gates/GATE24/evidence/BUILD_CANDIDATE_RECEIPT.json",
+  "originalBuildReceiptSha256": "e488ddc6168b4cae19789a051102ea22a88c242943a2e2f0589ebc2d3af62095",
+  "originalBuildReceiptDisposition": "IMMUTABLE_HISTORICAL_BUILD_ATTESTATION",
+  "lifecycleAtMaintenance": {
+    "gateStatus": "COMPLETE_AGENT",
+    "stateRevision": "R0004",
+    "contractRevision": "R0002",
+    "ledgerEventCount": 103,
+    "activeGate": "GATE13",
+    "baseHead": "36de5ca2337624090ed32c2ef4b1567add2ce0b3"
+  },
+  "buildWorksetContractPath": "governance/gates/GATE24/contracts/EXECUTION_CONTRACT_R0002.json",
+  "buildWorksetContractSha256": "0112eee82e92f8f591dd6c4cbc8a9af2cfcea7d86e4e93ae5cabc814f5c82607",
+  "buildWorksetPathCount": 29,
+  "maintainedPathCount": 4,
+  "maintainedPaths": [
+    {
+      "path": "governance/gates/GATE24/tests/gate24-foundation.test.mjs",
+      "historicalReceiptSha256": "2bc50b74fb8b29822eb5a004b5b622e29e4fc4fe6d82898ff670a37fccfeff66",
+      "preMaintenanceSha256": "2bc50b74fb8b29822eb5a004b5b622e29e4fc4fe6d82898ff670a37fccfeff66",
+      "currentMaintenanceSha256": "733748831e9fc8775dadcc4fe925406f394e2e8175394d615833803ad3c38f11",
+      "currentMaintenanceByteLength": 17185,
+      "reason": "Replace the frozen R0003-era GATE24 tree snapshot with a lifecycle-stable BUILD-cohort inventory rule so lawful successor-state artifacts are not misread as unauthorized BUILD additions.",
+      "ownerAuthorityReference": "GATE24_POST_CLOSURE_TEST_HARNESS_FINALIZATION_LOCAL_AUTHORITY_R1",
+      "functionalResult": "GATE24_FOUNDATION_PASS 173",
+      "evidenceBytesMutated": false,
+      "buildArchitectureChanged": false,
+      "implementationChanged": false
+    },
+    {
+      "path": "governance/gates/GATE24/tests/gate24-performance.test.mjs",
+      "historicalReceiptSha256": "1ae75e09ceaa7b266f5f29d21edac5061d1750c2a7f1ae02620fadcd1feb169a",
+      "preMaintenanceSha256": "1ae75e09ceaa7b266f5f29d21edac5061d1750c2a7f1ae02620fadcd1feb169a",
+      "currentMaintenanceSha256": "f27fb234c4a19614c8c3fd305a1bd69fd12d8ea384f580701c9b0cd52918c0f2",
+      "currentMaintenanceByteLength": 6153,
+      "reason": "Remove canonical evidence regeneration so performance execution is repository-read-only.",
+      "ownerAuthorityReference": "GATE24_POST_CLOSURE_TEST_HARNESS_FINALIZATION_LOCAL_AUTHORITY_R1",
+      "functionalResult": "GATE24_PERFORMANCE_PASS 40",
+      "evidenceBytesMutated": false,
+      "buildArchitectureChanged": false,
+      "implementationChanged": false
+    },
+    {
+      "path": "governance/gates/GATE24/tests/gate24-hostiles.test.mjs",
+      "historicalReceiptSha256": "d6efca54fe8ea436c20132855ff289937c7195af6273b6e62e518a8e4d190e01",
+      "preMaintenanceSha256": "d6efca54fe8ea436c20132855ff289937c7195af6273b6e62e518a8e4d190e01",
+      "currentMaintenanceSha256": "883ee8b63973bf3abc81ce3058e615e553a19e1ff0b7a91619bba49143a27ca1",
+      "currentMaintenanceByteLength": 37172,
+      "reason": "Remove canonical evidence regeneration so hostile-matrix execution is repository-read-only; the emitted bytes are now asserted equal to the pinned artifact instead of overwriting it.",
+      "ownerAuthorityReference": "GATE24_POST_CLOSURE_TEST_HARNESS_FINALIZATION_LOCAL_AUTHORITY_R1",
+      "functionalResult": "GATE24_HOSTILES_PASS 352 cases=38 pass=38 fail=0",
+      "evidenceBytesMutated": false,
+      "buildArchitectureChanged": false,
+      "implementationChanged": false
+    },
+    {
+      "path": "governance/gates/GATE24/tests/gate24-coverage.test.mjs",
+      "historicalReceiptSha256": "6a99fe2f091bd18703ca557dff5e2722eeb5e791e9b4cb7aa24414b333ebc13f",
+      "preMaintenanceSha256": "6a99fe2f091bd18703ca557dff5e2722eeb5e791e9b4cb7aa24414b333ebc13f",
+      "currentMaintenanceSha256": "733049f21a33966447239346e2fb50e56e9abd8366aa6e13a6abde3acbd892c5",
+      "currentMaintenanceByteLength": 7670,
+      "reason": "Remove canonical evidence regeneration so coverage execution is repository-read-only; the emitted bytes are now asserted equal to the pinned artifact instead of overwriting it.",
+      "ownerAuthorityReference": "GATE24_POST_CLOSURE_TEST_HARNESS_FINALIZATION_LOCAL_AUTHORITY_R1",
+      "functionalResult": "GATE24_COVERAGE_PASS 34",
+      "evidenceBytesMutated": false,
+      "buildArchitectureChanged": false,
+      "implementationChanged": false
+    }
+  ],
+  "buildEvidencePins": {
+    "governance/gates/GATE24/evidence/BUILD_CANDIDATE_RECEIPT.json": "e488ddc6168b4cae19789a051102ea22a88c242943a2e2f0589ebc2d3af62095",
+    "governance/gates/GATE24/evidence/GATE24_COVERAGE_TRANSITION_REPORT.json": "a25eed1913499d6e99d383d9e00f4e5437e980ec9b1b99bd284a76963b159d8a",
+    "governance/gates/GATE24/evidence/GATE24_PERFORMANCE_BUDGET_MEASUREMENT.json": "69a70d7918719e4463a444f39401bf06f5eae3bb93d1515c1e23038d6f3f9da9",
+    "governance/gates/GATE24/evidence/GATE24_HOSTILE_MATRIX_RESULT.json": "af3f281e7a906e772eb2144c7e5bb58e628315df6ad017669fe1ddc56c58a429",
+    "governance/gates/GATE24/evidence/GATE24_REGIME_PROVENANCE_MANIFEST.json": "cc0c23ad8cf61c6a5925154da0993edabe7f69c02a43f2b10db3ca9886eef0b7"
+  },
+  "testHarnessReadOnly": true,
+  "repositoryByteDeltaFromTestExecution": 0,
+  "semanticRuleForIndependentConfirmation": {
+    "ruleId": "GATE24_MAINTENANCE_DELTA_OVERLAY_V1",
+    "interpretation": "DELTA_OVERLAY",
+    "rewritesHistoricalBuildEvidence": false,
+    "rules": [
+      "BUILD_CANDIDATE_RECEIPT remains the immutable historical BUILD attestation and is never repinned.",
+      "For BUILD paths not covered by an authorized post-closure maintenance delta, current bytes MUST equal the original receipt pins.",
+      "For paths covered by this maintenance attestation, current bytes MUST equal the explicitly ratified currentMaintenanceSha256 values recorded here.",
+      "Maintenance MUST NOT alter implementation semantics, contracts, fixtures, BUILD evidence, horizon, classifier, identity, provenance, or lifecycle history."
+    ]
+  },
+  "invariants": {
+    "implementationChanged": false,
+    "contractsChanged": false,
+    "fixturesChanged": false,
+    "buildEvidenceBytesMutated": false,
+    "horizonChanged": false,
+    "classifierChanged": false,
+    "identityChanged": false,
+    "provenanceChanged": false,
+    "lifecycleHistoryChanged": false,
+    "receiptRepinned": false
+  }
+}

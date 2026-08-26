@@ -1,0 +1,61 @@
+{
+  "document": "GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY",
+  "schemaVersion": 2,
+  "authorityId": "GATE24_POST_CLOSURE_TEST_HARNESS_FINALIZATION_LOCAL_AUTHORITY_R1",
+  "authorityClass": "PROJECT_OWNER_POST_FREEZE_MAINTENANCE_AUTHORITY",
+  "authorityMode": "LOCAL_EXPLICIT_AUTHORITY",
+  "issuedBy": "PROJECT_OWNER",
+  "createdAt": "2026-08-26T00:00:00.000Z",
+  "expiresAt": "2026-12-31T23:59:59.000Z",
+  "targetSystem": "PROJECT_GOVERNANCE",
+  "programId": "GATE24_POST_CLOSURE_TEST_HARNESS_FINALIZATION_R1",
+  "authorityPurpose": "NORMAL_MAINTENANCE",
+  "resumePoint": "CP-GATE24-POST-CLOSURE-TEST-HARNESS-FINALIZATION-R1",
+  "maxUse": 1,
+  "preState": {
+    "baseHead": "36de5ca2337624090ed32c2ef4b1567add2ce0b3",
+    "ledgerEventCount": 103,
+    "ledgerPrefixSha256": "30bba27b2a3e7b7191700639f8f83a5490cda377f1ac9ec04764e4dd33ec23cf",
+    "gateId": "GATE24",
+    "gateStatus": "COMPLETE_AGENT",
+    "stateRevision": "R0004",
+    "contractRevision": "R0002",
+    "activeGate": "GATE13",
+    "R8ExpectedAbsent": true
+  },
+  "authorizedPathManifestPath": "governance/historical-architecture/GATE24_POST_CLOSURE_TEST_HARNESS_FINALIZATION_AUTHORIZED_PATHS_R1.json",
+  "authorizedPathManifestSha256": "5f241fa418cdfd17b6e3966258e2ebb9bf5d1bdf237019ad4ab606e2f97a65ab",
+  "authorizedOperationClasses": [
+    "MAINTENANCE"
+  ],
+  "commitPolicy": {
+    "maxCommitCount": 1,
+    "allowedGitOperations": [
+      "GIT_ADD_PATHSPEC",
+      "GIT_COMMIT"
+    ],
+    "commitMessage": "governance: finalize GATE24 post-closure test harness as read-only",
+    "thirdCommitAuthorized": false
+  },
+  "pushAuthorized": false,
+  "authorityPredecessor": null,
+  "authorityHeadBinding": {
+    "mode": "BASE_HEAD",
+    "baseHead": "36de5ca2337624090ed32c2ef4b1567add2ce0b3"
+  },
+  "consumptionRecordPath": "governance/historical-architecture/GATE24_POST_CLOSURE_TEST_HARNESS_FINALIZATION_CONSUMPTION_R1.json",
+  "prohibitedOperations": [
+    "START",
+    "SECOND_START",
+    "AGENT_CLOSURE",
+    "EXTERNAL_CONFIRMATION",
+    "COMPLETE_AGENT",
+    "COMPLETE_CONFIRMED",
+    "ACTIVE_GATE_SWITCH",
+    "GEE_R8",
+    "GIT_PUSH",
+    "HISTORY_REWRITE",
+    "THIRD_COMMIT",
+    "UNRELATED_WRITE"
+  ]
+}

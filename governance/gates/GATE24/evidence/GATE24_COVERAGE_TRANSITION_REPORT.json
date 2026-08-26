@@ -1,0 +1,86 @@
+{
+  "document": "GATE24_COVERAGE_TRANSITION_REPORT",
+  "schemaVersion": 1,
+  "gateId": "GATE24",
+  "generatedBy": "governance/gates/GATE24/tests/gate24-coverage.test.mjs",
+  "verdict": "PASS",
+  "classificationQuality": {
+    "combinations": 56700,
+    "observedQualities": [
+      "COMPLETE",
+      "INSUFFICIENT",
+      "PARTIAL"
+    ],
+    "conflictingReachable": false,
+    "rule": {
+      "schemaVersion": "GATE24_ClassificationQualityRule/1",
+      "values": [
+        "COMPLETE",
+        "PARTIAL",
+        "INSUFFICIENT",
+        "CONFLICTING"
+      ],
+      "evaluationOrder": [
+        "CONFLICTING",
+        "INSUFFICIENT",
+        "PARTIAL",
+        "COMPLETE"
+      ],
+      "firstMatchWins": true,
+      "computedOverDimensions": [
+        "primaryMarketRegime",
+        "volatilityState",
+        "inflationState",
+        "ratesState",
+        "yieldCurveShape",
+        "yieldCurveDirection"
+      ],
+      "excludedDimensions": [
+        "growthState",
+        "laborState",
+        "creditState",
+        "liquidityState",
+        "fedPolicyState"
+      ],
+      "exclusionReason": "classifyingCount 0 would make COMPLETE unreachable",
+      "conflictingDisposition": "NOT_REACHABLE_IN_CORE_V1",
+      "alternativeFormCoverageScoreAdopted": false,
+      "probabilityEmitted": false,
+      "confidenceEmitted": false,
+      "uncalibratedScoreEmitted": false,
+      "isMacroFeatureCompleteness": false
+    }
+  },
+  "transitions": {
+    "sessionCount": 4,
+    "expectedTransitionCount": 3,
+    "observedTransitionCount": 3,
+    "types": [
+      "PERSIST",
+      "CHANGE",
+      "CHANGE"
+    ],
+    "firstChangedDimensions": [
+      "volatilityState"
+    ]
+  },
+  "sessionCoverage": {
+    "status": "COMPLETE",
+    "code": null,
+    "scopeSessionCount": 4,
+    "coveredSessionCount": 4,
+    "missingSessionDates": []
+  },
+  "evidenceFamilies": [
+    "trend evidence",
+    "volatility evidence",
+    "drawdown evidence",
+    "liquidity evidence",
+    "inflation evidence",
+    "rates evidence",
+    "curve evidence",
+    "macro coverage",
+    "parameter set used"
+  ],
+  "digest": "769f43f631c359b91d51eb91de5d43452aeac1b2b9cb0c011fff74610f18a10c"
+}

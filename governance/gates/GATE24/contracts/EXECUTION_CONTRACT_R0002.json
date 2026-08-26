@@ -1,0 +1,472 @@
+{
+  "gateId": "GATE24",
+  "contractRevision": "R0002",
+  "previousContractPath": "governance/gates/GATE24/contracts/EXECUTION_CONTRACT_R0001.json",
+  "previousContractSha256": "30e82ef56a07c881cb65166a8dc2e46ca23787de88197bbd7168a53c7541605d",
+  "strategicRegistryReference": {
+    "registryPath": "governance/GATE_REGISTRY_00_40.json",
+    "registrySha256": "76d5f9ff0a21f8c1eadaf9ccd9e48c9087d12655fac6a5c9215584053652a56b",
+    "gateId": "GATE24",
+    "canonicalObjectiveSha256": "b2730a7972e674ce08da61a0ef3520edd83e18179ba67b301177b489a5c5a1fa"
+  },
+  "canonicalRequirements": [
+    {
+      "requirementId": "G24-BUILD-01",
+      "statement": "Bind the Owner-ratified GATE24 canonical mandate by its exact SHA-256 and preserve EXECUTION_CONTRACT_R0001 bytes unchanged. This revision activates BUILD scope and binds the six deferredToContract items; it does not close, confirm, replay START, or execute the functional BUILD.",
+      "normativeSource": "governance/sources/GATE24_CANONICAL_MANDATE_R0.json"
+    },
+    {
+      "requirementId": "G24-BUILD-02",
+      "statement": "Implement RegimeVector(T) from GATE23 FeatureRecords and prepared macro context only. Produce no prediction, recommendation, Wheel decision, strategy, calibration or probability. GATE24 consumes prepared versioned macro context and never fetches, ingests or normalizes.",
+      "normativeSource": "governance/sources/GATE24_CANONICAL_MANDATE_R0.json#/missionBoundary"
+    },
+    {
+      "requirementId": "G24-BUILD-03",
+      "statement": "Preserve the frozen 29-path BUILD workset exactly; add NONE and remove NONE; no wildcard, no directory-wide path, no buildprep path, and no 30th path.",
+      "normativeSource": "governance/sources/GATE24_CANONICAL_MANDATE_R0.json#/expectedArtifacts"
+    },
+    {
+      "requirementId": "G24-BUILD-04",
+      "statement": "CORE_V1 activates exactly one regime horizon with sessionCount 21, selected by the PROJECT_OWNER. 21 is a member of the upstream GATE23 admissible ladder [5,21,63,126,252] and its feature window is present in the GATE23 CORE_FEATURE_SET. activeHorizonCount is 1; multi-horizon activation stays DEFERRED_TO_FUTURE_VERSION and is additive. No horizon may be implied by a code default, by ordering, by recency or by file position, and every consumer must bind its horizon explicitly even while only one is active.",
+      "normativeSource": "governance/sources/GATE24_CANONICAL_MANDATE_R0.json#/regimeHorizonArchitecture/coreV1HorizonPolicy"
+    },
+    {
+      "requirementId": "G24-BUILD-05",
+      "statement": "RegimeHorizonSpec payload is exactly { schemaVersion: 'GATE24_RegimeHorizonSpec/1', sessionCount: 21, unit: 'CANONICAL_DAILY_TRADING_SESSION', calendarWindowBindingId } and regimeHorizonSpecId = sha256Canonical(that payload), mirroring GATE23_FeatureWindowSpec/1 exactly. A 21-session horizon anchored at T observes 22 canonical sessions. No concrete regimeHorizonSpecId is pinned by this contract; BUILD materializes it after resolving the production calendarWindowBindingId under G24-BUILD-06.",
+      "normativeSource": "governance/sources/GATE24_CANONICAL_MANDATE_R0.json#/regimeHorizonArchitecture/adoptedIdentityMember"
+    },
+    {
+      "requirementId": "G24-BUILD-06",
+      "statement": "GATE24 creates no calendar concept and constructs no CalendarWindowBinding. The calendarWindowBindingId used for a record is exactly the single-valued calendarWindowBindingId carried by every FeatureWindowSpec of the GATE23 FeatureSet bound by that record's FeatureVectorBindingId. BUILD must verify single-valuedness and fail closed with CALENDAR_WINDOW_BINDING_NOT_SINGLE_VALUED otherwise. Forbidden: any literal calendar-binding id in GATE24 contract or source; any binding whose calendarNamespaceVersion denotes a fixture namespace, including GATE23_FIXTURE_CALENDAR/1 and the fixture value df2f4340d7b04a165611e0fefe34092708a77668181624876164dd10fa93c090; any GATE24-local reconstruction of a CalendarWindowBinding payload; any GATE24 call to createCalendarWindowBinding.",
+      "normativeSource": "governance/gates/GATE23/implementation/feature-window-v1.mjs"
+    },
+    {
+      "requirementId": "G24-BUILD-07",
+      "statement": "K(T) equals PinnedCanonicalSession(T).closeUtc, resolved through the referenced CalendarWindowBinding. marketSession.mjs::sessionCloseUtc and wall-clock cutoff constants are forbidden. Every consumed input must satisfy availableAt <= K(T); no future window access, no silent imputation, no latest-value substitution, no future backfill, no interpolation of an unknown publication, no unauthorized proxy substitution.",
+      "normativeSource": "governance/sources/GATE24_CANONICAL_MANDATE_R0.json#/knowledgeCutoffPolicy"
+    },
+    {
+      "requirementId": "G24-BUILD-08",
+      "statement": "RegimeRecordId = sha256Canonical of exactly the ordered ELEVEN-member tuple [InstrumentIdentityId, SessionDate, KnowledgeCutoff, RegimeHorizonSpecId, FeatureVectorBindingId, MacroContextBindingId, RegimeTaxonomyVersionId, ClassifierVersionId, ParameterSetId, DatasetId_feature, MissingnessStateId], closureRule EXACT_ONLY, canonicalized by governance/tools/canonical-json.mjs::sha256Canonical. No optional, interpretable or implicitly extended member; no at-minimum reading. Answer-bearing fields, GATE22 Outcome members and alias vocabulary are forbidden in the digest. The member count is ELEVEN: the mandate string /deferredToContract[3] reading 'ten required members' is pre-REPAIR_4 prose superseded by /regimeRecordIdentity/requiredMemberCount = 11 and /ownerRatification/ratifies[2] ('the eleven required identity members'), which are the later and higher authority. This resolution is recorded, not assumed. Identity differential rule: same SessionDate, K(T), FeatureVectorBindingId and MacroContextBindingId with a different RegimeHorizonSpecId must produce a different RegimeRecordId.",
+      "normativeSource": "governance/sources/GATE24_CANONICAL_MANDATE_R0.json#/regimeRecordIdentity"
+    },
+    {
+      "requirementId": "G24-BUILD-09",
+      "statement": "classifierVersionId = sha256Canonical({ schemaVersion: 'GATE24_ClassifierVersion/1', classifierVersionLabel, regimeVectorVersionId: 'REGIME_VECTOR_V1', dimensionTaxonomyVersionIds ordered over all eleven declared dimensions, activeRegimeHorizonSpecIds, classificationQualityRuleVersion: 'GATE24_ClassificationQualityRule/1', classificationEvidenceSchemaVersion: 'GATE24_ClassificationEvidence/1', missingnessPolicyVersion: 'GATE24_MissingnessPolicy/1' }), closureRule EXACT_ONLY. activeRegimeHorizonSpecIds has exactly one member in CORE_V1 and pins the horizon by id, never by a bare session count. ParameterSetId is NOT an input: parameter changes bump ParameterSetId only, taxonomy or dimension changes bump the classifier version, and both remain separate required identity members. No concrete value is pinned by this contract; BUILD materializes it into the regime registry.",
+      "normativeSource": "governance/sources/GATE24_CANONICAL_MANDATE_R0.json#/regimeVectorV1/extensibilityRule"
+    },
+    {
+      "requirementId": "G24-BUILD-10",
+      "statement": "parameterSetId = sha256Canonical({ schemaVersion: 'GATE24_ParameterSet/1', parameterSetLabel, regimeVectorVersionId, activeRegimeHorizonSpecIds, parameters }), closureRule EXACT_ONLY, parameters ordered by (dimension asc, parameterName asc). All thresholds, weights and window selections live in this declared versioned ParameterSet; inline magic constants are forbidden. Every threshold or weight referenced by any dimension decision procedure MUST resolve to a parameterPath in the bound ParameterSet; an unresolved reference fails BUILD closed with PARAMETER_NOT_IN_BOUND_PARAMETER_SET. This contract pins NO numeric value. Any parameter change produces a new ParameterSetId; republication never rewrites historical RegimeRecords and macro vintage revision never rewrites an emitted RegimeRecord.",
+      "normativeSource": "governance/sources/GATE24_CANONICAL_MANDATE_R0.json#/ownerDecisions/6"
+    },
+    {
+      "requirementId": "G24-BUILD-11",
+      "statement": "classificationQuality is the deterministic declared state computed over exactly the six ACTIVE_IN_CORE_V1 dimensions (primaryMarketRegime, volatilityState, inflationState, ratesState, yieldCurveShape, yieldCurveDirection); the five REGISTERED_NOT_ACTIVE dimensions are excluded because classifyingCount 0 would make COMPLETE unreachable. Evaluation order, first match wins: CONFLICTING, INSUFFICIENT, PARTIAL, COMPLETE. CONFLICTING is NOT_REACHABLE_IN_CORE_V1 - it remains in the closed enumeration with no CORE_V1 trigger, following the mandate's own registered-not-active disposition and the GATE23 OPTION_B_SETTLING_AT precedent; activating a trigger later is additive and requires a classifier version bump. INSUFFICIENT iff resolved(primaryMarketRegime) is in {REGIME_UNKNOWN, REGIME_INSUFFICIENT_DATA}. PARTIAL iff resolved(primaryMarketRegime) is classifying AND at least one of the six resolves to one of its declared failClosedMembers. COMPLETE iff all six resolve to classifying entries. The conditions are mutually exclusive and total over the six dimensions and must be tested as such. The alternativeForm coverage score is not adopted in V1. No probability, confidence percentage or uncalibrated score is emitted. A dimension-local INSUFFICIENT_DATA never collapses the RegimeVector; the record is always emitted.",
+      "normativeSource": "governance/sources/GATE24_CANONICAL_MANDATE_R0.json#/classificationQualityV1"
+    },
+    {
+      "requirementId": "G24-BUILD-12",
+      "statement": "Relationship between classificationQuality and macro coverage completeness, declared explicitly per deferredToContract[4]: MACRO_FEATURE_COMPLETENESS (COMPLETE, PARTIAL, UNAVAILABLE) is a producer boundary field, not classificationQuality. It is consumed only as one determinant of macro-fed dimension resolution. classificationQuality is computed solely from the resolved values of the six active dimensions and is never copied from, equated to, or overridden by MACRO_FEATURE_COMPLETENESS. Macro absence resolves inflationState, ratesState, yieldCurveShape and yieldCurveDirection to their own INSUFFICIENT_DATA members, does not by itself force primaryMarketRegime to REGIME_INSUFFICIENT_DATA, and yields PARTIAL. A disagreement between producer-declared completeness and observed dimension resolution is a BUILD defect that fails closed with MACRO_COVERAGE_DECLARATION_INCONSISTENT; it is never recorded as a classificationQuality value.",
+      "normativeSource": "governance/sources/GATE24_CANONICAL_MANDATE_R0.json#/classificationQualityV1/canonicalRelation"
+    },
+    {
+      "requirementId": "G24-BUILD-13",
+      "statement": "classificationEvidence schemaVersion is 'GATE24_ClassificationEvidence/1' with required top-level fields schemaVersion, regimeRecordId, instrumentIdentityId, sessionDate, knowledgeCutoff, knowledgeCutoffBoundary, regimeHorizonSpecId, featureVectorBindingId, macroContextBindingId, regimeTaxonomyVersionId, classifierVersionId, parameterSetId, datasetIdFeature, missingnessStateId, families, containsFutureData and evidenceSetId. families has length exactly 9 in mandate order: trend evidence, volatility evidence, drawdown evidence, liquidity evidence, inflation evidence, rates evidence, curve evidence, macro coverage, parameter set used - quoted verbatim with no re-spelling or prefixing. Each family carries family, dimensions (non-empty), status PRESENT or ABSENT, items, and absenceReason required iff ABSENT. Dimension attribution is EXACT_ONLY: trend and drawdown and liquidity to primaryMarketRegime, volatility to volatilityState, inflation to inflationState, rates to ratesState, curve to yieldCurveShape and yieldCurveDirection, macro coverage to the four macro-fed dimensions, parameter set used to all six; the map must be a complete cover of the six active dimensions. Each item carries itemId, dimensions, sourceKind in {FEATURE_RECORD, MACRO_CONTEXT_SNAPSHOT, PARAMETER_SET}, the sourceKind's sourceRef shape, availableAt, causalAdmission 'NO_OUTCOME_OR_FUTURE_PROVENANCE_DEPENDENCY', and supports drawn from the attributed dimension's closed enumeration. Ordering is canonical: families in mandate order, items by (dimensions asc, sourceKind asc, canonical JSON of sourceRef asc, itemId asc); evidenceSetId = sha256Canonical of the ordered structure excluding evidenceSetId. Every dimension resolving to a failClosedMember must be explained by at least one attributed family with status ABSENT and an absenceReason drawn from the closed UNRESOLVABLE_INPUT_REASONS_V1 enumeration published by the regime taxonomy artifact, one token per declared unresolvable-input rule in the mandate, EXACT_ONLY, silent collapse forbidden; otherwise BUILD fails closed with INSUFFICIENT_DATA_UNEXPLAINED. Forbidden in evidence: probability, confidence, percentage, score or weight-as-probability fields; any GATE22 Outcome member; alias, ticker or symbol vocabulary; any silent collapse of a producer token. containsFutureData is the literal boolean false AND is enforced by asserting max(availableAt) <= knowledgeCutoff; violation fails closed with FUTURE_EVIDENCE_FORBIDDEN. This contract pins the schema only; every evidence value is BUILD-materialized.",
+      "normativeSource": "governance/sources/GATE24_CANONICAL_MANDATE_R0.json#/classificationEvidenceV1"
+    },
+    {
+      "requirementId": "G24-BUILD-14",
+      "statement": "Missingness is DIMENSION_LOCAL_FAIL_CLOSED. A missing CORE input required by a dimension resolves that dimension to its own INSUFFICIENT_DATA member; missing primaryMarketRegime inputs resolve it to REGIME_INSUFFICIENT_DATA; an absent REGISTERED_DEFERRED indicator never blocks CORE_V1 classification; a dimension resolving to INSUFFICIENT_DATA never collapses the RegimeVector; omitting a session in scope is a defect, never an implicit non-classification. Producer vocabulary mappings are exhaustive and silent collapse is forbidden: a producer NOT_AVAILABLE resolves to INSUFFICIENT_DATA, and an out-of-vocabulary or absent producer record resolves to UNKNOWN; neither may resolve to a classifying entry.",
+      "normativeSource": "governance/sources/GATE24_CANONICAL_MANDATE_R0.json#/missingnessPolicyV1"
+    },
+    {
+      "requirementId": "G24-BUILD-15",
+      "statement": "Regime provenance is required and no opaque regime may be emitted. Every RegimeRecord is traceable to FeatureVectorBindingId, MacroContextBindingId, ParameterSetId, classifier version, per-dimension taxonomy version, KnowledgeCutoff, data coverage, and evidence and provenance references. Cartesian regime labels are forbidden; dimensions are independent and independently versioned.",
+      "normativeSource": "governance/sources/GATE24_CANONICAL_MANDATE_R0.json#/provenanceV1"
+    },
+    {
+      "requirementId": "G24-BUILD-16",
+      "statement": "GATE21, GATE22 and GATE23 surfaces, research/directional-lab, the status ledger, ACTIVE_GATE, the deferred capability registry and index, and the GEE and Fast Gate core stay unmodified by this revision. The GATE23 admissible feature-window ladder is neither widened, narrowed nor redefined.",
+      "normativeSource": "governance/PROJECT_CONSTITUTION.json"
+    }
+  ],
+  "requiredInputs": [
+    {
+      "path": "governance/sources/GATE24_CANONICAL_MANDATE_R0.json",
+      "sha256": "67bd631a77c87785d623ccbf1051c33b5b5bc9d57855167a8763d8586a55115f",
+      "role": "OWNER_RATIFIED_CANONICAL_MANDATE"
+    },
+    {
+      "path": "governance/gates/GATE24/contracts/EXECUTION_CONTRACT_R0001.json",
+      "sha256": "30e82ef56a07c881cb65166a8dc2e46ca23787de88197bbd7168a53c7541605d",
+      "role": "IMMUTABLE_PREDECESSOR_CONTRACT"
+    },
+    {
+      "path": "governance/GATE_REGISTRY_00_40.json",
+      "sha256": "76d5f9ff0a21f8c1eadaf9ccd9e48c9087d12655fac6a5c9215584053652a56b",
+      "role": "STRATEGIC_REGISTRY"
+    },
+    {
+      "path": "governance/gates/GATE23/state/CURRENT_STATE.json",
+      "sha256": "cb57be85380bd399cab084c17333a9697c7ad623a7f4d1f06482d1f70de44740",
+      "role": "GATE23_TERMINAL_DEPENDENCY_STATE"
+    },
+    {
+      "path": "governance/sources/GATE23_INDEPENDENT_EXTERNAL_CONFIRMATION_R1_EXTERNAL_REINSPECTION_REPORT.json",
+      "sha256": "a9b6abde76aaa6c3a1cd3ace2c69d19e893a7545d28d5942431b5bbd45847f1f",
+      "role": "GATE23_TERMINAL_DEPENDENCY_PROOF"
+    },
+    {
+      "path": "governance/state/GATE_STATUS_LEDGER.ndjson",
+      "sha256": "dc30df7c609d2daccc26ac2e20e4b0a0b64e6e95358b1b687670320067cb5db1",
+      "role": "LIFECYCLE_PRESTATE_REBIND_AT_APPLY"
+    }
+  ],
+  "requiredOutputs": [
+    {
+      "ordinal": 1,
+      "path": "governance/gates/GATE24/implementation/regime-identity-v1.mjs",
+      "role": "RegimeRecordId EXACT_ONLY eleven-member identity"
+    },
+    {
+      "ordinal": 2,
+      "path": "governance/gates/GATE24/implementation/causal-admission-v1.mjs",
+      "role": "T-causal admission and future-data prohibition"
+    },
+    {
+      "ordinal": 3,
+      "path": "governance/gates/GATE24/implementation/regime-horizon-v1.mjs",
+      "role": "RegimeHorizonSpec and 21-session horizon binding"
+    },
+    {
+      "ordinal": 4,
+      "path": "governance/gates/GATE24/implementation/regime-taxonomy-v1.mjs",
+      "role": "Versioned regime taxonomy and dimension enumerations"
+    },
+    {
+      "ordinal": 5,
+      "path": "governance/gates/GATE24/implementation/regime-classifier-v1.mjs",
+      "role": "Deterministic regime classifier and classification quality"
+    },
+    {
+      "ordinal": 6,
+      "path": "governance/gates/GATE24/implementation/regime-transition-v1.mjs",
+      "role": "Regime transition logic"
+    },
+    {
+      "ordinal": 7,
+      "path": "governance/gates/GATE24/implementation/macro-context-binding-v1.mjs",
+      "role": "Prepared macro context binding"
+    },
+    {
+      "ordinal": 8,
+      "path": "governance/gates/GATE24/implementation/regime-store-v1.mjs",
+      "role": "Regime record persistence"
+    },
+    {
+      "ordinal": 9,
+      "path": "governance/gates/GATE24/contracts/GATE24_BINDING_V1.json",
+      "role": "GATE24 binding pins and consumption surface"
+    },
+    {
+      "ordinal": 10,
+      "path": "governance/gates/GATE24/contracts/GATE24_REGIME_IDENTITY_V1.json",
+      "role": "Regime identity contract"
+    },
+    {
+      "ordinal": 11,
+      "path": "governance/gates/GATE24/contracts/GATE24_CAUSAL_ADMISSION_V1.json",
+      "role": "Causal admission contract"
+    },
+    {
+      "ordinal": 12,
+      "path": "governance/gates/GATE24/contracts/GATE24_TAXONOMY_V1.json",
+      "role": "Regime taxonomy contract"
+    },
+    {
+      "ordinal": 13,
+      "path": "governance/gates/GATE24/contracts/GATE24_MACRO_CONTEXT_REGISTRY_V1.json",
+      "role": "Macro context registry contract"
+    },
+    {
+      "ordinal": 14,
+      "path": "governance/gates/GATE24/contracts/GATE24_CLASSIFIER_V1.json",
+      "role": "Classifier and ParameterSet contract"
+    },
+    {
+      "ordinal": 15,
+      "path": "governance/gates/GATE24/contracts/GATE24_CONSUMPTION_BOUNDARY_V1.json",
+      "role": "Downstream consumption boundary contract"
+    },
+    {
+      "ordinal": 16,
+      "path": "governance/gates/GATE24/tests/gate24-foundation.test.mjs",
+      "role": "Positive foundation tests"
+    },
+    {
+      "ordinal": 17,
+      "path": "governance/gates/GATE24/tests/gate24-hostiles.test.mjs",
+      "role": "Hostile matrix tests"
+    },
+    {
+      "ordinal": 18,
+      "path": "governance/gates/GATE24/tests/gate24-replay.test.mjs",
+      "role": "Replay identity tests"
+    },
+    {
+      "ordinal": 19,
+      "path": "governance/gates/GATE24/tests/gate24-performance.test.mjs",
+      "role": "Performance budget tests"
+    },
+    {
+      "ordinal": 20,
+      "path": "governance/gates/GATE24/tests/gate24-coverage.test.mjs",
+      "role": "Coverage and classification-quality tests"
+    },
+    {
+      "ordinal": 21,
+      "path": "governance/gates/GATE24/fixtures/vintage-causality-fixture.mjs",
+      "role": "Vintage causality fixture"
+    },
+    {
+      "ordinal": 22,
+      "path": "governance/gates/GATE24/fixtures/outcome-leakage-fixture.mjs",
+      "role": "Outcome leakage fixture"
+    },
+    {
+      "ordinal": 23,
+      "path": "governance/gates/GATE24/fixtures/missingness-horizon-fixture.mjs",
+      "role": "Missingness and horizon fixture"
+    },
+    {
+      "ordinal": 24,
+      "path": "governance/gates/GATE24/fixtures/deferred-exclusion-fixture.mjs",
+      "role": "Deferred exclusion fixture"
+    },
+    {
+      "ordinal": 25,
+      "path": "governance/gates/GATE24/evidence/BUILD_CANDIDATE_RECEIPT.json",
+      "role": "Build-candidate proof receipt, not closure"
+    },
+    {
+      "ordinal": 26,
+      "path": "governance/gates/GATE24/evidence/GATE24_COVERAGE_TRANSITION_REPORT.json",
+      "role": "Coverage transition report"
+    },
+    {
+      "ordinal": 27,
+      "path": "governance/gates/GATE24/evidence/GATE24_PERFORMANCE_BUDGET_MEASUREMENT.json",
+      "role": "Performance budget measurement"
+    },
+    {
+      "ordinal": 28,
+      "path": "governance/gates/GATE24/evidence/GATE24_HOSTILE_MATRIX_RESULT.json",
+      "role": "Hostile matrix result"
+    },
+    {
+      "ordinal": 29,
+      "path": "governance/gates/GATE24/evidence/GATE24_REGIME_PROVENANCE_MANIFEST.json",
+      "role": "Regime provenance manifest"
+    }
+  ],
+  "validators": [
+    "node governance/tools/validate-gate-contract.mjs --contract governance/gates/GATE24/contracts/EXECUTION_CONTRACT_R0002.json --pointer governance/gates/GATE24/contracts/CURRENT_CONTRACT.json",
+    "node governance/tools/validate-state-seal.mjs --seal governance/gates/GATE24/state/revisions/R0003/STATE_SEAL.json",
+    "node governance/tools/validate-state-revision.mjs --gate-id GATE24 --contract governance/gates/GATE24/contracts/EXECUTION_CONTRACT_R0002.json",
+    "node governance/tools/validate-status-ledger.mjs",
+    "node governance/tools/governance-preflight.mjs --work-unit-type GATE --work-unit-id GATE24",
+    "node governance/gates/GATE24/tests/gate24-foundation.test.mjs",
+    "node governance/gates/GATE24/tests/gate24-hostiles.test.mjs",
+    "node governance/gates/GATE24/tests/gate24-replay.test.mjs",
+    "node governance/gates/GATE24/tests/gate24-performance.test.mjs",
+    "node governance/gates/GATE24/tests/gate24-coverage.test.mjs"
+  ],
+  "positiveTests": [
+    {
+      "testId": "G24-POS-01",
+      "case": "RegimeRecordId is sha256Canonical of the exact ordered eleven-member identity and replays identically",
+      "expected": "PASS"
+    },
+    {
+      "testId": "G24-POS-02",
+      "case": "CORE_V1 activates exactly one 21-session RegimeHorizonSpec resolved by reference from the bound GATE23 FeatureSet",
+      "expected": "PASS"
+    },
+    {
+      "testId": "G24-POS-03",
+      "case": "classificationQuality is total and mutually exclusive over the six active dimensions without probability or confidence output",
+      "expected": "PASS"
+    },
+    {
+      "testId": "G24-POS-04",
+      "case": "the 29 workset paths exist after functional BUILD and no additional BUILD path is present",
+      "expected": "PASS"
+    }
+  ],
+  "negativeTests": [
+    {
+      "testId": "G24-NEG-01",
+      "case": "future data, Outcome data, latest-value substitution or availableAt greater than KnowledgeCutoff is supplied",
+      "expected": "BLOCKED"
+    },
+    {
+      "testId": "G24-NEG-02",
+      "case": "a 30th path, wildcard, directory-wide path or buildprep path is presented",
+      "expected": "BLOCKED"
+    },
+    {
+      "testId": "G24-NEG-03",
+      "case": "a fixture calendar namespace or literal calendarWindowBindingId is used",
+      "expected": "BLOCKED"
+    },
+    {
+      "testId": "G24-NEG-04",
+      "case": "an inline threshold, weight or unresolved ParameterSet reference is used",
+      "expected": "BLOCKED"
+    },
+    {
+      "testId": "G24-NEG-05",
+      "case": "multiple CORE_V1 horizons are activated or a horizon is implied by default",
+      "expected": "BLOCKED"
+    },
+    {
+      "testId": "G24-NEG-06",
+      "case": "GATE21, GATE22, GATE23, directional-lab, deferred registry, ACTIVE_GATE, GEE core or Fast Gate core is written",
+      "expected": "BLOCKED"
+    }
+  ],
+  "countertests": [
+    {
+      "testId": "G24-CTR-01",
+      "case": "this contract presented as executed functional BUILD without a later Owner-authorized BUILD mission",
+      "expected": "BLOCKED"
+    },
+    {
+      "testId": "G24-CTR-02",
+      "case": "START is replayed, R0001 bytes are mutated or a second succession is attempted with the same authority",
+      "expected": "BLOCKED"
+    },
+    {
+      "testId": "G24-CTR-03",
+      "case": "concrete RegimeHorizonSpecId, ClassifierVersionId or ParameterSetId is demanded from R0002 instead of BUILD",
+      "expected": "BLOCKED"
+    }
+  ],
+  "reuseRules": [
+    "Reuse GATE_CONTRACT_SUCCESSION_LOCAL_AUTHORITY and the GATE23 succession lineage checks without modifying GEE or Fast Gate core.",
+    "Reuse the exact accepted G24-BUILD-01 through G24-BUILD-16 packet without reinterpretation.",
+    "Reuse the frozen 29-path BUILD workset and Owner-selected CORE_V1 sessionCount 21."
+  ],
+  "invalidationRules": [
+    "Any mutation of EXECUTION_CONTRACT_R0001 invalidates this succession.",
+    "Any authorizedPath outside the frozen 29, wildcard, directory-wide path or buildprep path invalidates this contract.",
+    "Any drift of the mandate SHA-256 invalidates this contract.",
+    "Any mutation of GATE21, GATE22, GATE23, directional-lab, deferred capability registry or index, ACTIVE_GATE, GEE core or Fast Gate core invalidates this contract.",
+    "Any concrete fixture-scoped calendar binding or future-data dependency invalidates this contract."
+  ],
+  "forbiddenReplays": [
+    "GATE24 START",
+    "SECOND_START",
+    "GATE24 FUNCTIONAL BUILD under this succession mission",
+    "GATE21 mutation",
+    "GATE22 mutation",
+    "GATE23 mutation",
+    "directional-lab mutation",
+    "deferred capability registry mutation",
+    "ACTIVE_GATE mutation",
+    "AGENT_CLOSURE",
+    "EXTERNAL_CONFIRMATION",
+    "COMPLETE_CONFIRMED",
+    "ledger rewrite",
+    "30th BUILD path",
+    "git commit",
+    "git push"
+  ],
+  "closureConditions": [
+    "CLOSURE_PATH_PROOF is recalculated from bound bytes, not asserted PASS.",
+    "RegimeRecord identity, causal admission, horizon binding, classification quality, classification evidence, missingness and the 29-path freeze are each evidenced by the later functional BUILD.",
+    "This contract does not COMPLETE_AGENT, EXTERNAL_CONFIRM, close GATE24 or authorize GATE25.",
+    "This succession does not execute the functional BUILD."
+  ],
+  "nextGateAuthorizationConditions": [
+    "GATE24 BUILD PASS is not GATE25 authorization.",
+    "GATE25 requires a later separate execution contract and authority."
+  ],
+  "performanceBudget": {
+    "targetMinutes": 120,
+    "expectedMaximumMinutes": 240,
+    "closeoutStartMinutes": 200,
+    "absoluteMaximumMinutes": 480
+  },
+  "checkpointPolicy": {
+    "resume": "IN_PROGRESS under EXECUTION_CONTRACT_R0002; BUILD scope activated; next exact step is GATE24_FUNCTIONAL_BUILD_R1 over the frozen 29 paths; this succession does not execute BUILD",
+    "reuse": "Exact G24-BUILD-01 through G24-BUILD-16 packet, GATE23 terminal dependency proof, and GATE_CONTRACT_SUCCESSION_LOCAL_AUTHORITY",
+    "independentConfirmation": "required separately after BUILD; not this succession"
+  },
+  "authorizedPaths": [
+    "governance/gates/GATE24/implementation/regime-identity-v1.mjs",
+    "governance/gates/GATE24/implementation/causal-admission-v1.mjs",
+    "governance/gates/GATE24/implementation/regime-horizon-v1.mjs",
+    "governance/gates/GATE24/implementation/regime-taxonomy-v1.mjs",
+    "governance/gates/GATE24/implementation/regime-classifier-v1.mjs",
+    "governance/gates/GATE24/implementation/regime-transition-v1.mjs",
+    "governance/gates/GATE24/implementation/macro-context-binding-v1.mjs",
+    "governance/gates/GATE24/implementation/regime-store-v1.mjs",
+    "governance/gates/GATE24/contracts/GATE24_BINDING_V1.json",
+    "governance/gates/GATE24/contracts/GATE24_REGIME_IDENTITY_V1.json",
+    "governance/gates/GATE24/contracts/GATE24_CAUSAL_ADMISSION_V1.json",
+    "governance/gates/GATE24/contracts/GATE24_TAXONOMY_V1.json",
+    "governance/gates/GATE24/contracts/GATE24_MACRO_CONTEXT_REGISTRY_V1.json",
+    "governance/gates/GATE24/contracts/GATE24_CLASSIFIER_V1.json",
+    "governance/gates/GATE24/contracts/GATE24_CONSUMPTION_BOUNDARY_V1.json",
+    "governance/gates/GATE24/tests/gate24-foundation.test.mjs",
+    "governance/gates/GATE24/tests/gate24-hostiles.test.mjs",
+    "governance/gates/GATE24/tests/gate24-replay.test.mjs",
+    "governance/gates/GATE24/tests/gate24-performance.test.mjs",
+    "governance/gates/GATE24/tests/gate24-coverage.test.mjs",
+    "governance/gates/GATE24/fixtures/vintage-causality-fixture.mjs",
+    "governance/gates/GATE24/fixtures/outcome-leakage-fixture.mjs",
+    "governance/gates/GATE24/fixtures/missingness-horizon-fixture.mjs",
+    "governance/gates/GATE24/fixtures/deferred-exclusion-fixture.mjs",
+    "governance/gates/GATE24/evidence/BUILD_CANDIDATE_RECEIPT.json",
+    "governance/gates/GATE24/evidence/GATE24_COVERAGE_TRANSITION_REPORT.json",
+    "governance/gates/GATE24/evidence/GATE24_PERFORMANCE_BUDGET_MEASUREMENT.json",
+    "governance/gates/GATE24/evidence/GATE24_HOSTILE_MATRIX_RESULT.json",
+    "governance/gates/GATE24/evidence/GATE24_REGIME_PROVENANCE_MANIFEST.json"
+  ],
+  "requiredPolicyIds": [
+    "MAIN_AGENT_ONLY",
+    "SUBAGENTS_FORBIDDEN_BY_DEFAULT",
+    "NETWORK_FORBIDDEN_BY_DEFAULT",
+    "GIT_WRITES_FORBIDDEN_BY_DEFAULT",
+    "DANGEROUS_GIT_COMMANDS_FORBIDDEN",
+    "AUTHORIZED_PATHS_ONLY",
+    "NO_RESTART_FROM_ZERO",
+    "RESUME_FROM_CHECKPOINT",
+    "NO_HARDCODED_PASS",
+    "NO_CIRCULAR_VALIDATION",
+    "NO_FUTURE_LEAKAGE",
+    "NO_GATE_MANDATE_REDEFINITION",
+    "BLOCK_ON_AUTHORITY_CONFLICT",
+    "DETERMINISTIC_OPERATIONS_LOCAL",
+    "SEPARATE_SESSION_REINSPECTION",
+    "GENERATED_FILES_NON_CANONICAL",
+    "HISTORICAL_REJECTED_NOT_ACTIVE",
+    "DEFERRED_CAPABILITY_MUST_BE_DURABLY_REGISTERED"
+  ],
+  "sourceReferences": [
+    {
+      "sourcePath": "governance/GATE_REGISTRY_00_40.json",
+      "sourceSha256": "76d5f9ff0a21f8c1eadaf9ccd9e48c9087d12655fac6a5c9215584053652a56b",
+      "sourceLocation": "/gates/GATE24",
+      "field": "canonicalObjective"
+    },
+    {
+      "sourcePath": "governance/sources/GATE24_CANONICAL_MANDATE_R0.json",
+      "sourceSha256": "67bd631a77c87785d623ccbf1051c33b5b5bc9d57855167a8763d8586a55115f",
+      "sourceLocation": "/",
+      "field": "canonicalIdentity and deferredToContract"
+    }
+  ]
+}

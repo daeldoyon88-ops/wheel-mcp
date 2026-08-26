@@ -205,6 +205,26 @@ function readJsonOrNull(root, relativePath) {
   try { return JSON.parse(bytes.toString('utf8').replace(/^﻿/, '')); } catch { return null; }
 }
 
+function dedupeTaskList(values) {
+  const seen = new Set();
+  const out = [];
+  for (const value of values) {
+    if (typeof value !== 'string' || !value || seen.has(value)) continue;
+    seen.add(value);
+    out.push(value);
+  }
+  return out;
+}
+
+function inheritedClosureCompletedTasks(previousCheckpoint) {
+  if (!previousCheckpoint) return [];
+  return dedupeTaskList([
+    ...(previousCheckpoint.completedTasks ?? []),
+    ...(previousCheckpoint.openTasks ?? []),
+    ...(previousCheckpoint.requiredNextActions ?? [])
+  ]);
+}
+
 /**
  * Canonical governed-document bytes.
  *
@@ -420,6 +440,19 @@ export function deriveCandidateTransition({
   }
   const previousStateSealSha256 = previousSealBytes ? sha256Bytes(previousSealBytes) : null;
 
+  const previousCheckpointPath = previousRevision
+    ? `governance/gates/${gateId}/state/revisions/${previousRevision}/CHECKPOINT.json`
+    : null;
+  const previousCheckpoint = previousCheckpointPath ? readJsonOrNull(root, previousCheckpointPath) : null;
+  if (transitionType === 'AGENT_CLOSURE' && previousRevision && !previousCheckpoint) {
+    fail('PREVIOUS_CHECKPOINT_UNREADABLE', {
+      path: previousCheckpointPath,
+      expected: 'readable predecessor checkpoint',
+      actual: 'ABSENT_OR_UNREADABLE'
+    });
+    return { status: 'BLOCKED', findings, candidate: null };
+  }
+
   const contractRelativePath = `governance/gates/${gateId}/contracts/CURRENT_CONTRACT.json`;
   const contract = readJsonOrNull(root, contractRelativePath);
   if (!contract) {
@@ -438,7 +471,8 @@ export function deriveCandidateTransition({
     stateRevision,
     milestone: checkpoint.milestone ?? `${gateId}_${transitionType}`,
     resumePoint: checkpoint.resumePoint ?? toStatus,
-    completedTasks: checkpoint.completedTasks ?? [],
+    completedTasks: checkpoint.completedTasks
+      ?? (transitionType === 'AGENT_CLOSURE' ? inheritedClosureCompletedTasks(previousCheckpoint) : []),
     openTasks: checkpoint.openTasks ?? [],
     reusableEvidence: checkpoint.reusableEvidence ?? [],
     invalidatedEvidence: checkpoint.invalidatedEvidence ?? [],

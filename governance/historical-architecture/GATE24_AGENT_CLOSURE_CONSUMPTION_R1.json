@@ -1,0 +1,83 @@
+{
+  "documentKind": "POST_FREEZE_MAINTENANCE_AUTHORITY_CONSUMPTION",
+  "schemaVersion": 2,
+  "authorityId": "GATE24_FINAL_CLOSURE_LOCAL_AUTHORITY_R1",
+  "programId": "GATE24_AGENT_CLOSURE_BUILD_E488DDC6168B4CAE19789A051102EA22A88C242943A2E2F0589EBC2D3AF62095_R1",
+  "manifestSha256": "c36d570a7bbcc3695445c462c6576e686d4c9cef94c1a04c33644b803692dc26",
+  "baseHead": "36de5ca2337624090ed32c2ef4b1567add2ce0b3",
+  "consumedUse": 1,
+  "transactionId": "GATE24_AGENT_CLOSURE_R1_TRANSACTION",
+  "recordedAt": "2026-08-26T15:00:00.000Z",
+  "commitMessage": "governance: close GATE24 under final closure authority",
+  "cohortSelfExclusion": {
+    "path": "governance/historical-architecture/GATE24_AGENT_CLOSURE_CONSUMPTION_R1.json",
+    "reason": "The consumption record cannot hash its own final bytes; its identity is bound by the authority and manifest instead."
+  },
+  "cohortPathCount": 9,
+  "cohort": [
+    {
+      "path": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_GATE24_AGENT_CLOSURE_R1.json",
+      "sha256": "9d0bf1a1891e0f8c6332e4869811bfa9d9367e95145d9f45144c2a192403779c",
+      "byteLength": 2179,
+      "operation": "CREATE",
+      "reason": "Single-use LOCAL_EXPLICIT_AUTHORITY bound to the exact GATE24 closure pre-state.",
+      "artifactClass": "AGENT_CLOSURE"
+    },
+    {
+      "path": "governance/historical-architecture/GATE24_AGENT_CLOSURE_AUTHORIZED_PATHS_R1.json",
+      "sha256": "c36d570a7bbcc3695445c462c6576e686d4c9cef94c1a04c33644b803692dc26",
+      "byteLength": 2938,
+      "operation": "CREATE",
+      "reason": "Finite exact-file GATE24 closure cohort with no wildcard or directory blanket.",
+      "artifactClass": "AGENT_CLOSURE"
+    },
+    {
+      "path": "governance/gates/GATE24/state/CURRENT_STATE.json",
+      "sha256": "e2c0794a229b3635ed45962c01ce66202c42561fc3fe57424fa38e073ebbea36",
+      "byteLength": 300,
+      "operation": "MODIFY",
+      "reason": "Advance the canonical GATE24 state pointer to R0004 COMPLETE_AGENT.",
+      "artifactClass": "AGENT_CLOSURE"
+    },
+    {
+      "path": "governance/gates/GATE24/state/revisions/R0004/CHECKPOINT.json",
+      "sha256": "f52dbce85c370c349fbc87bbd4b2cba108ff52fd6730e2fd67c0cf9c91435cd5",
+      "byteLength": 404,
+      "operation": "CREATE",
+      "reason": "New GATE24 closure checkpoint after the exact AGENT_CLOSURE transition.",
+      "artifactClass": "AGENT_CLOSURE"
+    },
+    {
+      "path": "governance/gates/GATE24/state/revisions/R0004/OPEN_DEFECTS.json",
+      "sha256": "d16f9791533fea78aa310cad149734eff887c8e51cd01952d72d9f2e95dca5a1",
+      "byteLength": 70,
+      "operation": "CREATE",
+      "reason": "Derived GATE24 closure defect projection preserving the zero blocking-defect state.",
+      "artifactClass": "AGENT_CLOSURE"
+    },
+    {
+      "path": "governance/gates/GATE24/state/revisions/R0004/STATE_SEAL.json",
+      "sha256": "f2a049e3a664c57b47a8d589ef078bb8880b709b19d81bd84ce582f6151058c6",
+      "byteLength": 1355,
+      "operation": "CREATE",
+      "reason": "Native GATE24 state seal chained from R0003 and pinned by the AGENT_CLOSURE event.",
+      "artifactClass": "AGENT_CLOSURE"
+    },
+    {
+      "path": "governance/state/GATE_STATUS_LEDGER.ndjson",
+      "sha256": "30bba27b2a3e7b7191700639f8f83a5490cda377f1ac9ec04764e4dd33ec23cf",
+      "byteLength": 63054,
+      "operation": "MODIFY",
+      "reason": "Append exactly one canonical GATE24 AGENT_CLOSURE event; every earlier event stays byte-identical.",
+      "artifactClass": "AGENT_CLOSURE"
+    },
+    {
+      "path": "governance/state/generated/GATE_STATUS_SNAPSHOT.json",
+      "sha256": "c1e0d768d37563b9c400465f53a8f21bc1ba3f47df0ae5729e577ba077b99438",
+      "byteLength": 15978,
+      "operation": "MODIFY",
+      "reason": "Regenerate the derived status projection from the post-closure canonical ledger.",
+      "artifactClass": "AGENT_CLOSURE"
+    }
+  ]
+}

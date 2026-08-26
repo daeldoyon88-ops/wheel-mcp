@@ -1,0 +1,25 @@
+{
+  "document": "MAINTENANCE_PUBLICATION_ADMISSION_OWNER_AUTHORIZATION",
+  "schemaVersion": 1,
+  "authorityId": "DEFERRED_CAPABILITY_REGISTRY_V1_STEP2_TEST_REPAIR_PUBLICATION_OWNER_AUTHORIZATION_R1",
+  "authorityClass": "PROJECT_OWNER_MAINTENANCE_PUBLICATION_ADMISSION_AUTHORITY",
+  "authorityMode": "LOCAL_EXPLICIT_AUTHORITY",
+  "issuedBy": "PROJECT_OWNER",
+  "issuedAtUtc": "2026-08-26T10:45:00.000Z",
+  "decisionId": "DEFERRED_CAPABILITY_REGISTRY_V1_STEP2_TEST_REPAIR_OWNER_DECISION_R1",
+  "purpose": "MAINTENANCE_PUBLICATION_ADMISSION",
+  "reexecutionAuthorized": false,
+  "grantsFutureBytePermission": false,
+  "genericV1Admission": false,
+  "admittedPublications": [
+    {
+      "admissionId": "DEFERRED_CAPABILITY_REGISTRY_V1_STEP2_TEST_REPAIR_PUBLICATION_ADMISSION_R1",
+      "projectId": "WHEEL",
+      "gateId": "GATE24",
+      "programId": "DEFERRED_CAPABILITY_REGISTRY_V1_STEP2_TEST_REPAIR_R1",
+      "admissionPath": "governance/authority/publication-admissions/GATE24/DEFERRED_CAPABILITY_REGISTRY_V1_STEP2_TEST_REPAIR_PUBLICATION_ADMISSION_R1.json",
+      "admissionDigest": "903eb0170360fa12d2f69971b9982b547a8273f9d2f5b90f23c8d3346df4f9b1"
+    }
+  ],
+  "registryDigest": "3090c0f929d5eef0bc91a94619b85212b7dc1ea22a3b9f63e7b32ffc44633d4d"
+}

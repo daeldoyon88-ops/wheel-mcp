@@ -1,0 +1,3135 @@
+{
+  "document": "GATE24_CANONICAL_MANDATE_R0",
+  "schemaVersion": 1,
+  "documentKind": "CANONICAL_GATE_MANDATE",
+  "projectId": "WHEEL",
+  "gateId": "GATE24",
+  "officialName": "MARKET REGIME ENGINE",
+  "canonicalObjective": "Identifier les regimes de marche.",
+  "dependencies": [
+    "GATE23"
+  ],
+  "authorityId": "GATE24_CANONICAL_MANDATE_RATIFICATION_R0",
+  "issuedBy": "PROJECT_OWNER",
+  "draftStatus": "RATIFIED",
+  "revision": "R0_OWNER_RATIFICATION",
+  "temporary": false,
+  "canonical": true,
+  "ratificationOnly": true,
+  "executionAuthorized": false,
+  "startAuthorized": false,
+  "statusTransitionAuthorized": false,
+  "functionalImplementationAuthorized": false,
+  "precontractAuthorized": false,
+  "contractAuthorized": false,
+  "buildAuthorized": false,
+  "commitAuthorized": false,
+  "pushAuthorized": false,
+  "impliedAuthority": "NONE",
+  "ratificationStatusLegend": {
+    "INHERITED_FROM_CANONICAL_PRIOR_AUTHORITY": "Bound byte-for-byte or semantically unchanged from an existing canonical artifact; this mandate restates, it does not create.",
+    "OWNER_CONFIRMED_IN_REPAIR_1": "Explicitly preserved or required by the Owner GATE24_CANONICAL_MANDATE_R0_REPAIR_1 instruction.",
+    "OWNER_CONFIRMED_IN_REPAIR_2": "Explicitly directed by the Owner GATE24_CANONICAL_MANDATE_R0_REPAIR_2_REGIME_VECTOR_AND_MACRO_REGISTRY instruction. Confirms this architectural decision only; it does not ratify the mandate as a whole.",
+    "PROPOSED_PENDING_OWNER_RATIFICATION": "Drafted by the agent as an architectural proposal; carries no Owner ratification and may not be treated as a settled decision.",
+    "DEFERRED_TO_CONTRACT": "Intentionally left unfrozen here; the exact value or materialization is fixed later by a versioned execution contract or parameter set.",
+    "OWNER_DECISION_REQUIRED": "Blocked. No admissible value exists in canonical prior authority and none may be invented.",
+    "OWNER_CONFIRMED_IN_REPAIR_3": "Explicitly directed by the Owner GATE24_CANONICAL_MANDATE_R0_REPAIR_3_FINAL_OWNER_DECISION_CLOSURE instruction. Confirms this architectural decision only; it does not ratify the mandate.",
+    "OWNER_CONFIRMED_IN_REPAIR_4": "Explicitly directed by the Owner GATE24_CANONICAL_MANDATE_R0_REPAIR_4_MULTI_HORIZON_AND_DEFERRED_CAPABILITY_HARDENING instruction. Confirms this architectural decision only; it does not ratify the mandate.",
+    "OWNER_RATIFIED_IN_R0_OWNER_RATIFICATION": "Ratified by the PROJECT_OWNER GATE24_CANONICAL_MANDATE_R0_OWNER_RATIFICATION act. Unlike the OWNER_CONFIRMED_IN_REPAIR_n tokens, which confirm one architectural decision at a time, this token records ratification of the mandate as a whole. It freezes the design scope for precontract derivation and confers no execution, START, BUILD, contract, precontract, status-transition, ledger, commit or push authority."
+  },
+  "canonicalIdentity": {
+    "gateId": "GATE24",
+    "canonicalName": "MARKET REGIME ENGINE",
+    "architecturalTerm": "REGIME ENGINE",
+    "canonicalObjective": "Identifier les regimes de marche.",
+    "canonicalObjectiveBinding": {
+      "sourcePath": "governance/GATE_REGISTRY_00_40.json",
+      "sourcePointer": "/gates/24/canonicalObjective",
+      "sha256": "316e0ba5dbea03195035d465c4fd4e97504f56d725bd59cddcc3f849b92d9319",
+      "lengthChars": 33,
+      "lengthBytes": 33,
+      "encoding": "ASCII_ONLY",
+      "normalizationApplied": false,
+      "rule": "byte-identical to the registry; no normalization, no translation, no re-accentuation"
+    },
+    "canonicalObjectiveOwnerRenderingNote": "The Owner mandate text renders this objective with French diacritics. The canonical stored value is the byte-identical ASCII registry string. Diacritic rendering is display-only, creates no second authority and performs no redefinition.",
+    "officialNameBinding": {
+      "sourcePath": "governance/GATE_REGISTRY_00_40.json",
+      "sourcePointer": "/gates/24/officialName",
+      "value": "MARKET REGIME ENGINE",
+      "sha256": "013dec674f4e4a888fb6e949dcc579b3b4e9bbc7593b112d2ea731eb551270f2"
+    },
+    "strategicPurpose": "Classify market context deterministically so decisions and validation are conditioned on the regime actually available at the decision time."
+  },
+  "missionBoundary": {
+    "produces": {
+      "transform": "FeatureRecord(T) plus prepared MacroContext(T), for a pinned regime horizon, to RegimeRecord(T) carrying RegimeVector(T)",
+      "carries": [
+        "identity",
+        "knowledge cutoff",
+        "regime horizon binding",
+        "regime vector across declared dimensions",
+        "taxonomy version per dimension",
+        "classifier version",
+        "parameter set",
+        "feature vector binding",
+        "macro context binding",
+        "classification quality",
+        "classification evidence",
+        "provenance",
+        "transition metadata",
+        "missingness state"
+      ]
+    },
+    "doesNotProduce": [
+      "Outcome",
+      "label",
+      "prediction",
+      "recommendation",
+      "uncalibrated probability",
+      "Wheel decision",
+      "position sizing",
+      "strategy",
+      "backtest result",
+      "cross-sectional implementation",
+      "live macro fetch",
+      "macro ingestion implementation"
+    ]
+  },
+  "dependencyBinding": {
+    "dependsOn": "GATE23",
+    "gate23Status": "COMPLETE_CONFIRMED",
+    "gate23StateRevision": "R0005",
+    "gate23StateSealSha256": "4e4f54a694f244a0b9a169000875af2ef5e47c16e9961d0ee2e43a7c48d2c325",
+    "gate23CurrentStatePath": "governance/gates/GATE23/state/CURRENT_STATE.json",
+    "gate23CurrentStateSha256": "cb57be85380bd399cab084c17333a9697c7ad623a7f4d1f06482d1f70de44740",
+    "gate23TerminalLedgerOrdinal": 99,
+    "gate23TerminalLedgerEventId": "GATE23_EXTERNAL_CONFIRMATION_R1",
+    "gate23TerminalTransition": "COMPLETE_AGENT -> COMPLETE_CONFIRMED",
+    "gate23MandatePath": "governance/sources/GATE23_CANONICAL_MANDATE_R0.json",
+    "gate23MandateSha256": "b8230ac3e76145cd68a3e9499dd227642283236cab3755d0029856dc28b0dfc9",
+    "observedAtHead": "927d6236",
+    "rule": "GATE24 consumes GATE23 FeatureRecords as an upstream producer only. GATE24 does not reopen, reinterpret, extend or modify any GATE23 artifact, identity, invariant or Owner decision.",
+    "gate21Relation": {
+      "rule": "GATE24 consumes GATE21 v1 only transitively through GATE23 for market features, and through the declared macro context boundary for prepared macro context. GATE24 does not reopen GATE21.",
+      "evidencePath": "governance/gates/GATE21/contracts/GATE21_BINDING_V1.json",
+      "evidenceSha256": "c8982c5c857759dd4204670e514c6b447b573140552d188012b9c9dedc5e9607",
+      "evidencePointer": "/downstream/GATE24",
+      "evidenceValue": "consumes GATE23 which consumes GATE21 v1 without reopening GATE21",
+      "evolvabilityRule": "GATE21 evolvability is ADDITIVE_VERSIONED with deprecation BY_VERSION_ID_NEVER_SILENT_REWRITE; GATE24 consumption must respect it."
+    }
+  },
+  "entryConditions": [
+    {
+      "id": "EC-1",
+      "condition": "GATE23 feature identities are confirmed.",
+      "disposition": "SATISFIED",
+      "evidence": "GATE23 is COMPLETE_CONFIRMED at state revision R0005 with terminal ledger ordinal 99. GATE23 FeatureRecordId is a sealed 11-member EXACT_ONLY identity.",
+      "evidenceIsDerivedFrom": "governance/gates/GATE23/state/CURRENT_STATE.json and governance/state/GATE_STATUS_LEDGER.ndjson ordinal 99"
+    },
+    {
+      "id": "EC-2",
+      "condition": "Regime taxonomy and transition semantics are declared.",
+      "disposition": "SATISFIED_FOR_CORE_V1",
+      "taxonomy": "OWNER_CONFIRMED_IN_REPAIR_3: closed taxonomies for the six CORE_V1 dimensions primaryMarketRegime, volatilityState, inflationState, ratesState, yieldCurveShape and yieldCurveDirection. The five extended dimensions are REGISTERED_NOT_ACTIVE_IN_CORE_V1 with their detailed taxonomy DEFERRED_TO_FUTURE_VERSION.",
+      "transitionSemantics": "OWNER_CONFIRMED_IN_REPAIR_2 (PERSIST/CHANGE on primaryMarketRegime plus changedDimensions overlay), unchanged by REPAIR_3.",
+      "evidence": "OD-A through OD-V plus OD-W through OD-AB. Every candidate vocabulary item recovered from canonical prior authority is covered; see regimeTaxonomyStatus.canonicalCoverageProof and the exhaustive producer curve mappings.",
+      "blocking": false,
+      "residual": "NONE for CORE_V1. Extended-dimension taxonomies are deferred to a future dimension version and do not block a CORE_V1 contract freeze."
+    },
+    {
+      "id": "EC-3",
+      "condition": "The classification as-of boundary is fixed.",
+      "disposition": "FIXED",
+      "boundary": "K(T) = PinnedCanonicalSession(T).closeUtc",
+      "evidence": "Inherited unchanged from GATE23 OD-5, with per-input availableAt <= K(T) proof required by OD-K.",
+      "evidenceIsDerivedFrom": "governance/sources/GATE23_CANONICAL_MANDATE_R0.json /knowledgeCutoffPolicy"
+    }
+  ],
+  "entryConditionsSource": "governance/GATE_REGISTRY_00_40.json /gates/24/entryConditions, with Owner dispositions declared in this mandate.",
+  "ownerDecisions": [
+    {
+      "id": "OD-1",
+      "subject": "regime taxonomy authority",
+      "ratificationStatus": "OWNER_CONFIRMED_IN_REPAIR_2",
+      "decision": "The GATE24 regime taxonomy is no longer a single flat enumeration. It is a versioned, per-dimension taxonomy set carried by RegimeVector(T), declared in regimeVectorV1. Taxonomy entries are Owner-ratified per dimension and closed under EXACT_ONLY for every dimension declared ACTIVE_IN_CORE_V1. No agent may invent, infer or extend taxonomy entries for any dimension.",
+      "history": "The pre-repair R0 draft invented a Trend x Volatility 3x3 composition; REPAIR_1 retracted it as agent invention and set OWNER_DECISION_REQUIRED; REPAIR_2 closes the question with the Owner-directed dimensional architecture in OD-A through OD-G."
+    },
+    {
+      "id": "OD-2",
+      "subject": "admissible classifier inputs and the upstream input boundary",
+      "ratificationStatus": "OWNER_CONFIRMED_IN_REPAIR_2",
+      "decision": "See OD-J. Two explicit boundaries only: MARKET_FEATURE_BOUNDARY (GATE23 FeatureRecord(T)) and MACRO_CONTEXT_BOUNDARY (prepared, versioned causal MacroContext(T)). GATE22 Outcome and labels are forbidden as classifier inputs directly, lagged, renamed, type-laundered or derived from a future outcome. No raw observation access that bypasses these boundaries is admissible."
+    },
+    {
+      "id": "OD-3",
+      "subject": "classification as-of boundary",
+      "ratificationStatus": "INHERITED_FROM_CANONICAL_PRIOR_AUTHORITY",
+      "decision": "See OD-K. K(T) = PinnedCanonicalSession(T).closeUtc, inherited unchanged from GATE23 OD-5. marketSession.mjs::sessionCloseUtc and wall-clock constants remain forbidden. GATE24 creates no alternative cutoff."
+    },
+    {
+      "id": "OD-4",
+      "subject": "transition semantics",
+      "ratificationStatus": "OWNER_CONFIRMED_IN_REPAIR_2",
+      "decision": "See OD-Q, OD-R and OD-S. The proposal status assigned in REPAIR_1 is lifted: PERSIST/CHANGE typing on primaryMarketRegime plus a changedDimensions overlay is Owner-directed."
+    },
+    {
+      "id": "OD-5",
+      "subject": "hysteresis and minimum dwell",
+      "ratificationStatus": "OWNER_CONFIRMED_IN_REPAIR_2",
+      "decision": "See OD-T. hysteresis = DEFER and minimumDwell = DEFER. No arbitrary dwell of 3, 5 or 10 sessions is imposed. The first implementation must measure real transition frequency; any future stabilization must be evidence-based and coverage-tested."
+    },
+    {
+      "id": "OD-6",
+      "subject": "fail-closed and non-classification",
+      "ratificationStatus": "OWNER_CONFIRMED_IN_REPAIR_2",
+      "decision": "See OD-M. Fail-closed is dimension-local: a dimension whose required CORE inputs are missing resolves to its own INSUFFICIENT_DATA member without collapsing the whole vector."
+    },
+    {
+      "id": "OD-7",
+      "subject": "parameter binding and point-in-time immutability",
+      "ratificationStatus": "OWNER_CONFIRMED_IN_REPAIR_1",
+      "decision": "All thresholds, weights and window selections live in a declared, versioned parameter set bound by ParameterSetId. Inline magic constants are forbidden. Any change produces a new ParameterSetId and, where a taxonomy changes, a new taxonomy version. Republication never rewrites historical RegimeRecords. Macro vintage revision never rewrites an emitted RegimeRecord."
+    },
+    {
+      "id": "OD-8",
+      "subject": "cross-sectional scope",
+      "ratificationStatus": "OWNER_CONFIRMED_IN_REPAIR_1",
+      "decision": "CROSS_SECTIONAL is DEFER, consistent with GATE23 OD-3. V1 is per-instrument time-series classification only. Market-wide macro context is not cross-sectional construction: it is a shared, non-peer-relative context computed once and reused."
+    },
+    {
+      "id": "OD-9",
+      "subject": "determinism",
+      "ratificationStatus": "OWNER_CONFIRMED_IN_REPAIR_1",
+      "decision": "Identical bound inputs, identical taxonomy versions, identical classifier version, identical parameter set and identical macro context binding must yield an identical RegimeRecordId and an identical RegimeVector. No wall-clock, locale, iteration-order or floating-point-order dependence is admissible in the identity path. Macro arithmetic preserves the exact fixed-point discipline of its producer."
+    },
+    {
+      "id": "OD-10",
+      "subject": "macro context perimeter",
+      "ratificationStatus": "OWNER_CONFIRMED_IN_REPAIR_2",
+      "decision": "See OD-H. The macro perimeter is a four-tier registry: CORE_V1, OPTIONAL_V1, REGISTERED_DEFERRED, FUTURE_EXTENSION. Promotion between tiers requires an explicit Owner decision and a new macro context version. No silent promotion. GATE24 consumes prepared, versioned macro context only."
+    },
+    {
+      "id": "OD-A",
+      "subject": "RegimeVector multidimensionnel",
+      "ratificationStatus": "OWNER_CONFIRMED_IN_REPAIR_2",
+      "decision": "GATE24 produces RegimeVector(T): a set of independent, independently versioned dimensions. It must not produce a single large cartesian label. Concatenated forms such as BULL_VOLATILE_DISINFLATION_RATES_FALLING_CURVE_INVERTED are forbidden as emitted regime values. The architecture must be able to represent all ten declared dimensions without a future identity change or structural rebuild; not all dimensions are required to be active in CORE_V1.",
+      "dimensions": [
+        "primaryMarketRegime",
+        "volatilityState",
+        "inflationState",
+        "ratesState",
+        "yieldCurveShape",
+        "yieldCurveDirection",
+        "growthState",
+        "laborState",
+        "creditState",
+        "liquidityState",
+        "fedPolicyState"
+      ],
+      "dimensionCountNote": "REPAIR_3 splits the curve dimension, taking the declared architecture from ten to eleven dimensions."
+    },
+    {
+      "id": "OD-B",
+      "subject": "primaryMarketRegime V1 taxonomy",
+      "ratificationStatus": "OWNER_CONFIRMED_IN_REPAIR_2",
+      "decision": "Closed V1 taxonomy for primaryMarketRegime: BULL, BEAR, RANGE, CRISIS, RECOVERY, TRANSITION, LIQUIDITY_STRESS, REGIME_UNKNOWN, REGIME_INSUFFICIENT_DATA. Calm and volatile variants of bull and bear are representable as the combination of primaryMarketRegime and volatilityState and must never be encoded as additional primary entries. The primary enumeration may not be cartesian-expanded."
+    },
+    {
+      "id": "OD-C",
+      "subject": "volatilityState",
+      "ratificationStatus": "OWNER_CONFIRMED_IN_REPAIR_2",
+      "decision": "volatilityState is an independent dimension whose V1 vocabulary admits at minimum CALM, NORMAL, VOLATILE, EXTREME, UNKNOWN, INSUFFICIENT_DATA. No numeric threshold is defined in this mandate. Exact thresholds belong to a versioned ParameterSet and are frozen later by contract."
+    },
+    {
+      "id": "OD-D",
+      "subject": "inflationState",
+      "ratificationStatus": "OWNER_CONFIRMED_IN_REPAIR_2",
+      "decision": "Closed V1 taxonomy: INFLATIONARY, DISINFLATIONARY, INFLATION_STABLE, INFLATION_UNKNOWN, INFLATION_INSUFFICIENT_DATA. Inflation is not a competitor of BULL/BEAR; primaryMarketRegime = BULL with inflationState = DISINFLATIONARY is a valid vector."
+    },
+    {
+      "id": "OD-E",
+      "subject": "ratesState",
+      "ratificationStatus": "OWNER_CONFIRMED_IN_REPAIR_2",
+      "decision": "Closed V1 taxonomy: RATES_RISING, RATES_FALLING, RATES_STABLE, RATES_UNKNOWN, RATES_INSUFFICIENT_DATA. ratesState and fedPolicyState remain distinguishable dimensions and must not be merged."
+    },
+    {
+      "id": "OD-F",
+      "subject": "yieldCurveState",
+      "ratificationStatus": "OWNER_CONFIRMED_IN_REPAIR_2",
+      "decision": "Closed V1 taxonomy: CURVE_NORMAL, CURVE_FLAT, CURVE_INVERTED, CURVE_STEEPENING, CURVE_UNKNOWN, CURVE_INSUFFICIENT_DATA. It reuses the existing causal curve features SPREAD_10Y_2Y, SPREAD_10Y_3M, SPREAD_5Y_2Y and the producer inversion vocabulary. No numeric threshold is defined here.",
+      "supersededBy": "OD-X",
+      "supersessionNote": "REPAIR_3 splits yieldCurveState into the orthogonal dimensions yieldCurveShape and yieldCurveDirection and adopts the exact producer tokens. The CURVE_ prefixed entries declared in OD-F are retired and are not emitted."
+    },
+    {
+      "id": "OD-G",
+      "subject": "extended dimensions",
+      "ratificationStatus": "OWNER_CONFIRMED_IN_REPAIR_2",
+      "decision": "growthState, laborState, creditState, liquidityState and fedPolicyState exist in the architecture as versionable, extensible dimensions. No detailed closed taxonomy is invented for them where no prior canonical authority imposes one. Each is recorded as PROPOSED, DEFERRED or NOT_ACTIVE_IN_CORE_V1 and each carries at minimum a fail-closed representation with UNKNOWN and INSUFFICIENT_DATA members.",
+      "supersededBy": "OD-Y",
+      "supersessionNote": "REPAIR_3 closes the disposition of the five extended dimensions as REGISTERED_NOT_ACTIVE_IN_CORE_V1 with detailed taxonomy DEFERRED_TO_FUTURE_VERSION."
+    },
+    {
+      "id": "OD-H",
+      "subject": "macro registry tiers",
+      "ratificationStatus": "OWNER_CONFIRMED_IN_REPAIR_2",
+      "decision": "The macro registry declares exactly four classes: CORE_V1, OPTIONAL_V1, REGISTERED_DEFERRED, FUTURE_EXTENSION. A series moves between classes only by explicit decision and version. Silent promotion is forbidden in both directions.",
+      "closureNote": "REPAIR_3 closes OPTIONAL_V1 as EMPTY_IN_V1 (OD-Z). The tier remains architecturally declared."
+    },
+    {
+      "id": "OD-I",
+      "subject": "macro ingestion architecture",
+      "ratificationStatus": "OWNER_CONFIRMED_IN_REPAIR_2",
+      "decision": "Preserve FETCH_ONCE -> NORMALIZE -> VERSION_CACHE -> PRECOMPUTE -> REUSE. Macro ingestion is off the Wheel critical path; historical macro work is OFF_SCAN; network access during classification computation is forbidden; a live macro fetcher is forbidden; latest-reference reconstruction is forbidden; vintage-first; append-only versioned registry; availableAt required; pinned release-time policy; unknown release time is rejected fail-closed; future vintage leakage is forbidden; silent interpolation or proxying is forbidden; Wheel live scan latency target delta is ZERO. A macro snapshot is computed once and reused; it must never be refetched per ticker."
+    },
+    {
+      "id": "OD-J",
+      "subject": "input boundaries",
+      "ratificationStatus": "OWNER_CONFIRMED_IN_REPAIR_2",
+      "decision": "Two explicit boundaries are preserved. MARKET_FEATURE_BOUNDARY carries GATE23 FeatureRecord(T). MACRO_CONTEXT_BOUNDARY carries prepared, versioned causal MacroContext(T). GATE22 Outcome and labels are forbidden as classifier inputs direct, lagged, renamed, type-laundered, or derived from a future outcome."
+    },
+    {
+      "id": "OD-K",
+      "subject": "knowledge cutoff",
+      "ratificationStatus": "OWNER_CONFIRMED_IN_REPAIR_2",
+      "decision": "K(T) = PinnedCanonicalSession(T).closeUtc is preserved. Every input must carry its own proof that availableAt <= K(T). Any datum known only after K(T) is inadmissible at T, whatever its event time."
+    },
+    {
+      "id": "OD-L",
+      "subject": "RegimeRecord identity",
+      "ratificationStatus": "OWNER_CONFIRMED_IN_REPAIR_3",
+      "decision": "MacroContextBindingId is REQUIRED in the RegimeRecord identity, because identical market features, session and cutoff with a different macro vintage are different inputs and must produce a different RegimeRecordId. The identity binds at minimum InstrumentIdentityId where applicable, SessionDate, KnowledgeCutoff, FeatureVectorBindingId, MacroContextBindingId, RegimeTaxonomyVersionId, ClassifierVersionId and ParameterSetId. The identity must stay compatible with existing canonical identity patterns; exact materialization is frozen at contract.",
+      "closureNote": "REPAIR_3 closes the identity: ten required members, including DatasetId_feature and MissingnessStateId. See OD-AA."
+    },
+    {
+      "id": "OD-M",
+      "subject": "missingness and fail-closed policy",
+      "ratificationStatus": "OWNER_CONFIRMED_IN_REPAIR_2",
+      "decision": "Fail-closed is dimension-local. A missing CORE input required by a dimension resolves that dimension to INSUFFICIENT_DATA. Missing inputs required by primaryMarketRegime resolve primaryMarketRegime to REGIME_INSUFFICIENT_DATA. An absent REGISTERED_DEFERRED indicator never blocks CORE_V1. Silent imputation, latest-value substitution, future backfill, interpolation of an unknown publication and unauthorized proxying are all forbidden."
+    },
+    {
+      "id": "OD-N",
+      "subject": "classification quality",
+      "ratificationStatus": "OWNER_CONFIRMED_IN_REPAIR_2",
+      "decision": "RegimeRecord carries a deterministic classificationQuality. Uncalibrated probabilities are forbidden: outputs such as '87% bull' may not be emitted without real statistical calibration, which GATE24 does not perform. classificationQuality is a declared state such as COMPLETE, PARTIAL, INSUFFICIENT or CONFLICTING, or a deterministic versioned coverage score. The exact definition is frozen at contract."
+    },
+    {
+      "id": "OD-O",
+      "subject": "classification evidence and explainability",
+      "ratificationStatus": "OWNER_CONFIRMED_IN_REPAIR_2",
+      "decision": "Every RegimeRecord must be able to explain why it exists through a classificationEvidence structure covering the relevant families: trend, volatility, drawdown, liquidity, inflation, rates, curve, macro coverage and the parameter set used. Evidence must be causal, reproducible and free of any future data."
+    },
+    {
+      "id": "OD-P",
+      "subject": "provenance",
+      "ratificationStatus": "OWNER_CONFIRMED_IN_REPAIR_2",
+      "decision": "Every RegimeRecord must be traceable to FeatureVectorBindingId, MacroContextBindingId, ParameterSetId, classifier version, taxonomy version, KnowledgeCutoff, data coverage and evidence/provenance references. No opaque regime without provenance."
+    },
+    {
+      "id": "OD-Q",
+      "subject": "transitions",
+      "ratificationStatus": "OWNER_CONFIRMED_IN_REPAIR_2",
+      "decision": "Between two consecutive canonical sessions, an identical primaryMarketRegime yields PERSIST and a different primaryMarketRegime yields CHANGE. A changedDimensions list records overlay changes independently, so a macro overlay change never automatically becomes a primary regime change."
+    },
+    {
+      "id": "OD-R",
+      "subject": "regime age",
+      "ratificationStatus": "OWNER_CONFIRMED_IN_REPAIR_2",
+      "decision": "RegimeRecord carries regimeAgeSessions: the number of consecutive causal sessions since entry into the current primaryMarketRegime. It must be computable without any future information."
+    },
+    {
+      "id": "OD-S",
+      "subject": "last transition",
+      "ratificationStatus": "OWNER_CONFIRMED_IN_REPAIR_2",
+      "decision": "RegimeRecord carries lastTransitionSession or its canonical equivalent, so future consumers can distinguish an established regime from a recent change without recomputing the whole history."
+    },
+    {
+      "id": "OD-T",
+      "subject": "hysteresis and dwell",
+      "ratificationStatus": "OWNER_CONFIRMED_IN_REPAIR_2",
+      "decision": "hysteresis = DEFER and minimumDwell = DEFER. No arbitrary minimum of 3, 5 or 10 sessions is imposed. The first implementation must measure real transition frequency; any future stabilization must rest on evidence and coverage tests, must be strictly backward-looking, and may never rewrite an emitted RegimeRecord."
+    },
+    {
+      "id": "OD-U",
+      "subject": "performance",
+      "ratificationStatus": "OWNER_CONFIRMED_IN_REPAIR_2",
+      "decision": "GATE24 must not slow the Wheel scanner. The macro snapshot is computed once and reused across N tickers; there is no per-ticker macro network request; no historical recompute occurs on the live path; the live scan critical path MUST_NOT_LENGTHEN and the latency target delta is ZERO."
+    },
+    {
+      "id": "OD-V",
+      "subject": "test and validation expectations",
+      "ratificationStatus": "OWNER_CONFIRMED_IN_REPAIR_2",
+      "decision": "The mandate requires, at minimum, the sixteen validation classes enumerated in validationExpectations V-1 through V-16, plus the preserved perimeter and closure checks V-17 through V-20. These are expectations for a future contract and build; this mandate authorizes no test execution."
+    },
+    {
+      "id": "OD-W",
+      "subject": "CORE_V1 active dimension set",
+      "ratificationStatus": "OWNER_CONFIRMED_IN_REPAIR_3",
+      "decision": "The CORE_V1 classifier operates on exactly six dimensions: primaryMarketRegime, volatilityState, inflationState, ratesState, yieldCurveShape and yieldCurveDirection. All remaining dimensions stay architecturally registered and NOT_ACTIVE_IN_CORE_V1.",
+      "closes": "OWNER-DECISION-1 opened in REPAIR_2"
+    },
+    {
+      "id": "OD-X",
+      "subject": "split of yieldCurveState into shape and direction",
+      "ratificationStatus": "OWNER_CONFIRMED_IN_REPAIR_3",
+      "decision": "yieldCurveState is replaced by two orthogonal dimensions, yieldCurveShape and yieldCurveDirection, each independently versioned and independently emitted. A record may carry yieldCurveShape = INVERTED together with yieldCurveDirection = STEEPENING. No composite curve label is produced. Both dimensions reuse the exact canonical producer tokens; no token is invented, re-spelled or prefixed. The producer-to-GATE24 mapping is exhaustive and no producer value is silently collapsed into a different class, in particular PARTIALLY_INVERTED, MIXED, FLATTENING and UNCHANGED.",
+      "closes": "OWNER-DECISION-3 opened in REPAIR_2",
+      "supersedes": "OD-F"
+    },
+    {
+      "id": "OD-Y",
+      "subject": "extended dimensions disposition",
+      "ratificationStatus": "OWNER_CONFIRMED_IN_REPAIR_3",
+      "decision": "growthState, laborState, creditState, liquidityState and fedPolicyState are REGISTERED_NOT_ACTIVE_IN_CORE_V1. Their detailed classifying taxonomy is DEFERRED_TO_FUTURE_VERSION and no class is invented now. Each keeps its architectural fail-closed members UNKNOWN and INSUFFICIENT_DATA. This deferral does not block a CORE_V1 contract freeze.",
+      "closes": "OWNER-DECISION-2 opened in REPAIR_2",
+      "supersedes": "OD-G"
+    },
+    {
+      "id": "OD-Z",
+      "subject": "OPTIONAL_V1 tier",
+      "ratificationStatus": "OWNER_CONFIRMED_IN_REPAIR_3",
+      "decision": "OPTIONAL_V1 is EMPTY_IN_V1. The tier exists architecturally but no member is promoted into it in GATE24 V1, and no silent promotion from REGISTERED_DEFERRED is admissible.",
+      "closes": "OWNER-DECISION-4 opened in REPAIR_2"
+    },
+    {
+      "id": "OD-AA",
+      "subject": "RegimeRecord identity closure",
+      "ratificationStatus": "OWNER_CONFIRMED_IN_REPAIR_3",
+      "decision": "DatasetId_feature and MissingnessStateId are REQUIRED identity members. They join the previously required InstrumentIdentityId, SessionDate, KnowledgeCutoff, FeatureVectorBindingId, MacroContextBindingId, RegimeTaxonomyVersionId, ClassifierVersionId and ParameterSetId, for ten required members. No existing provenance binding is removed. The exact ordered tuple and canonicalization remain frozen by the execution contract.",
+      "closes": "OWNER-DECISION-5 opened in REPAIR_2"
+    },
+    {
+      "id": "OD-AB",
+      "subject": "CORE_V1 macro base source arithmetic",
+      "ratificationStatus": "OWNER_CONFIRMED_IN_REPAIR_3",
+      "decision": "The CORE_V1 macro perimeter holds twelve base source series: five Fed and monetary, five Treasury tenors, US.BLS.CPIAUCSL and US.BLS.UNRATE, that is 5 + 5 + 1 + 1 = 12. Derived features are counted separately and are not base sources. The earlier count of eleven was an arithmetic error and is corrected here; macro membership itself is unchanged and no deferred series is promoted."
+    }
+  ],
+  "regimeVectorV1": {
+    "ratificationStatus": "OWNER_CONFIRMED_IN_REPAIR_3",
+    "vectorVersionId": "REGIME_VECTOR_V1",
+    "cartesianLabelForbidden": true,
+    "forbiddenEmissionExample": "BULL_VOLATILE_DISINFLATION_RATES_FALLING_CURVE_INVERTED",
+    "dimensionCount": 11,
+    "independence": "Dimensions are independent and independently versioned. A change in one dimension never implies a change in another.",
+    "extensibilityRule": "Adding a dimension, or activating a declared dimension, is additive: it requires a new dimension taxonomy version and a classifier version bump, and must not require an identity redesign or a structural rebuild.",
+    "dimensions": [
+      {
+        "name": "primaryMarketRegime",
+        "status": "ACTIVE_IN_CORE_V1",
+        "taxonomyVersionId": "PRIMARY_MARKET_REGIME_V1",
+        "closureRule": "EXACT_ONLY",
+        "ratificationStatus": "OWNER_CONFIRMED_IN_REPAIR_2",
+        "entries": [
+          "BULL",
+          "BEAR",
+          "RANGE",
+          "CRISIS",
+          "RECOVERY",
+          "TRANSITION",
+          "LIQUIDITY_STRESS",
+          "REGIME_UNKNOWN",
+          "REGIME_INSUFFICIENT_DATA"
+        ],
+        "classifyingCount": 7,
+        "failClosedMembers": [
+          "REGIME_UNKNOWN",
+          "REGIME_INSUFFICIENT_DATA"
+        ],
+        "primaryInputBoundary": "MARKET_FEATURE_BOUNDARY",
+        "cartesianExpansionForbidden": true
+      },
+      {
+        "name": "volatilityState",
+        "status": "ACTIVE_IN_CORE_V1",
+        "taxonomyVersionId": "VOLATILITY_STATE_V1",
+        "closureRule": "EXACT_ONLY",
+        "ratificationStatus": "OWNER_CONFIRMED_IN_REPAIR_2",
+        "entries": [
+          "CALM",
+          "NORMAL",
+          "VOLATILE",
+          "EXTREME",
+          "UNKNOWN",
+          "INSUFFICIENT_DATA"
+        ],
+        "classifyingCount": 4,
+        "failClosedMembers": [
+          "UNKNOWN",
+          "INSUFFICIENT_DATA"
+        ],
+        "primaryInputBoundary": "MARKET_FEATURE_BOUNDARY",
+        "thresholds": "DEFERRED_TO_CONTRACT via versioned ParameterSet; no numeric threshold is declared in this mandate.",
+        "vocabularyRule": "The Owner declares these as the minimum admissible states; extension requires a new taxonomy version."
+      },
+      {
+        "name": "inflationState",
+        "status": "ACTIVE_IN_CORE_V1",
+        "taxonomyVersionId": "INFLATION_STATE_V1",
+        "closureRule": "EXACT_ONLY",
+        "ratificationStatus": "OWNER_CONFIRMED_IN_REPAIR_2",
+        "entries": [
+          "INFLATIONARY",
+          "DISINFLATIONARY",
+          "INFLATION_STABLE",
+          "INFLATION_UNKNOWN",
+          "INFLATION_INSUFFICIENT_DATA"
+        ],
+        "classifyingCount": 3,
+        "failClosedMembers": [
+          "INFLATION_UNKNOWN",
+          "INFLATION_INSUFFICIENT_DATA"
+        ],
+        "primaryInputBoundary": "MACRO_CONTEXT_BOUNDARY",
+        "coreInputs": [
+          "US.BLS.CPIAUCSL",
+          "cpiMoM",
+          "cpiYoY"
+        ],
+        "orthogonality": "Not a competitor of primaryMarketRegime. BULL with DISINFLATIONARY is a valid vector.",
+        "thresholds": "DEFERRED_TO_CONTRACT via versioned ParameterSet."
+      },
+      {
+        "name": "ratesState",
+        "status": "ACTIVE_IN_CORE_V1",
+        "taxonomyVersionId": "RATES_STATE_V1",
+        "closureRule": "EXACT_ONLY",
+        "ratificationStatus": "OWNER_CONFIRMED_IN_REPAIR_2",
+        "entries": [
+          "RATES_RISING",
+          "RATES_FALLING",
+          "RATES_STABLE",
+          "RATES_UNKNOWN",
+          "RATES_INSUFFICIENT_DATA"
+        ],
+        "classifyingCount": 3,
+        "failClosedMembers": [
+          "RATES_UNKNOWN",
+          "RATES_INSUFFICIENT_DATA"
+        ],
+        "primaryInputBoundary": "MACRO_CONTEXT_BOUNDARY",
+        "coreInputs": [
+          "US.TREAS.DGS3MO",
+          "US.TREAS.DGS2",
+          "US.TREAS.DGS5",
+          "US.TREAS.DGS10",
+          "US.TREAS.DGS30",
+          "US.NYFED.EFFR",
+          "US.NYFED.SOFR"
+        ],
+        "distinctFrom": "fedPolicyState",
+        "canonicalRelation": {
+          "observation": "The producer contract also declares MACRO_FEATURE_RATE_REGIMES (LOW, MODERATE, HIGH, VERY_HIGH, NOT_AVAILABLE), which expresses rate LEVEL, not rate DIRECTION.",
+          "sourcePath": "research/directional-lab/src/contracts/macroFeatureContractsL4BV1.mjs",
+          "sourceSha256": "eee620fb432d4738a7a7df64961f19f15aa5e95df5efdfa207fc637459ea8253",
+          "disposition": "ratesState V1 is directional only. No level dimension is created by this mandate; a future rate-level dimension would be FUTURE_EXTENSION and requires an Owner decision."
+        },
+        "thresholds": "DEFERRED_TO_CONTRACT via versioned ParameterSet."
+      },
+      {
+        "name": "yieldCurveShape",
+        "status": "ACTIVE_IN_CORE_V1",
+        "taxonomyVersionId": "YIELD_CURVE_SHAPE_V1",
+        "closureRule": "EXACT_ONLY",
+        "ratificationStatus": "OWNER_CONFIRMED_IN_REPAIR_3",
+        "tokenOrigin": "Exact canonical producer tokens from MACRO_FEATURE_CURVE_SHAPES; no token is invented, re-spelled or prefixed.",
+        "entries": [
+          "NORMAL",
+          "FLAT",
+          "PARTIALLY_INVERTED",
+          "INVERTED",
+          "MIXED",
+          "UNKNOWN",
+          "INSUFFICIENT_DATA"
+        ],
+        "classifyingCount": 5,
+        "failClosedMembers": [
+          "UNKNOWN",
+          "INSUFFICIENT_DATA"
+        ],
+        "primaryInputBoundary": "MACRO_CONTEXT_BOUNDARY",
+        "coreInputs": [
+          "SPREAD_10Y_2Y",
+          "SPREAD_10Y_3M",
+          "SPREAD_5Y_2Y"
+        ],
+        "producerVocabulary": {
+          "constant": "MACRO_FEATURE_CURVE_SHAPES",
+          "sourcePath": "research/directional-lab/src/contracts/macroFeatureContractsL4BV1.mjs",
+          "sourceSha256": "eee620fb432d4738a7a7df64961f19f15aa5e95df5efdfa207fc637459ea8253",
+          "tokens": [
+            "NORMAL",
+            "FLAT",
+            "PARTIALLY_INVERTED",
+            "INVERTED",
+            "MIXED",
+            "NOT_AVAILABLE"
+          ]
+        },
+        "producerMapping": {
+          "exhaustive": true,
+          "silentCollapseForbidden": true,
+          "map": [
+            {
+              "producer": "NORMAL",
+              "gate24": "NORMAL",
+              "kind": "IDENTITY"
+            },
+            {
+              "producer": "FLAT",
+              "gate24": "FLAT",
+              "kind": "IDENTITY"
+            },
+            {
+              "producer": "PARTIALLY_INVERTED",
+              "gate24": "PARTIALLY_INVERTED",
+              "kind": "IDENTITY"
+            },
+            {
+              "producer": "INVERTED",
+              "gate24": "INVERTED",
+              "kind": "IDENTITY"
+            },
+            {
+              "producer": "MIXED",
+              "gate24": "MIXED",
+              "kind": "IDENTITY"
+            },
+            {
+              "producer": "NOT_AVAILABLE",
+              "gate24": "INSUFFICIENT_DATA",
+              "kind": "DECLARED_FAIL_CLOSED"
+            }
+          ],
+          "unmappedProducerValues": "NONE",
+          "unresolvableInputRule": "A producer value outside MACRO_FEATURE_CURVE_SHAPES, or an absent curve feature record, resolves to UNKNOWN. A producer NOT_AVAILABLE resolves to INSUFFICIENT_DATA. Neither may resolve to a classifying entry.",
+          "preservedConcepts": [
+            "PARTIALLY_INVERTED",
+            "MIXED"
+          ]
+        },
+        "orthogonality": "Shape is a state. It is independent of yieldCurveDirection and the two are never merged into one composite value.",
+        "thresholds": "DEFERRED_TO_CONTRACT via versioned ParameterSet."
+      },
+      {
+        "name": "yieldCurveDirection",
+        "status": "ACTIVE_IN_CORE_V1",
+        "taxonomyVersionId": "YIELD_CURVE_DIRECTION_V1",
+        "closureRule": "EXACT_ONLY",
+        "ratificationStatus": "OWNER_CONFIRMED_IN_REPAIR_3",
+        "tokenOrigin": "Exact canonical producer tokens from MACRO_FEATURE_CURVE_DIRECTIONS; no token is invented, re-spelled or prefixed.",
+        "entries": [
+          "STEEPENING",
+          "FLATTENING",
+          "UNCHANGED",
+          "MIXED",
+          "UNKNOWN",
+          "INSUFFICIENT_DATA"
+        ],
+        "classifyingCount": 4,
+        "failClosedMembers": [
+          "UNKNOWN",
+          "INSUFFICIENT_DATA"
+        ],
+        "primaryInputBoundary": "MACRO_CONTEXT_BOUNDARY",
+        "coreInputs": [
+          "SPREAD_10Y_2Y",
+          "SPREAD_10Y_3M",
+          "SPREAD_5Y_2Y"
+        ],
+        "producerVocabulary": {
+          "constant": "MACRO_FEATURE_CURVE_DIRECTIONS",
+          "sourcePath": "research/directional-lab/src/contracts/macroFeatureContractsL4BV1.mjs",
+          "sourceSha256": "eee620fb432d4738a7a7df64961f19f15aa5e95df5efdfa207fc637459ea8253",
+          "tokens": [
+            "STEEPENING",
+            "FLATTENING",
+            "UNCHANGED",
+            "MIXED",
+            "NOT_AVAILABLE"
+          ]
+        },
+        "producerMapping": {
+          "exhaustive": true,
+          "silentCollapseForbidden": true,
+          "map": [
+            {
+              "producer": "STEEPENING",
+              "gate24": "STEEPENING",
+              "kind": "IDENTITY"
+            },
+            {
+              "producer": "FLATTENING",
+              "gate24": "FLATTENING",
+              "kind": "IDENTITY"
+            },
+            {
+              "producer": "UNCHANGED",
+              "gate24": "UNCHANGED",
+              "kind": "IDENTITY"
+            },
+            {
+              "producer": "MIXED",
+              "gate24": "MIXED",
+              "kind": "IDENTITY"
+            },
+            {
+              "producer": "NOT_AVAILABLE",
+              "gate24": "INSUFFICIENT_DATA",
+              "kind": "DECLARED_FAIL_CLOSED"
+            }
+          ],
+          "unmappedProducerValues": "NONE",
+          "unresolvableInputRule": "A producer value outside MACRO_FEATURE_CURVE_DIRECTIONS, or an absent curve feature record, resolves to UNKNOWN. A producer NOT_AVAILABLE resolves to INSUFFICIENT_DATA. Neither may resolve to a classifying entry.",
+          "preservedConcepts": [
+            "FLATTENING",
+            "UNCHANGED",
+            "MIXED"
+          ],
+          "mixedNote": "MIXED exists in both producer vocabularies. It is preserved in each GATE24 dimension separately so that a producer MIXED is never collapsed into a different class, and the two MIXED values are not the same statement."
+        },
+        "orthogonality": "Direction is a dynamic. It is independent of yieldCurveShape and the two are never merged into one composite value.",
+        "thresholds": "DEFERRED_TO_CONTRACT via versioned ParameterSet."
+      },
+      {
+        "name": "growthState",
+        "status": "REGISTERED_NOT_ACTIVE_IN_CORE_V1",
+        "taxonomyVersionId": null,
+        "ratificationStatus": "OWNER_CONFIRMED_IN_REPAIR_3",
+        "entries": [],
+        "failClosedMembers": [
+          "UNKNOWN",
+          "INSUFFICIENT_DATA"
+        ],
+        "candidateInputTier": "REGISTERED_DEFERRED",
+        "candidateInputs": [
+          "GDP",
+          "industrial production",
+          "retail sales",
+          "durable goods"
+        ],
+        "note": "No prior canonical authority imposes a closed growth taxonomy and none is invented. The dimension exists in the vector with its fail-closed representation only.",
+        "detailedTaxonomy": "DEFERRED_TO_FUTURE_VERSION",
+        "classifyingCount": 0,
+        "blocksCoreV1ContractFreeze": false,
+        "dispositionNote": "Registered in the architecture with fail-closed members only. Activation requires an Owner-ratified taxonomy for this dimension plus a classifier version bump, and is additive by construction."
+      },
+      {
+        "name": "laborState",
+        "status": "REGISTERED_NOT_ACTIVE_IN_CORE_V1",
+        "taxonomyVersionId": null,
+        "ratificationStatus": "OWNER_CONFIRMED_IN_REPAIR_3",
+        "entries": [],
+        "failClosedMembers": [
+          "UNKNOWN",
+          "INSUFFICIENT_DATA"
+        ],
+        "candidateInputTier": "CORE_V1_INPUT_PRESENT_TAXONOMY_ABSENT",
+        "candidateInputs": [
+          "US.BLS.UNRATE"
+        ],
+        "note": "The CORE_V1 macro input US.BLS.UNRATE is already available, so laborState is the nearest candidate for activation, but no closed labor taxonomy exists in canonical prior authority and none is invented here. Activation requires an Owner-ratified taxonomy plus a classifier version bump.",
+        "detailedTaxonomy": "DEFERRED_TO_FUTURE_VERSION",
+        "classifyingCount": 0,
+        "blocksCoreV1ContractFreeze": false,
+        "dispositionNote": "Registered in the architecture with fail-closed members only. Activation requires an Owner-ratified taxonomy for this dimension plus a classifier version bump, and is additive by construction."
+      },
+      {
+        "name": "creditState",
+        "status": "REGISTERED_NOT_ACTIVE_IN_CORE_V1",
+        "taxonomyVersionId": null,
+        "ratificationStatus": "OWNER_CONFIRMED_IN_REPAIR_3",
+        "entries": [],
+        "failClosedMembers": [
+          "UNKNOWN",
+          "INSUFFICIENT_DATA"
+        ],
+        "candidateInputTier": "REGISTERED_DEFERRED",
+        "candidateInputs": [
+          "credit spreads",
+          "Financial Conditions Index"
+        ],
+        "note": "No canonical series identifier exists for these inputs in the current registry and none is invented.",
+        "detailedTaxonomy": "DEFERRED_TO_FUTURE_VERSION",
+        "classifyingCount": 0,
+        "blocksCoreV1ContractFreeze": false,
+        "dispositionNote": "Registered in the architecture with fail-closed members only. Activation requires an Owner-ratified taxonomy for this dimension plus a classifier version bump, and is additive by construction."
+      },
+      {
+        "name": "liquidityState",
+        "status": "REGISTERED_NOT_ACTIVE_IN_CORE_V1",
+        "taxonomyVersionId": null,
+        "ratificationStatus": "OWNER_CONFIRMED_IN_REPAIR_3",
+        "entries": [],
+        "failClosedMembers": [
+          "UNKNOWN",
+          "INSUFFICIENT_DATA"
+        ],
+        "candidateInputTier": "MIXED_CORE_V1_AND_REGISTERED_DEFERRED",
+        "candidateInputs": [
+          "US.NYFED.SOFR",
+          "US.NYFED.EFFR",
+          "Fed balance sheet",
+          "reserves",
+          "RRP"
+        ],
+        "disambiguation": "liquidityState is a macro funding-liquidity dimension. It is distinct from the primaryMarketRegime entry LIQUIDITY_STRESS, which is a market-state entry driven through the market feature boundary. The two must never be conflated or derived from one another implicitly.",
+        "detailedTaxonomy": "DEFERRED_TO_FUTURE_VERSION",
+        "classifyingCount": 0,
+        "blocksCoreV1ContractFreeze": false,
+        "dispositionNote": "Registered in the architecture with fail-closed members only. Activation requires an Owner-ratified taxonomy for this dimension plus a classifier version bump, and is additive by construction."
+      },
+      {
+        "name": "fedPolicyState",
+        "status": "REGISTERED_NOT_ACTIVE_IN_CORE_V1",
+        "taxonomyVersionId": null,
+        "ratificationStatus": "OWNER_CONFIRMED_IN_REPAIR_3",
+        "entries": [],
+        "failClosedMembers": [
+          "UNKNOWN",
+          "INSUFFICIENT_DATA"
+        ],
+        "candidateInputTier": "CORE_V1_INPUT_PRESENT_TAXONOMY_ABSENT",
+        "candidateInputs": [
+          "US.FRB.DFEDTARU",
+          "US.FRB.DFEDTARL",
+          "US.FOMC.DECISION",
+          "US.NYFED.EFFR"
+        ],
+        "candidateVocabularyFromCanonicalPriorSources": {
+          "sourcePath": "research/directional-lab/src/contracts/macroFeatureContractsL4BV1.mjs",
+          "sourceSha256": "eee620fb432d4738a7a7df64961f19f15aa5e95df5efdfa207fc637459ea8253",
+          "MACRO_FEATURE_POLICY_DIRECTIONS": [
+            "EASING",
+            "TIGHTENING",
+            "UNCHANGED",
+            "NOT_AVAILABLE"
+          ],
+          "MACRO_FEATURE_MONETARY_POLICY_REGIMES": [
+            "EASING",
+            "TIGHTENING",
+            "HIGH_RATE_HOLD",
+            "MID_RATE_HOLD",
+            "LOW_RATE_HOLD",
+            "NOT_AVAILABLE"
+          ],
+          "MACRO_FEATURE_FOMC_DECISION_TYPES": [
+            "HIKE",
+            "CUT",
+            "HOLD",
+            "RANGE_RESTRUCTURE",
+            "WITHDRAWN",
+            "NOT_AVAILABLE"
+          ],
+          "disposition": "These are producer FEATURE vocabularies, quoted verbatim and unaltered. They are candidates for a future fedPolicyState taxonomy, not a ratified GATE24 dimension taxonomy. Promotion requires an explicit Owner decision.",
+          "distinctFrom": "ratesState, which is directional market-rate movement, not policy stance."
+        },
+        "detailedTaxonomy": "DEFERRED_TO_FUTURE_VERSION",
+        "classifyingCount": 0,
+        "blocksCoreV1ContractFreeze": false,
+        "dispositionNote": "Registered in the architecture with fail-closed members only. Activation requires an Owner-ratified taxonomy for this dimension plus a classifier version bump, and is additive by construction."
+      }
+    ]
+  },
+  "regimeTaxonomyStatus": {
+    "status": "RATIFIED_FOR_CORE_V1_DIMENSIONS",
+    "inventionForbidden": true,
+    "coreV1ActiveDimensions": [
+      "primaryMarketRegime",
+      "volatilityState",
+      "inflationState",
+      "ratesState",
+      "yieldCurveShape",
+      "yieldCurveDirection"
+    ],
+    "coreV1ActiveDimensionsStatus": "OWNER_CONFIRMED_IN_REPAIR_3",
+    "coreV1ActiveDimensionsNote": "Closed by OD-W. The remaining five dimensions are REGISTERED_NOT_ACTIVE_IN_CORE_V1 by OD-Y.",
+    "priorSearch": {
+      "performedIn": "REPAIR_1",
+      "scope": "targeted, no broad scan",
+      "result": "NO_EXACT_RATIFIED_REGIME_TAXONOMY_V1_FOUND",
+      "consequence": "The taxonomy question could not be resolved by reuse and was escalated. REPAIR_2 closes it by Owner direction rather than by agent invention.",
+      "negativeEvidence": [
+        {
+          "sourcePath": "governance/gates/GATE21/implementation/causal-data-interface.mjs",
+          "sourceSha256": "61874d328ab5eb9680b942667eeca994c656849e119f1b4dc3ef902bf2a92e64",
+          "observation": "G24_REGIMES is declared only as a refusal code with value G22_PLUS_FORBIDDEN. It is a scope boundary, not a taxonomy."
+        },
+        {
+          "sourcePath": "governance/gates/GATE21/contracts/GATE21_BINDING_V1.json",
+          "sourceSha256": "c8982c5c857759dd4204670e514c6b447b573140552d188012b9c9dedc5e9607",
+          "observation": "outOfScope lists 'G24 regimes'. GATE21 declares no regime vocabulary."
+        },
+        {
+          "sourcePath": "research/directional-lab/src/contracts/macroFeatureContractsL4BV1.mjs",
+          "sourceSha256": "eee620fb432d4738a7a7df64961f19f15aa5e95df5efdfa207fc637459ea8253",
+          "observation": "MACRO_FEATURE_CURVE_SHAPES and the sibling vocabularies are macro FEATURE vocabularies, not a market regime taxonomy. They are consumed as inputs and are never promoted to regime entries."
+        }
+      ]
+    },
+    "candidateVocabularyFromCanonicalPriorSources": [
+      {
+        "sourceId": "GATE16_40_OWNER_RATIFICATION_R2",
+        "sourcePath": "governance/sources/GATE16_40_OWNER_RATIFICATION_R2.json",
+        "sourceSha256": "bf7859ef8d0992c2ea0169af48d7762c11ee5f5a8490922588026150a92031cc",
+        "sourcePointer": "/gates[gateId=GATE24]/requiredArtifacts",
+        "verbatim": [
+          "bull/bear, volatility, crisis, recovery, range and stress regime definitions",
+          "regime provenance"
+        ],
+        "authorityClass": "OWNER_RATIFIED_REQUIRED_ARTIFACT_STATEMENT",
+        "alterationPerformed": "NONE"
+      },
+      {
+        "sourceId": "OWNER_PROVIDED_WHEEL_JARVISE_MASTER_ROADMAP_00_40",
+        "sourcePath": "governance/sources/WHEEL_JARVISE_MASTER_ROADMAP_00_40.txt",
+        "sourceSha256": "c59c9f243581104e0486f075311da4163b27f778ea5ba176c8f86f3b74d6647d",
+        "sourceLocation": "GATE24 - MARKET REGIME ENGINE, lines 214-226, heading 'Exemples :'",
+        "verbatim": [
+          "bull calme",
+          "bull volatil",
+          "bear calme",
+          "bear volatil",
+          "crise",
+          "reprise",
+          "range",
+          "transition",
+          "stress de liquidite",
+          "inflation",
+          "desinflation",
+          "taux croissants ou decroissants"
+        ],
+        "authorityClass": "OWNER_PROVIDED_ROADMAP_EXAMPLES",
+        "alterationPerformed": "NONE"
+      }
+    ],
+    "canonicalCoverageProof": {
+      "purpose": "Demonstrate that the Owner-directed RegimeVector represents every regime concept present in canonical prior authority, without cartesian explosion and without inventing vocabulary.",
+      "roadmapExampleMapping": [
+        {
+          "example": "bull calme",
+          "representation": "primaryMarketRegime=BULL + volatilityState=CALM"
+        },
+        {
+          "example": "bull volatil",
+          "representation": "primaryMarketRegime=BULL + volatilityState=VOLATILE"
+        },
+        {
+          "example": "bear calme",
+          "representation": "primaryMarketRegime=BEAR + volatilityState=CALM"
+        },
+        {
+          "example": "bear volatil",
+          "representation": "primaryMarketRegime=BEAR + volatilityState=VOLATILE"
+        },
+        {
+          "example": "crise",
+          "representation": "primaryMarketRegime=CRISIS"
+        },
+        {
+          "example": "reprise",
+          "representation": "primaryMarketRegime=RECOVERY"
+        },
+        {
+          "example": "range",
+          "representation": "primaryMarketRegime=RANGE"
+        },
+        {
+          "example": "transition",
+          "representation": "primaryMarketRegime=TRANSITION"
+        },
+        {
+          "example": "stress de liquidite",
+          "representation": "primaryMarketRegime=LIQUIDITY_STRESS"
+        },
+        {
+          "example": "inflation",
+          "representation": "inflationState=INFLATIONARY"
+        },
+        {
+          "example": "desinflation",
+          "representation": "inflationState=DISINFLATIONARY"
+        },
+        {
+          "example": "taux croissants ou decroissants",
+          "representation": "ratesState=RATES_RISING or ratesState=RATES_FALLING"
+        }
+      ],
+      "gate16RequiredArtifactMapping": [
+        {
+          "required": "bull/bear",
+          "representation": "primaryMarketRegime BULL and BEAR"
+        },
+        {
+          "required": "volatility",
+          "representation": "volatilityState dimension"
+        },
+        {
+          "required": "crisis",
+          "representation": "primaryMarketRegime CRISIS"
+        },
+        {
+          "required": "recovery",
+          "representation": "primaryMarketRegime RECOVERY"
+        },
+        {
+          "required": "range",
+          "representation": "primaryMarketRegime RANGE"
+        },
+        {
+          "required": "stress",
+          "representation": "primaryMarketRegime LIQUIDITY_STRESS"
+        },
+        {
+          "required": "regime provenance",
+          "representation": "provenanceV1 block and artifact A-5"
+        }
+      ],
+      "unmappedCanonicalConcepts": "NONE",
+      "cartesianExplosionAvoided": "12 roadmap examples and 7 GATE16_40 required concepts are represented by 9 primary entries plus 5 independent overlay dimensions active in CORE_V1, instead of a combinatorial label space.",
+      "curveRepresentation": "Curve context is carried by two orthogonal dimensions, yieldCurveShape and yieldCurveDirection, using the exact producer tokens. An inverted curve that is steepening is expressed as two independent values, never as one composite entry."
+    },
+    "coreV1ActiveDimensionCount": 6
+  },
+  "transitionSemanticsV1": {
+    "ratificationStatus": "OWNER_CONFIRMED_IN_REPAIR_2",
+    "unit": "consecutive canonical trading sessions under the pinned calendar policy",
+    "scopeKey": "InstrumentIdentityId",
+    "pair": "(RegimeRecord(T_prev), RegimeRecord(T))",
+    "primaryTransitionTypes": [
+      "PERSIST",
+      "CHANGE"
+    ],
+    "primaryTransitionRule": "PERSIST when primaryMarketRegime is identical between consecutive sessions; CHANGE when it differs.",
+    "changedDimensions": {
+      "required": true,
+      "content": "The list of RegimeVector dimensions whose value differs from the immediately prior classified session.",
+      "rule": "An overlay dimension change is recorded in changedDimensions and never automatically promoted into a primaryMarketRegime CHANGE.",
+      "example": "primaryMarketRegime PERSIST, ratesState CHANGE, yieldCurveState PERSIST."
+    },
+    "regimeAgeSessions": {
+      "required": true,
+      "definition": "Number of consecutive causal canonical sessions since entry into the current primaryMarketRegime.",
+      "causality": "Computable from contemporaneous and prior RegimeRecords only; no future information."
+    },
+    "lastTransitionSession": {
+      "required": true,
+      "definition": "The canonical session of the most recent primaryMarketRegime CHANGE, or its canonical equivalent.",
+      "purpose": "Lets consumers distinguish an established regime from a recent change without recomputing the whole history."
+    },
+    "nonClassifyingTransitionsEmitted": true,
+    "suppressionAllowed": false,
+    "interpolationAllowed": false,
+    "backFillAllowed": false,
+    "forwardSmoothingAllowed": false,
+    "hysteresis": "DEFER",
+    "minimumDwell": "DEFER",
+    "dwellArbitraryValueForbidden": true,
+    "firstSessionRule": "The first classified session of an instrument in scope has no predecessor and emits no transition; this absence is declared, not a coverage gap.",
+    "horizonScope": {
+      "rule": "Transitions, changedDimensions, regimeAgeSessions and lastTransitionSession are computed within one RegimeHorizonSpecId. Comparing records across different horizons is not a transition and must never be emitted as one.",
+      "ratificationStatus": "OWNER_CONFIRMED_IN_REPAIR_4"
+    }
+  },
+  "regimeRecordIdentity": {
+    "ratificationStatus": "OWNER_CONFIRMED_IN_REPAIR_4",
+    "identity": "RegimeRecordId = sha256Canonical(orderedMembers)",
+    "closureRule": "EXACT_ONLY",
+    "macroContextBindingIdRequired": true,
+    "macroContextBindingIdRationale": "Identical market features, session and cutoff with a different macro vintage are different inputs and must yield a different RegimeRecordId; otherwise macro revision would silently change meaning without changing identity.",
+    "requiredMembers": [
+      "InstrumentIdentityId",
+      "SessionDate",
+      "KnowledgeCutoff",
+      "RegimeHorizonSpecId",
+      "FeatureVectorBindingId",
+      "MacroContextBindingId",
+      "RegimeTaxonomyVersionId",
+      "ClassifierVersionId",
+      "ParameterSetId",
+      "DatasetId_feature",
+      "MissingnessStateId"
+    ],
+    "requiredMemberCount": 11,
+    "instrumentScopeNote": "InstrumentIdentityId is required for an instrument-scoped RegimeRecord. A future instrument-independent market-wide record, if ever declared, would require its own identity form and an Owner decision; none is created here.",
+    "compatibilityRule": "The identity must remain compatible with existing canonical identity patterns, in particular the GATE23 FeatureRecordId sha256Canonical ordered-tuple form with EXACT_ONLY closure and its FeatureWindowSpecId / CalendarWindowBindingId window members.",
+    "materialization": "DEFERRED_TO_CONTRACT. The exact ordered tuple and canonicalization rules are frozen by a future GATE24 execution contract, which this document does not create or authorize.",
+    "closureNote": "Closed by OD-AA. DatasetId_feature and MissingnessStateId are promoted from proposed to REQUIRED, mirroring the GATE23 FeatureRecordId pattern. No provenance binding is removed.",
+    "taxonomyVersionBindingNote": "RegimeTaxonomyVersionId binds the RegimeVector taxonomy version, which itself pins the version of every dimension taxonomy. A dimension taxonomy change therefore changes the vector version and the identity.",
+    "horizonMemberNote": "RegimeHorizonSpecId is added by REPAIR_4 so that two regimes computed for the same session on different horizons carry different identities. It follows the GATE23_FeatureWindowSpec/1 pattern. See regimeHorizonArchitecture."
+  },
+  "classificationQualityV1": {
+    "ratificationStatus": "OWNER_CONFIRMED_IN_REPAIR_2",
+    "required": true,
+    "deterministic": true,
+    "declaredStates": [
+      "COMPLETE",
+      "PARTIAL",
+      "INSUFFICIENT",
+      "CONFLICTING"
+    ],
+    "alternativeForm": "A deterministic, versioned coverage score is admissible in place of, or in addition to, the declared states.",
+    "uncalibratedProbabilityForbidden": true,
+    "forbiddenOutputExample": "87% bull",
+    "calibrationNote": "GATE24 performs no statistical calibration. Any probability-like output would be uncalibrated and is therefore forbidden.",
+    "canonicalRelation": {
+      "observation": "The producer contract declares MACRO_FEATURE_COMPLETENESS (COMPLETE, PARTIAL, UNAVAILABLE) for macro coverage.",
+      "sourcePath": "research/directional-lab/src/contracts/macroFeatureContractsL4BV1.mjs",
+      "sourceSha256": "eee620fb432d4738a7a7df64961f19f15aa5e95df5efdfa207fc637459ea8253",
+      "disposition": "classificationQuality is a GATE24 output over the whole vector and is not the same field as macro coverage completeness. The relationship between them must be declared explicitly by the contract."
+    },
+    "exactDefinition": "DEFERRED_TO_CONTRACT"
+  },
+  "classificationEvidenceV1": {
+    "ratificationStatus": "OWNER_CONFIRMED_IN_REPAIR_2",
+    "required": true,
+    "purpose": "Every RegimeRecord must be able to explain why it exists.",
+    "families": [
+      "trend evidence",
+      "volatility evidence",
+      "drawdown evidence",
+      "liquidity evidence",
+      "inflation evidence",
+      "rates evidence",
+      "curve evidence",
+      "macro coverage",
+      "parameter set used"
+    ],
+    "properties": {
+      "causal": true,
+      "reproducible": true,
+      "containsFutureData": false,
+      "boundToDimensions": "Evidence must attribute to the dimension or dimensions it supports, so a dimension-local INSUFFICIENT_DATA is explainable."
+    },
+    "exactSchema": "DEFERRED_TO_CONTRACT"
+  },
+  "provenanceV1": {
+    "ratificationStatus": "OWNER_CONFIRMED_IN_REPAIR_2",
+    "required": true,
+    "opaqueRegimeForbidden": true,
+    "traceableTo": [
+      "FeatureVectorBindingId",
+      "MacroContextBindingId",
+      "ParameterSetId",
+      "classifier version",
+      "taxonomy version per dimension",
+      "KnowledgeCutoff",
+      "data coverage",
+      "evidence and provenance references"
+    ],
+    "requiredByPriorAuthority": {
+      "sourcePath": "governance/sources/GATE16_40_OWNER_RATIFICATION_R2.json",
+      "sourceSha256": "bf7859ef8d0992c2ea0169af48d7762c11ee5f5a8490922588026150a92031cc",
+      "sourcePointer": "/gates[gateId=GATE24]/requiredArtifacts",
+      "verbatim": "regime provenance"
+    }
+  },
+  "missingnessPolicyV1": {
+    "ratificationStatus": "OWNER_CONFIRMED_IN_REPAIR_2",
+    "model": "DIMENSION_LOCAL_FAIL_CLOSED",
+    "rules": [
+      "A missing CORE input required by a dimension resolves that dimension to its own INSUFFICIENT_DATA member.",
+      "Missing inputs required by primaryMarketRegime resolve primaryMarketRegime to REGIME_INSUFFICIENT_DATA.",
+      "An absent REGISTERED_DEFERRED indicator never blocks CORE_V1 classification.",
+      "A dimension resolving to INSUFFICIENT_DATA never collapses the whole RegimeVector.",
+      "Omitting a session in scope is a defect, never an implicit non-classification."
+    ],
+    "forbidden": [
+      "silent imputation",
+      "latest-value substitution",
+      "future backfill",
+      "interpolation of an unknown publication",
+      "unauthorized proxy substitution"
+    ]
+  },
+  "macroRegistryTiers": {
+    "ratificationStatus": "OWNER_CONFIRMED_IN_REPAIR_2",
+    "registryVersionId": "MACRO_CONTEXT_REGISTRY_V1",
+    "tierCount": 4,
+    "tiers": [
+      "CORE_V1",
+      "OPTIONAL_V1",
+      "REGISTERED_DEFERRED",
+      "FUTURE_EXTENSION"
+    ],
+    "promotionRule": "A series moves between tiers only by explicit Owner decision plus a new macro context registry version and a classifier version bump. Silent promotion is forbidden in both directions. Absence of a non-CORE item is never imputed, interpolated or proxied.",
+    "canonicalProducerBinding": {
+      "seriesPolicyPath": "research/directional-lab/src/contracts/macroIngestionContractsL4BV1.mjs",
+      "seriesPolicySha256": "32f989e09a3101db8eea977325faa92cc4dee75916d93f54c011cc0e67de7edd",
+      "seriesPolicyPointer": "MACRO_INGESTION_POLICY_VALUES.allowedSeriesCodes",
+      "featurePolicyPath": "research/directional-lab/src/contracts/macroFeatureContractsL4BV1.mjs",
+      "featurePolicySha256": "eee620fb432d4738a7a7df64961f19f15aa5e95df5efdfa207fc637459ea8253",
+      "featurePolicyPointer": "F1_SPREAD_DEFINITIONS and the MACRO_FEATURE_* vocabularies",
+      "inflationFeaturePath": "research/directional-lab/src/macro/macroInflationFeaturesL4BF2V1.mjs",
+      "inflationFieldNames": [
+        "cpiMoM",
+        "cpiYoY"
+      ],
+      "mutationByGate24": "FORBIDDEN"
+    },
+    "CORE_V1": {
+      "description": "Consumed by the CORE_V1 classifier. Every member has a canonical series identifier, a pinned release-time rule and vintage semantics in the existing producer policy.",
+      "fedMonetary": [
+        "US.FRB.DFEDTARU",
+        "US.FRB.DFEDTARL",
+        "US.NYFED.EFFR",
+        "US.NYFED.SOFR",
+        "US.FOMC.DECISION"
+      ],
+      "treasury": {
+        "tenors": [
+          "3M",
+          "2Y",
+          "5Y",
+          "10Y",
+          "30Y"
+        ],
+        "canonicalSeriesCodes": {
+          "3M": "US.TREAS.DGS3MO",
+          "2Y": "US.TREAS.DGS2",
+          "5Y": "US.TREAS.DGS5",
+          "10Y": "US.TREAS.DGS10",
+          "30Y": "US.TREAS.DGS30"
+        }
+      },
+      "derivedCurve": {
+        "spreadCodes": [
+          "SPREAD_10Y_2Y",
+          "SPREAD_10Y_3M",
+          "SPREAD_5Y_2Y"
+        ],
+        "inversionFlags": "MACRO_FEATURE_CURVE_SHAPES tokens NORMAL, FLAT, PARTIALLY_INVERTED, INVERTED, MIXED, NOT_AVAILABLE, consumed by yieldCurveShape; MACRO_FEATURE_CURVE_DIRECTIONS tokens STEEPENING, FLATTENING, UNCHANGED, MIXED, NOT_AVAILABLE, consumed by yieldCurveDirection."
+      },
+      "inflation": {
+        "series": [
+          "US.BLS.CPIAUCSL"
+        ],
+        "derived": [
+          "cpiMoM",
+          "cpiYoY"
+        ]
+      },
+      "labor": {
+        "series": [
+          "US.BLS.UNRATE"
+        ],
+        "note": "The series is CORE_V1; the laborState dimension is not active because no taxonomy is ratified for it."
+      },
+      "baseSourceSeriesCount": 12,
+      "baseSourceArithmetic": "5 Fed and monetary + 5 Treasury tenors + 1 CPIAUCSL + 1 UNRATE = 12",
+      "baseSourceCountCorrection": "A prior revision stated 11. That was an arithmetic error, corrected by OD-AB. Macro membership is unchanged and no deferred series is promoted.",
+      "derivedFeatures": [
+        "SPREAD_10Y_2Y",
+        "SPREAD_10Y_3M",
+        "SPREAD_5Y_2Y",
+        "cpiMoM",
+        "cpiYoY",
+        "inversion flags"
+      ],
+      "derivedFeatureCount": 6,
+      "countingRule": "Derived features are computed from base sources and are never counted as base sources."
+    },
+    "OPTIONAL_V1": {
+      "description": "Series admissible in V1 whose absence does not degrade CORE_V1 classification.",
+      "members": [],
+      "memberCount": 0,
+      "status": "EMPTY_IN_V1",
+      "note": "Closed by OD-Z. The tier exists architecturally; no member is promoted into it in GATE24 V1 and no silent promotion from REGISTERED_DEFERRED is admissible.",
+      "ratificationStatus": "OWNER_CONFIRMED_IN_REPAIR_3"
+    },
+    "REGISTERED_DEFERRED": {
+      "description": "Architecturally registered so GATE24 can receive them without a rebuild. Not active in CORE_V1. Absence is non-blocking. Canonical series identifiers are recorded only where one already exists; none is invented.",
+      "members": [
+        {
+          "concept": "Initial Claims",
+          "canonicalSeriesCode": "US.BLS.ICSA",
+          "canonicalIdentifierExists": true
+        },
+        {
+          "concept": "PCE",
+          "canonicalSeriesCode": null,
+          "canonicalIdentifierExists": false
+        },
+        {
+          "concept": "Core PCE",
+          "canonicalSeriesCode": null,
+          "canonicalIdentifierExists": false
+        },
+        {
+          "concept": "PPI",
+          "canonicalSeriesCode": null,
+          "canonicalIdentifierExists": false
+        },
+        {
+          "concept": "inflation breakevens",
+          "canonicalSeriesCode": null,
+          "canonicalIdentifierExists": false
+        },
+        {
+          "concept": "NFP / payrolls",
+          "canonicalSeriesCode": null,
+          "canonicalIdentifierExists": false
+        },
+        {
+          "concept": "JOLTS",
+          "canonicalSeriesCode": null,
+          "canonicalIdentifierExists": false
+        },
+        {
+          "concept": "participation rate",
+          "canonicalSeriesCode": null,
+          "canonicalIdentifierExists": false
+        },
+        {
+          "concept": "average hourly earnings",
+          "canonicalSeriesCode": null,
+          "canonicalIdentifierExists": false
+        },
+        {
+          "concept": "GDP",
+          "canonicalSeriesCode": null,
+          "canonicalIdentifierExists": false
+        },
+        {
+          "concept": "industrial production",
+          "canonicalSeriesCode": null,
+          "canonicalIdentifierExists": false
+        },
+        {
+          "concept": "retail sales",
+          "canonicalSeriesCode": null,
+          "canonicalIdentifierExists": false
+        },
+        {
+          "concept": "durable goods",
+          "canonicalSeriesCode": null,
+          "canonicalIdentifierExists": false
+        },
+        {
+          "concept": "housing indicators",
+          "canonicalSeriesCode": null,
+          "canonicalIdentifierExists": false
+        },
+        {
+          "concept": "PMI",
+          "canonicalSeriesCode": null,
+          "canonicalIdentifierExists": false
+        },
+        {
+          "concept": "ISM",
+          "canonicalSeriesCode": null,
+          "canonicalIdentifierExists": false
+        },
+        {
+          "concept": "credit spreads",
+          "canonicalSeriesCode": null,
+          "canonicalIdentifierExists": false
+        },
+        {
+          "concept": "Financial Conditions Index",
+          "canonicalSeriesCode": null,
+          "canonicalIdentifierExists": false
+        },
+        {
+          "concept": "mortgage rates",
+          "canonicalSeriesCode": null,
+          "canonicalIdentifierExists": false
+        },
+        {
+          "concept": "DXY",
+          "canonicalSeriesCode": null,
+          "canonicalIdentifierExists": false
+        },
+        {
+          "concept": "Fed balance sheet",
+          "canonicalSeriesCode": null,
+          "canonicalIdentifierExists": false
+        },
+        {
+          "concept": "reserves",
+          "canonicalSeriesCode": null,
+          "canonicalIdentifierExists": false
+        },
+        {
+          "concept": "RRP",
+          "canonicalSeriesCode": null,
+          "canonicalIdentifierExists": false
+        },
+        {
+          "concept": "FOMC minutes",
+          "canonicalSeriesCode": null,
+          "canonicalIdentifierExists": false
+        },
+        {
+          "concept": "SEP / dots",
+          "canonicalSeriesCode": null,
+          "canonicalIdentifierExists": false
+        },
+        {
+          "concept": "economic consensus / surprise data",
+          "canonicalSeriesCode": null,
+          "canonicalIdentifierExists": false
+        },
+        {
+          "concept": "additional Treasury tenor 6M",
+          "canonicalSeriesCode": null,
+          "canonicalIdentifierExists": false
+        },
+        {
+          "concept": "additional Treasury tenor 1Y",
+          "canonicalSeriesCode": null,
+          "canonicalIdentifierExists": false
+        },
+        {
+          "concept": "additional Treasury tenor 3Y",
+          "canonicalSeriesCode": null,
+          "canonicalIdentifierExists": false
+        },
+        {
+          "concept": "additional Treasury tenor 7Y",
+          "canonicalSeriesCode": null,
+          "canonicalIdentifierExists": false
+        },
+        {
+          "concept": "additional Treasury tenor 20Y",
+          "canonicalSeriesCode": null,
+          "canonicalIdentifierExists": false
+        }
+      ],
+      "memberCount": 31,
+      "activationRule": "Activation into CORE_V1 or OPTIONAL_V1 requires a canonical series identifier, a pinned release-time rule, complete vintage and availableAt evidence, an explicit Owner decision and a new registry version. Without complete causal and versioned evidence a concept stays REGISTERED_DEFERRED.",
+      "identifierInventionForbidden": true,
+      "producerNote": "US.BLS.ICSA is admitted by the producer series policy but is deferred for GATE24 V1 consumption. Deferral is a GATE24 consumption-scope decision and alters no producer artifact."
+    },
+    "FUTURE_EXTENSION": {
+      "description": "Recognized directions that are neither registered as concrete series nor promised. They exist to document that the architecture can absorb them without a rebuild.",
+      "members": [
+        {
+          "concept": "producer curve spreads declared but not consumed in V1",
+          "detail": [
+            "SPREAD_30Y_5Y",
+            "SPREAD_2Y_3M",
+            "SPREAD_30Y_10Y"
+          ],
+          "note": "Present in F1_SPREAD_DEFINITIONS. Neither promoted nor removed by GATE24."
+        },
+        {
+          "concept": "rate level dimension",
+          "detail": [
+            "MACRO_FEATURE_RATE_REGIMES: LOW, MODERATE, HIGH, VERY_HIGH, NOT_AVAILABLE"
+          ],
+          "note": "A level dimension distinct from the directional ratesState. Not created by this mandate."
+        },
+        {
+          "concept": "non-US jurisdictions",
+          "detail": [],
+          "note": "The producer ingestion policy pins jurisdictionCode UNITED_STATES and currencyCode USD. Any extension is a separate Owner decision."
+        }
+      ],
+      "memberCount": 3
+    }
+  },
+  "macroContextBoundary": {
+    "ratificationStatus": "OWNER_CONFIRMED_IN_REPAIR_2",
+    "boundaryName": "GATE24_MACRO_CONTEXT_BOUNDARY",
+    "direction": "GATE24 consumes prepared, versioned macro context; it never fetches, ingests or normalizes.",
+    "implementedByThisMission": false,
+    "createsLiveFetcher": false,
+    "reopensGate21": false,
+    "reopensGate23": false,
+    "consumesFrom": {
+      "gate21Pins": [
+        "MacroVintageSetManifest/1",
+        "MacroDatasetSnapshotManifest/1"
+      ],
+      "gate21PinSourcePath": "governance/gates/GATE21/contracts/GATE21_BINDING_V1.json",
+      "gate21PinSourceSha256": "c8982c5c857759dd4204670e514c6b447b573140552d188012b9c9dedc5e9607",
+      "gate21PinSourcePointer": "/promotedLabPins",
+      "note": "These pins are already promoted in GATE21 v1 and were explicitly excluded from the GATE22 V1 perimeter. GATE24 consumption is additive and requires no GATE21 change."
+    },
+    "availabilityDisposition": {
+      "whenAvailable": "Macro context is consumed as a versioned snapshot bound by MacroContextBindingId, subject to availableAt <= K(T).",
+      "whenAbsent": "Absence is declared explicitly and is never imputed, forward-filled or proxied.",
+      "absenceEffectOnClassification": "RESOLVED_BY_OD-M",
+      "absenceEffectRule": "Macro absence resolves the macro-fed dimensions (inflationState, ratesState, yieldCurveShape, yieldCurveDirection) to their own INSUFFICIENT_DATA members. It does not by itself force primaryMarketRegime to REGIME_INSUFFICIENT_DATA, because primaryMarketRegime is driven through the market feature boundary. The RegimeRecord remains emitted, with classificationQuality reflecting the partial coverage."
+    }
+  },
+  "macroArchitecture": {
+    "ratificationStatus": "OWNER_CONFIRMED_IN_REPAIR_2",
+    "inheritedChain": {
+      "chain": [
+        "FETCH_ONCE",
+        "NORMALIZE",
+        "VERSION_CACHE",
+        "REUSE"
+      ],
+      "sourcePath": "governance/gates/GATE21/contracts/GATE21_BINDING_V1.json",
+      "sourceSha256": "c8982c5c857759dd4204670e514c6b447b573140552d188012b9c9dedc5e9607",
+      "sourcePointer": "/performance/architecture",
+      "modifiedByGate24": false
+    },
+    "gate24Chain": {
+      "chain": [
+        "FETCH_ONCE",
+        "NORMALIZE",
+        "VERSION_CACHE",
+        "PRECOMPUTE",
+        "REUSE"
+      ],
+      "relationToInheritedChain": "ADDITIVE. PRECOMPUTE names the historical macro precompute step that GATE21 already classifies as OFF_SCAN historical work. The GATE21 declaration is restated, not altered, and no GATE21 artifact is modified.",
+      "snapshotReuseRule": "A macro snapshot is computed once and reused across N tickers. Refetching or recomputing macro context per ticker is forbidden."
+    },
+    "requirements": {
+      "ingestionSeparateFromClassification": true,
+      "casVersionedSnapshots": true,
+      "vintageFirst": true,
+      "appendOnlyVersionedIdentities": true,
+      "availableAtCausalAsOfEnforced": true,
+      "pinnedReleaseTimePolicy": true,
+      "unknownReleaseAvailability": "REJECT_FAIL_CLOSED",
+      "futureVintageLeakage": "FORBIDDEN",
+      "latestReferenceReconstruction": "FORBIDDEN",
+      "silentInterpolationOrProxy": "FORBIDDEN",
+      "networkDependencyDuringClassification": "FORBIDDEN",
+      "liveMacroFetcher": "FORBIDDEN",
+      "historicalMacroPrecompute": "ALLOWED_OFF_SCAN",
+      "perTickerMacroFetch": "FORBIDDEN",
+      "liveScanCriticalPath": "MUST_NOT_LENGTHEN"
+    },
+    "inheritedProducerPolicies": {
+      "sourcePath": "research/directional-lab/src/contracts/macroIngestionContractsL4BV1.mjs",
+      "sourceSha256": "32f989e09a3101db8eea977325faa92cc4dee75916d93f54c011cc0e67de7edd",
+      "sourcePointer": "MACRO_INGESTION_POLICY_VALUES",
+      "unknownReleaseTimePolicy": "REJECT",
+      "latestReferencePolicy": "FORBIDDEN",
+      "networkDuringComputationPolicy": "FORBIDDEN",
+      "registryMutationPolicy": "APPEND_ONLY",
+      "vintageConflictPolicy": "REJECT",
+      "vintageCyclePolicy": "FORBIDDEN",
+      "duplicateObservationPolicy": "REJECT",
+      "fixedPointPolicy": "CANONICAL_ATOMS_SCALE",
+      "canonicalOrderingPolicy": "SERIES_OBSERVATION_AVAILABLE_AT_SEQUENCE_ID",
+      "rule": "GATE24 consumption inherits these policies unchanged. It weakens none of them and redefines none of them."
+    },
+    "wheelLiveScanBoundary": {
+      "sourcePointer": "/performance and /historicalVsLiveBoundary of GATE21_BINDING_V1",
+      "liveScanCriticalPath": "MUST_NOT_LENGTHEN",
+      "historicalWork": "OFF_SCAN",
+      "wheelScannerCoupling": "NONE",
+      "liveSubstitutionIntoHistorical": "FORBIDDEN",
+      "macroNetworkOnLiveScan": "ZERO",
+      "macroSnapshotComputedOnce": true,
+      "reusedAcrossTickers": true,
+      "gate24Effect": "NONE. GATE24 adds no work, no fetch and no dependency to the Wheel live scan path.",
+      "latencyTargetDelta": "ZERO"
+    }
+  },
+  "knowledgeCutoffPolicy": {
+    "ratificationStatus": "INHERITED_FROM_CANONICAL_PRIOR_AUTHORITY",
+    "formula": "K(T) = PinnedCanonicalSession(T).closeUtc",
+    "inheritedFrom": "GATE23 OD-5",
+    "redefinedByGate24": false,
+    "sessionPredicate": "sessionDate == T and sessionKind in allowedSessionKinds",
+    "halfDaySession": "uses its own canonical closeUtc",
+    "regularSession": "uses its own canonical closeUtc",
+    "forbiddenPrimitive": "marketSession.mjs::sessionCloseUtc",
+    "forbiddenWallClockConstants": [
+      "16:00",
+      "09:30",
+      "20:00",
+      "21:00"
+    ],
+    "perInputProofRequired": true,
+    "macroAvailabilityRule": "Every input, market or macro, must carry its own proof that availableAt <= K(T). A datum known only after K(T) is inadmissible at T whatever its event time. The forbidden wall-clock constants govern the session cutoff; they do not govern the producer's pinned release-time rules, which are a separate declared policy owned upstream."
+  },
+  "inputBoundaries": {
+    "ratificationStatus": "OWNER_CONFIRMED_IN_REPAIR_2",
+    "boundaries": [
+      {
+        "name": "MARKET_FEATURE_BOUNDARY",
+        "carries": "GATE23 FeatureRecord(T)",
+        "boundBy": "FeatureVectorBindingId",
+        "reopensUpstream": false
+      },
+      {
+        "name": "MACRO_CONTEXT_BOUNDARY",
+        "carries": "prepared, versioned causal MacroContext(T)",
+        "boundBy": "MacroContextBindingId",
+        "reopensUpstream": false
+      }
+    ],
+    "outcomeProhibition": {
+      "forbiddenAsClassifierInput": "GATE22 Outcome and labels",
+      "forms": [
+        "direct",
+        "lagged",
+        "renamed",
+        "type-laundered",
+        "derived from a future outcome"
+      ]
+    },
+    "bypassProhibition": "No raw observation access that bypasses these two boundaries is admissible."
+  },
+  "scope": {
+    "included": [
+      "RegimeVector taxonomy declaration and per-dimension versioning",
+      "regime registry covering taxonomy versions, classifier versions, parameter sets and macro context versions",
+      "deterministic per-instrument regime classifier over GATE23 FeatureRecords and prepared macro context",
+      "consumption of prepared, versioned causal macro context through the declared boundary",
+      "transition derivation with PERSIST/CHANGE, changedDimensions, regimeAgeSessions and lastTransitionSession",
+      "classification quality, classification evidence and full provenance",
+      "coverage and missingness accounting",
+      "point-in-time immutability of emitted RegimeRecords"
+    ],
+    "excluded": [
+      "invention of taxonomy entries, thresholds, weights, coefficients, scoring formulas, probabilities or calibration",
+      "any machine learning model",
+      "arbitrary dwell or smoothing constants",
+      "invention of canonical series identifiers",
+      "macro ingestion, fetching, normalization or registry construction",
+      "any live macro fetcher and any per-ticker macro request",
+      "any modification of Directional Lab macro producer artifacts",
+      "any modification of GATE21, GATE22 or GATE23 artifacts, identities, invariants or Owner decisions",
+      "cross-sectional, peer-relative or universe-wide regime construction",
+      "hysteresis, minimum dwell and confirmation-delay smoothing",
+      "regime forecasting and regime probability estimation",
+      "strategy conditioning, sizing, entry or exit logic",
+      "backtesting, performance attribution and PnL",
+      "any Wheel decision surface",
+      "any change to the Wheel live scan path"
+    ]
+  },
+  "nonGoals": [
+    "GATE24 does not predict the next regime.",
+    "GATE24 does not assert that any regime is favorable or unfavorable.",
+    "GATE24 does not produce or consume Outcome.",
+    "GATE24 does not emit a probability, a confidence percentage or any uncalibrated score.",
+    "GATE24 does not emit a single concatenated cartesian regime label.",
+    "GATE24 does not repair, extend or reinterpret upstream gates.",
+    "GATE24 does not introduce a second knowledge-cutoff authority.",
+    "GATE24 does not optimize thresholds against realized results.",
+    "GATE24 does not build a macro data pipeline.",
+    "GATE24 does not invent regime vocabulary or canonical series identifiers."
+  ],
+  "doNotOverSpecify": {
+    "ratificationStatus": "OWNER_CONFIRMED_IN_REPAIR_2",
+    "forbiddenInThisMandate": [
+      "numeric thresholds",
+      "weights",
+      "coefficients",
+      "scoring formulas",
+      "probabilities",
+      "calibration",
+      "machine learning models",
+      "arbitrary dwell values",
+      "arbitrary smoothing",
+      "new canonical series identifiers without proof"
+    ],
+    "disposition": "These remain versioned and are defined later by contract or build when actually needed."
+  },
+  "expectedArtifacts": {
+    "pathsFrozenByThisDocument": false,
+    "buildWorksetFrozen": false,
+    "registryOutputsPreserved": [
+      "regime taxonomy",
+      "regime registry",
+      "regime classifier",
+      "transition and coverage report"
+    ],
+    "note": "Logical artifact kinds only. No implementation path is frozen, authorized or created by this mandate; paths are fixed by a future GATE24 execution contract that this document does not create.",
+    "artifacts": [
+      {
+        "id": "A-1",
+        "kind": "regime taxonomy",
+        "expectation": "Per-dimension versioned closed enumerations with EXACT_ONLY closure for every dimension active in CORE_V1, plus declared-but-inactive dimensions carrying only their fail-closed members.",
+        "blockedBy": null
+      },
+      {
+        "id": "A-2",
+        "kind": "regime registry",
+        "expectation": "Registry of dimension taxonomy versions, classifier versions, parameter sets, macro context registry versions and the four macro tiers with their bindings."
+      },
+      {
+        "id": "A-3",
+        "kind": "regime classifier",
+        "expectation": "Deterministic classifier emitting RegimeVector(T) from GATE23 FeatureRecords and prepared macro context, both at or before K(T), under the declared identity."
+      },
+      {
+        "id": "A-4",
+        "kind": "transition and coverage report",
+        "expectation": "Evidence artifact carrying every session in scope with its RegimeVector, every transition with PERSIST/CHANGE and changedDimensions, regimeAgeSessions and lastTransitionSession, plus coverage and missingness accounting."
+      },
+      {
+        "id": "A-5",
+        "kind": "regime provenance",
+        "expectation": "Provenance record per provenanceV1. Required by GATE16_40 R2 requiredArtifacts."
+      },
+      {
+        "id": "A-6",
+        "kind": "classification evidence",
+        "expectation": "Per-record causal evidence per classificationEvidenceV1, attributable to the dimension it supports."
+      }
+    ]
+  },
+  "validationExpectations": [
+    {
+      "id": "V-1",
+      "name": "FUTURE LEAKAGE HOSTILE",
+      "expectation": "A future publication cannot modify an earlier T. Any attempt to influence T with data available only after K(T) is rejected."
+    },
+    {
+      "id": "V-2",
+      "name": "VINTAGE LEAKAGE HOSTILE",
+      "expectation": "A later revision cannot contaminate an older record. Historical replay uses the vintage available at T, never a later one."
+    },
+    {
+      "id": "V-3",
+      "name": "FOMC AS-OF",
+      "expectation": "A Fed decision is inadmissible before its availableAt under the pinned release-time policy."
+    },
+    {
+      "id": "V-4",
+      "name": "TREASURY AS-OF",
+      "expectation": "Treasury observations are inadmissible before their availableAt under the pinned release-time policy."
+    },
+    {
+      "id": "V-5",
+      "name": "MISSING CORE FAIL-CLOSED",
+      "expectation": "A missing CORE input resolves its dimension to INSUFFICIENT_DATA, and resolves primaryMarketRegime to REGIME_INSUFFICIENT_DATA when the primary inputs are missing. No silent imputation occurs."
+    },
+    {
+      "id": "V-6",
+      "name": "DEFERRED SERIES ABSENCE NON-BLOCKING",
+      "expectation": "Absence of a REGISTERED_DEFERRED indicator does not block or degrade CORE_V1 classification."
+    },
+    {
+      "id": "V-7",
+      "name": "PARAMETER VERSION MUTATION",
+      "expectation": "Any parameter, taxonomy or classifier change produces a new identity and version; historical records are never rewritten."
+    },
+    {
+      "id": "V-8",
+      "name": "EXACT REPLAY",
+      "expectation": "Identical bytes and versions reproduce an identical result, including an identical RegimeRecordId."
+    },
+    {
+      "id": "V-9",
+      "name": "TRANSITION PERSIST/CHANGE",
+      "expectation": "Consecutive sessions with an identical primaryMarketRegime yield PERSIST; a differing primaryMarketRegime yields CHANGE. Exactly one transition per consecutive pair in scope."
+    },
+    {
+      "id": "V-10",
+      "name": "CHANGED DIMENSIONS",
+      "expectation": "changedDimensions lists exactly the dimensions that differ from the prior classified session, and an overlay change never promotes itself into a primary CHANGE."
+    },
+    {
+      "id": "V-11",
+      "name": "CRISIS / FAST TRANSITION",
+      "expectation": "A fast regime change is emitted at the session it occurs, with no forward-looking smoothing, confirmation delay or retroactive revision."
+    },
+    {
+      "id": "V-12",
+      "name": "MACRO NETWORK OFF-SCAN",
+      "expectation": "Classification performs no network access, and no macro request occurs on the Wheel live scan path or per ticker."
+    },
+    {
+      "id": "V-13",
+      "name": "COVERAGE REPORT",
+      "expectation": "The coverage report accounts for every session in the declared scope with no unexplained gap, per dimension."
+    },
+    {
+      "id": "V-14",
+      "name": "PROVENANCE COMPLETENESS",
+      "expectation": "Every RegimeRecord traces to all fields required by provenanceV1; no opaque regime is emitted."
+    },
+    {
+      "id": "V-15",
+      "name": "MACRO BINDING IDENTITY DIFFERENTIAL",
+      "expectation": "Identical market features, session and cutoff with a different MacroContextBindingId must produce a different RegimeRecordId."
+    },
+    {
+      "id": "V-16",
+      "name": "LIVE SCAN PERFORMANCE NON-REGRESSION",
+      "expectation": "The Wheel live scan critical path measures a zero latency delta with GATE24 present."
+    },
+    {
+      "id": "V-17",
+      "name": "TAXONOMY CLOSURE",
+      "expectation": "Every emitted dimension value maps to exactly one declared entry of that dimension's taxonomy version; any out-of-enumeration value fails closed."
+    },
+    {
+      "id": "V-18",
+      "name": "EXPLICIT NON-CLASSIFICATION",
+      "expectation": "UNKNOWN and INSUFFICIENT_DATA members are distinguishable, counted per dimension and never silently substituted by a classifying entry."
+    },
+    {
+      "id": "V-19",
+      "name": "MACRO PERIMETER INTEGRITY",
+      "expectation": "Only CORE_V1 and, where populated, OPTIONAL_V1 members appear in consumed bindings; no REGISTERED_DEFERRED or FUTURE_EXTENSION item appears without an explicit tier promotion."
+    },
+    {
+      "id": "V-20",
+      "name": "NO CARTESIAN LABEL",
+      "expectation": "No emitted value concatenates multiple dimensions into a single composite regime label, and dimension values remain independently readable."
+    },
+    {
+      "id": "V-21",
+      "name": "CURVE MAPPING EXHAUSTIVENESS",
+      "expectation": "Every producer token of MACRO_FEATURE_CURVE_SHAPES and MACRO_FEATURE_CURVE_DIRECTIONS has exactly one declared GATE24 target; PARTIALLY_INVERTED, MIXED, FLATTENING and UNCHANGED are preserved and never collapsed into a different class; an unmapped or absent value fails closed to UNKNOWN or INSUFFICIENT_DATA and never to a classifying entry."
+    },
+    {
+      "id": "V-22",
+      "name": "CURVE SHAPE AND DIRECTION INDEPENDENCE",
+      "expectation": "yieldCurveShape and yieldCurveDirection are emitted independently; a record may carry INVERTED with STEEPENING, and no composite curve value is produced."
+    },
+    {
+      "id": "V-23",
+      "name": "EXTENDED DIMENSION NON-BLOCKING",
+      "expectation": "A registered but not active dimension emits only UNKNOWN or INSUFFICIENT_DATA and never blocks, degrades or fails a CORE_V1 classification."
+    },
+    {
+      "id": "V-24",
+      "name": "MULTI_HORIZON_IDENTITY_DIFFERENTIAL",
+      "expectation": "Same session, cutoff, feature vector and macro context with a different RegimeHorizonSpecId must produce a different RegimeRecordId."
+    },
+    {
+      "id": "V-25",
+      "name": "MULTI_HORIZON_EXACT_REPLAY",
+      "expectation": "The same horizon with the same inputs and versions reproduces an identical result, including an identical RegimeRecordId."
+    },
+    {
+      "id": "V-26",
+      "name": "CONSUMER_HORIZON_BINDING",
+      "expectation": "A consumer must bind an explicit horizon; no implicit fallback to the first available or to a global regime is admissible, including while only one horizon is active."
+    },
+    {
+      "id": "V-27",
+      "name": "DEFERRED_CAPABILITY_TRACEABILITY",
+      "expectation": "Every GATE24 capability declared deferred, registered-not-active, optional-later, future or out-of-scope-but-planned has a durable trace entry with a reason from the declared vocabulary and a revisit trigger."
+    },
+    {
+      "id": "V-28",
+      "name": "DEFERRED_PROMOTION_VERSIONING",
+      "expectation": "Promoting a deferred capability produces new versions and new identities and never mutates previously emitted records."
+    },
+    {
+      "id": "V-29",
+      "name": "DEFERRED_REVISIT",
+      "expectation": "A future gate readiness computation can surface the deferred and future capabilities targeting it and force a promote, keep-deferred, supersede or retire decision."
+    },
+    {
+      "id": "V-30",
+      "name": "DEFERRED_REASON_VALIDITY",
+      "expectation": "No deferred capability carries an empty reason or a non-vocabulary reason such as \"later\"."
+    }
+  ],
+  "immutableInvariants": [
+    {
+      "id": "I-REGIME-VECTOR-NOT-CARTESIAN",
+      "rule": "GATE24 emits an independent, independently versioned RegimeVector. A single concatenated cartesian regime label is forbidden."
+    },
+    {
+      "id": "I-TAXONOMY-OWNER-RATIFIED",
+      "rule": "Every dimension taxonomy is Owner-ratified and closed under EXACT_ONLY before that dimension may be active. No agent may invent, infer or extend taxonomy entries."
+    },
+    {
+      "id": "I-DIMENSION-INDEPENDENCE",
+      "rule": "A change in one dimension never implicitly implies a change in another; overlay changes never promote themselves into primaryMarketRegime changes."
+    },
+    {
+      "id": "I-DIMENSION-LOCAL-FAIL-CLOSED",
+      "rule": "Every dimension carries UNKNOWN and INSUFFICIENT_DATA members and fails closed locally without collapsing the vector."
+    },
+    {
+      "id": "I-NO-FUTURE-INPUT",
+      "rule": "Classification, evidence and transition derivation read only contemporaneous or prior inputs."
+    },
+    {
+      "id": "I-OUTCOME-FORBIDDEN-AS-REGIME-INPUT",
+      "rule": "GATE22 Outcome and labels are forbidden as classifier inputs direct, lagged, renamed, type-laundered or derived from a future outcome."
+    },
+    {
+      "id": "I-CUTOFF-INHERITED-NOT-REDEFINED",
+      "rule": "K(T) = PinnedCanonicalSession(T).closeUtc is inherited from GATE23 OD-5 and is not redefined, overridden or relaxed by GATE24."
+    },
+    {
+      "id": "I-PER-INPUT-AVAILABLE-AT",
+      "rule": "Every input carries its own proof that availableAt <= K(T); unknown release availability is rejected fail-closed."
+    },
+    {
+      "id": "I-MACRO-BINDING-IN-IDENTITY",
+      "rule": "MacroContextBindingId is a required identity member; a different macro vintage yields a different RegimeRecordId."
+    },
+    {
+      "id": "I-MACRO-TIERS-CLOSED",
+      "rule": "The macro registry has exactly four tiers and no series moves between them silently, in either direction."
+    },
+    {
+      "id": "I-MACRO-PREPARED-ONLY",
+      "rule": "GATE24 consumes prepared, versioned macro context; it performs no fetch, no ingestion and no normalization, and no network access occurs during classification."
+    },
+    {
+      "id": "I-MACRO-SNAPSHOT-ONCE",
+      "rule": "A macro snapshot is computed once and reused across N tickers; per-ticker macro fetch or recompute is forbidden."
+    },
+    {
+      "id": "I-LIVE-SCAN-UNCHANGED",
+      "rule": "GATE24 must not lengthen the Wheel live scan critical path; all historical and macro work is off-scan and the latency delta is zero."
+    },
+    {
+      "id": "I-NO-SILENT-GAP",
+      "rule": "Omitting a session in scope is fail-closed and is a defect, never an implicit non-classification."
+    },
+    {
+      "id": "I-DETERMINISTIC-REPLAY",
+      "rule": "Identical bound inputs and versions reproduce identical RegimeRecordIds and identical RegimeVectors."
+    },
+    {
+      "id": "I-POINT-IN-TIME-IMMUTABLE",
+      "rule": "Later parameter, taxonomy, macro vintage or upstream restatement never rewrites an emitted RegimeRecord."
+    },
+    {
+      "id": "I-PROVENANCE-COMPLETE",
+      "rule": "No regime is emitted without complete provenance and causal, reproducible evidence."
+    },
+    {
+      "id": "I-NO-UNCALIBRATED-PROBABILITY",
+      "rule": "No probability, confidence percentage or uncalibrated score is emitted; classificationQuality is a deterministic declared state or versioned coverage score."
+    },
+    {
+      "id": "I-UPSTREAM-READ-ONLY",
+      "rule": "GATE24 consumes GATE21, GATE22 boundaries, GATE23 and the Directional Lab producers as read-only and modifies none of them."
+    },
+    {
+      "id": "I-CURVE-MAPPING-EXHAUSTIVE",
+      "rule": "The producer curve vocabularies map exhaustively onto yieldCurveShape and yieldCurveDirection using the exact producer tokens; no producer value is silently collapsed into a different class and unmapped values fail closed."
+    },
+    {
+      "id": "I-SHAPE-DIRECTION-ORTHOGONAL",
+      "rule": "Curve shape and curve direction are separate dimensions and are never merged into a single composite value."
+    },
+    {
+      "id": "I-REGISTERED-INACTIVE-NON-BLOCKING",
+      "rule": "A registered but not active dimension carries only fail-closed members and never blocks CORE_V1 classification or a CORE_V1 contract freeze."
+    },
+    {
+      "id": "I-HORIZON-IN-IDENTITY",
+      "rule": "RegimeHorizonSpecId is a required identity member; two horizons on the same session are two different records, never one overwritten record."
+    },
+    {
+      "id": "I-MULTI-HORIZON-ADDITIVE",
+      "rule": "Activating an additional horizon is additive and requires no identity redesign; one SessionDate implying exactly one possible regime forever is forbidden."
+    },
+    {
+      "id": "I-CONSUMER-HORIZON-EXPLICIT",
+      "rule": "Consumers bind the horizon explicitly and can prove which one they consumed; implicit fallback is forbidden."
+    },
+    {
+      "id": "I-DEFERRED-NOT-ABANDONED",
+      "rule": "A capability deliberately deferred by GATE24 carries a durable trace with a reason from the declared vocabulary, promotion requirements and a revisit trigger; it is never silently dropped."
+    },
+    {
+      "id": "I-NO-SILENT-PROMOTION",
+      "rule": "A deferred capability never becomes active silently; promotion requires an explicit decision, new versions, causal proof and tests, and never mutates prior records."
+    }
+  ],
+  "exitConditions": [
+    "Every emitted regime maps to a declared taxonomy entry.",
+    "Regime transitions use only contemporaneous or prior inputs.",
+    "Unknown and insufficient regimes are explicit.",
+    "Classification replay is deterministic.",
+    "Coverage and transition evidence are complete."
+  ],
+  "exitConditionsSource": "governance/GATE_REGISTRY_00_40.json /gates/24/exitConditions, byte-identical.",
+  "prohibitedOperations": [
+    "no execution authority of any kind",
+    "no GATE24 authority document",
+    "no PRECONTRACT",
+    "no EXECUTION_CONTRACT and no CURRENT_CONTRACT",
+    "no START and no GATE_START_RECORD",
+    "no BUILD and no frozen build workset",
+    "no ledger append and no ledger mutation",
+    "no ACTIVE_GATE modification",
+    "no GATE21, GATE22 or GATE23 modification of any kind",
+    "no Directional Lab artifact modification",
+    "no status transition",
+    "no state revision, checkpoint, seal or evidence artifact",
+    "no commit",
+    "no push",
+    "no network operation",
+    "no subagent delegation",
+    "no invented taxonomy entry, threshold, weight, coefficient, scoring formula, probability or calibration",
+    "no machine learning model",
+    "no arbitrary dwell or smoothing constant",
+    "no invented canonical series identifier",
+    "no cartesian concatenated regime label",
+    "no macro ingestion implementation in this mission",
+    "no live macro fetcher and no per-ticker macro request",
+    "no silent promotion between macro registry tiers",
+    "no future-dated input and no input with availableAt after K(T)",
+    "no Outcome or label as a classifier input",
+    "no wall-clock cutoff constant",
+    "no use of marketSession.mjs::sessionCloseUtc",
+    "no cross-sectional implementation",
+    "no hysteresis or minimum-dwell smoothing in V1",
+    "no lengthening of the Wheel live scan critical path"
+  ],
+  "startBoundary": {
+    "does": [],
+    "doesNot": [
+      "creates no GATE24 start artifact",
+      "creates no mandate binding",
+      "creates no precontract authority",
+      "creates no execution contract",
+      "creates no regime record",
+      "creates no taxonomy artifact",
+      "creates no macro registry artifact",
+      "creates no macro fetcher",
+      "creates no ledger event",
+      "modifies no implementation path",
+      "modifies no ACTIVE_GATE pointer"
+    ],
+    "startIsNotBuild": true,
+    "notAuthorizedByThisDocument": true
+  },
+  "domainContracts": {
+    "contractCount": 0,
+    "contracts": [],
+    "note": "No execution contract is created or authorized by this ratification-only mandate."
+  },
+  "downstreamGuarantees": {
+    "GATE21": "Consumed read-only through frozen v1 pins; no GATE21 artifact is modified or reopened.",
+    "GATE23": "Consumed read-only; no GATE23 artifact, identity, invariant or Owner decision is modified.",
+    "GATE24": "Declares the RegimeVector architecture and the macro registry tiers only; no execution scope is authorized and the mandate remains unratified.",
+    "GATE25": "No GATE25 scope is authorized by this mandate. GATE25 analogue selection may later bind to explicit RegimeVector dimensions rather than to a composite label."
+  },
+  "nextGate": "GATE25",
+  "openOwnerDecisions": [],
+  "closedOwnerDecisions": [
+    {
+      "id": "CLOSED-1",
+      "wasOpenAs": "OWNER-DECISION-1 (REPAIR_1): regime taxonomy V1",
+      "closedBy": "OD-A through OD-G in REPAIR_2",
+      "resolution": "Dimensional RegimeVector with Owner-ratified closed taxonomies for the five CORE_V1 dimensions."
+    },
+    {
+      "id": "CLOSED-2",
+      "wasOpenAs": "OWNER-DECISION-2 (REPAIR_1): whether MacroContextBindingId joins the RegimeRecord identity",
+      "closedBy": "OD-L in REPAIR_2",
+      "resolution": "REQUIRED."
+    },
+    {
+      "id": "CLOSED-3",
+      "wasOpenAs": "OWNER-DECISION-3 (REPAIR_1): classification disposition when macro context is absent",
+      "closedBy": "OD-M in REPAIR_2",
+      "resolution": "Dimension-local fail-closed: macro-fed dimensions resolve to INSUFFICIENT_DATA; primaryMarketRegime is unaffected unless its own inputs are missing; the record is still emitted with a reduced classificationQuality."
+    },
+    {
+      "id": "CLOSED-4",
+      "wasOpenAs": "OWNER-DECISION-1 (REPAIR_2): confirmation of the CORE_V1 active dimension set",
+      "closedBy": "OD-W in REPAIR_3",
+      "resolution": "Six active dimensions: primaryMarketRegime, volatilityState, inflationState, ratesState, yieldCurveShape, yieldCurveDirection."
+    },
+    {
+      "id": "CLOSED-5",
+      "wasOpenAs": "OWNER-DECISION-2 (REPAIR_2): closed taxonomies for the five extended dimensions",
+      "closedBy": "OD-Y in REPAIR_3",
+      "resolution": "REGISTERED_NOT_ACTIVE_IN_CORE_V1 with detailed taxonomy DEFERRED_TO_FUTURE_VERSION and fail-closed members preserved. Non-blocking for a CORE_V1 contract freeze."
+    },
+    {
+      "id": "CLOSED-6",
+      "wasOpenAs": "OWNER-DECISION-3 (REPAIR_2): producer curve vocabulary to yieldCurveState mapping",
+      "closedBy": "OD-X in REPAIR_3",
+      "resolution": "The dimension is split into yieldCurveShape and yieldCurveDirection using the exact producer tokens, with exhaustive mappings and no silent collapse of PARTIALLY_INVERTED, MIXED, FLATTENING or UNCHANGED."
+    },
+    {
+      "id": "CLOSED-7",
+      "wasOpenAs": "OWNER-DECISION-4 (REPAIR_2): OPTIONAL_V1 tier membership",
+      "closedBy": "OD-Z in REPAIR_3",
+      "resolution": "EMPTY_IN_V1."
+    },
+    {
+      "id": "CLOSED-8",
+      "wasOpenAs": "OWNER-DECISION-5 (REPAIR_2): proposed additional identity members",
+      "closedBy": "OD-AA in REPAIR_3",
+      "resolution": "DatasetId_feature and MissingnessStateId are REQUIRED; ten required identity members in total."
+    }
+  ],
+  "deferredToContract": [
+    "numeric thresholds and window selections for every active dimension, held in a versioned ParameterSet",
+    "the exact classificationQuality definition or coverage score formula",
+    "the exact classificationEvidence schema",
+    "the exact ordered identity tuple and canonicalization rules over the ten required members",
+    "the exact relationship between classificationQuality and macro coverage completeness",
+    "the numeric session count of the single CORE_V1 active regime horizon, pinned by RegimeHorizonSpecId"
+  ],
+  "sourceReferences": [
+    {
+      "sourceId": "WHEEL_GATE_REGISTRY_00_40",
+      "sourcePath": "governance/GATE_REGISTRY_00_40.json",
+      "sourceSha256": "76d5f9ff0a21f8c1eadaf9ccd9e48c9087d12655fac6a5c9215584053652a56b",
+      "sourceLocation": "/gates/24",
+      "field": "officialName, canonicalObjective, strategicPurpose, dependencies, entryConditions, expectedOutputs, exitConditions, nextGate",
+      "evidence": "Canonical registry projection; byte-identical reuse without redefinition."
+    },
+    {
+      "sourceId": "GATE16_40_OWNER_RATIFICATION_R2",
+      "sourcePath": "governance/sources/GATE16_40_OWNER_RATIFICATION_R2.json",
+      "sourceSha256": "bf7859ef8d0992c2ea0169af48d7762c11ee5f5a8490922588026150a92031cc",
+      "sourceLocation": "/gates[gateId=GATE24]",
+      "field": "requiredArtifacts, validationClasses, evidenceRequirements, forbiddenScope",
+      "evidence": "Owner-ratified GATE24 requirement statement; quoted verbatim, unaltered, and covered by canonicalCoverageProof."
+    },
+    {
+      "sourceId": "OWNER_PROVIDED_WHEEL_JARVISE_MASTER_ROADMAP_00_40",
+      "sourcePath": "governance/sources/WHEEL_JARVISE_MASTER_ROADMAP_00_40.txt",
+      "sourceSha256": "c59c9f243581104e0486f075311da4163b27f778ea5ba176c8f86f3b74d6647d",
+      "sourceLocation": "GATE24 - MARKET REGIME ENGINE, lines 214-226",
+      "field": "regime example vocabulary",
+      "evidence": "Owner-provided examples; quoted verbatim and represented through the RegimeVector without cartesian expansion."
+    },
+    {
+      "sourceId": "GATE23_CANONICAL_MANDATE_R0",
+      "sourcePath": "governance/sources/GATE23_CANONICAL_MANDATE_R0.json",
+      "sourceSha256": "b8230ac3e76145cd68a3e9499dd227642283236cab3755d0029856dc28b0dfc9",
+      "sourceLocation": "/knowledgeCutoffPolicy and /ownerDecisions OD-5",
+      "field": "classification as-of boundary",
+      "evidence": "Upstream cutoff authority inherited unchanged by OD-3 and OD-K."
+    },
+    {
+      "sourceId": "GATE23_TERMINAL_STATE",
+      "sourcePath": "governance/gates/GATE23/state/CURRENT_STATE.json",
+      "sourceSha256": "cb57be85380bd399cab084c17333a9697c7ad623a7f4d1f06482d1f70de44740",
+      "sourceLocation": "/stateRevision",
+      "field": "dependency satisfaction",
+      "evidence": "GATE23 sealed at R0005; terminal ledger ordinal 99 records COMPLETE_AGENT to COMPLETE_CONFIRMED."
+    },
+    {
+      "sourceId": "GATE21_BINDING_V1",
+      "sourcePath": "governance/gates/GATE21/contracts/GATE21_BINDING_V1.json",
+      "sourceSha256": "c8982c5c857759dd4204670e514c6b447b573140552d188012b9c9dedc5e9607",
+      "sourceLocation": "/promotedLabPins, /eventTimeVsAvailableAt, /performance, /historicalVsLiveBoundary, /downstream",
+      "field": "macro pins, availableAt invariant, FETCH_ONCE architecture, live scan boundary",
+      "evidence": "Frozen GATE21 v1 authority for macro snapshot pins and the live-scan performance boundary; consumed read-only and restated, never altered."
+    },
+    {
+      "sourceId": "GATE21_CAUSAL_DATA_INTERFACE",
+      "sourcePath": "governance/gates/GATE21/implementation/causal-data-interface.mjs",
+      "sourceSha256": "61874d328ab5eb9680b942667eeca994c656849e119f1b4dc3ef902bf2a92e64",
+      "sourceLocation": "refuseOutOfScope",
+      "field": "G24_REGIMES boundary",
+      "evidence": "Negative evidence: G24 regimes exist upstream only as a refusal code, never as a taxonomy."
+    },
+    {
+      "sourceId": "LAB_MACRO_INGESTION_CONTRACTS_L4B_V1",
+      "sourcePath": "research/directional-lab/src/contracts/macroIngestionContractsL4BV1.mjs",
+      "sourceSha256": "32f989e09a3101db8eea977325faa92cc4dee75916d93f54c011cc0e67de7edd",
+      "sourceLocation": "MACRO_INGESTION_POLICY_VALUES",
+      "field": "closed macro series codes, pinned release-time rules, vintage and network policies",
+      "evidence": "Existing canonical macro producer policy reused without alteration; supplies every CORE_V1 series identifier."
+    },
+    {
+      "sourceId": "LAB_MACRO_FEATURE_CONTRACTS_L4B_V1",
+      "sourcePath": "research/directional-lab/src/contracts/macroFeatureContractsL4BV1.mjs",
+      "sourceSha256": "eee620fb432d4738a7a7df64961f19f15aa5e95df5efdfa207fc637459ea8253",
+      "sourceLocation": "F1_SPREAD_DEFINITIONS, MACRO_FEATURE_CURVE_SHAPES, MACRO_FEATURE_CURVE_DIRECTIONS, MACRO_FEATURE_RATE_REGIMES, MACRO_FEATURE_POLICY_DIRECTIONS, MACRO_FEATURE_MONETARY_POLICY_REGIMES, MACRO_FEATURE_FOMC_DECISION_TYPES, MACRO_FEATURE_COMPLETENESS",
+      "field": "curve spread codes and macro feature vocabularies",
+      "evidence": "Existing canonical feature definitions reused without alteration; quoted as input vocabularies and candidate vocabularies, never promoted to regime entries."
+    },
+    {
+      "sourceId": "OWNER_GATE24_MANDATE_REPAIR_1_INSTRUCTION",
+      "sourcePath": null,
+      "field": "macro V1 perimeter, deferred macro list, macro architecture requirements, preserved decisions",
+      "evidence": "Owner instruction of record for REPAIR_1; no external file binding."
+    },
+    {
+      "sourceId": "OWNER_GATE24_MANDATE_REPAIR_2_INSTRUCTION",
+      "sourcePath": null,
+      "field": "RegimeVector dimensions, OD-A through OD-V, macro registry tiers, validation classes V-1 through V-16",
+      "evidence": "Owner instruction of record for REPAIR_2; no external file binding. Confirms these architectural decisions only and does not ratify the mandate."
+    },
+    {
+      "sourceId": "OWNER_GATE24_MANDATE_REPAIR_3_INSTRUCTION",
+      "sourcePath": null,
+      "field": "CORE_V1 active dimension set, curve shape and direction split, extended dimension disposition, OPTIONAL_V1 closure, identity closure, macro base source arithmetic",
+      "evidence": "Owner instruction of record for REPAIR_3; no external file binding. Confirms these architectural decisions only and does not ratify the mandate."
+    },
+    {
+      "sourceId": "GATE23_FEATURE_WINDOW_V1",
+      "sourcePath": "governance/gates/GATE23/implementation/feature-window-v1.mjs",
+      "sourceSha256": "497afb30c2c70d8a51e00073754eb5449da765e29f2806097dc197922b4592aa",
+      "sourceLocation": "FEATURE_WINDOW_SPEC_VERSION, CALENDAR_WINDOW_BINDING_VERSION, createFeatureWindowSpec, createCalendarWindowBinding, OPTION_B_SETTLING_AT",
+      "field": "canonical window and horizon identity pattern",
+      "evidence": "Supplies the exact pattern mirrored by GATE24_RegimeHorizonSpec/1; consumed read-only and not altered."
+    },
+    {
+      "sourceId": "GATE23_FEATURE_IDENTITY_V1",
+      "sourcePath": "governance/gates/GATE23/implementation/feature-identity-v1.mjs",
+      "sourceSha256": "4b25e4e7bc474e8b0d9e75fec8ce5dcc9e3c221805d6b50a7d676992cb9119d0",
+      "sourceLocation": "ordered identity members",
+      "field": "window members inside a record identity",
+      "evidence": "FeatureWindowSpecId and CalendarWindowBindingId are identity members upstream, which is the precedent for RegimeHorizonSpecId."
+    },
+    {
+      "sourceId": "GATE15_40_PREEXECUTION_CAPABILITY_MATRIX_V1",
+      "sourcePath": "governance/master-matrix/GATE15_40_PREEXECUTION_CAPABILITY_MATRIX_V1.json",
+      "sourceSha256": "b11d5a74c5f70a7bf255dfae956ccb97ced1c28639a36f6cca6a56a49bde01ab",
+      "sourceLocation": "gates[] readiness rows",
+      "field": "partial deferred-capability mechanism evidence",
+      "evidence": "Tracks pre-execution readiness per gate, not capabilities deferred during execution."
+    },
+    {
+      "sourceId": "GATE_DEFECTS_SCHEMA",
+      "sourcePath": "governance/schemas/gate-defects.schema.json",
+      "sourceSha256": "1e314cc5a32d663647f5fd37204017fc5a9e844fa35696fbecbb3b229ccb0beb",
+      "sourceLocation": "defects[] status and blockingProgression",
+      "field": "partial deferred-capability mechanism evidence",
+      "evidence": "Closest structural precedent for a durable per-gate obligation list, but it models defects rather than deliberate deferrals."
+    },
+    {
+      "sourceId": "OWNER_GATE24_MANDATE_REPAIR_4_INSTRUCTION",
+      "sourcePath": null,
+      "field": "multi-horizon extensibility, horizon identity, consumer horizon binding, deferred capability anti-forget hardening",
+      "evidence": "Owner instruction of record for REPAIR_4; no external file binding. Confirms these architectural decisions only and does not ratify the mandate."
+    }
+  ],
+  "preservedDecisions": [
+    "ratificationOnly=true",
+    "draftStatus=NOT_RATIFIED",
+    "all execution authorization flags=false",
+    "GATE23 dependency",
+    "K(T)=PinnedCanonicalSession(T).closeUtc",
+    "no Outcome or label leakage",
+    "fail closed",
+    "point-in-time immutable parameter sets",
+    "deterministic identity",
+    "no forward smoothing",
+    "cross-sectional DEFER",
+    "hysteresis and minimum dwell DEFER",
+    "no implementation paths or workset frozen",
+    "no invented canonical series identifiers",
+    "FETCH_ONCE architecture and zero live-scan latency delta",
+    "RegimeVector remains non-cartesian across the split curve dimensions",
+    "MacroContextBindingId REQUIRED in the identity",
+    "classificationEvidence, provenance and classificationQuality without false probability",
+    "regimeAgeSessions, lastTransitionSession, PERSIST/CHANGE and changedDimensions",
+    "dimension-local fail closed",
+    "FETCH_ONCE, NORMALIZE, VERSION_CACHE, PRECOMPUTE, REUSE with vintage-first and availableAt <= K(T)",
+    "no latest reconstruction, no network during classification, no per-ticker macro fetch, latencyTargetDelta ZERO",
+    "REGISTERED_DEFERRED universe and FUTURE_EXTENSION unchanged",
+    "GATE22 Outcome and labels forbidden as classifier inputs",
+    "CORE macro membership, the six CORE_V1 dimensions, the five registered-inactive dimensions and every tier membership unchanged by REPAIR_4",
+    "no deferred item promoted, no new indicator added, no threshold, weight, model or numeric horizon chosen"
+  ],
+  "revisionHistory": [
+    {
+      "revision": "R0",
+      "action": "Initial GATE24 canonical mandate draft.",
+      "sha256": "82851527667d5b40a3473693212e43c70af375f138a8c8d0cd89162aaa190cd1",
+      "status": "SUPERSEDED_NOT_RATIFIED"
+    },
+    {
+      "revision": "R0_REPAIR_1",
+      "action": "Bounded revision: retracted the agent-invented taxonomy, set OWNER_DECISION_REQUIRED, bound the macro V1 perimeter and the FETCH_ONCE architecture to existing canonical artifacts.",
+      "sha256": "5ec3c7cc495c022ee71330a2cef037722059ad4d134c8899f5ef14fe9ac22eb5",
+      "status": "SUPERSEDED_NOT_RATIFIED"
+    },
+    {
+      "revision": "R0_REPAIR_2",
+      "action": "Owner-directed architecture revision: RegimeVector, macro registry tiers, evidence, provenance and transition metadata.",
+      "prestateVerified": {
+        "head": "927d6236",
+        "targetSha256Before": "5ec3c7cc495c022ee71330a2cef037722059ad4d134c8899f5ef14fe9ac22eb5",
+        "ledgerOrdinal": 99,
+        "gate23": "COMPLETE_CONFIRMED at R0005",
+        "gate24": "NOT_STARTED",
+        "activeGate": "unchanged",
+        "workingTree": "target file untracked, no other change"
+      },
+      "changes": [
+        "OD-A through OD-V added as Owner-directed architecture decisions; OD-1 through OD-10 updated and cross-referenced.",
+        "regimeTaxonomyStatus rewritten: taxonomy question closed for CORE_V1 dimensions; REPAIR_1 negative evidence and verbatim candidate vocabulary preserved; canonicalCoverageProof added mapping all 12 roadmap examples and all 7 GATE16_40 required concepts onto the vector.",
+        "regimeVectorV1 added with 10 dimensions, per-dimension taxonomy versions, closure rules, fail-closed members, input boundaries and status.",
+        "macroRegistryTiers added with CORE_V1, OPTIONAL_V1, REGISTERED_DEFERRED and FUTURE_EXTENSION; the REPAIR_1 macro perimeter is carried over into CORE_V1 and REGISTERED_DEFERRED without loss.",
+        "macroArchitecture extended with the additive PRECOMPUTE step, per-ticker fetch prohibition and snapshot-once reuse; the inherited GATE21 chain is recorded separately and unaltered.",
+        "regimeRecordIdentity promoted to OWNER_CONFIRMED_IN_REPAIR_2 with MacroContextBindingId REQUIRED and eight required members.",
+        "classificationQualityV1, classificationEvidenceV1, provenanceV1, missingnessPolicyV1 and inputBoundaries added.",
+        "transitionSemanticsV1 extended with changedDimensions, regimeAgeSessions and lastTransitionSession; PERSIST/CHANGE ratified.",
+        "validationExpectations replaced by V-1 through V-16 as directed, plus preserved V-17 through V-20.",
+        "invariants, scope, nonGoals, prohibitedOperations, expectedArtifacts and startBoundary extended accordingly.",
+        "doNotOverSpecify, closedOwnerDecisions and deferredToContract added; openOwnerDecisions rewritten to hold only genuinely unresolved items."
+      ],
+      "unchanged": [
+        "ratificationOnly, draftStatus and every authorization flag",
+        "canonicalObjective and officialName bindings",
+        "GATE23 dependency binding and evidence",
+        "exit conditions byte-identical to the registry",
+        "the REPAIR_1 macro V1 perimeter and deferred macro universe"
+      ],
+      "status": "SUPERSEDED_NOT_RATIFIED"
+    },
+    {
+      "revision": "R0_REPAIR_3",
+      "action": "Final Owner decision closure. The mandate becomes READY_FOR_OWNER_RATIFICATION and remains unratified.",
+      "prestateVerified": {
+        "head": "927d6236",
+        "targetSha256Before": "0c6f6ad566250f6ac5e9f5fa6b9ff0b552b0b8baba87e484e5a4438fdd20f914",
+        "targetBytesBefore": 96068,
+        "ledgerOrdinal": 99,
+        "gate23": "COMPLETE_CONFIRMED at R0005",
+        "gate24": "NOT_STARTED",
+        "activeGate": "unchanged",
+        "workingTree": "target file untracked, no other change"
+      },
+      "changes": [
+        "OD-W through OD-AB added; OD-F and OD-G superseded; OD-H and OD-L annotated with their closure.",
+        "yieldCurveState split into yieldCurveShape and yieldCurveDirection with exact producer tokens and exhaustive, non-collapsing mappings; RegimeVector goes from ten to eleven dimensions.",
+        "CORE_V1 active dimension set fixed at six.",
+        "The five extended dimensions set to REGISTERED_NOT_ACTIVE_IN_CORE_V1 with detailed taxonomy DEFERRED_TO_FUTURE_VERSION and fail-closed members preserved.",
+        "OPTIONAL_V1 closed as EMPTY_IN_V1.",
+        "RegimeRecord identity closed at ten required members; DatasetId_feature and MissingnessStateId promoted to REQUIRED.",
+        "CORE_V1 macro base source count corrected from 11 to 12 with explicit arithmetic; derived features counted separately; membership unchanged.",
+        "openOwnerDecisions emptied; five entries moved to closedOwnerDecisions; deferredToFutureVersion added alongside deferredToContract.",
+        "V-21 through V-23 and three invariants added; preservedDecisions and sourceReferences extended.",
+        "mandateReadiness added with state READY_FOR_OWNER_RATIFICATION and ratified false."
+      ],
+      "unchanged": [
+        "ratificationOnly, draftStatus and every authorization flag",
+        "canonicalObjective and officialName bindings",
+        "GATE23 dependency binding and evidence",
+        "exit conditions byte-identical to the registry",
+        "the macro V1 perimeter membership, the REGISTERED_DEFERRED universe and FUTURE_EXTENSION",
+        "transition semantics, evidence, provenance, quality, missingness and macro architecture from REPAIR_2"
+      ],
+      "status": "SUPERSEDED_NOT_RATIFIED"
+    },
+    {
+      "revision": "R0_REPAIR_4",
+      "action": "Multi-horizon extensibility and deferred-capability anti-forget hardening. The mandate stays READY_FOR_OWNER_RATIFICATION and unratified.",
+      "prestateVerified": {
+        "head": "927d6236",
+        "targetSha256Before": "293400162bd179ab34899748290f8c4488ae7d6eee47b18baa1bc18958acedc7",
+        "targetBytesBefore": 113186,
+        "ledgerOrdinal": 99,
+        "gate23": "COMPLETE_CONFIRMED at R0005",
+        "gate24": "NOT_STARTED",
+        "activeGate": "unchanged",
+        "openOwnerDecisions": 0,
+        "workingTree": "target file untracked, no other change"
+      },
+      "changes": [
+        "regimeHorizonArchitecture added: canonical GATE23 window pattern located and mirrored as GATE24_RegimeHorizonSpec/1 with RegimeHorizonSpecId.",
+        "RegimeRecord identity extended to eleven required members with RegimeHorizonSpecId; multiHorizonExtensionRequiresNoIdentityRedesign is true.",
+        "CORE_V1 horizon policy: exactly one active horizon, its numeric session count deferred to contract; no numeric window is chosen here.",
+        "Consumer obligations added: explicit horizon binding, no implicit fallback, provable consumed horizon, including while only one horizon is active.",
+        "Transitions declared horizon-local.",
+        "deferredCapabilityMechanism added with the targeted-search verdict B_PARTIAL_MECHANISM_EXISTS_BUT_INSUFFICIENT and its evidence.",
+        "deferredCapabilityMechanismRecommendation added, including required semantics, the anti-forget project invariant, the conceptual validator finding, readiness integration and the one-time historical reconciliation; no file and no registry created.",
+        "gate24DeferredCapabilities added with twelve durable entries, a reason vocabulary, revisit triggers and promotion safety.",
+        "V-24 through V-30 and five invariants added; projectLevelRecommendations added."
+      ],
+      "unchanged": [
+        "ratificationOnly, draftStatus, ratified and every authorization flag",
+        "the six CORE_V1 dimensions and their taxonomies",
+        "the five registered-inactive dimensions",
+        "CORE_V1 macro membership and base source count, OPTIONAL_V1 empty, REGISTERED_DEFERRED and FUTURE_EXTENSION membership",
+        "curve shape and direction mappings",
+        "thresholds, weights, models and horizons remain unchosen"
+      ],
+      "status": "DESIGN_RATIFIED_BY_R0_OWNER_RATIFICATION"
+    },
+    {
+      "revision": "R0_OWNER_RATIFICATION",
+      "action": "PROJECT_OWNER ratification of the GATE24 canonical mandate. The mandate becomes Owner-ratified and the design scope is frozen for precontract derivation. No architectural change and no execution authority.",
+      "prestateVerified": {
+        "head": "927d6236",
+        "targetSha256Before": "0dbb5c536d3797f24a7104a1761487620a5418d3890032bc2df2f7095a5a3939",
+        "targetBytesBefore": 153676,
+        "ledgerOrdinal": 99,
+        "gate23": "COMPLETE_CONFIRMED at R0005",
+        "gate24": "NOT_STARTED",
+        "activeGate": "unchanged",
+        "openOwnerDecisions": 0,
+        "mandateReadiness": "READY_FOR_OWNER_RATIFICATION",
+        "ratified": false,
+        "workingTree": "target file untracked, no other change"
+      },
+      "changes": [
+        "draftStatus NOT_RATIFIED to RATIFIED.",
+        "revision label R0_REPAIR_4 to R0_OWNER_RATIFICATION; the ratified design revision remains R0_REPAIR_4 and is recorded in ownerRatification.ratifiedDesignRevision.",
+        "mandateReadiness state READY_FOR_OWNER_RATIFICATION to OWNER_RATIFIED, ratified false to true, draftStatus RATIFIED; ratificationWouldRequire replaced by ratificationPerformedBy now that the act has occurred.",
+        "ownerDisposition.status READY_FOR_OWNER_RATIFICATION_NOT_RATIFIED to OWNER_RATIFIED_MANDATE_ONLY; every per-authority disposition remains NOT_AUTHORIZED_BY_THIS_DOCUMENT.",
+        "designState gate24Design DRAFT_NOT_RATIFIED to FROZEN_BY_OWNER, readiness to OWNER_RATIFIED, designScope FROZEN_FOR_PRECONTRACT_DERIVATION added.",
+        "ratificationStatusLegend gains OWNER_RATIFIED_IN_R0_OWNER_RATIFICATION; all existing legend tokens are unchanged.",
+        "ownerRatification added: the ratification record, the canonical mechanism and its GATE21, GATE22, GATE23 and GATE16_40 precedent, the verified prestate, what is ratified, what is not authorized, and the next canonical step."
+      ],
+      "unchanged": [
+        "ratificationOnly, canonical, impliedAuthority and every authorization flag: executionAuthorized, startAuthorized, statusTransitionAuthorized, functionalImplementationAuthorized, precontractAuthorized, contractAuthorized, buildAuthorized, commitAuthorized, pushAuthorized all remain false",
+        "openOwnerDecisions remains empty; closedOwnerDecisions, deferredToContract and deferredToFutureVersion unchanged",
+        "the eleven RegimeVector dimensions, the six CORE_V1 active dimensions and every taxonomy and producer mapping",
+        "the macro registry tiers, the twelve CORE_V1 base sources, the six derived features, OPTIONAL_V1 empty, REGISTERED_DEFERRED and FUTURE_EXTENSION",
+        "regimeHorizonArchitecture, the eleven required RegimeRecord identity members, transition semantics, evidence, provenance, quality and missingness",
+        "the causality boundary, the macro architecture chain, the prohibitions and the live scan latency constraint",
+        "gate24DeferredCapabilities DC-01 through DC-12, deferredCapabilityMechanism and its recommendation, projectLevelRecommendations",
+        "thresholds, weights, models and the active horizon session count remain unchosen"
+      ],
+      "status": "CURRENT_RATIFIED"
+    }
+  ],
+  "ownerDisposition": {
+    "status": "OWNER_RATIFIED_MANDATE_ONLY",
+    "execution": "NOT_AUTHORIZED_BY_THIS_DOCUMENT",
+    "start": "NOT_AUTHORIZED_BY_THIS_DOCUMENT",
+    "build": "NOT_AUTHORIZED_BY_THIS_DOCUMENT",
+    "contract": "NOT_AUTHORIZED_BY_THIS_DOCUMENT",
+    "precontract": "NOT_AUTHORIZED_BY_THIS_DOCUMENT",
+    "statusTransition": "NOT_AUTHORIZED_BY_THIS_DOCUMENT",
+    "ledgerAppend": "NOT_AUTHORIZED_BY_THIS_DOCUMENT",
+    "activeGateChange": "NOT_AUTHORIZED_BY_THIS_DOCUMENT",
+    "commit": "NOT_AUTHORIZED_BY_THIS_DOCUMENT",
+    "push": "NOT_AUTHORIZED_BY_THIS_DOCUMENT",
+    "notes": "This document is the GATE24 canonical mandate, Owner-ratified by the GATE24_CANONICAL_MANDATE_R0_OWNER_RATIFICATION act. Ratification freezes the design scope for precontract derivation and closes the mandate to further architectural revision without a new Owner act. It remains ratification-only: it creates no gate artifact, no ledger entry, no state transition and no evidence, and it confers no execution, START, BUILD, contract, precontract, status-transition, ledger-append, ACTIVE_GATE, commit or push authority. GATE24 lifecycle status is unchanged at NOT_STARTED. A mandate ratification is not a START."
+  },
+  "designState": {
+    "gate24Design": "FROZEN_BY_OWNER",
+    "readiness": "OWNER_RATIFIED",
+    "ownerDecisionStatus": "OD-1 through OD-10 and OD-A through OD-AB are confirmed, inherited, superseded or explicitly deferred, and are now Owner-ratified as a whole by R0_OWNER_RATIFICATION. REPAIR_4 added multi-horizon and deferred-capability hardening without opening a new Owner decision.",
+    "remainingFindings": "NONE_BLOCKING; one project-level recommendation recorded (durable deferred-capability mechanism).",
+    "materializationStatus": "MANDATE_ONLY",
+    "designScope": "FROZEN_FOR_PRECONTRACT_DERIVATION"
+  },
+  "mandateReadiness": {
+    "state": "OWNER_RATIFIED",
+    "ratified": true,
+    "draftStatus": "RATIFIED",
+    "meaning": "Every architectural decision required to freeze a GATE24 CORE_V1 execution contract is closed, and the PROJECT_OWNER has ratified the mandate. The design scope is frozen for precontract derivation.",
+    "isNotAnAuthority": "OWNER_RATIFIED is a design-scope state, not an execution authorization. It creates no execution, START, BUILD, contract, precontract, status-transition, ledger-append or commit authority. Those remain separate Owner acts.",
+    "impliedAuthority": "NONE",
+    "repair4Assessment": "The multi-horizon requirement is resolved by a compatible canonical pattern, so readiness is not downgraded. The absent project-wide deferred-capability mechanism is a project-level recommendation and not a GATE24 blocking Owner decision.",
+    "ratificationPerformedBy": "The PROJECT_OWNER GATE24_CANONICAL_MANDATE_R0_OWNER_RATIFICATION act, materialized in place in this document as revision R0_OWNER_RATIFICATION over the ratified design revision R0_REPAIR_4."
+  },
+  "openOwnerDecisionsNote": "Empty. All architectural Owner decisions required to freeze a CORE_V1 execution contract are closed by REPAIR_3. Remaining unfrozen items are legitimate contract-level details listed in deferredToContract, and the extended-dimension taxonomies deferred to a future dimension version by OD-Y. No canonical contradiction was found while closing these decisions.",
+  "deferredToFutureVersion": [
+    "detailed classifying taxonomies for growthState, laborState, creditState, liquidityState and fedPolicyState",
+    "activation of any REGISTERED_DEFERRED macro series into CORE_V1 or OPTIONAL_V1",
+    "any FUTURE_EXTENSION direction, including a rate level dimension and non-US jurisdictions",
+    "activation of more than one regime horizon",
+    "a project-wide durable deferred-capability mechanism and its one-time historical reconciliation"
+  ],
+  "regimeHorizonArchitecture": {
+    "ratificationStatus": "OWNER_CONFIRMED_IN_REPAIR_4",
+    "purpose": "Guarantee that GATE24 can represent different regimes for several horizons on the same session, without activating multiple horizons in CORE_V1 now.",
+    "principle": "ARCHITECTURE_READY is not ALL_HORIZONS_ACTIVE_NOW.",
+    "canonicalPatternFound": {
+      "result": "COMPATIBLE_CANONICAL_PATTERN_EXISTS",
+      "sourcePath": "governance/gates/GATE23/implementation/feature-window-v1.mjs",
+      "sourceSha256": "497afb30c2c70d8a51e00073754eb5449da765e29f2806097dc197922b4592aa",
+      "identitySourcePath": "governance/gates/GATE23/implementation/feature-identity-v1.mjs",
+      "identitySourceSha256": "4b25e4e7bc474e8b0d9e75fec8ce5dcc9e3c221805d6b50a7d676992cb9119d0",
+      "observedPattern": {
+        "windowSpecVersionConstant": "GATE23_FeatureWindowSpec/1",
+        "windowSpecIdentity": "featureWindowSpecId = sha256Canonical({ schemaVersion, sessionCount, unit, calendarWindowBindingId })",
+        "calendarBindingVersionConstant": "GATE23_CalendarWindowBinding/1",
+        "calendarBindingIdentity": "calendarWindowBindingId = sha256Canonical({ schemaVersion, calendarAuthorityPolicyId, calendarRegistryManifestId, allowedSessionKinds, calendarNamespaceVersion, unit, knowledgeCutoffBoundary, cutoffDerivation })",
+        "identityMembers": [
+          "FeatureWindowSpecId",
+          "CalendarWindowBindingId"
+        ],
+        "unit": "canonical DAILY trading-session units",
+        "anchorRule": "A W-session window is anchored at T and observes W + 1 canonical sessions.",
+        "ladder": "FEATURE_WINDOW_LADDER_V1 is admissible, not cartesian."
+      }
+    },
+    "adoptedIdentityMember": {
+      "name": "RegimeHorizonSpecId",
+      "versionConstant": "GATE24_RegimeHorizonSpec/1",
+      "identityForm": "regimeHorizonSpecId = sha256Canonical({ schemaVersion, sessionCount, unit, calendarWindowBindingId })",
+      "patternSource": "Mirrors GATE23_FeatureWindowSpec/1 exactly, including the canonical DAILY trading-session unit and the reuse of an existing CalendarWindowBinding.",
+      "createsNewCalendarConcept": false,
+      "ownerPreferenceSatisfied": "RegimeHorizonSpecId was the Owner first preference and is compatible with the canonical convention; no incompatible name is invented.",
+      "ratificationStatus": "OWNER_CONFIRMED_IN_REPAIR_4",
+      "materialization": "DEFERRED_TO_CONTRACT"
+    },
+    "identityDifferentialRule": "Same SessionDate, same K(T), same FeatureVectorBindingId and same MacroContextBindingId with a different RegimeHorizonSpecId must produce a different RegimeRecordId.",
+    "multiHorizonExtensionRequiresNoIdentityRedesign": true,
+    "forbiddenArchitecture": "One SessionDate implying exactly one possible regime forever is forbidden. The record space is keyed by horizon from V1 onward, even while only one horizon is active.",
+    "admissibleHorizonConstraint": {
+      "rule": "A GATE24 regime horizon is admissible only if the feature windows it requires are admissible in the upstream GATE23 ladder. GATE24 does not widen, narrow or redefine the GATE23 ladder.",
+      "upstreamLadderReference": "governance/sources/GATE23_CANONICAL_MANDATE_R0.json /featureWindowPolicy/admissibleFeatureWindowSpecs",
+      "ratificationStatus": "INHERITED_FROM_CANONICAL_PRIOR_AUTHORITY",
+      "note": "This is a compatibility constraint derived from the dependency, not a selection of horizons."
+    },
+    "coreV1HorizonPolicy": {
+      "activeHorizonCount": 1,
+      "activeHorizonSessionCount": "DEFERRED_TO_CONTRACT",
+      "selectionRule": "CORE_V1 activates exactly one clearly versioned and pinned horizon. This mandate does not choose which numeric window that is and does not declare 5, 21, 63, 126 or 252 to be an active regime horizon.",
+      "pinningRequirement": "The active horizon must be pinned by RegimeHorizonSpecId in the classifier version and parameter set, never implied by code defaults.",
+      "multiHorizonActivation": "DEFERRED_TO_FUTURE_VERSION",
+      "activationRule": "Activating an additional horizon is additive: it requires a new classifier version and produces new RegimeRecords under new identities. It never mutates existing records and never requires an identity redesign.",
+      "ratificationStatus": "OWNER_CONFIRMED_IN_REPAIR_4"
+    },
+    "consumerObligations": {
+      "horizonBindingRequired": true,
+      "implicitFallbackForbidden": [
+        "take the first available regime",
+        "take the global regime",
+        "take the only regime because only one horizon happens to be active",
+        "infer the horizon from ordering, recency or file position"
+      ],
+      "proofRequirement": "Every consumer must be able to prove which RegimeHorizonSpecId it consumed. A consumption record without an explicit horizon binding is invalid.",
+      "singleHorizonEraRule": "While only one horizon is active, consumers must still bind it explicitly, so that activating a second horizon later cannot silently change what an existing consumer receives.",
+      "ratificationStatus": "OWNER_CONFIRMED_IN_REPAIR_4"
+    },
+    "deferredCapabilityLink": "GATE24-DC-06"
+  },
+  "deferredCapabilityMechanism": {
+    "ratificationStatus": "OWNER_CONFIRMED_IN_REPAIR_4",
+    "question": "Does a durable, canonical, project-wide mechanism already exist that tracks deliberately deferred capabilities so none can be forgotten?",
+    "verdict": "B_PARTIAL_MECHANISM_EXISTS_BUT_INSUFFICIENT",
+    "searchScope": "Targeted, no broad scan. Gate registry, project constitution, pre-execution capability matrix, governance schema directory, gate defect model.",
+    "partialMechanismsFound": [
+      {
+        "id": "PM-1",
+        "path": "governance/GATE_REGISTRY_00_40.json",
+        "sha256": "76d5f9ff0a21f8c1eadaf9ccd9e48c9087d12655fac6a5c9215584053652a56b",
+        "fields": [
+          "definitionCompleteness",
+          "missingCanonicalFields",
+          "deferredLinks",
+          "gapJustification",
+          "minimumSourceToClose"
+        ],
+        "granularity": "GATE_DEFINITION",
+        "observedUsage": "Across 41 registry entries, deferredLinks is non-null for GATE04 only; gapJustification and minimumSourceToClose are non-null for GATE14 only.",
+        "gaps": [
+          "tracks completeness of a gate definition, not capabilities deferred while executing a gate",
+          "no capability identity, no status lifecycle, no revisit trigger, no promotion requirements, no consumer candidates, no owner-promotion flag",
+          "no disposition vocabulary (OPEN, PROMOTED, RETIRED, SUPERSEDED)"
+        ]
+      },
+      {
+        "id": "PM-2",
+        "path": "governance/master-matrix/GATE15_40_PREEXECUTION_CAPABILITY_MATRIX_V1.json",
+        "sha256": "b11d5a74c5f70a7bf255dfae956ccb97ced1c28639a36f6cca6a56a49bde01ab",
+        "fields": [
+          "knownBlockingGap",
+          "gateLocalNormalMissing",
+          "foreseeableIssueClass",
+          "definitionCompleteness"
+        ],
+        "granularity": "GATE_PRE_EXECUTION_READINESS",
+        "observedUsage": "26 gate rows describing what is missing before a gate can start.",
+        "gaps": [
+          "answers can this gate start, not what did a gate deliberately postpone",
+          "no entry survives as an obligation after the gate closes",
+          "no promotion, revisit or supersession semantics"
+        ]
+      },
+      {
+        "id": "PM-3",
+        "path": "governance/schemas/gate-defects.schema.json",
+        "sha256": "1e314cc5a32d663647f5fd37204017fc5a9e844fa35696fbecbb3b229ccb0beb",
+        "instanceExample": "governance/gates/GATE23/state/revisions/R0005/OPEN_DEFECTS.json",
+        "granularity": "GATE_LOCAL_DEFECT_PER_STATE_REVISION",
+        "strengths": [
+          "durable and immutable per state revision",
+          "status lifecycle OPEN, IN_REPAIR, CLOSED, ACCEPTED_RISK",
+          "blockingProgression flag",
+          "closure evidence required"
+        ],
+        "gaps": [
+          "models defects, that is things wrong, not capabilities deliberately postponed",
+          "gate-local and sealed per revision; it cannot target a future gate or be surfaced at another gate readiness",
+          "no promotion path and no owner-promotion requirement",
+          "direct evidence of the gap: GATE23 R0005 OPEN_DEFECTS is an empty array while GATE23 nonetheless deferred real capabilities, for example CROSS_SECTIONAL DEFER and the INITIAL_ROOT settlingAt future additive option"
+        ]
+      },
+      {
+        "id": "PM-4",
+        "path": "per-mandate and in-code deferral declarations",
+        "examples": [
+          "governance/sources/GATE23_CANONICAL_MANDATE_R0.json OD-3 CROSS_SECTIONAL is DEFER",
+          "governance/gates/GATE23/implementation/feature-window-v1.mjs OPTION_B_SETTLING_AT with disposition FUTURE_ADDITIVE_OPTION",
+          "this mandate: REGISTERED_NOT_ACTIVE_IN_CORE_V1, REGISTERED_DEFERRED, FUTURE_EXTENSION, deferredToContract, deferredToFutureVersion"
+        ],
+        "granularity": "ARTIFACT_LOCAL",
+        "strengths": [
+          "durable in canonical bytes",
+          "carries a reason when written carefully"
+        ],
+        "gaps": [
+          "scattered across artifacts and not enumerable without rescanning",
+          "no common identity, status or disposition vocabulary",
+          "nothing forces a later gate to look at them"
+        ]
+      }
+    ],
+    "negativeFindings": [
+      "governance/schemas contains no capability, deferred, backlog or promotion schema.",
+      "governance/PROJECT_CONSTITUTION.json contains no occurrence of deferred, capability, backlog or revisit."
+    ],
+    "conclusion": "Durable per-artifact traces exist and a strong structural precedent exists in the defect model, but no mechanism enumerates deferred capabilities across gates, targets a future gate, or forces a promote or keep or supersede or retire decision. A deliberately deferred capability can therefore be lost.",
+    "newMechanismCreatedByThisMission": false,
+    "fileCreatedByThisMission": "NONE"
+  },
+  "deferredCapabilityMechanismRecommendation": {
+    "status": "PROJECT_LEVEL_RECOMMENDATION_NOT_CREATED_HERE",
+    "ratificationStatus": "OWNER_CONFIRMED_IN_REPAIR_4",
+    "scope": "Project-wide, outside the GATE24 perimeter. This mandate recommends it and does not create it.",
+    "requiredSemantics": {
+      "entryFields": [
+        "DeferredCapabilityId",
+        "sourceGate",
+        "capabilityName",
+        "status",
+        "reasonDeferred",
+        "sourceAuthority",
+        "sourceMandate",
+        "sourceDecision",
+        "promotionRequirements",
+        "consumerCandidates",
+        "revisitTrigger",
+        "ownerPromotionRequired",
+        "currentVersion",
+        "disposition"
+      ],
+      "statusVocabulary": [
+        "REGISTERED",
+        "READY",
+        "ACTIVE",
+        "DEFERRED",
+        "FUTURE"
+      ],
+      "dispositionVocabulary": [
+        "OPEN",
+        "PROMOTED",
+        "RETIRED",
+        "SUPERSEDED"
+      ],
+      "revisitRule": "Every entry must carry at least one of mustRevisitByGate or eventBasedRevisitTrigger.",
+      "mutationPolicy": "APPEND_ONLY_VERSIONED, consistent with the existing registry mutation discipline."
+    },
+    "antiForgetRuleRecommendedAsProjectInvariant": "A gate must not be able to close silently while a capability it explicitly deferred has neither a durable entry in the anti-forget mechanism nor a link to a pre-existing durable entry.",
+    "conceptualFutureValidatorFinding": "DEFERRED_CAPABILITY_NOT_DURABLY_REGISTERED",
+    "validatorImplementedByThisMission": false,
+    "readinessIntegration": {
+      "rule": "A future gate readiness computation must be able to surface the deferred and future capabilities that target it.",
+      "example": "GATE26_READINESS surfaces DEFERRED and FUTURE capabilities whose mustRevisitByGate is GATE26 and forces one of PROMOTE, KEEP_DEFERRED, SUPERSEDE or RETIRE for each.",
+      "effect": "A deferral survives as an explicit decision at the next relevant gate instead of decaying into silence."
+    },
+    "oneTimeHistoricalReconciliation": {
+      "required": true,
+      "performedByThisMission": false,
+      "boundedFutureMicroMission": true,
+      "rule": "Exactly one historical reconciliation pass, drawn from high-value canonical sources only. No systematic rescanning afterwards.",
+      "highValueSources": [
+        "governance/GATE_REGISTRY_00_40.json",
+        "governance/sources/WHEEL_JARVISE_MASTER_ROADMAP_00_40.txt",
+        "governance/master-matrix/GATE15_40_PREEXECUTION_CAPABILITY_MATRIX_V1.json",
+        "canonical gate mandates",
+        "explicit consumption and boundary contracts",
+        "relevant checkpoints and closure dispositions"
+      ],
+      "extractionFilter": [
+        "DEFERRED",
+        "FUTURE",
+        "NOT_ACTIVE",
+        "OPTIONAL",
+        "OUT_OF_SCOPE_BUT_PLANNED"
+      ],
+      "afterReconciliation": "REUSE_BEFORE_RESEARCH; no systematic historical rescanning should be needed again."
+    },
+    "gate24Position": "GATE24 does not depend on this mechanism existing. Its own deferrals are durably traced inside this canonical mandate, which satisfies the link-to-a-durable-entry half of the anti-forget rule until the project-wide mechanism exists."
+  },
+  "gate24DeferredCapabilities": {
+    "ratificationStatus": "OWNER_CONFIRMED_IN_REPAIR_4",
+    "statement": "Capabilities that are not active in GATE24 CORE_V1 are deferred, not abandoned. Each entry below is a durable trace inside a canonical artifact.",
+    "reasonVocabulary": [
+      "CAUSAL_VINTAGE_PROOF_INCOMPLETE",
+      "CANONICAL_IDENTITY_ABSENT",
+      "AVAILABLE_AT_POLICY_INCOMPLETE",
+      "RELEASE_TIMESTAMP_UNCERTAINTY",
+      "HISTORICAL_COVERAGE_INSUFFICIENT",
+      "CLASSIFIER_ROLE_NOT_YET_PROVEN",
+      "REDUNDANT_INFORMATION_NOT_YET_EVALUATED",
+      "PREDICTIVE_VALUE_BELONGS_TO_LATER_GATE",
+      "TAXONOMY_INTENTIONALLY_DEFERRED",
+      "NOT_REQUIRED_BY_CORE_V1"
+    ],
+    "reasonRule": "Every deferred capability carries at least one reason from the vocabulary. A reason of \"later\", an empty reason or a missing reason is forbidden and is a defect.",
+    "membershipUnchangedByThisMission": true,
+    "entries": [
+      {
+        "deferredCapabilityId": "GATE24-DC-01",
+        "sourceGate": "GATE24",
+        "capabilityName": "growthState as an active classifying dimension",
+        "class": "REGISTERED_NOT_ACTIVE_IN_CORE_V1",
+        "status": "REGISTERED",
+        "reasonDeferred": [
+          "TAXONOMY_INTENTIONALLY_DEFERRED",
+          "NOT_REQUIRED_BY_CORE_V1"
+        ],
+        "sourceDecision": "OD-Y",
+        "sourceMandate": "GATE24_CANONICAL_MANDATE_R0",
+        "membershipPointer": "/regimeVectorV1/dimensions[name=growthState]",
+        "promotionRequirements": [
+          "Owner-ratified closed taxonomy for this dimension",
+          "declared CORE inputs with availableAt proof",
+          "classifier version bump and new taxonomy version",
+          "coverage and hostile tests for the new dimension",
+          "consumer compatibility check"
+        ],
+        "consumerCandidates": [
+          "GATE25 analogue selection",
+          "GATE26 and later model conditioning"
+        ],
+        "revisitTrigger": "eventBasedRevisitTrigger: an Owner-ratified taxonomy for this dimension, or promotion of its candidate inputs into CORE_V1",
+        "ownerPromotionRequired": true,
+        "currentVersion": "REGIME_VECTOR_V1",
+        "disposition": "OPEN",
+        "abandoned": false
+      },
+      {
+        "deferredCapabilityId": "GATE24-DC-02",
+        "sourceGate": "GATE24",
+        "capabilityName": "laborState as an active classifying dimension",
+        "class": "REGISTERED_NOT_ACTIVE_IN_CORE_V1",
+        "status": "REGISTERED",
+        "reasonDeferred": [
+          "TAXONOMY_INTENTIONALLY_DEFERRED",
+          "NOT_REQUIRED_BY_CORE_V1"
+        ],
+        "sourceDecision": "OD-Y",
+        "sourceMandate": "GATE24_CANONICAL_MANDATE_R0",
+        "membershipPointer": "/regimeVectorV1/dimensions[name=laborState]",
+        "promotionRequirements": [
+          "Owner-ratified closed taxonomy for this dimension",
+          "declared CORE inputs with availableAt proof",
+          "classifier version bump and new taxonomy version",
+          "coverage and hostile tests for the new dimension",
+          "consumer compatibility check"
+        ],
+        "consumerCandidates": [
+          "GATE25 analogue selection",
+          "GATE26 and later model conditioning"
+        ],
+        "revisitTrigger": "eventBasedRevisitTrigger: an Owner-ratified taxonomy for this dimension, or promotion of its candidate inputs into CORE_V1",
+        "ownerPromotionRequired": true,
+        "currentVersion": "REGIME_VECTOR_V1",
+        "disposition": "OPEN",
+        "abandoned": false
+      },
+      {
+        "deferredCapabilityId": "GATE24-DC-03",
+        "sourceGate": "GATE24",
+        "capabilityName": "creditState as an active classifying dimension",
+        "class": "REGISTERED_NOT_ACTIVE_IN_CORE_V1",
+        "status": "REGISTERED",
+        "reasonDeferred": [
+          "TAXONOMY_INTENTIONALLY_DEFERRED",
+          "NOT_REQUIRED_BY_CORE_V1"
+        ],
+        "sourceDecision": "OD-Y",
+        "sourceMandate": "GATE24_CANONICAL_MANDATE_R0",
+        "membershipPointer": "/regimeVectorV1/dimensions[name=creditState]",
+        "promotionRequirements": [
+          "Owner-ratified closed taxonomy for this dimension",
+          "declared CORE inputs with availableAt proof",
+          "classifier version bump and new taxonomy version",
+          "coverage and hostile tests for the new dimension",
+          "consumer compatibility check"
+        ],
+        "consumerCandidates": [
+          "GATE25 analogue selection",
+          "GATE26 and later model conditioning"
+        ],
+        "revisitTrigger": "eventBasedRevisitTrigger: an Owner-ratified taxonomy for this dimension, or promotion of its candidate inputs into CORE_V1",
+        "ownerPromotionRequired": true,
+        "currentVersion": "REGIME_VECTOR_V1",
+        "disposition": "OPEN",
+        "abandoned": false
+      },
+      {
+        "deferredCapabilityId": "GATE24-DC-04",
+        "sourceGate": "GATE24",
+        "capabilityName": "liquidityState as an active classifying dimension",
+        "class": "REGISTERED_NOT_ACTIVE_IN_CORE_V1",
+        "status": "REGISTERED",
+        "reasonDeferred": [
+          "TAXONOMY_INTENTIONALLY_DEFERRED",
+          "NOT_REQUIRED_BY_CORE_V1"
+        ],
+        "sourceDecision": "OD-Y",
+        "sourceMandate": "GATE24_CANONICAL_MANDATE_R0",
+        "membershipPointer": "/regimeVectorV1/dimensions[name=liquidityState]",
+        "promotionRequirements": [
+          "Owner-ratified closed taxonomy for this dimension",
+          "declared CORE inputs with availableAt proof",
+          "classifier version bump and new taxonomy version",
+          "coverage and hostile tests for the new dimension",
+          "consumer compatibility check"
+        ],
+        "consumerCandidates": [
+          "GATE25 analogue selection",
+          "GATE26 and later model conditioning"
+        ],
+        "revisitTrigger": "eventBasedRevisitTrigger: an Owner-ratified taxonomy for this dimension, or promotion of its candidate inputs into CORE_V1",
+        "ownerPromotionRequired": true,
+        "currentVersion": "REGIME_VECTOR_V1",
+        "disposition": "OPEN",
+        "abandoned": false
+      },
+      {
+        "deferredCapabilityId": "GATE24-DC-05",
+        "sourceGate": "GATE24",
+        "capabilityName": "fedPolicyState as an active classifying dimension",
+        "class": "REGISTERED_NOT_ACTIVE_IN_CORE_V1",
+        "status": "REGISTERED",
+        "reasonDeferred": [
+          "TAXONOMY_INTENTIONALLY_DEFERRED",
+          "NOT_REQUIRED_BY_CORE_V1"
+        ],
+        "sourceDecision": "OD-Y",
+        "sourceMandate": "GATE24_CANONICAL_MANDATE_R0",
+        "membershipPointer": "/regimeVectorV1/dimensions[name=fedPolicyState]",
+        "promotionRequirements": [
+          "Owner-ratified closed taxonomy for this dimension",
+          "declared CORE inputs with availableAt proof",
+          "classifier version bump and new taxonomy version",
+          "coverage and hostile tests for the new dimension",
+          "consumer compatibility check"
+        ],
+        "consumerCandidates": [
+          "GATE25 analogue selection",
+          "GATE26 and later model conditioning"
+        ],
+        "revisitTrigger": "eventBasedRevisitTrigger: an Owner-ratified taxonomy for this dimension, or promotion of its candidate inputs into CORE_V1",
+        "ownerPromotionRequired": true,
+        "currentVersion": "REGIME_VECTOR_V1",
+        "disposition": "OPEN",
+        "abandoned": false
+      },
+      {
+        "deferredCapabilityId": "GATE24-DC-06",
+        "sourceGate": "GATE24",
+        "capabilityName": "multi-horizon regime classification with more than one active horizon",
+        "class": "DEFERRED_TO_FUTURE_VERSION",
+        "status": "READY",
+        "statusRationale": "READY because the identity, the consumer binding obligation and the extension rule are already architected by REPAIR_4; only activation is deferred.",
+        "reasonDeferred": [
+          "NOT_REQUIRED_BY_CORE_V1",
+          "CLASSIFIER_ROLE_NOT_YET_PROVEN"
+        ],
+        "sourceDecision": "regimeHorizonArchitecture.coreV1HorizonPolicy",
+        "sourceMandate": "GATE24_CANONICAL_MANDATE_R0",
+        "promotionRequirements": [
+          "explicit selection of the additional horizon, pinned by RegimeHorizonSpecId",
+          "classifier version bump",
+          "multi-horizon identity differential and replay tests",
+          "consumer horizon-binding compliance check"
+        ],
+        "consumerCandidates": [
+          "GATE25 analogue selection by horizon",
+          "GATE26 and later model conditioning by horizon"
+        ],
+        "revisitTrigger": "eventBasedRevisitTrigger: the first consumer requiring a second horizon",
+        "ownerPromotionRequired": true,
+        "currentVersion": "GATE24_RegimeHorizonSpec/1",
+        "disposition": "OPEN",
+        "abandoned": false
+      },
+      {
+        "deferredCapabilityId": "GATE24-DC-07",
+        "sourceGate": "GATE24",
+        "capabilityName": "REGISTERED_DEFERRED macro series without a canonical identifier",
+        "class": "REGISTERED_DEFERRED",
+        "status": "DEFERRED",
+        "membershipPointer": "/macroRegistryTiers/REGISTERED_DEFERRED/members[canonicalIdentifierExists=false]",
+        "memberCount": 30,
+        "membershipUnchanged": true,
+        "reasonDeferred": [
+          "CANONICAL_IDENTITY_ABSENT",
+          "CAUSAL_VINTAGE_PROOF_INCOMPLETE",
+          "AVAILABLE_AT_POLICY_INCOMPLETE"
+        ],
+        "sourceDecision": "OD-H and OD-Z",
+        "sourceMandate": "GATE24_CANONICAL_MANDATE_R0",
+        "promotionRequirements": [
+          "a canonical series identifier in the producer registry",
+          "a pinned release-time rule and complete availableAt evidence",
+          "complete vintage semantics and sufficient historical coverage",
+          "explicit Owner decision plus a new macro context registry version",
+          "classifier version bump and consumer compatibility check"
+        ],
+        "consumerCandidates": [
+          "growthState",
+          "laborState",
+          "creditState",
+          "liquidityState",
+          "fedPolicyState"
+        ],
+        "revisitTrigger": "eventBasedRevisitTrigger: registration of a canonical identifier and release-time rule for the series in the producer policy",
+        "ownerPromotionRequired": true,
+        "currentVersion": "MACRO_CONTEXT_REGISTRY_V1",
+        "disposition": "OPEN",
+        "abandoned": false
+      },
+      {
+        "deferredCapabilityId": "GATE24-DC-08",
+        "sourceGate": "GATE24",
+        "capabilityName": "US.BLS.ICSA initial claims consumption",
+        "class": "REGISTERED_DEFERRED",
+        "status": "READY",
+        "statusRationale": "READY because the series already has a canonical identifier and a pinned release-time rule in the producer policy; only GATE24 consumption is deferred.",
+        "membershipPointer": "/macroRegistryTiers/REGISTERED_DEFERRED/members[concept=Initial Claims]",
+        "reasonDeferred": [
+          "NOT_REQUIRED_BY_CORE_V1",
+          "CLASSIFIER_ROLE_NOT_YET_PROVEN"
+        ],
+        "sourceDecision": "OD-H",
+        "sourceMandate": "GATE24_CANONICAL_MANDATE_R0",
+        "promotionRequirements": [
+          "explicit Owner decision plus a new macro context registry version",
+          "a declared consuming dimension with a ratified taxonomy",
+          "classifier version bump and consumer compatibility check"
+        ],
+        "consumerCandidates": [
+          "laborState"
+        ],
+        "revisitTrigger": "eventBasedRevisitTrigger: ratification of a laborState taxonomy",
+        "ownerPromotionRequired": true,
+        "currentVersion": "MACRO_CONTEXT_REGISTRY_V1",
+        "disposition": "OPEN",
+        "abandoned": false
+      },
+      {
+        "deferredCapabilityId": "GATE24-DC-09",
+        "sourceGate": "GATE24",
+        "capabilityName": "FUTURE_EXTENSION directions",
+        "class": "FUTURE_EXTENSION",
+        "status": "FUTURE",
+        "membershipPointer": "/macroRegistryTiers/FUTURE_EXTENSION/members",
+        "memberCount": 3,
+        "membershipUnchanged": true,
+        "reasonDeferred": [
+          "REDUNDANT_INFORMATION_NOT_YET_EVALUATED",
+          "NOT_REQUIRED_BY_CORE_V1"
+        ],
+        "sourceDecision": "OD-H",
+        "sourceMandate": "GATE24_CANONICAL_MANDATE_R0",
+        "promotionRequirements": [
+          "promotion first into REGISTERED_DEFERRED with a canonical identifier where applicable",
+          "explicit Owner decision and a new registry version"
+        ],
+        "consumerCandidates": [
+          "yieldCurveShape",
+          "yieldCurveDirection",
+          "a future rate level dimension"
+        ],
+        "revisitTrigger": "eventBasedRevisitTrigger: an explicit Owner request for one of these directions",
+        "ownerPromotionRequired": true,
+        "currentVersion": "MACRO_CONTEXT_REGISTRY_V1",
+        "disposition": "OPEN",
+        "abandoned": false
+      },
+      {
+        "deferredCapabilityId": "GATE24-DC-10",
+        "sourceGate": "GATE24",
+        "capabilityName": "OPTIONAL_V1 tier population",
+        "class": "OPTIONAL_LATER",
+        "status": "REGISTERED",
+        "reasonDeferred": [
+          "NOT_REQUIRED_BY_CORE_V1"
+        ],
+        "sourceDecision": "OD-Z",
+        "sourceMandate": "GATE24_CANONICAL_MANDATE_R0",
+        "promotionRequirements": [
+          "explicit Owner decision and a new macro context registry version"
+        ],
+        "consumerCandidates": [
+          "any active dimension"
+        ],
+        "revisitTrigger": "eventBasedRevisitTrigger: a candidate series whose absence must not degrade CORE_V1",
+        "ownerPromotionRequired": true,
+        "currentVersion": "MACRO_CONTEXT_REGISTRY_V1",
+        "disposition": "OPEN",
+        "abandoned": false
+      },
+      {
+        "deferredCapabilityId": "GATE24-DC-11",
+        "sourceGate": "GATE24",
+        "capabilityName": "hysteresis and minimum dwell stabilization",
+        "class": "DEFERRED_TO_FUTURE_VERSION",
+        "status": "DEFERRED",
+        "reasonDeferred": [
+          "CLASSIFIER_ROLE_NOT_YET_PROVEN",
+          "HISTORICAL_COVERAGE_INSUFFICIENT"
+        ],
+        "sourceDecision": "OD-T",
+        "sourceMandate": "GATE24_CANONICAL_MANDATE_R0",
+        "promotionRequirements": [
+          "measured real transition frequency from a first implementation",
+          "evidence and coverage tests supporting a specific dwell",
+          "strictly backward-looking formulation",
+          "new classifier version; no rewrite of emitted records"
+        ],
+        "consumerCandidates": [
+          "transition consumers"
+        ],
+        "revisitTrigger": "eventBasedRevisitTrigger: availability of measured transition frequency evidence",
+        "ownerPromotionRequired": true,
+        "currentVersion": "REGIME_VECTOR_V1",
+        "disposition": "OPEN",
+        "abandoned": false
+      },
+      {
+        "deferredCapabilityId": "GATE24-DC-12",
+        "sourceGate": "GATE24",
+        "capabilityName": "cross-sectional regime construction",
+        "class": "OUT_OF_SCOPE_BUT_PLANNED",
+        "status": "DEFERRED",
+        "reasonDeferred": [
+          "NOT_REQUIRED_BY_CORE_V1",
+          "PREDICTIVE_VALUE_BELONGS_TO_LATER_GATE"
+        ],
+        "sourceDecision": "OD-8",
+        "sourceMandate": "GATE24_CANONICAL_MANDATE_R0",
+        "upstreamPrecedent": "GATE23 OD-3 CROSS_SECTIONAL is DEFER",
+        "promotionRequirements": [
+          "explicit Owner decision",
+          "an upstream cross-sectional feature capability",
+          "new classifier and taxonomy versions"
+        ],
+        "consumerCandidates": [
+          "GATE25 and later"
+        ],
+        "revisitTrigger": "eventBasedRevisitTrigger: an upstream gate delivering cross-sectional features",
+        "ownerPromotionRequired": true,
+        "currentVersion": "REGIME_VECTOR_V1",
+        "disposition": "OPEN",
+        "abandoned": false
+      }
+    ],
+    "entryCount": 12,
+    "durableTraceRule": "Each entry is durable because it lives in this canonical mandate. When the project-wide mechanism exists, each entry must be linked to it rather than restated.",
+    "promotionSafety": {
+      "silentActivationForbidden": true,
+      "requires": [
+        "explicit decision",
+        "a new relevant version",
+        "causal proof",
+        "required tests",
+        "identity and version update",
+        "consumer compatibility check"
+      ],
+      "retroactiveMutationForbidden": "Promotion never mutates previously emitted RegimeRecords. Promoted capability appears only in records produced under the new version."
+    }
+  },
+  "projectLevelRecommendations": [
+    {
+      "id": "PLR-1",
+      "subject": "durable project-wide deferred capability mechanism",
+      "verdictOfTargetedSearch": "B_PARTIAL_MECHANISM_EXISTS_BUT_INSUFFICIENT",
+      "recommendation": "Design a bounded, append-only, versioned deferred-capability registry with the semantics recorded in deferredCapabilityMechanismRecommendation, plus a readiness integration and a single historical reconciliation pass.",
+      "createdByThisMission": false,
+      "blocksGate24Ratification": false,
+      "rationaleForNonBlocking": "The mechanism is a project-wide governance concern. GATE24 deferrals are already durably traced inside this canonical mandate, so GATE24 does not close silently on an untracked deferral.",
+      "ownerDecisionRequired": "Only if the Owner wants the mechanism built; it is not an open GATE24 architectural decision."
+    }
+  ],
+  "ownerRatification": {
+    "ratificationId": "GATE24_CANONICAL_MANDATE_R0_OWNER_RATIFICATION",
+    "authorityId": "GATE24_CANONICAL_MANDATE_RATIFICATION_R0",
+    "issuedBy": "PROJECT_OWNER",
+    "ratified": true,
+    "scope": "GATE24_CANONICAL_MANDATE_ONLY",
+    "ratifiedDocument": "GATE24_CANONICAL_MANDATE_R0",
+    "ratifiedDesignRevision": "R0_REPAIR_4",
+    "ratifiedThroughRepairs": [
+      "GATE24_CANONICAL_MANDATE_R0_REPAIR_1",
+      "GATE24_CANONICAL_MANDATE_R0_REPAIR_2",
+      "GATE24_CANONICAL_MANDATE_R0_REPAIR_3",
+      "GATE24_CANONICAL_MANDATE_R0_REPAIR_4"
+    ],
+    "mechanism": "IN_PLACE_OWNER_RATIFICATION_OF_THE_CANONICAL_MANDATE_ARTIFACT",
+    "mechanismRationale": "The canonical mandate artifact is itself the Owner ratification instrument for a gate mandate in this project. GATE21, GATE22 and GATE23 each carry their Owner ratification inside governance/sources/GATE2x_CANONICAL_MANDATE_R0.json under authorityId GATE2x_CANONICAL_MANDATE_RATIFICATION_R0, issuedBy PROJECT_OWNER, canonical true and ratificationOnly true, with the frozen design recorded in the document itself. No separate ratification artifact, no authorizations record and no ledger event exists for any of those mandate ratifications. GATE24 differs only in that it was drafted first in an explicit NOT_RATIFIED state with a mandateReadiness block, so the ratification is materialized by setting that state in place rather than by writing the document already ratified.",
+    "mechanismPrecedent": [
+      {
+        "path": "governance/sources/GATE23_CANONICAL_MANDATE_R0.json",
+        "authorityId": "GATE23_CANONICAL_MANDATE_RATIFICATION_R0",
+        "evidence": "designState.gate23Design = FROZEN_BY_OWNER; ownerDecisionStatus = OD-1 through OD-5 = RATIFIED; ownerDisposition.status = RATIFICATION_ONLY; no separate ratification artifact and no ledger event."
+      },
+      {
+        "path": "governance/sources/GATE22_CANONICAL_MANDATE_R0.json",
+        "authorityId": "GATE22_CANONICAL_MANDATE_RATIFICATION_R0",
+        "evidence": "issuedBy PROJECT_OWNER, canonical true, ratificationOnly true, ownerDisposition.status = RATIFICATION_ONLY; no separate ratification artifact and no ledger event."
+      },
+      {
+        "path": "governance/sources/GATE21_CANONICAL_MANDATE_R0.json",
+        "authorityId": "GATE21_CANONICAL_MANDATE_RATIFICATION_R0",
+        "evidence": "issuedBy PROJECT_OWNER, canonical true, ratificationOnly true, ownerDisposition.status = RATIFICATION_ONLY; no separate ratification artifact and no ledger event."
+      },
+      {
+        "path": "governance/sources/GATE16_40_OWNER_RATIFICATION_R2.json",
+        "authorityId": "GATE16_40_OWNER_RATIFICATION_AND_CANONICALIZATION_R2",
+        "evidence": "Strategic-level Owner ratification of the GATE16 to GATE40 mandates, including the GATE24 strategic mandate. It ratifies the strategic mandate layer only and is unchanged by this act; it neither performs nor blocks the gate-level GATE24 canonical mandate ratification."
+      }
+    ],
+    "noNewPrimitiveRequired": {
+      "newAuthorityPrimitive": false,
+      "newSchema": false,
+      "newLifecycleCeremony": false,
+      "circularSelfAuthorization": false,
+      "notes": "The authority is the external PROJECT_OWNER ratification act, not this document asserting its own validity. The authority primitive, the document kind CANONICAL_GATE_MANDATE and the ratificationOnly boundary already exist and are already carried by this file. Mandate ratification is not a lifecycle transition in this project, so no ledger event, no authorizations record and no state revision is created. governance/sources holds no JSON schema for CANONICAL_GATE_MANDATE, so no schema is added or changed."
+    },
+    "prestateVerified": {
+      "head": "927d6236",
+      "targetSha256Before": "0dbb5c536d3797f24a7104a1761487620a5418d3890032bc2df2f7095a5a3939",
+      "targetBytesBefore": 153676,
+      "ledgerOrdinal": 99,
+      "gate23": "COMPLETE_CONFIRMED at R0005",
+      "gate24": "NOT_STARTED",
+      "activeGate": "unchanged",
+      "openOwnerDecisions": 0,
+      "mandateReadinessBefore": "READY_FOR_OWNER_RATIFICATION",
+      "ratifiedBefore": false,
+      "ratificationOnly": true,
+      "workingTree": "target file untracked, no other change"
+    },
+    "ratifies": [
+      "The RegimeVector architecture: eleven registered dimensions, six active in CORE_V1 and five REGISTERED_NOT_ACTIVE_IN_CORE_V1, non-cartesian, with yield curve shape and direction orthogonal and the exact producer vocabulary mappings.",
+      "The macro perimeter: twelve CORE_V1 base macro sources, six derived macro features, OPTIONAL_V1 empty in V1, REGISTERED_DEFERRED and FUTURE_EXTENSION unchanged.",
+      "The multi-horizon architecture: RegimeHorizonSpecId, activeHorizonCount one, the active horizon session count deferred to contract, horizon-local transitions, regimeAgeSessions and lastTransitionSession, mandatory consumer horizon binding, and multiHorizonExtensionRequiresNoIdentityRedesign true.",
+      "The RegimeRecord identity and provenance surface: the eleven required identity members, classificationEvidence, provenance, classificationQuality, changedDimensions, PERSIST and CHANGE, regimeAgeSessions and lastTransitionSession.",
+      "The causality and performance boundary: K(T) = PinnedCanonicalSession(T).closeUtc, availableAt <= K(T), the FETCH_ONCE to NORMALIZE to VERSION_CACHE to PRECOMPUTE to REUSE chain, every declared prohibition, and the Wheel live scan critical path MUST_NOT_LENGTHEN with latencyTargetDelta ZERO.",
+      "The deferred capability commitments GATE24-DC-01 through GATE24-DC-12 exactly as recorded in gate24DeferredCapabilities.entries, with their capability identity, status, reasonDeferred, revisit semantics, disposition, abandoned false and promotion safety.",
+      "The anti-forget finding recorded in deferredCapabilityMechanism.verdict as B_PARTIAL_MECHANISM_EXISTS_BUT_INSUFFICIENT and its project-level recommendation PLR-1, which are preserved unchanged and are explicitly not a blocker to this mandate ratification. No project-wide deferred capability registry is created by this act."
+    ],
+    "doesNotAuthorize": [
+      "PRECONTRACT execution",
+      "execution contract creation",
+      "START",
+      "BUILD",
+      "lifecycle or status transition",
+      "functional implementation",
+      "ledger append",
+      "ACTIVE_GATE mutation",
+      "commit",
+      "push"
+    ],
+    "effects": {
+      "mandateOwnerRatified": true,
+      "designScopeFrozenForPrecontractDerivation": true,
+      "openOwnerDecisions": 0,
+      "executionAuthorityCreated": "NONE",
+      "impliedAuthority": "NONE",
+      "gate24LifecycleStatus": "NOT_STARTED",
+      "ledgerEventsAppended": 0,
+      "deferredCapabilitiesPromoted": "NONE",
+      "projectWideDeferredCapabilityRegistryCreated": false,
+      "architecturalChange": "NONE",
+      "aMandateRatificationIsNotAStart": true
+    },
+    "nextCanonicalStep": "A separate bounded Owner act that derives the GATE24 precontract from this frozen mandate. It is not authorized by this document."
+  }
+}

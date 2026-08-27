@@ -16842,6 +16842,11 @@ export default function Dashboard() {
                 ibkrSentCount={ibkrSentCount}
                 onExportCsv={exportYahooIbkrFunnelCsv}
               />
+              <PreIbkrCutDiagnosticsPanel
+                rows={preIbkrCutTickerList}
+                summary={preIbkrCutSummary}
+                onExportCsv={exportPreIbkrCutCsv}
+              />
             </details>
           </div>
         )}

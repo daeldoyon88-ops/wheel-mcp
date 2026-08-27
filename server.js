@@ -52,6 +52,7 @@ import createScanFunnelArchiveRoutes from "./app/journal/scanFunnelArchiveRoutes
 import seasonalityRoutes from "./app/seasonality/seasonalityRoutes.js";
 import createAdaptiveCalibrationRoutes from "./app/calibration/adaptiveCalibrationRoutes.js";
 import createCapitalCombinationRoutes from "./app/capital/capitalCombinationRoutes.js";
+import createJarviseRoutesR1 from "./app/jarvise/jarviseRoutesR1.js";
 import {
   buildYahooFunnelForensicPayload,
   defaultWheelRepoRoot,
@@ -3429,6 +3430,7 @@ app.use("/scan-funnel", createScanFunnelArchiveRoutes({ store: scanFunnelArchive
 // Capital Combination Audit — Phase 4D — passive, no scanner hook
 // appliedToScanner=false / appliedToRanking=false / appliedToEliteScore=false
 app.use("/capital-combinations", createCapitalCombinationRoutes());
+app.use("/jarvise/r1", createJarviseRoutesR1());
 
 app.get("/mcp-info", (_req, res) => {
   res.json({

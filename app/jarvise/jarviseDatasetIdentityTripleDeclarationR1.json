@@ -1,0 +1,70 @@
+{
+  "schemaVersion": "WHEEL_JARVISE_DATASET_IDENTITY_TRIPLE_DECLARATION/1",
+  "integrationScope": "R2_LOCAL_PRODUCTION_AUTHORITY",
+  "ownerDecisionId": "OWNER_RATIFY_WHEEL_JARVISE_DATASET_IDENTITY_TRIPLE_V1",
+  "sourceBindingId": {
+    "semantics": "Content address of the declared Jarvise R2 historical source-acquisition binding.",
+    "preimage": {
+      "schemaVersion": "R2SourceBinding/1",
+      "sourceId": "YAHOO_CHART_EOD",
+      "plane": "HISTORICAL",
+      "sourceBasisDeclarationPath": "app/jarvise/yahooSourceBasisDeclarationR1.json",
+      "sourceBasisDeclarationSha256": "fb9e5a17f4ef5503c58e2f2beac49fe3c3f035f3525b06fe282a13a60540364b"
+    }
+  },
+  "datasetIdObservation": {
+    "semantics": "Content address of one G21-admitted historical observation vintage at its effective KnowledgeCutoff.",
+    "preimage": {
+      "schemaVersion": "R2ObservationDataset/1",
+      "members": [
+        "sourceBindingId",
+        "instrumentIdentityId",
+        "effectiveKnowledgeCutoff",
+        "plane",
+        "priceBasisId",
+        "admittedBars"
+      ],
+      "admittedBarMembers": [
+        "sessionDate",
+        "eventTime",
+        "availableAt",
+        "open",
+        "high",
+        "low",
+        "close",
+        "volume"
+      ]
+    }
+  },
+  "datasetIdFeature": {
+    "semantics": "Content address of the materialized G23 feature-definition cohort over one observation dataset.",
+    "preimage": {
+      "schemaVersion": "R2FeatureDataset/1",
+      "members": [
+        "datasetIdObservation",
+        "featureDefinitionSet",
+        "materializerModuleVersion"
+      ],
+      "materializerModuleVersion": "GATE23_FeatureMaterializer/1"
+    }
+  },
+  "initialFeatureDefinitionSet": [
+    "F1_SIMPLE_RETURN@W5",
+    "F1_SIMPLE_RETURN@W21"
+  ],
+  "orderingRules": {
+    "admittedBars": "sessionDate ascending",
+    "featureDefinitionSet": "featureDefinitionId ascending then featureWindowSpecId ascending"
+  },
+  "stabilityRules": [
+    "No caller-supplied identity is accepted as a derived result.",
+    "Source declaration bytes must match the ratified SHA-256.",
+    "Duplicate FeatureRecordId and duplicate semantic feature members are refused.",
+    "Only G21-admitted historical bars and the initial F1/W5 plus F1/W21 cohort are admitted."
+  ],
+  "fixtureProhibition": true,
+  "byteConditionalObservationReproducibility": true,
+  "historicalReplaySupport": "UNAVAILABLE",
+  "duplicateFeatureRecordPolicy": "REFUSE",
+  "canonicalGateMutation": false
+}

@@ -1,0 +1,29 @@
+{
+  "schemaVersion": "R2YahooSourceBasisDeclaration/1",
+  "integrationScope": "R2_LOCAL_INTEGRATION_PROVENANCE",
+  "sourceId": "YAHOO_CHART_EOD",
+  "providerPath": "app/data_providers/yahooMarketDataProvider.js",
+  "providerLibrary": "yahoo-finance2",
+  "providerLibraryVersion": "3.14.0",
+  "chartInterval": "1d",
+  "priceBasis": "SPLIT_ADJUSTED",
+  "ohlcBasis": "SPLIT_ADJUSTED",
+  "corporateActionTreatment": "PROVIDER_SPLIT_ADJUSTED_UNTRANSFORMED",
+  "temporalCapability": "RETROSPECTIVE_CAPTURE_ONLY",
+  "basisProofClass": "EMPIRICALLY_PROVEN",
+  "evidenceReferences": [
+    {
+      "acceptedPredecessor": "WHEEL_JARVISE_YAHOO_CHART_EOD_OHLC_BASIS_ATTESTATION_R1",
+      "symbol": "AAPL",
+      "event": "2020 4:1 split",
+      "finding": "Yahoo chart open/high/low/close empirically split-adjusted"
+    },
+    {
+      "acceptedPredecessor": "WHEEL_JARVISE_YAHOO_CHART_EOD_OHLC_BASIS_ATTESTATION_R1",
+      "symbol": "TSLA",
+      "event": "2020 5:1 split and later 3:1 split",
+      "finding": "Yahoo chart open/high/low/close empirically split-adjusted"
+    }
+  ],
+  "adjcloseDisposition": "lineage.totalReturnClose only; never selected as SPLIT_ADJUSTED"
+}

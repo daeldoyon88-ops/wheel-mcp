@@ -7,6 +7,7 @@ import {
 } from "../calculations/wheelMetrics.js";
 import { deriveEarningsMoment } from "../utils/earningsMoment.js";
 import { round, toNumber } from "../utils/number.js";
+import { captureYahooChartResult } from "../jarvise/g21BridgeCaptureR1.mjs";
 
 export function createMarketService(provider) {
   function computeAnnualizedHv(closes, period) {
@@ -312,6 +313,11 @@ export function createMarketService(provider) {
         period1: new Date(Date.now() - 1000 * 60 * 60 * 24 * 120),
         interval: "1d",
       });
+      try {
+        captureYahooChartResult(symbol, result);
+      } catch (_captureError) {
+        // Jarvise capture is supplementary; existing Wheel technicals remain available.
+      }
       const quotes = result?.quotes ?? [];
       const closes = quotes.map((q) => toNumber(q?.close)).filter((v) => v > 0);
       if (closes.length < 50) {

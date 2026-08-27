@@ -1,0 +1,6 @@
+{
+  "schemaVersion": "InstrumentIdentityAuthorityPolicy/1",
+  "authorityId": "wheel-jarvise-local/1",
+  "identitySeedFormat": "HEX_LOWERCASE",
+  "identitySeedLength": 64
+}

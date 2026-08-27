@@ -1,0 +1,1395 @@
+{
+  "schemaVersion": "JarviseMp3InstrumentIdentityProvenance/1",
+  "authoritative": false,
+  "missionId": "WHEEL_JARVISE_MP3_INSTRUMENT_IDENTITY_PRIMITIVE_R1",
+  "authorityId": "wheel-jarvise-local/1",
+  "authorityPolicyId": "sha256:a83a34cb6b1d30b2248a7501047a18abc83b23e5132c20af3f15edf3434df071",
+  "namespaceId": "wheel-jarvise-yahoo-symbol",
+  "namespacePolicyId": "sha256:747e1108bfb68086fb6d81cd09ad61b1fa5a93cde18f787dc48c8139884ee897",
+  "registryManifestId": "sha256:f52573b364e7e1ae37077fc46dcf8f56fd3df911b7e60c80925a511dab4e7e47",
+  "sourcePerimeter": "buildResearchExpandedPool() intersect positive structured quoteType evidence",
+  "sourcePaths": [
+    "data/universe/fundamentals.cache.json",
+    "data/universe/universe.master.json",
+    "app/watchlist/researchExpandedPool.js"
+  ],
+  "sourceSha256s": {
+    "data/universe/fundamentals.cache.json": "c04b9d36e9f35393c07c0ee5f032c7069dfe66d88978ed18f095a482df242521",
+    "data/universe/universe.master.json": "b4af0cc62d8e470a4ede0531dd8d094b36fa9b3a1d7d0afb8b744b3c644cc769",
+    "app/watchlist/researchExpandedPool.js": "573cc5565dca7446d01411bb4ca71cc2ac2e1dd4633ac8a5ee45bbbeaaa30026"
+  },
+  "sourceEvidenceAsOf": "2026-05-03T08:56:22.567Z",
+  "effectiveDateDecision": "alias validFrom is the civil date of the local fundamentals evidence observation; no earlier listing history is claimed",
+  "targetPoolCount": 200,
+  "positiveKindEvidencedCount": 186,
+  "excludedUnresolvedKindCount": 14,
+  "unresolvedSymbols": [
+    {
+      "symbol": "TQQQ",
+      "reason": "INSTRUMENT_KIND_UNRESOLVED"
+    },
+    {
+      "symbol": "SOXL",
+      "reason": "INSTRUMENT_KIND_UNRESOLVED"
+    },
+    {
+      "symbol": "TNA",
+      "reason": "INSTRUMENT_KIND_UNRESOLVED"
+    },
+    {
+      "symbol": "SSO",
+      "reason": "INSTRUMENT_KIND_UNRESOLVED"
+    },
+    {
+      "symbol": "IWM",
+      "reason": "INSTRUMENT_KIND_UNRESOLVED"
+    },
+    {
+      "symbol": "QQQ",
+      "reason": "INSTRUMENT_KIND_UNRESOLVED"
+    },
+    {
+      "symbol": "SPY",
+      "reason": "INSTRUMENT_KIND_UNRESOLVED"
+    },
+    {
+      "symbol": "ARKG",
+      "reason": "INSTRUMENT_KIND_UNRESOLVED"
+    },
+    {
+      "symbol": "ARKK",
+      "reason": "INSTRUMENT_KIND_UNRESOLVED"
+    },
+    {
+      "symbol": "ASHR",
+      "reason": "INSTRUMENT_KIND_UNRESOLVED"
+    },
+    {
+      "symbol": "BKLN",
+      "reason": "INSTRUMENT_KIND_UNRESOLVED"
+    },
+    {
+      "symbol": "BNO",
+      "reason": "INSTRUMENT_KIND_UNRESOLVED"
+    },
+    {
+      "symbol": "COPX",
+      "reason": "INSTRUMENT_KIND_UNRESOLVED"
+    },
+    {
+      "symbol": "DIA",
+      "reason": "INSTRUMENT_KIND_UNRESOLVED"
+    }
+  ],
+  "instrumentCount": 186,
+  "instrumentKindDistribution": {
+    "EQUITY": 186
+  },
+  "identities": [
+    {
+      "symbol": "AFRM",
+      "instrumentKind": "EQUITY",
+      "identitySeed": "d3f1ada8b6d6e8b29f4d1b4ff86a43c946bdbe288a7f21e413cd66aaed001548",
+      "instrumentIdentityId": "sha256:8bc6fa7e92682581c1de3117a358ed49eb0fcf8f0751ac633d473c54bb91542f",
+      "aliasBindingCoreId": "sha256:cf14a0d9c099ac90bfe96e6a53cf594cb5908174cce6c2a6ef737c0ab972cfba"
+    },
+    {
+      "symbol": "AMD",
+      "instrumentKind": "EQUITY",
+      "identitySeed": "0e42f276bce4f40dda710b2f9f623f2fd4a6d8d9597d9db9d3174bb937e63710",
+      "instrumentIdentityId": "sha256:445ab1304d518896df7195fda32a1a95dc49661f1ea1089a86cfd689fee8da3f",
+      "aliasBindingCoreId": "sha256:7546de0ebcbc418d0f18a1786c62b35d092c06ef3339dd2154403499360295ae"
+    },
+    {
+      "symbol": "HOOD",
+      "instrumentKind": "EQUITY",
+      "identitySeed": "48086d29ed9239e47fb298a531eccc0c4389e014ca27ce3ee2196c3ee9fd075b",
+      "instrumentIdentityId": "sha256:31bf02ab3587ee373a29706afcc7b98cfac3936939e05b310acc8b95cfaac76d",
+      "aliasBindingCoreId": "sha256:74dfebc12b463e05255dd11b60221835009a1907cf8f405510169405218c3ce5"
+    },
+    {
+      "symbol": "INTC",
+      "instrumentKind": "EQUITY",
+      "identitySeed": "cb4500afec5dd0b634bc225abba2d56b2f560a32fe8417325b70a102d55a549b",
+      "instrumentIdentityId": "sha256:68b9ae0b71c7b66790a849a3595700d9e1154ac751a5d113d9f4171d8807cdba",
+      "aliasBindingCoreId": "sha256:f3e743643a43e7d329eea5553b89cbe00a736851e0f0db5200ed4bc44f9dcb1a"
+    },
+    {
+      "symbol": "NVDA",
+      "instrumentKind": "EQUITY",
+      "identitySeed": "bb4f33a75004d7ddc0da1192fadc83f70bf255c98cc29bad5e042860698dad82",
+      "instrumentIdentityId": "sha256:60b89dab400126f39deca32ed3229f3ddb2f06e0baa02cd20f9fd9992f16938b",
+      "aliasBindingCoreId": "sha256:a78b56efc470698e81438d8a3a47f6dacb0919a141d9d704c613066d839e55cb"
+    },
+    {
+      "symbol": "PLTR",
+      "instrumentKind": "EQUITY",
+      "identitySeed": "405a58d262955e08c537b753852f2b3432de710b8aa802015ea99e2634d13987",
+      "instrumentIdentityId": "sha256:223d80a4e13f993fe4fb9e37de6f308fdc65f4ada7141a26c35a8d68e48b59e1",
+      "aliasBindingCoreId": "sha256:083134b160f982624b0019728cb6cf2972291e6d897c26b617f73ecaaf143e13"
+    },
+    {
+      "symbol": "SOFI",
+      "instrumentKind": "EQUITY",
+      "identitySeed": "addf1963ba3264420580dfe3d4cafbd4346b9bf42154bb8e7dbfc3f17c7ce5dc",
+      "instrumentIdentityId": "sha256:2121101f201a75f3b403029c1f4a701cfb9193376b94edb097f3a10d839618c5",
+      "aliasBindingCoreId": "sha256:bbcb8e526d35009aefb1a925685d21b2910d619d5cb4b537886564b82d6b5485"
+    },
+    {
+      "symbol": "TSLA",
+      "instrumentKind": "EQUITY",
+      "identitySeed": "b4271fb5ec907adf01d07c1847fd31947f7a75826b3cfb015e54575cec43e3b6",
+      "instrumentIdentityId": "sha256:5a3928a12b9faa9470c6445f36737e0ba4d72a4dc145222eb2ecf1250e08cc6b",
+      "aliasBindingCoreId": "sha256:ffaf4fc8d6828c1584e2ec66686da35d3c7dbb06a0eca93b572730121d0b9188"
+    },
+    {
+      "symbol": "UBER",
+      "instrumentKind": "EQUITY",
+      "identitySeed": "26c3ad37f7bb3b79079a2bde2c514e1e91b69cee24fcd20090b294a37b1a8b1d",
+      "instrumentIdentityId": "sha256:8dc17559788de72c1863e010e2da1ea841c8177f2aee35c644049b124cd5a221",
+      "aliasBindingCoreId": "sha256:5dd9c4e95c882ef91461903d0046aaaa07b833577549ab175f0ae573aa561230"
+    },
+    {
+      "symbol": "COIN",
+      "instrumentKind": "EQUITY",
+      "identitySeed": "852e49f3422b69b85c413058a70352a6e5fdbe84dcf28872349d7a7aadc45a58",
+      "instrumentIdentityId": "sha256:58b301adf79292c5cd97b5009dfb61ea7f9d80376509c2f9d7b1db8e4aaff95e",
+      "aliasBindingCoreId": "sha256:3da6793c20208a763b5d53414babfab04366595fadcfbc878f73e2e87e67d422"
+    },
+    {
+      "symbol": "DAL",
+      "instrumentKind": "EQUITY",
+      "identitySeed": "42889f2646ab7288aafc05bdd369af862f443a34bda51436a7890b67db6dc5e8",
+      "instrumentIdentityId": "sha256:bb99f6e3d48f831f6c5e31eb5a31d5e13b919b8e642f875fc574d3d941045ddc",
+      "aliasBindingCoreId": "sha256:76eda3378061a414ed8913bea5eb1f8a6f2f4392199281bed3602dbf101c4dad"
+    },
+    {
+      "symbol": "DKNG",
+      "instrumentKind": "EQUITY",
+      "identitySeed": "75ae7c95fa7bbff2c73b12611d67f236e4b42ad773bed369173f160ce90c65ea",
+      "instrumentIdentityId": "sha256:a6fb3987d97ae4c9867935303ab0f0984774a63aebb2c598946844ac44fc455d",
+      "aliasBindingCoreId": "sha256:eb68f711d6745154ac29f17520039680a3a029c481b8ad71d9fad31820ad4ac8"
+    },
+    {
+      "symbol": "GM",
+      "instrumentKind": "EQUITY",
+      "identitySeed": "bf9ef65650a7e5d2ed9b9baef79cf75d99a06a99dd9ccf46d05a9de6f63c0c51",
+      "instrumentIdentityId": "sha256:d693f21a57dc55ea6dde9054601c1f66b899bf3eb8b491ae30b66c9db8b739d4",
+      "aliasBindingCoreId": "sha256:5eeb328740501fb84cbe4a02a22dea0e7233d7a848429b04b9a6ac3796fd7207"
+    },
+    {
+      "symbol": "LI",
+      "instrumentKind": "EQUITY",
+      "identitySeed": "d83321b1ec5750526f6b1b89711df61728313ccccf537d29cbe87599b8290edb",
+      "instrumentIdentityId": "sha256:6edd3c108c33744488032e2de05fdb3421af3fe44258744d5516cac158840be4",
+      "aliasBindingCoreId": "sha256:0400b86c37c3d76efa9e1ea3fa08e274759158732b82d468871ce70c55731e7b"
+    },
+    {
+      "symbol": "MRNA",
+      "instrumentKind": "EQUITY",
+      "identitySeed": "ec1cdf27a102a5f8e48ac1d24f66e95e699c71fcd07a7da4c9478ffff6661096",
+      "instrumentIdentityId": "sha256:d6e5846da5c4d50810b27e64f58340dbf2ac793972931e6c12acf3eaf8dbf43b",
+      "aliasBindingCoreId": "sha256:40ebd4fabbfa577f87ca74656dffb3f827d2f0347f7bd0b705eef764fcf6196c"
+    },
+    {
+      "symbol": "MSTR",
+      "instrumentKind": "EQUITY",
+      "identitySeed": "9c9185675b3b750e7abeec44ac14914a17de901d47c9bc806ead62541db60af7",
+      "instrumentIdentityId": "sha256:fdf4ba65ea40a01a85a01ccb08e4e3384379c40496d3b510971d1bc48bd9fd3a",
+      "aliasBindingCoreId": "sha256:b4108e782c33be1b5213fb8418811891ca7b092d3853675414bb9046b5b85821"
+    },
+    {
+      "symbol": "NFLX",
+      "instrumentKind": "EQUITY",
+      "identitySeed": "d992b7c4c19d4f4db3098cdf4729e9505075417ef06ce39b5c3c268dfd4b22f0",
+      "instrumentIdentityId": "sha256:7e01331fa82eace5c52a097a2ee1459fec00ee2047e353e66505b3426beca987",
+      "aliasBindingCoreId": "sha256:9923ff46ed98145aa57b4c3812a5a9c4a505ee1c79a1817ea1347492f10b6012"
+    },
+    {
+      "symbol": "NIO",
+      "instrumentKind": "EQUITY",
+      "identitySeed": "769ef2b07537528b5cd09a9b3f4773fa4d1a2bce39b644cfa50cd99dc4d84bdf",
+      "instrumentIdentityId": "sha256:33b361d3feeb3cd7da9cea55446b5de6ed6913150443d9f1369738d440ee2b29",
+      "aliasBindingCoreId": "sha256:c0109b27271dcfe469f76f19b21189c90b9d382304cd3e0f49c1385485cb4a00"
+    },
+    {
+      "symbol": "PYPL",
+      "instrumentKind": "EQUITY",
+      "identitySeed": "8ef0ac6f523054f913e6b410292ed165be573c31a2cc05fd70d25da79fdfb526",
+      "instrumentIdentityId": "sha256:b7d08ac0cbbf4d973f081491acd2d13124f2cdaece9160f4b40722883849eab0",
+      "aliasBindingCoreId": "sha256:60dcf0db4c466085a984653802f258716d96346b44466aa113453cfd6042d32f"
+    },
+    {
+      "symbol": "RBLX",
+      "instrumentKind": "EQUITY",
+      "identitySeed": "46755430966c6fc4569d7aa2fdb7ddeb0c916e0da1d80be1c57dad62c2cdc5d6",
+      "instrumentIdentityId": "sha256:669a1c6020e38d117ac10ff4fba7eea6307536380e8b33175d8690932e7ba4dc",
+      "aliasBindingCoreId": "sha256:be4bc7b94d6f98cd6278544f756cc258a52cde56986defe9db3eac554c8a012e"
+    },
+    {
+      "symbol": "ROKU",
+      "instrumentKind": "EQUITY",
+      "identitySeed": "677815eb55570ad089c2c95d1f8f9d34a17585cc0836c9cc13f50b3b2d4ab286",
+      "instrumentIdentityId": "sha256:d6b7d9f787bd31b46275bc462f77c4826677fbd1cf7c51e84569137d81d79094",
+      "aliasBindingCoreId": "sha256:e6e20e0ab439f1449aa80564232a88191747c9790c614c48492967656aa6012d"
+    },
+    {
+      "symbol": "SHOP",
+      "instrumentKind": "EQUITY",
+      "identitySeed": "58e68e8c702dcb7b6c14cb22583aeef76a35fbf62a83af0c72f2f112b0de733b",
+      "instrumentIdentityId": "sha256:5ae54979c6f31a2afbe5177c2f6299cbf244d8799bc5b0696d73671cb0d9e799",
+      "aliasBindingCoreId": "sha256:c35147021f11cee4ca61dff079db4b76c45b3e327511684f994d7fc84e5bd96a"
+    },
+    {
+      "symbol": "SMCI",
+      "instrumentKind": "EQUITY",
+      "identitySeed": "4034035442169b2d37a81c6f9192839480044f962a41f048ac431f449371a8c7",
+      "instrumentIdentityId": "sha256:ca0c51bdb799cc24ec444f6684ea332b0c12d230e79d7a5badfcbb35d3bc8736",
+      "aliasBindingCoreId": "sha256:3fb208183a4452b853c68fa4a2401c89eff87fbc46a80c2e526cacd871a9512c"
+    },
+    {
+      "symbol": "SNAP",
+      "instrumentKind": "EQUITY",
+      "identitySeed": "fbf373cd4a6fb9ead49d256bb7e32e9f7b89ee4051b82df4265111ba2e9e1226",
+      "instrumentIdentityId": "sha256:22342b372bf44450b18fa1d3a04d706974878715e214664e38c709cf489d4f75",
+      "aliasBindingCoreId": "sha256:401aa9bd85b504d2b1e6bf53ffa307f65d44a4d81b46c81d788a1e2d4f088569"
+    },
+    {
+      "symbol": "U",
+      "instrumentKind": "EQUITY",
+      "identitySeed": "80b9608c4d3293ebb6c8950fd829d53f27ea9ecea5e8ca9b12dfea8380be42e0",
+      "instrumentIdentityId": "sha256:0d162e21b5d33c629e3d82aca83a8a3bcd06fc35f856dd7805b7ce3b56e01ea9",
+      "aliasBindingCoreId": "sha256:004c29b1196c78ed22690bd241ca223bc7a5d1cc18ac1da42e2fafa0b7b64a7a"
+    },
+    {
+      "symbol": "UPST",
+      "instrumentKind": "EQUITY",
+      "identitySeed": "49905b3eb870e6d7487b3024c5e88d375c71d11f1323eaae3654a60c09db7a6b",
+      "instrumentIdentityId": "sha256:5b46f78cc8b858b50cfd9d46018eef29a2e066101031a2921e7f05e9380e33cb",
+      "aliasBindingCoreId": "sha256:fbee9d344829b1f7ca176a939b05fa35078d97f659d2b8e9edf3e62ae9e290e3"
+    },
+    {
+      "symbol": "XPEV",
+      "instrumentKind": "EQUITY",
+      "identitySeed": "af782af96b5e83e878a706969edc498d95d440c636aabed2452a94bf3a4545a4",
+      "instrumentIdentityId": "sha256:f8330a4305d01ea9facabfeafbb149d3ba11514334dcb65ff1d61195604ee518",
+      "aliasBindingCoreId": "sha256:28143682ae1e81d0f0294438e5881572c3076b4c18ecd3145ad1ba531095135a"
+    },
+    {
+      "symbol": "AA",
+      "instrumentKind": "EQUITY",
+      "identitySeed": "1ea900f8d11f5c2d54a58495dba64b3fb870eb175f6d8acbd140e6dde6c55133",
+      "instrumentIdentityId": "sha256:66cf2eeab30747d7444c9dba20f0270d0c52b244f5a20c73b5275df38fab53a1",
+      "aliasBindingCoreId": "sha256:2770465925ee4bc57f6bb5ce86465e88912c1577de960768b4c58db1b078477a"
+    },
+    {
+      "symbol": "ACHR",
+      "instrumentKind": "EQUITY",
+      "identitySeed": "5bb4777739c4d27bf4e61cc3ebbc8e39c212a4b072d688732630e595e927621c",
+      "instrumentIdentityId": "sha256:9bfe9f9288dd5da94ea7890a5ab98fb987c3d036b7d9f7f91d484279708f93eb",
+      "aliasBindingCoreId": "sha256:b50a4147686ee7af2918b78633fb760ff5471cdf4f7bb13b3e1d3ed28943c1eb"
+    },
+    {
+      "symbol": "AG",
+      "instrumentKind": "EQUITY",
+      "identitySeed": "a5251576072860286c92f8e229f66dcaf7ce4e00125c1650a46c082bba6764d1",
+      "instrumentIdentityId": "sha256:2d0cdd2b5c2864d3bd818adb791017e65f838b4794d8db58c7f10de326bbee6c",
+      "aliasBindingCoreId": "sha256:8d00bb7525b218c5e2f7761bebe2cf5e75ce1edaa36eac247cbc6b24eaeb3086"
+    },
+    {
+      "symbol": "AI",
+      "instrumentKind": "EQUITY",
+      "identitySeed": "acda244e9a2e84a394770b49ee03be530c6e624659ec8ece2cca2fc7b6f2f053",
+      "instrumentIdentityId": "sha256:b1f55fcdb0a7f504f35cf4b58cb65c7610904d83b66777d3f720de53081bf414",
+      "aliasBindingCoreId": "sha256:afcb446cf5a7a4b75d85763969e6017977db200cea543ff1f283c7ee7f4767d9"
+    },
+    {
+      "symbol": "ALT",
+      "instrumentKind": "EQUITY",
+      "identitySeed": "c816b6664f6ae0de2dc97d66a71fe8bbcf6054ec01fd9bc45e864a7389e89da3",
+      "instrumentIdentityId": "sha256:4c84ecc1ca8263c9f5c7c6b5e030128302c758d2214bf063213d611b9ba6675b",
+      "aliasBindingCoreId": "sha256:8f62473884368ceaa224d624ba667b27e31b0f6a334d22cd4e1ecec3b22cb35d"
+    },
+    {
+      "symbol": "APLD",
+      "instrumentKind": "EQUITY",
+      "identitySeed": "66a76fa0d4059dfe8dfee10bbb4617c853db148142234542d44ef9dccf4b602b",
+      "instrumentIdentityId": "sha256:6c5d2fcfea42c19cacc74968920ff69e861f849ecc38ac3fc0163f76a119405e",
+      "aliasBindingCoreId": "sha256:1060b85268357ebcf5358b77ba4b8d80020b3633e2ce25293a4f97234af8098c"
+    },
+    {
+      "symbol": "IONQ",
+      "instrumentKind": "EQUITY",
+      "identitySeed": "100c2af938bca6218a166bab7121c3f2a715af9d50d6e043db4860d755be31e7",
+      "instrumentIdentityId": "sha256:0c9c551aa4d1183ad46eb381d277ecc89948dec38aefb7c9f1460f2a835e3ede",
+      "aliasBindingCoreId": "sha256:30fcd79e4f05fe0ae1abc47cee53b83a058895293bb0ae7147b65a1f5103b157"
+    },
+    {
+      "symbol": "RKLB",
+      "instrumentKind": "EQUITY",
+      "identitySeed": "ec081957b55bb0daa500ccb65b4fd4b32371fd42e041b23bbffac0bca8218a4d",
+      "instrumentIdentityId": "sha256:41b8ec445c6b20f26221c6c8159a7e641463d88879d0a41415bb81ca1748ffa2",
+      "aliasBindingCoreId": "sha256:0ccd6a1d090435eec6e0e0c9790717597466be96b80b99414b55d5d5d33d227c"
+    },
+    {
+      "symbol": "AAL",
+      "instrumentKind": "EQUITY",
+      "identitySeed": "b17a7191157df06f8f044df7ed13c4a5f5bf130275f636bb1acf09713c616a10",
+      "instrumentIdentityId": "sha256:1519131564ac4084b07a3fbe63ca8a2e2a202a6456f28214d89e87091a1da85b",
+      "aliasBindingCoreId": "sha256:afffd4d9996c0623a4c18e6ab192a02602b1bdb5b78efea39992d773925a9ea4"
+    },
+    {
+      "symbol": "AAOI",
+      "instrumentKind": "EQUITY",
+      "identitySeed": "77d93f8267fbae90f8b02efe5955b16558d6b68a45c2e39161938c4146aede2a",
+      "instrumentIdentityId": "sha256:5f8cd6e79252d0d271900fee6eccacdf2325524a8c0698266038e9b82009322b",
+      "aliasBindingCoreId": "sha256:0b26aef0785620ddd8e7bcaaa7de547bfd2bcd6cd93ee2193da1a31519c76978"
+    },
+    {
+      "symbol": "AAP",
+      "instrumentKind": "EQUITY",
+      "identitySeed": "3916f052adfac5d0b3aff78d48de34516c131a3e14d8df6fafb81ccf044a570f",
+      "instrumentIdentityId": "sha256:3b630ee76ed9410f9d66d3c08e4dbd32a04175843613f4446b896f4b965ed1d8",
+      "aliasBindingCoreId": "sha256:ba288d1283df460d714a99a1efd46ee7d200fcfd7c26718bca73b8004d26f404"
+    },
+    {
+      "symbol": "AAPL",
+      "instrumentKind": "EQUITY",
+      "identitySeed": "fcca6e0d0d8a3ead3a3743795dd3a2ffe953cd62b9dcbfe249a25cbb0ee8d7c9",
+      "instrumentIdentityId": "sha256:ddc5cc4c3476c414bcfad11c7e0e992c0cfe75f7cc8fddde56321a7c068fdd55",
+      "aliasBindingCoreId": "sha256:9fff674ddf6c02ab0346b84b6b58891a162e3f28a3d9d44ee2d80f335dbf353d"
+    },
+    {
+      "symbol": "ABAT",
+      "instrumentKind": "EQUITY",
+      "identitySeed": "7217b43df649fcbcc9cafa507fca86fb06453e0593b37159c3aab54b4fe567d5",
+      "instrumentIdentityId": "sha256:bd462320e42883321b3512562b12236458d50fda627d8b6dffb039123f1410c1",
+      "aliasBindingCoreId": "sha256:5a30b7b8986ae431494cf163ee2c2ae18517c7f5e602c3048403ac69a717eb74"
+    },
+    {
+      "symbol": "ABBV",
+      "instrumentKind": "EQUITY",
+      "identitySeed": "b833b2a2d05b461871c48976a9869e04e3b1642b81d7b4e4f31f45d98fb70805",
+      "instrumentIdentityId": "sha256:63011387c43291d6a81488a504d2234cf63f134d4c90c4be1d1ec58217a6370d",
+      "aliasBindingCoreId": "sha256:e0753b07fb0a8242099ced767b9595a151019d4ec31240f1e3c17d0656b6302d"
+    },
+    {
+      "symbol": "ABNB",
+      "instrumentKind": "EQUITY",
+      "identitySeed": "fe89a7dce9124f9f0400fdfb02987b76298710c0ed3fafebf5818f62291de034",
+      "instrumentIdentityId": "sha256:18ece1726b249b35ae85071497bf372cc2df14a0ef32f60eb44251d220d36ac3",
+      "aliasBindingCoreId": "sha256:5526e8dfd8cefe9d9fc1cbdd7b947bd05f0b0212e7c1c73559dfcb311a5667ab"
+    },
+    {
+      "symbol": "ABR",
+      "instrumentKind": "EQUITY",
+      "identitySeed": "829f4ef1d01e00a9d2efb6f51ca4a89fe9e2c8aacaed1473f0df9300721e1168",
+      "instrumentIdentityId": "sha256:542b8ecfb8e36341ec9e7029ecf6e6b636fa9b0156767e9018f4ae50f7f99f0d",
+      "aliasBindingCoreId": "sha256:4615a9081daa20184e2956f3b3812cce98ce6b07c89318b4abce4dfd0e3747bc"
+    },
+    {
+      "symbol": "ABT",
+      "instrumentKind": "EQUITY",
+      "identitySeed": "4391704c91316b0ae6eddd5b4dce7bf077928f371b196ccdc6b48f23c7c7fc52",
+      "instrumentIdentityId": "sha256:0686c575efc3bdfdc72c5d6f0ffc8cfadac94e63a7eac4fc46f5d7f1a68b1ae5",
+      "aliasBindingCoreId": "sha256:c4af41a423bef54f4eb854fe9edcaf7f6ec364b3f300e751b0e023625eb6c745"
+    },
+    {
+      "symbol": "ACI",
+      "instrumentKind": "EQUITY",
+      "identitySeed": "e8a42d3845fd6629c8487a8a56fcee7ea56a35c9cd2d43871aa4eddbe7c9cdf1",
+      "instrumentIdentityId": "sha256:21a74231ca2e74400892c68438773c2be3aef60eba083e22a351632dd4819b85",
+      "aliasBindingCoreId": "sha256:2041decc365a19232e14a994c4e2f16d4ac8b4294d75c12f2f08c4db2dcd6483"
+    },
+    {
+      "symbol": "ACMR",
+      "instrumentKind": "EQUITY",
+      "identitySeed": "447169106a91d4cd10d8ce5f13029e8915eeb26d19cbad8402724161c5098d89",
+      "instrumentIdentityId": "sha256:71d1ddd3477e2072199285b66b9a1299f423c01a8a13cb66c0af85bf287767bb",
+      "aliasBindingCoreId": "sha256:f3271c224a34c14153cea99946fd097de50fea77ae5cee45ea80f02f1f129329"
+    },
+    {
+      "symbol": "ACN",
+      "instrumentKind": "EQUITY",
+      "identitySeed": "042211ad2a848fdb81bebb6da8469120f58f4c4ab01c2d8bf8e2d915cf506b13",
+      "instrumentIdentityId": "sha256:6d6c8a9de9a0f0f62c8548471f3d966231b0dd4bb92579710fa5f8d22fb06a05",
+      "aliasBindingCoreId": "sha256:d022834785ff89497cc0b8b225f5acae7713f7949176aae1cdaea7bc83b2924a"
+    },
+    {
+      "symbol": "ADBE",
+      "instrumentKind": "EQUITY",
+      "identitySeed": "ab7be5f543e17a827163fde0698e71997ae5ead557ce902f194478696512ce18",
+      "instrumentIdentityId": "sha256:8ce3c4ca762881f67f4c5653735421fb61b28ce775427f784ee05e8c3f103bcc",
+      "aliasBindingCoreId": "sha256:17876ff01fe6f31492bf2241d5570de4ffa41b8214467a82ab21d7bbe9244c7a"
+    },
+    {
+      "symbol": "ADI",
+      "instrumentKind": "EQUITY",
+      "identitySeed": "61d5fb7d79291425fde93306b8da61559a597e678576f30649b4c2b2a4b5ec45",
+      "instrumentIdentityId": "sha256:48182f92c37f8a8e24cfe692d5a88ac0c68cefb5157b754e885a443bd64ae34d",
+      "aliasBindingCoreId": "sha256:dc1d79a709e44273a7d7bd43e75e0f0af8ee347959ea1f35dfc2b3a77ccc7851"
+    },
+    {
+      "symbol": "ADP",
+      "instrumentKind": "EQUITY",
+      "identitySeed": "bbceaa41670d73cce0fdd95dc0e171ca66a3b904829d2a7e63a5347b8b82811b",
+      "instrumentIdentityId": "sha256:66f27b101fcf18ea9472ad0938673b25a5cc62858c795fa2fc29bd431de53799",
+      "aliasBindingCoreId": "sha256:d84adfdb3636114ecf638e8bf107379f3893c1e80d69bf91939319de6fca21d1"
+    },
+    {
+      "symbol": "ADSK",
+      "instrumentKind": "EQUITY",
+      "identitySeed": "ac51b5a459ea1d6fbdd3d356cc1be65978dfdd132e32d6d8938c3b71a756ba31",
+      "instrumentIdentityId": "sha256:7e87fd409a6ca13bd5d4109f311885c899870397f27a644c4cfae559451c2496",
+      "aliasBindingCoreId": "sha256:896480f4893620b1a5762fb6114d0509a46304c0d9a2c522ff50b86c47df2347"
+    },
+    {
+      "symbol": "AEHR",
+      "instrumentKind": "EQUITY",
+      "identitySeed": "94957014bd9a82e8294822ebe02dcab062547da59dd6ed702e7fa9dbd51c6387",
+      "instrumentIdentityId": "sha256:dcc8181c800fe9ffcfd07f44fc2f5cd79c4e18030d92c328d7b0d0269651e8bf",
+      "aliasBindingCoreId": "sha256:88023a857abf4dc28ee0ed8402a4e42cdf4faa71eb8f1ac44e9b6a89b98b8615"
+    },
+    {
+      "symbol": "AEM",
+      "instrumentKind": "EQUITY",
+      "identitySeed": "6f455d1be3d4c12e4ca851ea145dd7b8fecccfbbed4b98095bf0544b279dd00c",
+      "instrumentIdentityId": "sha256:50894f4eeb2fbf2447aa033c3fbf354500b3184204c17219150f4a94f41b5143",
+      "aliasBindingCoreId": "sha256:4d7248dfc83bacea5d80c940f2969e106f56dddbd081ba5f0b4733f202990dfa"
+    },
+    {
+      "symbol": "AEO",
+      "instrumentKind": "EQUITY",
+      "identitySeed": "a792a0b941973c7ca89352ee0808432467ba5dddd2575ec011bfd8184a368fbc",
+      "instrumentIdentityId": "sha256:425643973d5effdaa615e890092f2c44c8f13c0b9dfa271ddaedddd6ffddfdd1",
+      "aliasBindingCoreId": "sha256:77ea9c9c7eaa6e0e9500f9b8bd9b542bee9c5b2e563fd1476990a2d8e1b5f038"
+    },
+    {
+      "symbol": "AES",
+      "instrumentKind": "EQUITY",
+      "identitySeed": "bb90b9c7cc2817c5101b5333edd7103442b6e3ae250e4766ee506c4bcb7f5fb8",
+      "instrumentIdentityId": "sha256:61face1ffa041a579592074182dec44c4acb4ca7310289a84487c7dab5efc619",
+      "aliasBindingCoreId": "sha256:c78e204a7598002dd359e66511a340ce6749ca8b89b3f96b68ee6eed015fc464"
+    },
+    {
+      "symbol": "AFL",
+      "instrumentKind": "EQUITY",
+      "identitySeed": "3a86c9061dac4c59fb63c3bb811918d617b34ae456d0a9c9f0b300713b0831a0",
+      "instrumentIdentityId": "sha256:1a504113842ede82d274b87586b20df5de96e5cca928be2197ce30bdccb7688d",
+      "aliasBindingCoreId": "sha256:256b60d0f155c9f9f811e9417c7f251398c6d3ea0b5325e939dfa6be220b50b5"
+    },
+    {
+      "symbol": "AGNC",
+      "instrumentKind": "EQUITY",
+      "identitySeed": "e34a4497da626cc9d5d9e02b23e8b94aad54581821c972bf18b5b2e6bc9d5764",
+      "instrumentIdentityId": "sha256:a394edf2b5d8ea1f8ddf37c2da73f5305c2895da787f302ac639c0b3659ecdc9",
+      "aliasBindingCoreId": "sha256:1d98610d913760e4e5977361562ccc4183b5629441ebf2cb113e75bb7b5189a8"
+    },
+    {
+      "symbol": "AIG",
+      "instrumentKind": "EQUITY",
+      "identitySeed": "fb3ac2a32ace64cf92e076cb545dce76e1544115c5ad63f136e7650ed2c45445",
+      "instrumentIdentityId": "sha256:b6062bf5ffb38a374af514697886aee7e430742a3be872c858ed42d62375f36e",
+      "aliasBindingCoreId": "sha256:561f1f6d7dd4e2e639e798dee9726fbf48b923fadb6362b2a09115680be09c9b"
+    },
+    {
+      "symbol": "AKAM",
+      "instrumentKind": "EQUITY",
+      "identitySeed": "8f6278afb8032e62d1db205ba40917164c82c85a6b64ff593931dcea65b290d6",
+      "instrumentIdentityId": "sha256:ab0f097e6efa27167780a8fcad6443f79449efabaa8e9346e5ab46cbedc1d3d3",
+      "aliasBindingCoreId": "sha256:a6fd990f87ab413780822ab2589627352ddacd8e95078eb8dfb293092d4848d2"
+    },
+    {
+      "symbol": "ALAB",
+      "instrumentKind": "EQUITY",
+      "identitySeed": "5eec1d4d76cbbd139e0b5d2adbda61bbfda769b8f55da61bbc90145969605a33",
+      "instrumentIdentityId": "sha256:2e44bf538e068f4ff77f1468a1c9da546c00fa995aebc8546ab1017109a24ae3",
+      "aliasBindingCoreId": "sha256:a487df3611c68858465efcd3dcef273ad4e5b0146a6ffb71c2e2907859ac2e48"
+    },
+    {
+      "symbol": "ALB",
+      "instrumentKind": "EQUITY",
+      "identitySeed": "20b55aa363e22b3ae6eaaad39afb46b36165dabb79a4b0e14c7cc750857826f2",
+      "instrumentIdentityId": "sha256:beafff9e51d1024220b602b3b0099a293cb24cb209f9f8e9c03063b20404558d",
+      "aliasBindingCoreId": "sha256:3047df8a6e8c018c70ce1b49304b6b16c0434a91044e542216166c55fc597818"
+    },
+    {
+      "symbol": "ALGN",
+      "instrumentKind": "EQUITY",
+      "identitySeed": "697c4d14e7fbf328d5fda3b3a5fd92c0a5309f36979bc3bbcb10cb4c1a13e030",
+      "instrumentIdentityId": "sha256:e5c91d0e6ff56eb89f7d19163328028e607ced7b32b2bed618b2cca2f8ba1f28",
+      "aliasBindingCoreId": "sha256:e621794575148a31fbdf2fded37d8736cf5477b2ce3d9b91c69c4ae0b7e60ca5"
+    },
+    {
+      "symbol": "AMAT",
+      "instrumentKind": "EQUITY",
+      "identitySeed": "bf5761438ae82c3db6cee92a5fea4ecaa9642c12367390c3a82a44a4b12a95bd",
+      "instrumentIdentityId": "sha256:1377224fe8f2f7258cc977af368c20fbf3fa135ec8ceb191c70923072d335973",
+      "aliasBindingCoreId": "sha256:0921b9d8048673705c01e0c667feaf649e0989a8d015955c495a8671c937824b"
+    },
+    {
+      "symbol": "AMBA",
+      "instrumentKind": "EQUITY",
+      "identitySeed": "666646e52c0e14be79d33a5c2573e92250e3d02ec8c68f866118461ac12eb72f",
+      "instrumentIdentityId": "sha256:7cc11e5b2913f6aff4c6c276473f2197d9cf2fb8948c5d39b47ba4ed445376d6",
+      "aliasBindingCoreId": "sha256:9374adc6b9671dd1f53eeac495274d169f7d596261a0ed612d1850aacba01393"
+    },
+    {
+      "symbol": "AMGN",
+      "instrumentKind": "EQUITY",
+      "identitySeed": "7a7a1c6483a0441f8d7d565470d40729c0e10ea5ac0fd2f4b537826a42de56f3",
+      "instrumentIdentityId": "sha256:34491f0cc2514a503d87f40d6c2e839abf4f61219857f989c9d1069e2bbbc332",
+      "aliasBindingCoreId": "sha256:3381292b3ccbd71e56076c35c5d323ca883b5947f2ffb97eae235860d6c57073"
+    },
+    {
+      "symbol": "AMZN",
+      "instrumentKind": "EQUITY",
+      "identitySeed": "62d70be697c5f8559b6c4d6cd4327875e2713221fa43de6c3290b066cb98b0b6",
+      "instrumentIdentityId": "sha256:65aea89c570eb5c9c72a2061aea3a2b0074b0663d27be284048376be7a193198",
+      "aliasBindingCoreId": "sha256:5689edf09f46404a8b0749e4554ac0fa4ccbf099f9cea761b11e914c09b857ef"
+    },
+    {
+      "symbol": "ANET",
+      "instrumentKind": "EQUITY",
+      "identitySeed": "0a22b9f776d79e0d635ff1eaef8956127f86640fc1b86eba9a24d5d800883379",
+      "instrumentIdentityId": "sha256:4c3b3be38b3a209fed6c347581cfb8e6264781e34e137f2d00d80231bc9f0a9c",
+      "aliasBindingCoreId": "sha256:b0efd482d1150d933d4f4edf573c26279290aeb07557b84b556ab18d7760d1b3"
+    },
+    {
+      "symbol": "ANF",
+      "instrumentKind": "EQUITY",
+      "identitySeed": "cd495959bd8f8352c8b5c57d81b69ca66a5961dea809077d9885222fe410524b",
+      "instrumentIdentityId": "sha256:174d07fa306d099b6b3bdbeffc1c19560fcd1a185cb899ceee5820a8e3a762f4",
+      "aliasBindingCoreId": "sha256:c011f2f3e795cef34386f401fe2f836d366751f415ab18d6820f74667cea53f8"
+    },
+    {
+      "symbol": "APA",
+      "instrumentKind": "EQUITY",
+      "identitySeed": "3178e4723e6a5c5fe30157068eb3f26ce0b99643a382fdaa5dda8834d6a6cbe5",
+      "instrumentIdentityId": "sha256:e69023524dabf4b2b815bf9f84a0e0c7b0c6fc13ff645c34c003fc57aaa79f16",
+      "aliasBindingCoreId": "sha256:31fe19b12a34a8b84cefea86fa8b58b1c59cb912fd3ba8de8cfcde40084437f3"
+    },
+    {
+      "symbol": "APO",
+      "instrumentKind": "EQUITY",
+      "identitySeed": "98ed028c2384d23e985dcb8a3c76652d14a3a1228ddb7ee312054d0b70fe8468",
+      "instrumentIdentityId": "sha256:e139a8ccdef16dcc87a9e61e89a37d090db3d7dc6d028c4da0b380d66764007a",
+      "aliasBindingCoreId": "sha256:17713071ea673a90e6e59e125a8e97e8559a9d5f5d0f0e7fa8d88a13100c7a77"
+    },
+    {
+      "symbol": "APP",
+      "instrumentKind": "EQUITY",
+      "identitySeed": "718053f34aa73c116c427970b3f028e1caff864c783c67afa3d8c8b812cfa8a4",
+      "instrumentIdentityId": "sha256:bd1c5ac19797e13f793bec861d0f492feaafb02357b69a08b554c455d413d36a",
+      "aliasBindingCoreId": "sha256:8e55da6ebbd06d68f9bfc798ec623b0ff33047e52052994ad9fa7f7066f95007"
+    },
+    {
+      "symbol": "AR",
+      "instrumentKind": "EQUITY",
+      "identitySeed": "c03f8ffd87f29af83a1c4f1508bbbab95ce896a19bd1c3e7c14d23f369dbceb6",
+      "instrumentIdentityId": "sha256:7d3952b3a804908d9bfced26f7a71a3259362620df25f11ffd067f81f1e23855",
+      "aliasBindingCoreId": "sha256:94e395bfc08239e815ec62d30dcfcb43767901f804ee05c22b66208b03635d25"
+    },
+    {
+      "symbol": "ARES",
+      "instrumentKind": "EQUITY",
+      "identitySeed": "cadba02f45b1f69b87399be3efc578618f390b0c963b0164b74379e8fb75655d",
+      "instrumentIdentityId": "sha256:7d7671606b191f6c390b18f436a4d3da76d869c1971fe6d2c83916561a023913",
+      "aliasBindingCoreId": "sha256:1b22dbf2aec222222e654fe58a85a9877f5ede2fe42869d0124d1e6517cd2ffd"
+    },
+    {
+      "symbol": "ARM",
+      "instrumentKind": "EQUITY",
+      "identitySeed": "09c6397ae37a062e3230159e6cb98f3f49d95966a39f22537ce82ca823f55ffc",
+      "instrumentIdentityId": "sha256:63f024e3b5791d1207289d213817a7f47fc221976ac72101d5297615a1ab5121",
+      "aliasBindingCoreId": "sha256:cb60a0d851c8be01527d48b827c2c8b2dc3c5a51a7820720919ff70f59007d8c"
+    },
+    {
+      "symbol": "ASAN",
+      "instrumentKind": "EQUITY",
+      "identitySeed": "e57112b4f011f8179868a5071f2dfab38573f5c157452356d57b1120c3a397f8",
+      "instrumentIdentityId": "sha256:2e16f0896777c357a097ab81feb44d8c6659c45ba5f407146a4cc89caa47613d",
+      "aliasBindingCoreId": "sha256:cfedffa4c2a53e6e3e6006e7079d9e344415772a96d5e147c152510915469a8e"
+    },
+    {
+      "symbol": "ASML",
+      "instrumentKind": "EQUITY",
+      "identitySeed": "ff2cba287ff53d14e1e2694f4cfbec929bd66f76d79536d774e2761391beaaed",
+      "instrumentIdentityId": "sha256:ab342bc520cb1ce94d6199c2e1725e51e7586d1b08910ca1bf54062a1eb6e068",
+      "aliasBindingCoreId": "sha256:e1ad05f0c2f38750412af54a246119cca732cb1e6bee0b12a79144c90887c339"
+    },
+    {
+      "symbol": "ASO",
+      "instrumentKind": "EQUITY",
+      "identitySeed": "c75fba2fc9580fd939ba0785dacc62caef17335787b647bc33eff042dbbb6664",
+      "instrumentIdentityId": "sha256:47a8852e11e9f30b0896c5d9da9982bfab6de86d38b868d2177cf7a9366ae64c",
+      "aliasBindingCoreId": "sha256:6fe873c7289babf34d683a13cb43a9b1412f2a56490902ef45a6421d1f055989"
+    },
+    {
+      "symbol": "ASPI",
+      "instrumentKind": "EQUITY",
+      "identitySeed": "6463f96a4592a0daa7dd30428e16851a373c6c82d5cc15055b6694d68c6e843c",
+      "instrumentIdentityId": "sha256:8a6df8451fc429d45e6ad483c6eb4d0f7ba81fd5035a6cb8abc0247e532a05a6",
+      "aliasBindingCoreId": "sha256:444b1af581d07cec5f726455f727db52bc34e272835f9e99c63e874298867a5c"
+    },
+    {
+      "symbol": "AUR",
+      "instrumentKind": "EQUITY",
+      "identitySeed": "1d9bd8795072abd9f3af31b0e612c5ecb6bee8614368fd39702e8d5a94a97207",
+      "instrumentIdentityId": "sha256:0453b7adafae16476b7563382bc555c42754dc19089696d9ab24067964a80964",
+      "aliasBindingCoreId": "sha256:321760d548746edbcb8c2be805dd895e5573190bd57fc0206e0c6a50c188129e"
+    },
+    {
+      "symbol": "AVAV",
+      "instrumentKind": "EQUITY",
+      "identitySeed": "294079ba2bad03b962d5bcfc6205e4f8524679f1c50d9fee16ca08857651dbb2",
+      "instrumentIdentityId": "sha256:44cceb1d1eee1222a7cb65685f9a99f237b1a8716acacb451e8980a61620c6c8",
+      "aliasBindingCoreId": "sha256:c5f5d11bfee53a9a9f364920e9672350a4e03352b641122746e51d606b6b0e31"
+    },
+    {
+      "symbol": "AVGO",
+      "instrumentKind": "EQUITY",
+      "identitySeed": "4513483435860dbdc34376898bb18b51d6d1c60a5f4bbc8a5316c55d4e5f1045",
+      "instrumentIdentityId": "sha256:b1bc88851b92a379fc883ea91d01d65f1b3498c99d4720f459d1498e4ebd63c2",
+      "aliasBindingCoreId": "sha256:81ccffc01b5f8c73393b0c1279056e04dfaa4898a6e5306fde93b372ce611e69"
+    },
+    {
+      "symbol": "AXON",
+      "instrumentKind": "EQUITY",
+      "identitySeed": "49586b9bdfd2ba2b2a78f14e464dd7db3329bc3d4a669513100eac2cd01e682a",
+      "instrumentIdentityId": "sha256:c27fc03b6eab9c6b7312c8150e631ef6b164956b68dc1ad5e91f9bee8a3f4df7",
+      "aliasBindingCoreId": "sha256:1637692f596f8d534d05783ac07585ee673560c80e24178e06ecfbcf9ee94fce"
+    },
+    {
+      "symbol": "AXP",
+      "instrumentKind": "EQUITY",
+      "identitySeed": "5c99e19e25a2f5bc9873b4173d4484d0d9617a2b197cb50f6d212b2ecd622fd5",
+      "instrumentIdentityId": "sha256:f118f44dc9534ce8b11cf5a104238c0a2e33d4c1762e6a814fe7b39977e333e3",
+      "aliasBindingCoreId": "sha256:a994d932c78d1546dc2f270a25fd78736653e519f1aa38eb6201199b1701dc4f"
+    },
+    {
+      "symbol": "AXTI",
+      "instrumentKind": "EQUITY",
+      "identitySeed": "d8de895a2cdf17eb3a77a794037a81967dacb2092d0b21c256eddb2864a6fd79",
+      "instrumentIdentityId": "sha256:ee06eecbaf329ddd141dd7388e7c0dd86945ef7eb4c6710dc97064553e44cc58",
+      "aliasBindingCoreId": "sha256:ab660e38ce379466b279f7a1f10f46981be6f1d58a69d8e0672233a954a06a12"
+    },
+    {
+      "symbol": "B",
+      "instrumentKind": "EQUITY",
+      "identitySeed": "3a8805a3a947b5210fd70d5e148e76cc76c64a1adf5b1b2e6c237e97637f2b78",
+      "instrumentIdentityId": "sha256:b9e5281d068dd8e71e192b36061317b927588cf5b44052e580a2f831ddbfb49e",
+      "aliasBindingCoreId": "sha256:d379d04dec53e6e35ba93ba03bc8b2bfb0079bd5f0c72376c3b2c4928a67eda5"
+    },
+    {
+      "symbol": "BA",
+      "instrumentKind": "EQUITY",
+      "identitySeed": "6aaad07952c8e212e892443b67507e5749466aed6f12013694eafeaa8c49ef71",
+      "instrumentIdentityId": "sha256:0e1db294b8cb9aebfb0e9e5d7b7d371295e6647c07c06f4cc227bcb564d9acd6",
+      "aliasBindingCoreId": "sha256:f0e0263c0bd744dfd964c06c73ad0664abad55df102aee855e5f1a6e2096643f"
+    },
+    {
+      "symbol": "BABA",
+      "instrumentKind": "EQUITY",
+      "identitySeed": "48dc039e9953e69d04226410cca663e2ec58378ec4607788e9df9da9171d26b3",
+      "instrumentIdentityId": "sha256:5c522e725167e84f4d736cbaa5b783738891b8610c290ea99de8215bfd2f76f9",
+      "aliasBindingCoreId": "sha256:1fbfd970da217e88c396a6b6cd60535757a8e32b179e6ac991f09585bf979ec3"
+    },
+    {
+      "symbol": "BAC",
+      "instrumentKind": "EQUITY",
+      "identitySeed": "1d99ad7aa7a50f098be945206d72f454ce5752ef2ca1ac52d9bc3a5ded31aa9b",
+      "instrumentIdentityId": "sha256:92367d575062e5673c3c456e92658c495ca953be3557c595aa5eb01ed9c91ee8",
+      "aliasBindingCoreId": "sha256:c187880e2a42e611746f2564b6a942be7b3350e2dcd9aa062affda01749853b4"
+    },
+    {
+      "symbol": "BAX",
+      "instrumentKind": "EQUITY",
+      "identitySeed": "31871be1129ddcb439cc991726e4bdc7ccb5b345cf37f86dcb5a8d707be70182",
+      "instrumentIdentityId": "sha256:e8b6a2bbaa187519f8dabb7426e6ccc01e9f8193ab87084c77268c4ddb2ce59f",
+      "aliasBindingCoreId": "sha256:41f05720190a09ae339b29871d4e0ee552ca2ba8c14a82d342532afaf772d48a"
+    },
+    {
+      "symbol": "BB",
+      "instrumentKind": "EQUITY",
+      "identitySeed": "67f5b0a17d5e534ef307d5da5f8495538a621d12b025bc47f88e7673b3b2bb9a",
+      "instrumentIdentityId": "sha256:7f3242ecc5352a4bc38d3956c4f6261e89f069320146a283af19ef4238a78caf",
+      "aliasBindingCoreId": "sha256:d44f6466ab04139402888a86436422ff2275b05a850df8ab70bc83925e720622"
+    },
+    {
+      "symbol": "BBWI",
+      "instrumentKind": "EQUITY",
+      "identitySeed": "89fa36d6995442cd5dde92b727ca297fea70739945fc890b4e01b29a60fdb8cf",
+      "instrumentIdentityId": "sha256:cb5e759db4ff20af8c0c641bbfa19f551915c6ff7b9cfcca017ee3cad2fce2ee",
+      "aliasBindingCoreId": "sha256:9f4c00728a2baff0240efe24678a433e950d40284a6e8f43ae028a9f2f4b0144"
+    },
+    {
+      "symbol": "BBY",
+      "instrumentKind": "EQUITY",
+      "identitySeed": "594ef2f9a32a3fedbdc1b1fb9b5a21162b1d6701010b4bf66b0d6000359e67ed",
+      "instrumentIdentityId": "sha256:eca84aa3558f52b351d21f7d26ec41bfc9bb952688fd863543ce83324011b50c",
+      "aliasBindingCoreId": "sha256:3ddb8b981e0779de34c4cc02c55ad13def2c04429795c6fb427d67ac3c25f202"
+    },
+    {
+      "symbol": "BE",
+      "instrumentKind": "EQUITY",
+      "identitySeed": "bd4d174099e9730326bdde65ac81a33ff8a92ede37b7d10d6734d1912e69a42f",
+      "instrumentIdentityId": "sha256:48e3de7f8433966d076e61e40da48e1c595e91dc996e91ef92b6a1f442f38a30",
+      "aliasBindingCoreId": "sha256:cf3b5d990414f36fc0f568b9a4da0b152dc677dd9c1b1eab947ae318ace1a532"
+    },
+    {
+      "symbol": "BEKE",
+      "instrumentKind": "EQUITY",
+      "identitySeed": "eb8aedef2b8b6fe6d241c76521745cc6aad8ffc9475a17bae96cbae41fec6d81",
+      "instrumentIdentityId": "sha256:63ef7b7b3de49bed5708af5eb0e90f02022e4d819e43ba0a4bc73f821dd6a25e",
+      "aliasBindingCoreId": "sha256:644de0be8754c67dcf01bd4432f76ecc583efce096c5ea8576eafdcfcb9cdd9e"
+    },
+    {
+      "symbol": "BHC",
+      "instrumentKind": "EQUITY",
+      "identitySeed": "ffb9cb844db91e063652e2088d98907297951d1f28943669c733f5219f277a14",
+      "instrumentIdentityId": "sha256:a40a13e362d005e4f1104696c769a167ceccd6cd594dc01b566ea0600c93b82d",
+      "aliasBindingCoreId": "sha256:c0bb43ea0a4103ffb5a3f660f635b524e24e81dc9ee9ce9e6d2781a92b5c1091"
+    },
+    {
+      "symbol": "BIDU",
+      "instrumentKind": "EQUITY",
+      "identitySeed": "90f40d5e6b132acb8cbbe42b4b3e3aee750eb8b7c9e89a7eff1f659ad05bb485",
+      "instrumentIdentityId": "sha256:5277ac3d74a2feb47735bd0a4399480d44bea03bd1e4b1a643005d303b4f5445",
+      "aliasBindingCoreId": "sha256:e1093a76ada77667bd0fc12c3be661902ba1dd868fa7d0bd4150afc0f6c94f36"
+    },
+    {
+      "symbol": "BIIB",
+      "instrumentKind": "EQUITY",
+      "identitySeed": "70d4e935ccd52af29daea51355f1313192098baab04b41415fdf5f59d55daf86",
+      "instrumentIdentityId": "sha256:4ac97aaaebe9dcaded178c542ee9f66270626e44e4b1796c86d9111b628c138c",
+      "aliasBindingCoreId": "sha256:c39f0364c4d6aaf11aeda917a2f96df6d42fdd3e9be28e2b4adcc1f48bd32332"
+    },
+    {
+      "symbol": "BILI",
+      "instrumentKind": "EQUITY",
+      "identitySeed": "9287179f401e7202791b0d3cd0f741bbf70d82ca5ec2459cb9301d92fd667777",
+      "instrumentIdentityId": "sha256:8463e3ae111129d93875fa325000c138a435dd343a197a5ec4149dda6d110a17",
+      "aliasBindingCoreId": "sha256:5a7a6fd2f96712812cf32fa8cbe75b9f110fecda1bd501a681ed678b4f816d10"
+    },
+    {
+      "symbol": "BILL",
+      "instrumentKind": "EQUITY",
+      "identitySeed": "27a58a78d921e82122f134372f3f8d7c83b7c86305417d2d75b03e3610abaadf",
+      "instrumentIdentityId": "sha256:42f01f164f0a6691cef1c6978684530160483a834408763394a47a04748274d0",
+      "aliasBindingCoreId": "sha256:10c01f5a0f9c9a19e9188fe87255e448bf2d0f04d6b19ee8f4d80f19b32c80cd"
+    },
+    {
+      "symbol": "BKNG",
+      "instrumentKind": "EQUITY",
+      "identitySeed": "c9369c71a968a58af9450028ae2fcc938b33b1a915b6523381fb2511a7d0c25d",
+      "instrumentIdentityId": "sha256:0417c550cea25cf7a42894bd8b0717d6903bbcbd10547500e6d6d1f0eb5f9c72",
+      "aliasBindingCoreId": "sha256:d6d4d3931227c0ff8752d13f238d65db10856f135a98b2b7250bf8ea4a5c8dc1"
+    },
+    {
+      "symbol": "BLK",
+      "instrumentKind": "EQUITY",
+      "identitySeed": "2a07f887399d35a79da4288b77d62e9008abf98b0b32d2eea4c7a8029dcf3a0c",
+      "instrumentIdentityId": "sha256:598e16e78b710f569ad94a8bf4e621be46b5059f5301e262c88aa8b6757e981a",
+      "aliasBindingCoreId": "sha256:78252f5d8916e554244ee87dae3d5b8903954d59466dc9e534c5731db78af1d2"
+    },
+    {
+      "symbol": "BMY",
+      "instrumentKind": "EQUITY",
+      "identitySeed": "6aa8219951c8b90eca9427615c2f4314ee992ad5a0cbdb11bef9f6c351a1c133",
+      "instrumentIdentityId": "sha256:d59a9afa03c22b07bcd3e25ac05ac6048453cc19f290833a7efd6663a9063f74",
+      "aliasBindingCoreId": "sha256:c26271932572a3d046219c2ca2b0933b7700bf08fcd8415f12d1d1855d305f77"
+    },
+    {
+      "symbol": "BP",
+      "instrumentKind": "EQUITY",
+      "identitySeed": "dff86e37df0fee2ea1030e196d7e001ac407f8c0909a53cb6d925437a75f1371",
+      "instrumentIdentityId": "sha256:67d370b0b3840944972b6b828c201982e6b9dbe6249d277c77629f3e63104beb",
+      "aliasBindingCoreId": "sha256:fc657cfc989421526868a68feb9b54aaabeb90efc5a850e7a054e10451991463"
+    },
+    {
+      "symbol": "BROS",
+      "instrumentKind": "EQUITY",
+      "identitySeed": "4343cab61c861f899774c872c0b449170da3ca5f54d1f6fc6126eea2b242ad6b",
+      "instrumentIdentityId": "sha256:ab0dae4eabec0e94f8d1d23b4937d18ca63a2915fd4a95f2a826f931cc590a18",
+      "aliasBindingCoreId": "sha256:e33bf92971e82365c0b40d1fd1a7709a54d87c91df09c1a4d71c43d2716e515a"
+    },
+    {
+      "symbol": "BSX",
+      "instrumentKind": "EQUITY",
+      "identitySeed": "7120f56f3b5235dd7e01a2d8b3c9fd4f1dbd53369aaa5327908a756731df0400",
+      "instrumentIdentityId": "sha256:56b739c8fefb2e0f33f00dea8d4934dbaee074500b9e320867e0fc3d1cb6b1f7",
+      "aliasBindingCoreId": "sha256:c67a47c7b11ca6bd9ad500100600f5a827d14544413c764471fff2d398d08f45"
+    },
+    {
+      "symbol": "BTG",
+      "instrumentKind": "EQUITY",
+      "identitySeed": "5f21064f8eb2184a1c07485a8480918c4f8b702010930fa73abee620cfe53edc",
+      "instrumentIdentityId": "sha256:9bcf135b2d6475654bd685a4952388041ab1a16a625d0fc2d31b5523af491809",
+      "aliasBindingCoreId": "sha256:0635f646f8207a5a8a4f7fd7e75cd360b43211af867e4c600e28ecdba90e70be"
+    },
+    {
+      "symbol": "BTU",
+      "instrumentKind": "EQUITY",
+      "identitySeed": "1d0574e0780b95845279a2cd7cd89ad624b62919246b095a90eccac6654d72b0",
+      "instrumentIdentityId": "sha256:504d3c4cbb34327e9419d89d55053aa4fddd6e62f53a58af8ed09d4e35494810",
+      "aliasBindingCoreId": "sha256:194f0cfeb290f0500c64efd96f602f0d48ec5e1c1cd8603b72e1ff769cba9a62"
+    },
+    {
+      "symbol": "BUD",
+      "instrumentKind": "EQUITY",
+      "identitySeed": "f456385d6716e5cc8b28320d80359dc6a12a5eddceb4b9a4e7ed63c5fa052185",
+      "instrumentIdentityId": "sha256:ed9e8d06bce3fda394300096391557767f332a2f242626053bbc06e1e893dc44",
+      "aliasBindingCoreId": "sha256:fc9c0ceb8be7ed8e5f6fcd9628e053065a96f051b48e31e8dc02b0c69fc66c45"
+    },
+    {
+      "symbol": "BURL",
+      "instrumentKind": "EQUITY",
+      "identitySeed": "51446596194f6529199afa4c5a4ac644977bb47c8c4aef424ea3aa1a47746662",
+      "instrumentIdentityId": "sha256:b89b1215756b5e50db8bb72026c01a8ec8353f61d92d52772e262f83079da3bd",
+      "aliasBindingCoreId": "sha256:7be7dfd6e4f00766608c5a0fe82da190e5733a3198ab1319729623bf2d65eed6"
+    },
+    {
+      "symbol": "BW",
+      "instrumentKind": "EQUITY",
+      "identitySeed": "c8b16c96c1947849c56bad43141f80e9cd03800d18b0285d5726cc70521b9eb2",
+      "instrumentIdentityId": "sha256:46b8dc42037ef563c8b868df4b4674fdd85c48101f1480466137993e91566f23",
+      "aliasBindingCoreId": "sha256:a3b742e91a7dca5b3df2e755e6bbfb725bcac8427186444e064cc86081e597fe"
+    },
+    {
+      "symbol": "BX",
+      "instrumentKind": "EQUITY",
+      "identitySeed": "e7386ba4505d48144f3526868f7b8b83d5d6fa66870f6db016c632170e978169",
+      "instrumentIdentityId": "sha256:cf47eeda992e5253d2fc0d8e27f3f3e6f076d81c0f1bafc835fcb96961a81947",
+      "aliasBindingCoreId": "sha256:d51e1513ab6d320b0a5eedf896858048a2d8faa634ce543d9bcdea1d09472e1c"
+    },
+    {
+      "symbol": "C",
+      "instrumentKind": "EQUITY",
+      "identitySeed": "6fd5030dda55c93845b195d10b32520203804d293534bbfeabbdf8e808e3e03b",
+      "instrumentIdentityId": "sha256:64593dfd38efd09a69c2ad41b759069dad756f3a9a3f1d12764ba037b48e8647",
+      "aliasBindingCoreId": "sha256:5a102346e3df53a81a81087e4436a8e12961e71444f6c520722ee5860118817c"
+    },
+    {
+      "symbol": "CAG",
+      "instrumentKind": "EQUITY",
+      "identitySeed": "04d0c7d311a7aff2406d150df99347b5de6bb6628dbe93cf78d0a073fbbcf022",
+      "instrumentIdentityId": "sha256:957ee59c21277fb0de14a3e1fb8e743d3953962a4a597d9997a17a33cb795108",
+      "aliasBindingCoreId": "sha256:9b111176621d2c8f2dff955fc4df2d8bc0675951822631dc4ef873181a6347f2"
+    },
+    {
+      "symbol": "CAH",
+      "instrumentKind": "EQUITY",
+      "identitySeed": "03ca1a7773e27e8379ecfaa0a0e8bf757893480e9cf00fcaea22424431835c10",
+      "instrumentIdentityId": "sha256:b13fde7dd7e753bd7d9953c8ee81707580e1edc5e4a795c1c1518e9c5efe34b4",
+      "aliasBindingCoreId": "sha256:09854bc93feaf2a5d8425b0da36783db21488671a680740bcb00160cd74c97e0"
+    },
+    {
+      "symbol": "CAR",
+      "instrumentKind": "EQUITY",
+      "identitySeed": "ac2f45093743824001b92c5cda538a16c6726174f94822eb0f0bea1edd705e4d",
+      "instrumentIdentityId": "sha256:29376e0dd731800d80b2b725da708e5a984235268cc61dc1544ad2919b21d641",
+      "aliasBindingCoreId": "sha256:6b072aac334fa44849da4363c3db2db6fa54948effde00a638062e9c18712f8d"
+    },
+    {
+      "symbol": "CART",
+      "instrumentKind": "EQUITY",
+      "identitySeed": "e8453145e6db8b5ed6dda7e4b5ad3ab808f7511b8c5a8f04240c00cd1053eca2",
+      "instrumentIdentityId": "sha256:3e653eb0ecde03c5c61f364e8c2cc6428add79bdf6c922513d0ad1f335bd01be",
+      "aliasBindingCoreId": "sha256:4d6a41247e4eb36aa62e912ef670ed31ed839a17eef6e32c3a2fbcf708d8ff40"
+    },
+    {
+      "symbol": "CAT",
+      "instrumentKind": "EQUITY",
+      "identitySeed": "b15877f352d0ce73a17356806fddf8493b863597a8fdc66a33e2101bebd5ee2b",
+      "instrumentIdentityId": "sha256:4625b44381b5d18f3ec847cf0cf12c19777d1c76e709fe4c36cf88076968ba76",
+      "aliasBindingCoreId": "sha256:f5a2eac7889c7b2389a7accd028773f7027a2a8b1faffa4d42586828f16e8945"
+    },
+    {
+      "symbol": "CAVA",
+      "instrumentKind": "EQUITY",
+      "identitySeed": "405aa4c243a32984d3ade4de709704fa06e3f72a88d9a57e9bde71dcc0c958ee",
+      "instrumentIdentityId": "sha256:53b2422df39df0e04a05daf4d8abf42324589bebe9f73fcaf87b24317e6330ee",
+      "aliasBindingCoreId": "sha256:5310fe0b63b3ad0870f40d22d3f8ef895fad1864bf638b9f18aa64ac8ace9089"
+    },
+    {
+      "symbol": "CBOE",
+      "instrumentKind": "EQUITY",
+      "identitySeed": "4cfcc97183fb0b94baa51d2e492af50102f3d91ad77dbd4d9ed5370b88783bb7",
+      "instrumentIdentityId": "sha256:3bf20300dac912fdf2bcd332f4bbae48bb9b170a2bb3f8c3f05d794f8f87eea7",
+      "aliasBindingCoreId": "sha256:d2b2cd021730868ce156c20fd44a4dff266d10a9339699576be3fc011d6468ea"
+    },
+    {
+      "symbol": "CC",
+      "instrumentKind": "EQUITY",
+      "identitySeed": "da588c0834ea0f1f1760a30e23247659fe1695ddfb0a264f755be7cc4b419349",
+      "instrumentIdentityId": "sha256:50b58ee991d49dd650fdb3d989ced9ddaf89a477e60048f2d9cbdb33d1a70195",
+      "aliasBindingCoreId": "sha256:c47f58ce013a97fc2c55c3ab42102462fc43e682ea7779794c90ab2b310d68e0"
+    },
+    {
+      "symbol": "CCJ",
+      "instrumentKind": "EQUITY",
+      "identitySeed": "ad303a4d96fc0c332a5b3842afac406c83614e43c7a10847a3932d31fedb2183",
+      "instrumentIdentityId": "sha256:d0ac0acf2787bc625514d5cce9ed8a57c91100e5055b1166176ff399104f555c",
+      "aliasBindingCoreId": "sha256:ac5b960ee110c61528392150bc51bbead3e8e252278a3a53d925caf8310ff576"
+    },
+    {
+      "symbol": "CCL",
+      "instrumentKind": "EQUITY",
+      "identitySeed": "3944e30c779319e03cb45ea01662d949d9025e22e24ddc8b3389e4fdd4869bba",
+      "instrumentIdentityId": "sha256:bdc1fa6b56dd42485fb4d11287e1d618f06be1dcfca2dad6174ca17a7ee4feaf",
+      "aliasBindingCoreId": "sha256:271d0aecf2a7494959de3a3d8795c61787a626dd501f2ca113d9944f611feb11"
+    },
+    {
+      "symbol": "CDE",
+      "instrumentKind": "EQUITY",
+      "identitySeed": "d9743470ecddf4555e180feb4ccf9d97c706e15bcb390e795acaf228fb24f63b",
+      "instrumentIdentityId": "sha256:e4b524eb33025626af2b1f37dd1f4a291b33963081efa4bbf2aa53ff65233a8e",
+      "aliasBindingCoreId": "sha256:9275dfb79550b700ce8acbf43df1ae082622a7ff507959f71ab94195d81487ab"
+    },
+    {
+      "symbol": "CDNS",
+      "instrumentKind": "EQUITY",
+      "identitySeed": "611d94ece793347ed3a9113ce94ba889ba5f69b8bec55d41d96b1985f389b455",
+      "instrumentIdentityId": "sha256:1fcb4cd08e22399fed5c6fd3887e2baafa199b9cd83ec06451d396c4a87baac2",
+      "aliasBindingCoreId": "sha256:91bdc61d828fce3631ab4c3d32cc8f63408c8022af1c09395116c4cc6a1d1a61"
+    },
+    {
+      "symbol": "CEG",
+      "instrumentKind": "EQUITY",
+      "identitySeed": "2e0fd64a14667fd64b50370c7ba600789e815f793827e8ca7ef4581c4d31e4b6",
+      "instrumentIdentityId": "sha256:be6577df2cd0413b2c577e42adbf6a86b1b5347c7e151141ab3db1832b43b922",
+      "aliasBindingCoreId": "sha256:cebfcd237996749730b4c85892b31eab957be92e46cd4d99941f3acbd4e049a5"
+    },
+    {
+      "symbol": "CELH",
+      "instrumentKind": "EQUITY",
+      "identitySeed": "8088813386e3728ee5692a00627b5a9c403c0952575538384f78f4409989085a",
+      "instrumentIdentityId": "sha256:86efa70ca66e4f902c981b3f9c4dc87a04d5e09368a0fdfedca3216d1ec55a32",
+      "aliasBindingCoreId": "sha256:e4d6bedcf18bb5a5c3f396c2d34a9258972c7d4c269f103107326806d2bb6528"
+    },
+    {
+      "symbol": "CF",
+      "instrumentKind": "EQUITY",
+      "identitySeed": "0c89aaa1ffd9086438cafda88a0bc457e501af800d43ecaa8c77b5cdbb2878e8",
+      "instrumentIdentityId": "sha256:370ec1a25521216c08f19a34a93d32bbccff717b0cc3d5a106e36a99645dcd8c",
+      "aliasBindingCoreId": "sha256:54b876ea2916c583f530c5290889df530ab566c5b6c07fc1ed31a66e08c0c934"
+    },
+    {
+      "symbol": "CGC",
+      "instrumentKind": "EQUITY",
+      "identitySeed": "381b581c5d7776907cdbcaedd5584ca5042017200676a35c3f54898d02cccb9e",
+      "instrumentIdentityId": "sha256:f2fad97397bfed4f72e127ea91508b1d211e2ecd96ff6a52ce142227b986a048",
+      "aliasBindingCoreId": "sha256:0cdc1c73f67a8899b9e0e29148fca00ae0abf11bfb4f1a499f7b934f827f6e94"
+    },
+    {
+      "symbol": "CHTR",
+      "instrumentKind": "EQUITY",
+      "identitySeed": "3b27b8c288357b2690fc54af037327200f1197f8872afaf0ecb8d98e32c2e787",
+      "instrumentIdentityId": "sha256:60f2cd394aea2f299fbcfe9fc6a7c927b5291e2c14651cb4ff8db5018d0fc414",
+      "aliasBindingCoreId": "sha256:2b58939a8061ab5b6b617948dbab764dd243048e13bbf9bd68245259efa63b8c"
+    },
+    {
+      "symbol": "CHWY",
+      "instrumentKind": "EQUITY",
+      "identitySeed": "43dfc4a175bc8ad23f0cc54fe51c8099849ff4ef89bf05e1604e04bbbf02c627",
+      "instrumentIdentityId": "sha256:7364fd407f1e016ed5f5da5b8d98df5e12ec16700ad3d1a8cd9957141d176f9e",
+      "aliasBindingCoreId": "sha256:fc85c46b942d9a1f75d03bd118d41d6c4f5ba3411a9e5ccc89b6208d4758de15"
+    },
+    {
+      "symbol": "CI",
+      "instrumentKind": "EQUITY",
+      "identitySeed": "27cb84c01cc51db41281555a8e37a70425083dadec98035724eaec4fae2c0127",
+      "instrumentIdentityId": "sha256:a44681489f3b0beeaf706890021b724de8edfd97e48dde7f21d460cb0f775df5",
+      "aliasBindingCoreId": "sha256:1a12ecde63875cf40b825fb232561edd6c652cfdc350a8e12ac6662d2290321b"
+    },
+    {
+      "symbol": "CIEN",
+      "instrumentKind": "EQUITY",
+      "identitySeed": "c13451911b4155482141db47e9cf80c2722a64889604d4e94fafb4bf9a708f75",
+      "instrumentIdentityId": "sha256:2e06dc7739fe28469a92b2c1e16515bf8838cf5f9f4fd5b47f4745cb18bdcf4f",
+      "aliasBindingCoreId": "sha256:342bb6d473d1e55e8e23709c1e7b7c60994f460052d9a0ed8ef982327c113c6a"
+    },
+    {
+      "symbol": "CL",
+      "instrumentKind": "EQUITY",
+      "identitySeed": "dc4701239ca0544dd96bfd89a5a5b03fcbaff8c1a7fd77520e39328575c0e26a",
+      "instrumentIdentityId": "sha256:65af46a32f5d81ae9c45f50e213d2adf11cf4cb9da4ce6d59fb6090abf919ac4",
+      "aliasBindingCoreId": "sha256:9ab58929007c4aeea5e8d0d7cfaee2d2ee8c947bb6a9b892a582516e5ee9f14d"
+    },
+    {
+      "symbol": "CLF",
+      "instrumentKind": "EQUITY",
+      "identitySeed": "7633795a1ab0617ee8b45a1515484c6317c5bd09ea5d0ad831123411ea5b416b",
+      "instrumentIdentityId": "sha256:b447c133d086fac3fb6a35809c80fec5a09394f3eda4f5576939ab4982d96a42",
+      "aliasBindingCoreId": "sha256:59652bd48864c268a486efa66e4501bcb8d1315960e12133fe8c2a1eac71278d"
+    },
+    {
+      "symbol": "CLS",
+      "instrumentKind": "EQUITY",
+      "identitySeed": "a1096bcafe058fa571bb4deb0cbe20ae53762960f91f6a738dcef05a85f9e980",
+      "instrumentIdentityId": "sha256:5ddc74c89945f799189bb6919bdedebc519a6b8a603b91752b7e9b6f5b34cb11",
+      "aliasBindingCoreId": "sha256:c8d782fa4a9d78055861b5b08910f7f6529386b3f3b62cc6e2ea04f18d933003"
+    },
+    {
+      "symbol": "CMCSA",
+      "instrumentKind": "EQUITY",
+      "identitySeed": "d4c3987ef80f60ce001e0bcd5706e5141509d73c15a1de9a2744412b0f593ee4",
+      "instrumentIdentityId": "sha256:d6f6b0cb216241d49ebec94985627e37e1e3c08c8645f675a3bdc75ed7c0f1bf",
+      "aliasBindingCoreId": "sha256:6902d9cf4b5f5879cd9d89e4533089aa9661cdb79718d024be6c923e5dcb58f0"
+    },
+    {
+      "symbol": "CME",
+      "instrumentKind": "EQUITY",
+      "identitySeed": "66c42820e47b3e743884c35d38d1f22f6d313a371946a65da1294aaccee7b0fb",
+      "instrumentIdentityId": "sha256:f75eb259412e4e88c685335a873a7c8a97cf0e662abd9a5b41c0bc70bc785a7d",
+      "aliasBindingCoreId": "sha256:b0703a4cbcbef936e9c02cb020ac6bfe83d144f205cee0b7b5d28035862ca5d9"
+    },
+    {
+      "symbol": "CMG",
+      "instrumentKind": "EQUITY",
+      "identitySeed": "d8bfb2c3abda33598494ce4dc1e255e12c2c6728dd1f5296890066b45aaa2405",
+      "instrumentIdentityId": "sha256:b2517dbf059856235513f2801e33d928bea44bce295b7b5c5886b60832e91a82",
+      "aliasBindingCoreId": "sha256:4f0e8f44b306d0ee9b6435bda22ac9301b89cb1ae0abcf36f0a30f00c2b9b2fe"
+    },
+    {
+      "symbol": "CNC",
+      "instrumentKind": "EQUITY",
+      "identitySeed": "b7722dc4b584f72c364faa5d2faa64ab6a1c9a472036f13d4211ec468de11f82",
+      "instrumentIdentityId": "sha256:dcccfec4fc3d8f2facf2d6f91920d4836376cbf6431e7e0f80a3445c2976931d",
+      "aliasBindingCoreId": "sha256:285aaba91c58a1fdb3d2510e25f011cda638a66d385c8d0fa074d9b257e97ed3"
+    },
+    {
+      "symbol": "CNQ",
+      "instrumentKind": "EQUITY",
+      "identitySeed": "802ebc0bac9cbd602cc5dd9d08b3f0f73006af5c745d715d2d03acb432a94080",
+      "instrumentIdentityId": "sha256:efa5b21788d3cdbb114792c1f696f4270fa93898f98a6a2504432ef22c256346",
+      "aliasBindingCoreId": "sha256:08241907525ecc5fcb82cf2ff80455a54f79daf582a79c36bd756b682a488b68"
+    },
+    {
+      "symbol": "COF",
+      "instrumentKind": "EQUITY",
+      "identitySeed": "af4c750f25e8c0090c82e2680f039895708eba03e597077a6b0da9d990df7930",
+      "instrumentIdentityId": "sha256:da5e0c9c6e1eee35cf654069ab347ef93ae8be1c6a40ef6ea11ec0a5117fe0ce",
+      "aliasBindingCoreId": "sha256:15e8c36ea7d13c9bdccb560e7fd711e5644a9078423d59b80d663d1fd70d4448"
+    },
+    {
+      "symbol": "COHR",
+      "instrumentKind": "EQUITY",
+      "identitySeed": "28eb5d09f4581638d7462621b8dabefa517dba54cf83bcf349caadb5e23d1236",
+      "instrumentIdentityId": "sha256:036d5d289b3a50262a5d233fd6140ec14ba0d10f2564660f54336652afa687d4",
+      "aliasBindingCoreId": "sha256:878212f1568bbca6c21eaf5ff0a6bcfad65680ccddbd57ff4b153aac0ed82a9c"
+    },
+    {
+      "symbol": "COP",
+      "instrumentKind": "EQUITY",
+      "identitySeed": "3b6e842fb0b647bf2770f1e3b8727052e5634a90c992bcbd11a59ef161557c76",
+      "instrumentIdentityId": "sha256:d87df5d5459b8538444aba8e40fffbb4ad69b810f8922cfdc6c02289f30f6d25",
+      "aliasBindingCoreId": "sha256:46a92eb03cd58e99f4b7f2cb7a3f33618d2d41d4984ccee4b419af7d35aaae95"
+    },
+    {
+      "symbol": "COST",
+      "instrumentKind": "EQUITY",
+      "identitySeed": "7d4f32115c717d39bd779909c6fd626dc348de524de109710ca1f8b06bc1f491",
+      "instrumentIdentityId": "sha256:6bbab35777e2ac7fff6431dfb7cad626f6f4e34e5f609b7aaa82f17b63ce8299",
+      "aliasBindingCoreId": "sha256:e4ca99898c0b939bc0285ada23c8c08961b9a56c3c4d68e7ae692f97d83f5318"
+    },
+    {
+      "symbol": "CPB",
+      "instrumentKind": "EQUITY",
+      "identitySeed": "2dcda77575f7effba40f39f246d4405f53cda49b5a5239762ac971abf07ebf48",
+      "instrumentIdentityId": "sha256:492cc8c49409e6fb3ec2dff51a88e1dfdd46cf5c562df13732bb75a369e4aa72",
+      "aliasBindingCoreId": "sha256:b953cce26c7f6466815fd39acc6dd2c4e2177edf4fa052368c1e6a0a7d88f149"
+    },
+    {
+      "symbol": "CPNG",
+      "instrumentKind": "EQUITY",
+      "identitySeed": "42b8151d65f9e4061d54fede7e4d12b42384a9a0df943b7abab9094c245a743e",
+      "instrumentIdentityId": "sha256:2b1a15aa68c0014cb89d0c3d42bc637c658265693f342d3b6b2ef40b50f4f0b1",
+      "aliasBindingCoreId": "sha256:27d8124bcdc5f75c3d35fb1472280ce814a167f67e0285b6b9301fca6f5079d8"
+    },
+    {
+      "symbol": "CRDO",
+      "instrumentKind": "EQUITY",
+      "identitySeed": "bfb4aa9625f3a581b9e55781eeeba6965258dabeae48bf0197b0fbd28715c10c",
+      "instrumentIdentityId": "sha256:c3b1db6714c514024d9ef20b29dd12024c81398972139fce80c53da2080f7968",
+      "aliasBindingCoreId": "sha256:de141edcdd068a06caa89a704b1029c517ed646093ca484babb06c074d37db14"
+    },
+    {
+      "symbol": "CRH",
+      "instrumentKind": "EQUITY",
+      "identitySeed": "e7ead02a6ad74bea3ec49a7632631ada039ce0a2b889b1f9ae51c9737a81757e",
+      "instrumentIdentityId": "sha256:040b8882e38a861c1b5eea3f3e26f1ef089fc6bf9eb8a14f828c3fdde9353117",
+      "aliasBindingCoreId": "sha256:05fb56189b688780624777f1d47405c50ce24ba46a03c9761e0cc7d1f574c81f"
+    },
+    {
+      "symbol": "CRM",
+      "instrumentKind": "EQUITY",
+      "identitySeed": "670ec67cedb409c91398b0bbe0708bc2cdd2e722c8f590345d5f171ac5918ddd",
+      "instrumentIdentityId": "sha256:91b848d82f142a43c399a09a270a45cfed4fd1115ece30d3d368828706a69d05",
+      "aliasBindingCoreId": "sha256:ded9153895aeb383785f2fb28e5c75f99cdea724b8941cc9ad66eee6098d37e4"
+    },
+    {
+      "symbol": "CRML",
+      "instrumentKind": "EQUITY",
+      "identitySeed": "b6c194f7f71d9e79c94dff34028fb969566f5829fa219e3b2f41de94ae9968ff",
+      "instrumentIdentityId": "sha256:99b3fca4bcb9d6d23b368e23cc6e2753accb8faead9c095e5be17c7127fe47a6",
+      "aliasBindingCoreId": "sha256:eaef52d0dabc4c8c2764e0a7f28f35686439163c348266d9ce807c8abd67341f"
+    },
+    {
+      "symbol": "CRSP",
+      "instrumentKind": "EQUITY",
+      "identitySeed": "448739b616ce252925ff5d9473fdee4eb9be2875fa16d112bef0650d2e2c0a60",
+      "instrumentIdentityId": "sha256:d7c9d56fe65b7ca5c0c50a526497f768d219295fcae7538494f44cc73acd84b3",
+      "aliasBindingCoreId": "sha256:d093325bfa23db6e4f36ad463fbb29cd7ddb1719381b10a8f50a72224e8ccef2"
+    },
+    {
+      "symbol": "CRWD",
+      "instrumentKind": "EQUITY",
+      "identitySeed": "4e89bbd897085505bcb6603a0a3e0835b18994f1d9caafafe230a28d760170ef",
+      "instrumentIdentityId": "sha256:756b904bd009d6be25f08e55d8162d89da363f94ac2014f18950146e3dff2b73",
+      "aliasBindingCoreId": "sha256:39cc3bfe89adbdf9e07c3a34f8725ac0e2e0963bb1b24e437b6a28e67ad11f10"
+    },
+    {
+      "symbol": "CRWV",
+      "instrumentKind": "EQUITY",
+      "identitySeed": "6b28dbf92490793a51980bf571a3afe0515e3f6c51191e61cc77cd3275eedda4",
+      "instrumentIdentityId": "sha256:ef531f1dbf7567cfb801ec3ca3f52bc240263e84e488645c54662d2613911572",
+      "aliasBindingCoreId": "sha256:ad51a48028e197c847f0cd985f9b66f010303c71132a81d3dd3f39bebcb0b4b9"
+    },
+    {
+      "symbol": "CSCO",
+      "instrumentKind": "EQUITY",
+      "identitySeed": "ec7980910b0316c868df34b92ebe0e957a35961ce9a2aebb23f41fa06a10435e",
+      "instrumentIdentityId": "sha256:e3f0beab4d17e4d44856c55cdd6824eda04764c08b1eb015bb28dace11beea2d",
+      "aliasBindingCoreId": "sha256:d9d8b62562689fdb83f1b785ba64535e7a9857a25345c6d5657d9e2a39b53f7e"
+    },
+    {
+      "symbol": "CSIQ",
+      "instrumentKind": "EQUITY",
+      "identitySeed": "f409f1fd717910ec7dc1d0d3ae774dcb6aef87018f15f94fd321087cd51e5119",
+      "instrumentIdentityId": "sha256:b9b937b644b084b46a5d8206de03118713b56c77db350fa18b25c16dc81106a4",
+      "aliasBindingCoreId": "sha256:49a0e37cad486152020945363c72f797ece7ccb08f97724355fbc27a3eea61e8"
+    },
+    {
+      "symbol": "CSX",
+      "instrumentKind": "EQUITY",
+      "identitySeed": "dd6c13f7522e75c3fe7938dc52d764ce05343e6df862758e25bab00074daba9d",
+      "instrumentIdentityId": "sha256:59819fa9e01eb7f67c3a8373cf7e4d979a1d9c0094a2dd9f75c13506f9159aa2",
+      "aliasBindingCoreId": "sha256:1268c34e79acc4477958aa75f10ecf76254ecd7f3efa6d01fac036a52d46a44e"
+    },
+    {
+      "symbol": "CTAS",
+      "instrumentKind": "EQUITY",
+      "identitySeed": "c207e96e4b0e042907a83eac0399ad4bc2be97018d43272d56f881ec7824e42d",
+      "instrumentIdentityId": "sha256:fbfe1347c352378376023a4fd02515f30506fe285f33af50ca65d402601b0f65",
+      "aliasBindingCoreId": "sha256:b36ab3a621d8b9c2d14b53b969ed57fc26fad3773215e912b41d953906b591be"
+    },
+    {
+      "symbol": "CTRA",
+      "instrumentKind": "EQUITY",
+      "identitySeed": "83115c3e165cd84ea14c6d1a986edc9ce215ad788843b4dc7ee0e6e70df7ea7c",
+      "instrumentIdentityId": "sha256:5d640dec9be6562b7a9bb136f9e2cb5825f01adc6c3d451941221aae605acc33",
+      "aliasBindingCoreId": "sha256:82bffb16676ef443f7b799819bbfaa0e0c11ed3d748b1f6d20b444cbc707113b"
+    },
+    {
+      "symbol": "CVNA",
+      "instrumentKind": "EQUITY",
+      "identitySeed": "6195d84cdb6196df778b8a5bb1e151537009a59aa26187578aee387046604969",
+      "instrumentIdentityId": "sha256:fa5b3648ecd1daef471a465d664943f10a247e9e0347d5d72a3cae92f3a463f1",
+      "aliasBindingCoreId": "sha256:182013346f93c397e22eaa7d377a665ed32eb9533ce9dfaff4f89e0037518a2d"
+    },
+    {
+      "symbol": "CVS",
+      "instrumentKind": "EQUITY",
+      "identitySeed": "fbe91f798f776f0f9a98241f4c8a33262f443202a40037aab171472eb92e3db8",
+      "instrumentIdentityId": "sha256:af08e58c07d83fea47c3b634e3082cb0800f638d52448b94388f429892b39266",
+      "aliasBindingCoreId": "sha256:eea123c436f24b200d7cd308f32b08c96882c8e7248d12d2681e5aaa408d5e2f"
+    },
+    {
+      "symbol": "CVX",
+      "instrumentKind": "EQUITY",
+      "identitySeed": "af14f86afb5fa9426049edfb15f40e9ffc702a9cb81921ea82279aa8b43067df",
+      "instrumentIdentityId": "sha256:8384e223694036361782782dbbee067d007d6bd31ad4ef2b266beafcb66cc529",
+      "aliasBindingCoreId": "sha256:fd32643aa68f9a990943409b37ba8e1f11a4dd667297d276a013a65abea29a30"
+    },
+    {
+      "symbol": "CWAN",
+      "instrumentKind": "EQUITY",
+      "identitySeed": "74dbea3270e0ed5a77389a39ce35a36b6c75fcc6f026387aa808cbcdb1e143f2",
+      "instrumentIdentityId": "sha256:4fe9e08bc1bae6b1d3432c22fb65b7155464218d5118b149e284887825331f16",
+      "aliasBindingCoreId": "sha256:5f514766556b72214c758dfddf5580239ab0acaf42e742f7d610b0487a190f76"
+    },
+    {
+      "symbol": "CZR",
+      "instrumentKind": "EQUITY",
+      "identitySeed": "a4c9b71f11c8365db9104d96879ef4e965b3264cdd08bb5477014a0b7c39d5e7",
+      "instrumentIdentityId": "sha256:f3fe98fc094d92e954c7e25855b2ef37955c28fca9f9e8c61d555cdadd5e0a02",
+      "aliasBindingCoreId": "sha256:630e87cc1f820743e5f563ae1adf586496509f526bfafbe44602cf7d6e39fe75"
+    },
+    {
+      "symbol": "DASH",
+      "instrumentKind": "EQUITY",
+      "identitySeed": "76b323bb52ad25cf5dfd8ba654d83c4275075d1d7245152acae6452cf9ac61ca",
+      "instrumentIdentityId": "sha256:9b0507932aefa4fe260fee5862a2212d7f3edc2577c754ca46cb44e423206d6d",
+      "aliasBindingCoreId": "sha256:2816f368bfc3a08d682170b2879484f980906106aae2c54a5413ce91d183b5f1"
+    },
+    {
+      "symbol": "DAVE",
+      "instrumentKind": "EQUITY",
+      "identitySeed": "bc06cab024736d8fb0a87969ae04d115bb28a778eb24806d236ad90c710c46ad",
+      "instrumentIdentityId": "sha256:26c953dbb298d6adb571961f8ebadd987ac20c9e44c7d12e8d22d489c1b2254d",
+      "aliasBindingCoreId": "sha256:01cd12a3ddf15db4866baec79decb02889efe00622ae2b44bb4f3c311fff3561"
+    },
+    {
+      "symbol": "DBRG",
+      "instrumentKind": "EQUITY",
+      "identitySeed": "c1690c5223994b7753f46b1992f5761159bbf6381b0427b8a10e4e866d344e5a",
+      "instrumentIdentityId": "sha256:6a02b2e54b542a8b52b026b78efb3b998de8e78b112b93f6061364c784a4285f",
+      "aliasBindingCoreId": "sha256:d5ece59db524f1e45d8e8d4af9f5da2eee1bb5ca63bdeb799a4b5caee6a26518"
+    },
+    {
+      "symbol": "DBX",
+      "instrumentKind": "EQUITY",
+      "identitySeed": "df3797d77285fb6b53fab2f4ea792959acd66c2540dd6a19329217393453dfb8",
+      "instrumentIdentityId": "sha256:632155ada1a6a71cc8ca8af3b1d164d28fb3e08490bb84c100884383d859d2cf",
+      "aliasBindingCoreId": "sha256:3c76e7787f79adccbd22f11d204918d2ebad4c907235a49f76e207bca4b601e3"
+    },
+    {
+      "symbol": "DDD",
+      "instrumentKind": "EQUITY",
+      "identitySeed": "a63e95defe20734cc6458656d467e0f1fedbabd698ab0b4d544ad45709b066ee",
+      "instrumentIdentityId": "sha256:632e00113e9f4d6b0dfec0158475525116438f17f9d8094e83e26c526fda8a74",
+      "aliasBindingCoreId": "sha256:920a3812331d6617026c79e02351dd8c62d9c604a31066197507c231c1f190d9"
+    },
+    {
+      "symbol": "DDOG",
+      "instrumentKind": "EQUITY",
+      "identitySeed": "dc82aa8a41b2d7e309a3b2e33ae5887333caf9a17e9a914078717850a9f365ed",
+      "instrumentIdentityId": "sha256:a708e8f72651cb907d9412fa39631cf3cc3df58a83497b2e80aababc0412ae07",
+      "aliasBindingCoreId": "sha256:0eae0d299fe73586f949068536dc7340163ca91409dcfe1560c8277a78e293cb"
+    },
+    {
+      "symbol": "DE",
+      "instrumentKind": "EQUITY",
+      "identitySeed": "8e5683df3c6a80fa9155225f9e219285139f54c2fdc0a6543fa3d94eba8e5779",
+      "instrumentIdentityId": "sha256:47e38283440d217367c89e64724de59ba2be727517cc72ac2809b9e7d47f7e37",
+      "aliasBindingCoreId": "sha256:b9d4699e38840909ee1701b6ed5ac00e8916e38a5a9af8a7f37901d943bc9d01"
+    },
+    {
+      "symbol": "DECK",
+      "instrumentKind": "EQUITY",
+      "identitySeed": "5c7b37ee125a4c5bfe5dfe83e417f33212b12446ab7560eaee1801f008404605",
+      "instrumentIdentityId": "sha256:e8aeae3b56a3bf30f1e21fac4acbb0597ece70e302e635e64669f1b4fc72c590",
+      "aliasBindingCoreId": "sha256:ac1fcc6705cffb3bbf7efea2365ffcd43087d99976ed1fed49d5e8f50cf085d9"
+    },
+    {
+      "symbol": "DELL",
+      "instrumentKind": "EQUITY",
+      "identitySeed": "dd2de1dd678fbbc673535b6eb23321fe74a925de94d7fc9d1227537dcd904231",
+      "instrumentIdentityId": "sha256:d72cdaa48d8b453c3f61614a3d1fd9568f5c0034a094701d84ff7572b659fc77",
+      "aliasBindingCoreId": "sha256:3ea28318e3dd737c1c89f10476df8bbe892f92067f7ef6a31498b52efb803354"
+    },
+    {
+      "symbol": "DG",
+      "instrumentKind": "EQUITY",
+      "identitySeed": "15eb8c9a2b47b2979f1e01015c7e1bfb586a1802c49aa63e1369f5eb3b29bd6d",
+      "instrumentIdentityId": "sha256:13644de201e71a60cb3ee5e3dd27a2d2dfdf82d7c099b1e33cf1368212051ceb",
+      "aliasBindingCoreId": "sha256:994649a3bf1fc36a728cdd19507c9e1792e665bdeb5d34abfadee6b23eaf96b0"
+    },
+    {
+      "symbol": "DHI",
+      "instrumentKind": "EQUITY",
+      "identitySeed": "1d9431e1af35f2945c7c1d127c11da07dd22cc364ec8c5ff594a5e5d7c847c36",
+      "instrumentIdentityId": "sha256:035d9d157f5a77bfb4c7dac21c18239b90b0de784d94fcfff7284db87db8c705",
+      "aliasBindingCoreId": "sha256:c063ac2a6e9693d848e1be730aa92745ca1436acc1fcd5355a2533d4d8c6b78c"
+    },
+    {
+      "symbol": "DHR",
+      "instrumentKind": "EQUITY",
+      "identitySeed": "ae8b7f1792135894246fc46cc5306faad38f4f6d82cdbcb639f8d9878062c4c4",
+      "instrumentIdentityId": "sha256:3c2f4c61eb3d96f79100d25c2d2fe7f2db65a71476d292174e64da1d6935af6d",
+      "aliasBindingCoreId": "sha256:cbf817bf46b372e5b8485423d7c3a5697731be2e798554384d7c999efc26a430"
+    },
+    {
+      "symbol": "DIS",
+      "instrumentKind": "EQUITY",
+      "identitySeed": "29d960a6071cc1e61361ecd93e97c8c9abe284deda32f871dc2b3e268543dd2e",
+      "instrumentIdentityId": "sha256:b340e296a9548d5e370124cd5a9c6225732a428159f09270cdbdb1e518ce7801",
+      "aliasBindingCoreId": "sha256:bd67c2f756540555adead67b8297e959819978d3476503cab132a5b4184a90b5"
+    },
+    {
+      "symbol": "DJT",
+      "instrumentKind": "EQUITY",
+      "identitySeed": "d052adb548b3419c2bf4157d3c879e3790b1fb5bc688f0a127a3507adfe99d5e",
+      "instrumentIdentityId": "sha256:b6620cf772b0248897ed15c6abcc1539f693c40e8e1089d57eebd88a96345017",
+      "aliasBindingCoreId": "sha256:b550c05556a627028bcafe54fb98741606af86f9856932ecf4e6c263037dc62b"
+    },
+    {
+      "symbol": "DLR",
+      "instrumentKind": "EQUITY",
+      "identitySeed": "79f8862c534da9dc682677ea6e883b8656eb686588088778d3c2c23d1e865a10",
+      "instrumentIdentityId": "sha256:8204a8a918810cbf94b0e1919531aee3acb3bca3d632d4f3136d6bbef5b33669",
+      "aliasBindingCoreId": "sha256:ebe3ae6a1719e308a083bb3a20d5f0affbeb1dfd549a77cb3382e66518759c0b"
+    },
+    {
+      "symbol": "DLTR",
+      "instrumentKind": "EQUITY",
+      "identitySeed": "23e7697555ac21ea2897fe8a1c6dfd020a01f3fdbe7b9228070875d1a53a0c9b",
+      "instrumentIdentityId": "sha256:996c1035e8e05f932443db1f949c7b2648dd6288701ca6ca107c9b77c61a38d8",
+      "aliasBindingCoreId": "sha256:70607b550d256fd0ac8d01fdbb14c80765ea68ba4b73b2cc8a876284b26c7e80"
+    },
+    {
+      "symbol": "DNN",
+      "instrumentKind": "EQUITY",
+      "identitySeed": "501b2615657e991ff388f42aa47dc995f015df84aad7d1cc54c3864d10631ea1",
+      "instrumentIdentityId": "sha256:4ecbefa6915f942353fafd93fa6611738724527e40f9739106cf5cbfb6edad1e",
+      "aliasBindingCoreId": "sha256:9f43233bc37485607c0e8af0fee1452edcc6757502d2fb522fab8ddf3404b0ae"
+    },
+    {
+      "symbol": "DNUT",
+      "instrumentKind": "EQUITY",
+      "identitySeed": "94950c807c98e4a3c8e9267e52e0bf70a5394ec4e795d0c16e220357b3993e46",
+      "instrumentIdentityId": "sha256:d97e482dd92967c6d3aec06895a5d6b362df2771ac6bd9196696d1571e903d9d",
+      "aliasBindingCoreId": "sha256:19748734992e9aa90f28c285e013983d2f4dbf8390ec3833ebc8b21efd80eae0"
+    },
+    {
+      "symbol": "DOCN",
+      "instrumentKind": "EQUITY",
+      "identitySeed": "8433a4558dbee1501edf27e7648c8eb28fd0e24c948ff783605438c4ac82a752",
+      "instrumentIdentityId": "sha256:719a2455210dd7224085d63189eaa6422951a2480574d737312871a926c0f3e3",
+      "aliasBindingCoreId": "sha256:19ad137b903a928ab8e9be3d575f2567fc2184b7f686671399d04240eff7a2e9"
+    },
+    {
+      "symbol": "DOCU",
+      "instrumentKind": "EQUITY",
+      "identitySeed": "1c4a22d17248b84afe5cf2cca8d5862490c0969ffd500350f3671527ec127e1d",
+      "instrumentIdentityId": "sha256:7484588b6d62c829adf4386d93a66d7869725954b9fc960e13c7f5c1310d9e3e",
+      "aliasBindingCoreId": "sha256:03c9b2b13d97c36231540081edd410e157582416597e3579ee45958f8c27d31a"
+    },
+    {
+      "symbol": "DOW",
+      "instrumentKind": "EQUITY",
+      "identitySeed": "27c03c7a06976023d73c632864886e8f3d09d6d4ab28c2d2d313926706daca44",
+      "instrumentIdentityId": "sha256:1e0b07d0d366e0c7045ec9cec2b22de61eaed6aa12877056504be06136f01565",
+      "aliasBindingCoreId": "sha256:096baccbcedf63f12084454d6c1a97fd5254447164b895629a0c9cf3bee1c45f"
+    },
+    {
+      "symbol": "DUOL",
+      "instrumentKind": "EQUITY",
+      "identitySeed": "800851683feb57b65ba1f8097760784a6520ba1fa3ea1ef98a1944960c660874",
+      "instrumentIdentityId": "sha256:27fa1eba2388e43514450a426aeeefba5d832030ab00a421ea26870824070996",
+      "aliasBindingCoreId": "sha256:4efbc8743a83e73e95698be6a9357f265ce77b570d5493213e1ff40a790966f0"
+    },
+    {
+      "symbol": "DVN",
+      "instrumentKind": "EQUITY",
+      "identitySeed": "29e55c656c4c11f54764f1fdbae50379b6c87e385fe50f23ffedd44339088136",
+      "instrumentIdentityId": "sha256:0f5c61376dd7a74eeea3c1680db2944831c3ffd769b9c21026b01fa5ee5d7d76",
+      "aliasBindingCoreId": "sha256:1402ecc31415b1aded0e96875784a932548583f7d04958dd24f52a74413eff10"
+    }
+  ],
+  "materializerPath": "scripts/materializeJarviseMp3InstrumentIdentityR1.mjs",
+  "materializerSha256": "a7102c012ffeda73350c0890ecc19192b374707b02b5e731c5b99f397a4383ea",
+  "seedPersistence": "identity-store.json is atomically updated immediately after each first mint; existing seeds are reused"
+}

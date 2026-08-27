@@ -1,0 +1,10 @@
+{
+  "schemaVersion": "SymbolNamespacePolicy/1",
+  "namespaceId": "wheel-jarvise-yahoo-symbol",
+  "namespaceVersion": 1,
+  "providerId": "yahoo-finance2",
+  "venuePolicy": "NOT_APPLICABLE",
+  "casePolicy": "ASCII_UPPERCASE",
+  "allowedCharacterPolicy": "ASCII_ALNUM_DOT_DASH_UNDERSCORE",
+  "currencyPolicy": "REQUIRED"
+}

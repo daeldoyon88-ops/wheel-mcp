@@ -1,4 +1,4 @@
-﻿import React, { useMemo, useState, useEffect, useCallback, useRef } from "react";
+import React, { useMemo, useState, useEffect, useCallback, useRef } from "react";
 import { motion } from "framer-motion";
 import {
   ShieldCheck,
@@ -53,6 +53,7 @@ import {
   getAdjustedExpirationForClosedMarket,
 } from "./marketCalendar.js";
 import { SeasonalityBadge } from "./components/SeasonalityBadge.jsx";
+import { JarviseRegimePanel } from "./components/JarviseRegimePanel.jsx";
 import { getTickerDisplayMeta, QUALITY_TIER_STYLE, USER_PREFS, CRYPTO_BLOCK_REASON } from "./tickerMeta.js";
 import { isCryptoDigitalAssetBlocked } from "../../app/watchlist/cryptoWheelFilter.js";
 import {
@@ -9060,6 +9061,8 @@ function DetailModal({ item, seasonalityEntry = null, onClose }) {
             <MiniTradeLevelsChart item={item} />
             <FaceplateStrikeOpportunities item={item} />
           </div>
+
+          <JarviseRegimePanel symbol={item.ticker} apiBase={API_BASE} />
 
           {/* ── Résumé ── */}
           <div className="rounded-2xl border border-slate-700 bg-slate-800/50 p-4">

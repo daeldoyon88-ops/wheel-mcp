@@ -124,7 +124,18 @@ exit /b %errorlevel%
 
 :start_backend
 echo Starting %~2 backend from %~1 on port 3001...
-start "Wheel Backend %~2 3001" cmd /k "cd /d %~1 && npm.cmd run dev"
+if /i "%~2"=="R2" (
+  if not exist "%STABLE_ROOT%\.venv-ibkr\Scripts\python.exe" (
+    echo R2_IBKR_PYTHON_MISSING: %STABLE_ROOT%\.venv-ibkr\Scripts\python.exe
+    exit /b 12
+  )
+  setlocal
+  set "PATH=%STABLE_ROOT%\.venv-ibkr\Scripts;%PATH%"
+  start "Wheel Backend %~2 3001" cmd /k "cd /d %~1 && npm.cmd run dev"
+  endlocal
+) else (
+  start "Wheel Backend %~2 3001" cmd /k "cd /d %~1 && npm.cmd run dev"
+)
 call :wait_for_port 3001 40
 if errorlevel 1 (
   echo BACKEND_START_FAILURE port=3001 root=%~1

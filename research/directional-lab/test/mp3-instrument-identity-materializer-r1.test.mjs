@@ -120,6 +120,25 @@ test('MP3 P1/P2/P3/P4/P6-P11 - production adapter materializes and reruns withou
     assert.equal(second.reusedExistingIdentityCount, 2);
     assert.equal(second.registryManifestId, first.registryManifestId);
     assert.deepEqual(projectionSecond, projectionFirst);
+
+    const third = materializeMp3({
+      ...options,
+      targetPoolOverride: ['ABC', 'BF.B', 'UNKNOWN', 'DELTA'],
+      fundamentalsOverride: {
+        ...fixtureFundamentals(),
+        items: {
+          ...fixtureFundamentals().items,
+          DELTA: { symbol: 'DELTA', quoteType: 'EQUITY', currency: 'USD', asOf: '2026-05-03T08:56:26.000Z' },
+        },
+      },
+      now: () => '2026-08-27T12:01:00.000Z',
+    });
+    const registryThird = JSON.parse(readFileSync(join(outputRoot, 'registry-manifest.json'), 'utf8'));
+    assert.equal(third.mintedIdentityCount, 1);
+    assert.equal(third.reusedExistingIdentityCount, 2);
+    assert.notEqual(third.registryManifestId, second.registryManifestId);
+    assert.equal(registryThird.supersedesRegistryManifestId, second.registryManifestId);
+    assert.ok(projectionSecond.identities.every((row) => registryThird.identityManifestIds.includes(row.identityManifestId)));
   });
 });
 

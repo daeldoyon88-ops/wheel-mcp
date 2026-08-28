@@ -11,7 +11,6 @@ import {
 import { dirname, isAbsolute, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { buildResearchExpandedPool } from '../app/watchlist/researchExpandedPool.js';
 import { createContentAddressedStore } from '../research/directional-lab/src/storage/contentAddressedStoreV1.mjs';
 import {
   buildInstrumentAliasBinding,
@@ -30,6 +29,7 @@ import {
   validateInstrumentIdentityAuthorityPolicy,
   validateSymbolNamespacePolicy,
 } from '../research/directional-lab/src/contracts/instrumentIdentityV1.mjs';
+import { sortedUniqueStrings } from '../research/directional-lab/src/contracts/contractPrimitivesV1.mjs';
 
 export const MP3_MISSION_ID = 'WHEEL_JARVISE_MP3_INSTRUMENT_IDENTITY_PRIMITIVE_R1';
 export const CANONICAL_CONTRACT_SHA256 = '9535f6a5d8347f99c7a0222479d27b5a9fd6c1d9f5bb4de7a699a80b23e8ee2e';
@@ -291,9 +291,11 @@ export function materializeMp3(options = {}) {
 
   const fundamentalsPath = join(repoRoot, 'data', 'universe', 'fundamentals.cache.json');
   const universePath = join(repoRoot, 'data', 'universe', 'universe.master.json');
-  const poolBuilderPath = join(repoRoot, 'app', 'watchlist', 'researchExpandedPool.js');
   const fundamentals = options.fundamentalsOverride ?? readJson(fundamentalsPath);
-  const targetPool = options.targetPoolOverride ?? buildResearchExpandedPool().pool;
+  const universe = readJson(universePath);
+  const targetPool = options.targetPoolOverride ?? universe
+    .filter((entry) => entry.enabled === true && entry.excluded === false)
+    .map((entry) => entry.symbol);
   if (!Array.isArray(targetPool) || targetPool.length === 0) {
     throw new Mp3MaterializationError('MP3_NO_EVIDENCED_INSTRUMENTS', 'target pool is empty');
   }
@@ -331,6 +333,7 @@ export function materializeMp3(options = {}) {
       || (projection.namespacePolicyId !== null && projection.namespacePolicyId !== namespace.namespacePolicyId)) {
     throw new Mp3MaterializationError('MP3_EXISTING_IDENTITY_CONFLICT', 'persisted policy IDs conflict with current policies');
   }
+  const previousRegistryManifestId = projection.registryManifestId ?? null;
   projection.authorityPolicyId = authority.authorityPolicyId;
   projection.namespacePolicyId = namespace.namespacePolicyId;
 
@@ -433,15 +436,41 @@ export function materializeMp3(options = {}) {
     atomicWriteJson(outputRoot, projectionPath, projection);
   }
 
-  const registry = buildInstrumentIdentityRegistry({
-    store,
-    authorityPolicyId: authority.authorityPolicyId,
-    identityManifestIds,
-  });
-  const verified = verifyInstrumentIdentityRegistry({
-    store,
-    registryManifestId: registry.registryManifestId,
-  });
+  const intendedIdentityManifestIds = sortedUniqueStrings(identityManifestIds);
+  const intendedSnapshotInstrumentBindingIds = [];
+  const sameStringArrays = (actual, intended) => actual.length === intended.length
+    && actual.every((value, index) => value === intended[index]);
+  let registry;
+  let verified;
+  if (previousRegistryManifestId !== null) {
+    const current = verifyInstrumentIdentityRegistry({
+      store,
+      registryManifestId: previousRegistryManifestId,
+    });
+    const sameSemanticRegistry = current.registryManifest.authorityPolicyId === authority.authorityPolicyId
+      && sameStringArrays(current.registryManifest.identityManifestIds, intendedIdentityManifestIds)
+      && sameStringArrays(current.registryManifest.snapshotInstrumentBindingIds, intendedSnapshotInstrumentBindingIds);
+    if (sameSemanticRegistry) {
+      registry = {
+        registryManifestId: previousRegistryManifestId,
+        registryManifest: current.registryManifest,
+      };
+      verified = current;
+    }
+  }
+  if (!registry) {
+    registry = buildInstrumentIdentityRegistry({
+      store,
+      authorityPolicyId: authority.authorityPolicyId,
+      identityManifestIds: intendedIdentityManifestIds,
+      snapshotInstrumentBindingIds: intendedSnapshotInstrumentBindingIds,
+      supersedesRegistryManifestId: previousRegistryManifestId,
+    });
+    verified = verifyInstrumentIdentityRegistry({
+      store,
+      registryManifestId: registry.registryManifestId,
+    });
+  }
   if (verified.identityBundles.length !== evidenced.length) {
     throw new Mp3MaterializationError('MP3_REGISTRY_VERIFICATION_FAILED', 'verified registry perimeter count differs');
   }
@@ -484,7 +513,6 @@ export function materializeMp3(options = {}) {
   const sourceHashes = options.sourceHashesOverride ?? {
     'data/universe/fundamentals.cache.json': sha256File(fundamentalsPath),
     'data/universe/universe.master.json': sha256File(universePath),
-    'app/watchlist/researchExpandedPool.js': sha256File(poolBuilderPath),
   };
   const materializerSha256 = sha256File(SCRIPT_PATH);
   const provenance = {
@@ -496,7 +524,7 @@ export function materializeMp3(options = {}) {
     namespaceId: NAMESPACE_ID,
     namespacePolicyId: namespace.namespacePolicyId,
     registryManifestId: registry.registryManifestId,
-    sourcePerimeter: 'buildResearchExpandedPool() intersect positive structured quoteType evidence',
+    sourcePerimeter: 'universe.master enabled && !excluded; positive structured quoteType evidence determines evidenced vs unresolved',
     sourcePaths: Object.keys(sourceHashes),
     sourceSha256s: sourceHashes,
     sourceEvidenceAsOf: fundamentals.asOf ?? null,

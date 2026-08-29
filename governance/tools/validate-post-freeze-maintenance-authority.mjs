@@ -18,6 +18,7 @@ const toolsDir = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(option('--root', path.resolve(toolsDir, '..', '..')));
 const authorityOption = option('--authority');
 const phase = option('--phase', PHASE_AUTHORIZE_PROGRAM_APPLY);
+const includeConsumptionCohort = phase === PHASE_VERIFY_PROGRAM_CONSUMPTION;
 
 function readJson(file) {
   return JSON.parse(fs.readFileSync(file, 'utf8').replace(/^Ã¯Â»Â¿/, ''));
@@ -52,7 +53,8 @@ try {
   // compares against manifest paths on every platform.
   const canonicalObservation = collectPostFreezeMaintenanceObservation({
     root, authority,
-    authorityDocumentPath: path.relative(root, authorityPath).split(path.sep).join('/')
+    authorityDocumentPath: path.relative(root, authorityPath).split(path.sep).join('/'),
+    includeConsumptionCohort
   });
   findings.push(...canonicalObservation.findings);
   manifest = canonicalObservation.manifest;

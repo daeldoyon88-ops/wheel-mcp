@@ -1,0 +1,32 @@
+{
+  "documentKind": "POST_FREEZE_MAINTENANCE_AUTHORITY_CONSUMPTION",
+  "schemaVersion": 2,
+  "authorityId": "GEE_PREAPPLICATION_CRLF_PREDECESSOR_COVERAGE_SUCCESSOR_LOCAL_AUTHORITY_R1",
+  "programId": "GEE_PREAPPLICATION_CRLF_PREDECESSOR_COVERAGE_SUCCESSOR_R1",
+  "manifestSha256": "bb7d06db1863e590635b5275db8e2c74637364e29890fa49de79864dd5abaae2",
+  "baseHead": "575c7800691325ce52ad994a92d60cc9d062a219",
+  "consumedUse": 1,
+  "transactionId": "GEE_PREAPPLICATION_CRLF_PREDECESSOR_COVERAGE_SUCCESSOR_EXTERNAL_CANDIDATE_APPLY_R1",
+  "recordedAt": "2026-08-29T00:00:00.000Z",
+  "commitMessage": "governance: add CRLF predecessor coverage",
+  "publicationAdmission": {
+    "admissionId": "GEE_PREAPPLICATION_CRLF_PREDECESSOR_COVERAGE_SUCCESSOR_PUBLICATION_ADMISSION_R1",
+    "admissionPath": "governance/authority/publication-admissions/GATE24/GEE_PREAPPLICATION_CRLF_PREDECESSOR_COVERAGE_SUCCESSOR_PUBLICATION_ADMISSION_R1.json",
+    "admissionSha256": "9e2f83dbaf0cf7d533b02d62d9c8a52243515415db08a9a51dc16b4c4da46c27"
+  },
+  "cohortSelfExclusion": {
+    "path": "governance/historical-architecture/GEE_PREAPPLICATION_CRLF_PREDECESSOR_COVERAGE_SUCCESSOR_CONSUMPTION_R1.json",
+    "reason": "The consumption record cannot hash its own final bytes; its identity is bound by the authority and manifest instead."
+  },
+  "cohortPathCount": 2,
+  "cohort": [
+    {
+      "path": "governance/gee-v1/tests/gee-path-prestate-binding.test.mjs",
+      "sha256": "d6b0265782bcd1f9dffe52081d5e28c361f3460d06fa00ff4ee590af934d2b89",
+      "byteLength": 28991,
+      "operation": "MODIFY",
+      "reason": "Add positive Git-clean CRLF physical predecessor regression coverage.",
+      "artifactClass": "MAINTENANCE"
+    }
+  ]
+}

@@ -25,8 +25,9 @@ import {
   REQUIRED_PROHIBITED_OPERATIONS,
   PHASE_AUTHORIZE_PROGRAM_APPLY
 } from '../core/post-freeze-maintenance-authority.mjs';
-import { collectPostFreezeMaintenanceObservation } from '../../tools/post-freeze-maintenance-observation.mjs';
+import { collectPathPrestates, collectPostFreezeMaintenanceObservation, reconstructPathPrestates } from '../../tools/post-freeze-maintenance-observation.mjs';
 import { applyPathPrestateProgram } from '../../tools/apply-path-prestate-program.mjs';
+import { computeAdmissionRegistryDigest, computeMaintenancePublicationAdmissionDigest } from '../core/maintenance-publication-admission.mjs';
 
 const sha256 = (bytes) => crypto.createHash('sha256').update(bytes).digest('hex');
 
@@ -38,6 +39,8 @@ const NEW_TARGET = 'governance/tools/fixture-new-tool.mjs';
 /** Published last, so a fault here lands after earlier targets are already written. */
 const NESTED_TARGET = 'governance/tools/fixture-nested/fixture-nested-tool.mjs';
 const NESTED_PARENT = 'governance/tools/fixture-nested';
+const OWNER_AUTHORIZATION_PATH = 'governance/sources/MAINTENANCE_PUBLICATION_ADMISSION_OWNER_AUTHORIZATION_FIXTURE_R1.json';
+const ADMISSION_PATH = 'governance/authority/publication-admissions/GATE19/FIXTURE_PUBLICATION_ADMISSION_R1.json';
 
 const COMMITTED_BYTES = Buffer.from('export const value = 1;\n', 'utf8');
 const CANDIDATE_TRACKED = Buffer.from('export const value = 2;\n', 'utf8');
@@ -151,11 +154,45 @@ function makeAuthority(fixture, manifestBytes) {
 }
 
 /** Installs authority + manifest on disk, as every real program must. */
+function installPublicationAdmission(fixture, authority, manifest, manifestBytes, authorityBytes) {
+  const admission = {
+    documentKind: 'MAINTENANCE_PUBLICATION_ADMISSION', schemaVersion: 1, authorityMode: 'LOCAL_EXPLICIT_AUTHORITY', issuedBy: 'PROJECT_OWNER',
+    admissionId: 'FIXTURE_PUBLICATION_ADMISSION_R1', decisionId: 'FIXTURE_PUBLICATION_OWNER_DECISION_R1', issuedAtUtc: '2026-08-15T00:00:00.000Z', expiresAtUtc: null,
+    projectId: 'WHEEL', repositoryId: 'WHEEL_MCP_CANONICAL', gateId: 'GATE19', programId: authority.programId,
+    purpose: 'MAINTENANCE_PUBLICATION_ADMISSION', publicationClass: 'PATH_PRESTATE_PROGRAM_PUBLISHER', authorityPurpose: 'NORMAL_MAINTENANCE', maxUse: 1,
+    admissionStatement: 'Fixture-only causal Owner admission for one exact pre-state publication.',
+    admittedAuthority: { path: AUTHORITY_PATH, sha256: sha256(authorityBytes), byteLength: authorityBytes.length, schemaVersion: 2, documentId: authority.authorityId },
+    admittedManifest: { path: MANIFEST_PATH, sha256: sha256(manifestBytes), byteLength: manifestBytes.length, schemaVersion: 2, documentId: manifest.manifestId },
+    admittedPrestate: authority.preState, admittedOperationClasses: ['MAINTENANCE'],
+    grantsFutureBytePermission: false, grantsGateAuthorizationPermission: false, grantsStartPermission: false, grantsStatusTransitionPermission: false,
+    grantsHistoricalAdmissionWidening: false, genericV1Admission: false, derivedFromGitDelta: false, derivedFromFinalGateIntegrityFindings: false,
+    prohibitedOperations: ['START', 'SECOND_START', 'GATE_AUTHORIZATION', 'STATUS_TRANSITION', 'ACTIVE_GATE_SWITCH', 'GEE_R8', 'GIT_PUSH', 'HISTORY_REWRITE', 'GENERIC_V1_ADMISSION', 'HISTORICAL_ADMISSION_WIDENING', 'SELF_ADMISSION'],
+    successorRequirement: 'A later publication requires a new exact Owner admission over a new exact pre-state.',
+    admissionDigest: null, ownerAuthorizationPath: OWNER_AUTHORIZATION_PATH, ownerAuthorizationSha256: null
+  };
+  admission.admissionDigest = computeMaintenancePublicationAdmissionDigest(admission);
+  const registry = {
+    document: 'MAINTENANCE_PUBLICATION_ADMISSION_OWNER_AUTHORIZATION', schemaVersion: 1, authorityId: 'FIXTURE_PUBLICATION_OWNER_AUTHORIZATION_R1',
+    authorityClass: 'PROJECT_OWNER_MAINTENANCE_PUBLICATION_ADMISSION_AUTHORITY', authorityMode: 'LOCAL_EXPLICIT_AUTHORITY', issuedBy: 'PROJECT_OWNER',
+    issuedAtUtc: '2026-08-15T00:00:00.000Z', decisionId: admission.decisionId, purpose: 'MAINTENANCE_PUBLICATION_ADMISSION',
+    reexecutionAuthorized: false, grantsFutureBytePermission: false, genericV1Admission: false,
+    admittedPublications: [{ admissionId: admission.admissionId, projectId: admission.projectId, gateId: admission.gateId, programId: admission.programId, admissionPath: ADMISSION_PATH, admissionDigest: admission.admissionDigest }],
+    registryDigest: null
+  };
+  registry.registryDigest = computeAdmissionRegistryDigest(registry);
+  const registryBytes = Buffer.from(`${JSON.stringify(registry, null, 2)}\n`, 'utf8');
+  admission.ownerAuthorizationSha256 = sha256(registryBytes);
+  write(fixture.root, OWNER_AUTHORIZATION_PATH, registryBytes);
+  write(fixture.root, ADMISSION_PATH, Buffer.from(`${JSON.stringify(admission, null, 2)}\n`, 'utf8'));
+}
+
 function install(fixture, manifest) {
   const manifestBytes = Buffer.from(`${JSON.stringify(manifest, null, 2)}\n`, 'utf8');
   write(fixture.root, MANIFEST_PATH, manifestBytes);
   const authority = makeAuthority(fixture, manifestBytes);
-  write(fixture.root, AUTHORITY_PATH, Buffer.from(`${JSON.stringify(authority, null, 2)}\n`, 'utf8'));
+  const authorityBytes = Buffer.from(`${JSON.stringify(authority, null, 2)}\n`, 'utf8');
+  write(fixture.root, AUTHORITY_PATH, authorityBytes);
+  installPublicationAdmission(fixture, authority, manifest, manifestBytes, authorityBytes);
   return { authority, manifestBytes };
 }
 
@@ -188,6 +225,31 @@ const codes = (result) => result.findings.map((f) => f.code);
 test('P09 exact declared prestate followed by exact candidate publication is AUTHORIZED', () => {
   const fixture = makeFixture();
   const { authority } = install(fixture, makeManifest());
+  const result = authorize(fixture, authority);
+  assert.equal(result.decision, 'AUTHORIZED', JSON.stringify(result.findings));
+});
+
+test('P09a Git-clean CRLF physical predecessor is AUTHORIZED while the committed predecessor remains retained', () => {
+  const fixture = makeFixture();
+  git(fixture.root, ['config', 'core.autocrlf', 'true']);
+  const physicalCrLf = Buffer.from('export const value = 1;\r\n', 'utf8');
+  write(fixture.root, TRACKED_TARGET, physicalCrLf);
+  assert.doesNotThrow(() => git(fixture.root, ['diff', '--quiet', '--', TRACKED_TARGET]));
+  assert.doesNotThrow(() => git(fixture.root, ['diff', '--cached', '--quiet', '--', TRACKED_TARGET]));
+  assert.equal(
+    git(fixture.root, ['hash-object', '--path=' + TRACKED_TARGET, path.join(fixture.root, ...TRACKED_TARGET.split('/'))]).trim(),
+    git(fixture.root, ['rev-parse', 'HEAD:' + TRACKED_TARGET]).trim()
+  );
+  const manifest = makeManifest();
+  manifest.paths = manifest.paths.map((entry) => entry.path === TRACKED_TARGET
+    ? { ...entry, prestate: { state: 'PRESENT', sha256: sha256(physicalCrLf), byteLength: physicalCrLf.length } }
+    : entry);
+  const { authority } = install(fixture, manifest);
+  const physical = collectPathPrestates(fixture.root, [TRACKED_TARGET])[TRACKED_TARGET];
+  assert.equal(physical.sha256, sha256(physicalCrLf));
+  assert.ok(physical.canonicalPredecessors.includes(sha256(physicalCrLf)));
+  assert.ok(physical.canonicalPredecessors.includes(sha256(COMMITTED_BYTES)));
+  assert.notEqual(sha256(physicalCrLf), sha256(COMMITTED_BYTES));
   const result = authorize(fixture, authority);
   assert.equal(result.decision, 'AUTHORIZED', JSON.stringify(result.findings));
 });
@@ -244,6 +306,44 @@ test('P05 a one-byte difference from the declared prestate is BLOCKED', () => {
   const result = authorize(fixture, authority);
   assert.equal(result.decision, 'BLOCKED');
   assert.ok(codes(result).includes('PATH_PRESTATE_SHA_MISMATCH'));
+});
+
+test('P05b staged-but-uncommitted bytes are not a canonical physical predecessor', () => {
+  const fixture = makeFixture();
+  write(fixture.root, TRACKED_TARGET, CANDIDATE_TRACKED);
+  git(fixture.root, ['add', '--', TRACKED_TARGET]);
+  const manifest = makeManifest();
+  manifest.paths = manifest.paths.map((entry) => entry.path === TRACKED_TARGET
+    ? { ...entry, prestate: { state: 'PRESENT', sha256: sha256(CANDIDATE_TRACKED), byteLength: CANDIDATE_TRACKED.length } }
+    : entry);
+  const { authority } = install(fixture, manifest);
+  const result = authorize(fixture, authority);
+  assert.equal(result.decision, 'BLOCKED');
+  assert.ok(codes(result).includes('PATH_PRESTATE_NOT_A_CANONICAL_PREDECESSOR'));
+});
+
+test('P05c recovery AUTHORIZE omits future outputs but preserves the committed predecessor for dirty partial MODIFY', () => {
+  const fixture = makeFixture();
+  const { authority } = install(fixture, makeManifest());
+  write(fixture.root, TRACKED_TARGET, Buffer.from('export const value = partial;\n', 'utf8'));
+  const authorizeObservation = collectPostFreezeMaintenanceObservation({
+    root: fixture.root, authority, authorityDocumentPath: AUTHORITY_PATH, includeConsumptionCohort: false
+  });
+  assert.equal(authorizeObservation.valid, true, JSON.stringify(authorizeObservation.findings));
+  const verifyObservation = collectPostFreezeMaintenanceObservation({
+    root: fixture.root, authority, authorityDocumentPath: AUTHORITY_PATH, includeConsumptionCohort: true
+  });
+  assert.equal(verifyObservation.valid, false);
+  assert.ok(verifyObservation.findings.some((finding) => finding.code === `CONSUMPTION_COHORT_PATH_ABSENT:${NEW_TARGET}`));
+  const recordedBefore = new Map([[TRACKED_TARGET, { present: true, sha256: sha256(COMMITTED_BYTES), byteLength: COMMITTED_BYTES.length }]]);
+  const reconstructed = reconstructPathPrestates(fixture.root, authorizeObservation.manifest.paths.map((entry) => entry.path), recordedBefore);
+  assert.equal(reconstructed[TRACKED_TARGET].sha256, sha256(COMMITTED_BYTES));
+  assert.ok(reconstructed[TRACKED_TARGET].canonicalPredecessors.includes(sha256(COMMITTED_BYTES)));
+  const recovered = evaluatePostFreezeMaintenanceAuthorityV2({
+    authority, manifest: authorizeObservation.manifest, observed: { ...authorizeObservation.observed, pathPrestates: reconstructed },
+    phase: PHASE_AUTHORIZE_PROGRAM_APPLY, now: new Date('2026-08-15T12:00:00.000Z'), consumptionRecord: null
+  });
+  assert.equal(recovered.decision, 'AUTHORIZED', JSON.stringify(recovered.findings));
 });
 
 test('P06 an unauthorized extra path cannot be published', () => {

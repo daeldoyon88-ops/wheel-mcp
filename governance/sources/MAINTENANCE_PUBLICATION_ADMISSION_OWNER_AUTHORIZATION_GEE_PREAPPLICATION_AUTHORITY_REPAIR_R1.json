@@ -1,0 +1,25 @@
+{
+  "document": "MAINTENANCE_PUBLICATION_ADMISSION_OWNER_AUTHORIZATION",
+  "schemaVersion": 1,
+  "authorityId": "GEE_PREAPPLICATION_AUTHORITY_REPAIR_PUBLICATION_OWNER_AUTHORIZATION_R1",
+  "authorityClass": "PROJECT_OWNER_MAINTENANCE_PUBLICATION_ADMISSION_AUTHORITY",
+  "authorityMode": "LOCAL_EXPLICIT_AUTHORITY",
+  "issuedBy": "PROJECT_OWNER",
+  "issuedAtUtc": "2026-08-29T00:00:00.000Z",
+  "decisionId": "GEE_PREAPPLICATION_AUTHORITY_REPAIR_OWNER_DECISION_R3",
+  "purpose": "MAINTENANCE_PUBLICATION_ADMISSION",
+  "reexecutionAuthorized": false,
+  "grantsFutureBytePermission": false,
+  "genericV1Admission": false,
+  "admittedPublications": [
+    {
+      "admissionId": "GEE_PREAPPLICATION_AUTHORITY_REPAIR_PUBLICATION_ADMISSION_R1",
+      "projectId": "WHEEL",
+      "gateId": "GATE24",
+      "programId": "GEE_PREAPPLICATION_AUTHORITY_REPAIR_R1",
+      "admissionPath": "governance/authority/publication-admissions/GATE24/GEE_PREAPPLICATION_AUTHORITY_REPAIR_PUBLICATION_ADMISSION_R1.json",
+      "admissionDigest": "c5004a07f861ba424e683908f9d91b514f3bf54453893cb0656826f1083b24ff"
+    }
+  ],
+  "registryDigest": "54fb0560fa277c83c9f15cf869190a26d1927b4a9bd1bcef92be0565862b6dd0"
+}

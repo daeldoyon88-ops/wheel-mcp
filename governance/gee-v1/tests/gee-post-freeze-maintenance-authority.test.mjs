@@ -879,6 +879,8 @@ test('W1: default observer proves a valid unconsumed V2 authority on a bounded s
   execFileSync('git', ['init', '--quiet'], { cwd: root });
   execFileSync('git', ['-c', 'user.name=w1scratch', '-c', 'user.email=w1scratch@example.invalid', 'commit', '--allow-empty', '--quiet', '-m', 'w1scratch'], { cwd: root });
   const head = execFileSync('git', ['rev-parse', 'HEAD'], { cwd: root, encoding: 'utf8' }).trim();
+  const scratchLedgerBytes = fs.readFileSync(path.join(root, 'governance', 'state', 'GATE_STATUS_LEDGER.ndjson'));
+  const scratchLedgerEventCount = scratchLedgerBytes.toString('utf8').split(/\r?\n/).filter((line) => line.trim()).length;
   const authorityRel = 'governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_SCRATCH_UNCONSUMED_R1.json';
   const manifestRel = 'governance/historical-architecture/SCRATCH_UNCONSUMED_AUTHORIZED_PATHS_R1.json';
   const consumptionRel = 'governance/historical-architecture/SCRATCH_UNCONSUMED_CONSUMPTION_R1.json';
@@ -908,7 +910,7 @@ test('W1: default observer proves a valid unconsumed V2 authority on a bounded s
     resumePoint: 'CP-WHEEL-GOVERNANCE-SCRATCH-UNCONSUMED-R1',
     createdAt: '2026-08-22T00:00:00.000Z',
     expiresAt: '2026-12-31T23:59:59.000Z',
-    preState: { ...liveAuthority.preState, baseHead: head },
+    preState: { ...liveAuthority.preState, baseHead: head, ledgerEventCount: scratchLedgerEventCount, ledgerPrefixSha256: sha256Hex(scratchLedgerBytes) },
     authorizedPathManifestPath: manifestRel,
     authorizedPathManifestSha256: sha256Hex(manifestBytes),
     authorityHeadBinding: { mode: 'BASE_HEAD', baseHead: head },

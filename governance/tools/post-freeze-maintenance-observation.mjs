@@ -7,6 +7,20 @@ import { isExactMaintenancePath } from '../gee-v1/core/post-freeze-maintenance-a
 import { collectValidatedOwnerPresentByteBootstrapReceipts } from '../gee-v1/core/owner-present-byte-bootstrap.mjs';
 
 function sha256(bytes) { return crypto.createHash('sha256').update(bytes).digest('hex'); }
+
+function collectGitCleanPhysicalPredecessor(root, relativePath) {
+  const file = resolveMaintenancePath(root, relativePath);
+  if (!file || !fs.existsSync(file) || !fs.statSync(file).isFile()) return null;
+  try {
+    const headObject = execFileSync('git', ['rev-parse', `HEAD:${relativePath}`], { cwd: root, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim();
+    execFileSync('git', ['diff', '--quiet', '--', relativePath], { cwd: root, stdio: 'ignore' });
+    execFileSync('git', ['diff', '--cached', '--quiet', '--', relativePath], { cwd: root, stdio: 'ignore' });
+    const untracked = execFileSync('git', ['ls-files', '--others', '--exclude-standard', '--', relativePath], { cwd: root, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim();
+    if (untracked) return null;
+    const physicalObject = execFileSync('git', ['hash-object', `--path=${relativePath}`, file], { cwd: root, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim();
+    return physicalObject === headObject ? sha256(fs.readFileSync(file)) : null;
+  } catch { return null; }
+}
 function readJson(file) { return JSON.parse(fs.readFileSync(file, 'utf8').replace(/^\uFEFF/, '')); }
 
 /**
@@ -32,6 +46,8 @@ export function collectCanonicalPredecessors(root, relativePaths) {
     try {
       const bytes = execFileSync('git', ['show', `HEAD:${relativePath}`], { cwd: root, maxBuffer: 1 << 28, stdio: ['ignore', 'pipe', 'ignore'] });
       byPath.get(relativePath).add(sha256(bytes));
+      const physicalSha256 = collectGitCleanPhysicalPredecessor(root, relativePath);
+      if (physicalSha256) byPath.get(relativePath).add(physicalSha256);
     } catch { /* not tracked at HEAD: no committed predecessor */ }
   }
   const authoritiesById = new Map();

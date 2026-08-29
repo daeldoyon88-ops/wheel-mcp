@@ -1,0 +1,25 @@
+{
+  "document": "MAINTENANCE_PUBLICATION_ADMISSION_OWNER_AUTHORIZATION",
+  "schemaVersion": 1,
+  "authorityId": "GEE_PREAPPLICATION_CRLF_PREDECESSOR_COVERAGE_SUCCESSOR_PUBLICATION_OWNER_AUTHORIZATION_R1",
+  "authorityClass": "PROJECT_OWNER_MAINTENANCE_PUBLICATION_ADMISSION_AUTHORITY",
+  "authorityMode": "LOCAL_EXPLICIT_AUTHORITY",
+  "issuedBy": "PROJECT_OWNER",
+  "issuedAtUtc": "2026-08-29T00:00:00.000Z",
+  "decisionId": "GEE_PREAPPLICATION_CRLF_PREDECESSOR_COVERAGE_SUCCESSOR_OWNER_DECISION_R1",
+  "purpose": "MAINTENANCE_PUBLICATION_ADMISSION",
+  "reexecutionAuthorized": false,
+  "grantsFutureBytePermission": false,
+  "genericV1Admission": false,
+  "admittedPublications": [
+    {
+      "admissionId": "GEE_PREAPPLICATION_CRLF_PREDECESSOR_COVERAGE_SUCCESSOR_PUBLICATION_ADMISSION_R1",
+      "projectId": "WHEEL",
+      "gateId": "GATE24",
+      "programId": "GEE_PREAPPLICATION_CRLF_PREDECESSOR_COVERAGE_SUCCESSOR_R1",
+      "admissionPath": "governance/authority/publication-admissions/GATE24/GEE_PREAPPLICATION_CRLF_PREDECESSOR_COVERAGE_SUCCESSOR_PUBLICATION_ADMISSION_R1.json",
+      "admissionDigest": "62f379ce275e5f22a8901dfe641feed5bac7971ad5022e1e8c100fd432da206b"
+    }
+  ],
+  "registryDigest": "866accfec3d0660f25bf2bc06c866ca245b3b2f1fae3e05a7d2c84e74faa05ad"
+}

@@ -1,0 +1,72 @@
+{
+  "documentKind": "MAINTENANCE_PUBLICATION_ADMISSION",
+  "schemaVersion": 1,
+  "authorityMode": "LOCAL_EXPLICIT_AUTHORITY",
+  "issuedBy": "PROJECT_OWNER",
+  "admissionId": "GEE_PREAPPLICATION_AUTHORITY_REPAIR_PUBLICATION_ADMISSION_R1",
+  "decisionId": "GEE_PREAPPLICATION_AUTHORITY_REPAIR_OWNER_DECISION_R3",
+  "issuedAtUtc": "2026-08-29T00:00:00.000Z",
+  "expiresAtUtc": null,
+  "projectId": "WHEEL",
+  "repositoryId": "WHEEL_MCP_CANONICAL",
+  "gateId": "GATE24",
+  "programId": "GEE_PREAPPLICATION_AUTHORITY_REPAIR_R1",
+  "purpose": "MAINTENANCE_PUBLICATION_ADMISSION",
+  "publicationClass": "PATH_PRESTATE_PROGRAM_PUBLISHER",
+  "authorityPurpose": "NORMAL_MAINTENANCE",
+  "maxUse": 1,
+  "admissionStatement": "One exact Owner admission for the bounded GEE pre-application authority repair. GATE24 is an administrative filing context only and grants no GATE24 lifecycle authority.",
+  "admittedAuthority": {
+    "path": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_GEE_PREAPPLICATION_AUTHORITY_REPAIR_R1.json",
+    "sha256": "91f9111e0613b3663dc68ba4b4a3710cbb19f69121d2f97612b236cfb4430587",
+    "byteLength": 2114,
+    "schemaVersion": 2,
+    "documentId": "GEE_PREAPPLICATION_AUTHORITY_REPAIR_LOCAL_AUTHORITY_R1"
+  },
+  "admittedManifest": {
+    "path": "governance/historical-architecture/GEE_PREAPPLICATION_AUTHORITY_REPAIR_AUTHORIZED_PATHS_R1.json",
+    "sha256": "46aa3a68e3de033c8e02e7c4ebf7a7a9179714396f866301142509cd1cac8a54",
+    "byteLength": 3187,
+    "schemaVersion": 2,
+    "documentId": "GEE_PREAPPLICATION_AUTHORITY_REPAIR_AUTHORIZED_PATHS_R1"
+  },
+  "admittedPrestate": {
+    "baseHead": "575c7800691325ce52ad994a92d60cc9d062a219",
+    "ledgerEventCount": 104,
+    "ledgerPrefixSha256": "2def19c84b7581da0ab54d2d1ba9d68f5bc2ce40e108443cfbd086835a0116da",
+    "gateId": "GATE24",
+    "gateStatus": "COMPLETE_CONFIRMED",
+    "stateRevision": "R0005",
+    "contractRevision": "R0002",
+    "activeGate": "GATE13",
+    "R8ExpectedAbsent": true
+  },
+  "admittedOperationClasses": [
+    "MAINTENANCE"
+  ],
+  "grantsFutureBytePermission": false,
+  "grantsGateAuthorizationPermission": false,
+  "grantsStartPermission": false,
+  "grantsStatusTransitionPermission": false,
+  "grantsHistoricalAdmissionWidening": false,
+  "genericV1Admission": false,
+  "derivedFromGitDelta": false,
+  "derivedFromFinalGateIntegrityFindings": false,
+  "prohibitedOperations": [
+    "START",
+    "SECOND_START",
+    "GATE_AUTHORIZATION",
+    "STATUS_TRANSITION",
+    "ACTIVE_GATE_SWITCH",
+    "GEE_R8",
+    "GIT_PUSH",
+    "HISTORY_REWRITE",
+    "GENERIC_V1_ADMISSION",
+    "HISTORICAL_ADMISSION_WIDENING",
+    "SELF_ADMISSION"
+  ],
+  "successorRequirement": "A later publication requires a new exact Owner admission over a new exact pre-state.",
+  "admissionDigest": "c5004a07f861ba424e683908f9d91b514f3bf54453893cb0656826f1083b24ff",
+  "ownerAuthorizationPath": "governance/sources/MAINTENANCE_PUBLICATION_ADMISSION_OWNER_AUTHORIZATION_GEE_PREAPPLICATION_AUTHORITY_REPAIR_R1.json",
+  "ownerAuthorizationSha256": "c91ac1f8875dac9c87a374a1285444a6509d8b7e868d657f54254e8546179cbe"
+}

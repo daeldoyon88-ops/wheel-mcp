@@ -144,7 +144,8 @@ function observeV2MaintenanceAuthority(root, authority, manifest, loadedAuthorit
     authority,
     authorityDocumentPath,
     requestedPaths: manifest?.paths?.map((entry) => entry.path) ?? [],
-    requestedOperationClasses: manifest?.paths?.map((entry) => entry.artifactClass) ?? []
+    requestedOperationClasses: manifest?.paths?.map((entry) => entry.artifactClass) ?? [],
+    includeConsumptionCohort: false
   });
   if (!observation.valid) throw new Error(observation.findings.map((finding) => finding.code).join(',') || 'POST_FREEZE_MAINTENANCE_OBSERVATION_FAILED');
   return observation.observed;

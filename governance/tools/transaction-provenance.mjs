@@ -764,7 +764,7 @@ export function validateLifecycleTransactionProvenance({ root, transaction }) {
       // publisher had just evaluated as AUTHORIZED over the same bytes — two
       // observations of one thing, which is the defect class this whole repair is
       // about, reappearing inside the recovery validator itself.
-      const observation = collectPostFreezeMaintenanceObservation({ root, authority, authorityDocumentPath: provenance.authority?.documentPath ?? null, requestedPaths: observedCohort.map((entry) => entry.path), requestedOperationClasses: provenance.requestedOperationClasses, candidateWrites });
+      const observation = collectPostFreezeMaintenanceObservation({ root, authority, authorityDocumentPath: provenance.authority?.documentPath ?? null, requestedPaths: observedCohort.map((entry) => entry.path), requestedOperationClasses: provenance.requestedOperationClasses, candidateWrites, includeConsumptionCohort: false });
       if (!observation.valid) finding(findings, 'PENDING_TRANSACTION_AUTHORITY_OBSERVATION_INVALID');
       else {
         // RECOVERY EVALUATES THE PRE-PUBLICATION STATE, NOT THE POST-CRASH ONE.

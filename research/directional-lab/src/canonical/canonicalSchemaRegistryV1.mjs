@@ -79,6 +79,15 @@ import {
   normalizeMarketSessionCalendarCoreV1,
 } from '../contracts/marketCalendarL3V1.mjs';
 import {
+  MARKET_CALENDAR_AUTHORITY_POLICY_V2_SCHEMA_VERSION,
+  MARKET_CALENDAR_L3_V2_SCHEMA_VERSIONS,
+  MARKET_CALENDAR_REGISTRY_MANIFEST_V2_SCHEMA_VERSION,
+  MARKET_SESSION_CALENDAR_CORE_V2_SCHEMA_VERSION,
+  normalizeMarketCalendarAuthorityPolicyV2,
+  normalizeMarketCalendarRegistryManifestV2,
+  normalizeMarketSessionCalendarCoreV2,
+} from '../contracts/marketCalendarL3V2.mjs';
+import {
   MARKET_DATA_ACQUISITION_RECORD_CORE_SCHEMA_VERSION,
   MARKET_DATA_INGESTION_LINEAGE_CORE_SCHEMA_VERSION,
   MARKET_DATA_INGESTION_POLICY_SCHEMA_VERSION,
@@ -332,6 +341,7 @@ export const SNAPSHOT_NAMESPACE_SCHEMA_VERSIONS = Object.freeze([
   DATASET_SNAPSHOT_INSTRUMENT_BINDING_SCHEMA_VERSION,
   ...CORPORATE_ACTION_SCHEMA_VERSIONS,
   ...MARKET_CALENDAR_L3_SCHEMA_VERSIONS,
+  ...MARKET_CALENDAR_L3_V2_SCHEMA_VERSIONS,
   ...MARKET_DATA_SOURCE_L3_SCHEMA_VERSIONS,
   ...MARKET_DATA_BAR_IDENTITY_L3_SCHEMA_VERSIONS,
   ...MARKET_DATA_CANDIDATE_L3_SCHEMA_VERSIONS,
@@ -413,6 +423,12 @@ export function normalizeCanonicalValue(schemaVersion, value) {
       return normalizeMarketSessionCalendarCoreV1(value);
     case MARKET_CALENDAR_REGISTRY_MANIFEST_SCHEMA_VERSION:
       return normalizeMarketCalendarRegistryManifestV1(value);
+    case MARKET_CALENDAR_AUTHORITY_POLICY_V2_SCHEMA_VERSION:
+      return normalizeMarketCalendarAuthorityPolicyV2(value);
+    case MARKET_SESSION_CALENDAR_CORE_V2_SCHEMA_VERSION:
+      return normalizeMarketSessionCalendarCoreV2(value);
+    case MARKET_CALENDAR_REGISTRY_MANIFEST_V2_SCHEMA_VERSION:
+      return normalizeMarketCalendarRegistryManifestV2(value);
     case MARKET_DATA_INGESTION_POLICY_SCHEMA_VERSION:
       return normalizeMarketDataIngestionPolicyV1(value);
     case MARKET_DATA_INGESTION_LINEAGE_CORE_SCHEMA_VERSION:

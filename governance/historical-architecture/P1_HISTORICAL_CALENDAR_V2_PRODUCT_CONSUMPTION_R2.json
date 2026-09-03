@@ -1,0 +1,640 @@
+{
+  "documentKind": "POST_FREEZE_MAINTENANCE_AUTHORITY_CONSUMPTION",
+  "schemaVersion": 2,
+  "authorityId": "P1_HISTORICAL_CALENDAR_V2_PRODUCT_LOCAL_AUTHORITY_R2",
+  "programId": "P1_HISTORICAL_CALENDAR_V2_PRODUCT_R1",
+  "manifestSha256": "7d9bd404d9ecc7c97cc3bab6fc9aaa330c292a32ec266e5f6c568da5ae5b6949",
+  "baseHead": "38b9dab5563571edb01fcdb216790f0df26ab59d",
+  "consumedUse": 1,
+  "transactionId": "P1_HISTORICAL_CALENDAR_V2_PRODUCT_R1_TRANSACTION",
+  "recordedAt": "2026-08-31T09:16:54.479Z",
+  "commitMessage": "jarvise: historical XNYS calendar V2 product",
+  "publicationAdmission": {
+    "admissionId": "P1_HISTORICAL_CALENDAR_V2_PRODUCT_PUBLICATION_ADMISSION_R2",
+    "admissionPath": "governance/authority/publication-admissions/GATE24/P1_HISTORICAL_CALENDAR_V2_PRODUCT_PUBLICATION_ADMISSION_R2.json",
+    "admissionSha256": "4e8ace47fc3532ac0fdc30b03f3df8b85b2a0e5d5873db39f11b1a5fe33153b8"
+  },
+  "cohortSelfExclusion": {
+    "path": "governance/historical-architecture/P1_HISTORICAL_CALENDAR_V2_PRODUCT_CONSUMPTION_R2.json",
+    "reason": "The consumption record cannot hash its own final bytes; its identity is bound by the authority and manifest instead."
+  },
+  "cohortPathCount": 78,
+  "cohort": [
+    {
+      "path": "research/directional-lab/src/contracts/marketCalendarL3V2.mjs",
+      "sha256": "7959e1fc8658e4f64047a469c1b1d799e697a8dd90cd5c78e7808cd3a30a619d",
+      "byteLength": 16961,
+      "operation": "CREATE",
+      "reason": "V2 market-calendar contract module.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "research/directional-lab/src/canonical/canonicalSchemaRegistryV1.mjs",
+      "sha256": "b511de7e50ff71ddc5ebae917da6d9cd96a98220de8d0dbc471942db4d61af23",
+      "byteLength": 35291,
+      "operation": "MODIFY",
+      "reason": "Additive registration of the V2 market-calendar schemas.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "scripts/buildJarviseSessionCalendarXNYSHistorical.mjs",
+      "sha256": "b39a9c3648b89d3e87b0abbe159b6077808dc649c60db5989ac6ca8af522bd76",
+      "byteLength": 25600,
+      "operation": "CREATE",
+      "reason": "Companion historical XNYS calendar builder.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "research/directional-lab/test/market-calendar-l3-v2.test.mjs",
+      "sha256": "f4ee081507c5fc26c5acb06d9765bc8006853ef53266e051f4a0bb5cae4b804b",
+      "byteLength": 4200,
+      "operation": "CREATE",
+      "reason": "Positive V2 market-calendar contract validation.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "research/directional-lab/test/market-calendar-l3-v2-adversarial.test.mjs",
+      "sha256": "d1efa721e6e79c19e1c0ebd65d2917329b05cd3ecfac436fd327bf857039e025",
+      "byteLength": 4589,
+      "operation": "CREATE",
+      "reason": "Adversarial V2 market-calendar contract validation.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "research/directional-lab/test/jarvise-session-calendar-xnys-historical.test.mjs",
+      "sha256": "4417f3633fef9b6a7bf31177e8bc1fd27c345a4130c017cc58c749a833f8e91a",
+      "byteLength": 3775,
+      "operation": "CREATE",
+      "reason": "Historical XNYS materialization and G24 non-regression validation.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "data/jarvise/session-calendar-historical/XNYS/authority-policy.json",
+      "sha256": "6bb5d738b9df8593187bcd5111d389dfef8add2ffc3d6ad4fedeebfcd1a59c41",
+      "byteLength": 1972,
+      "operation": "CREATE",
+      "reason": "Shared MarketCalendarAuthorityPolicy/2 for historical XNYS materializations.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "data/jarvise/session-calendar-historical/XNYS/2018/normalized-source.json",
+      "sha256": "d39da9a4d351c89401f0fdd518ee43012c4a15ddb8897717ed8e0e4938e94b93",
+      "byteLength": 688,
+      "operation": "CREATE",
+      "reason": "Normalized historical XNYS source for 2018.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "data/jarvise/session-calendar-historical/XNYS/2018/timezone-ruleset.json",
+      "sha256": "4d91ab55dedb78e8d3cdc835956e5735c9cc27dd9d754a85ed5765f6d6bf5786",
+      "byteLength": 40344,
+      "operation": "CREATE",
+      "reason": "Historical XNYS timezone ruleset for 2018.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "data/jarvise/session-calendar-historical/XNYS/2018/session-calendar-core.json",
+      "sha256": "774c33e51e52fe911543f5f77a5252acaa255c5dc48f58b321782648022c2288",
+      "byteLength": 45960,
+      "operation": "CREATE",
+      "reason": "Historical XNYS session-calendar core for 2018.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "data/jarvise/session-calendar-historical/XNYS/2018/PROVENANCE.json",
+      "sha256": "203270d13eb1586689da3f382389214167239b956ac3fbd92655e594c37bd93e",
+      "byteLength": 2215,
+      "operation": "CREATE",
+      "reason": "Historical XNYS calendar provenance for 2018.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "data/jarvise/session-calendar-historical/XNYS/2019/normalized-source.json",
+      "sha256": "2c811d9982d90a1a96d019a6c49fd4a1347ebf01aeee315b46e6eaffa09a73b2",
+      "byteLength": 688,
+      "operation": "CREATE",
+      "reason": "Normalized historical XNYS source for 2019.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "data/jarvise/session-calendar-historical/XNYS/2019/timezone-ruleset.json",
+      "sha256": "f4c36e36e8dec55a70b975d2794bf1829b86cb35c809b320a097095a17ca201c",
+      "byteLength": 40344,
+      "operation": "CREATE",
+      "reason": "Historical XNYS timezone ruleset for 2019.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "data/jarvise/session-calendar-historical/XNYS/2019/session-calendar-core.json",
+      "sha256": "1cfcaebb2a782ccdbf89492b9dda37039698c71ec271f97beb659f7a06bb74c2",
+      "byteLength": 45960,
+      "operation": "CREATE",
+      "reason": "Historical XNYS session-calendar core for 2019.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "data/jarvise/session-calendar-historical/XNYS/2019/PROVENANCE.json",
+      "sha256": "50749d0143be1ad02f093f1f0a742a98b75de12ca1e33261440d394e9e773c40",
+      "byteLength": 2209,
+      "operation": "CREATE",
+      "reason": "Historical XNYS calendar provenance for 2019.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "data/jarvise/session-calendar-historical/XNYS/2020/normalized-source.json",
+      "sha256": "a0710ed102cd5515b560a393e012ed51da390350914e1cc7a08ea210906dd7ef",
+      "byteLength": 675,
+      "operation": "CREATE",
+      "reason": "Normalized historical XNYS source for 2020.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "data/jarvise/session-calendar-historical/XNYS/2020/timezone-ruleset.json",
+      "sha256": "c713f12f6e5800b697acc43bfea7ac857b086180b27339db9fd8fbbdb439803d",
+      "byteLength": 40454,
+      "operation": "CREATE",
+      "reason": "Historical XNYS timezone ruleset for 2020.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "data/jarvise/session-calendar-historical/XNYS/2020/session-calendar-core.json",
+      "sha256": "5b6af9bccb57a7ff774a981c99c1a876c1090abbdb3fd7cbae640122ad65945a",
+      "byteLength": 46140,
+      "operation": "CREATE",
+      "reason": "Historical XNYS session-calendar core for 2020.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "data/jarvise/session-calendar-historical/XNYS/2020/PROVENANCE.json",
+      "sha256": "e289df20c25951719f4d0b89b2739f29b07f6518bf7cff9f177fec292d8bb0bd",
+      "byteLength": 2210,
+      "operation": "CREATE",
+      "reason": "Historical XNYS calendar provenance for 2020.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "data/jarvise/session-calendar-historical/XNYS/2021/normalized-source.json",
+      "sha256": "c1083f6ec4e8e43a63204b0bb0232e07830ea251d208b4726b58b7bf605343c7",
+      "byteLength": 662,
+      "operation": "CREATE",
+      "reason": "Normalized historical XNYS source for 2021.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "data/jarvise/session-calendar-historical/XNYS/2021/timezone-ruleset.json",
+      "sha256": "2053a715aebd74fa86377f532016c25efef12283da2b8b6ce5c28cc25c0c34e5",
+      "byteLength": 40344,
+      "operation": "CREATE",
+      "reason": "Historical XNYS timezone ruleset for 2021.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "data/jarvise/session-calendar-historical/XNYS/2021/session-calendar-core.json",
+      "sha256": "9ec78834da22f85efa423b865c0f97a4a02c0cd6de17b99f9be6fa269cb95c30",
+      "byteLength": 45958,
+      "operation": "CREATE",
+      "reason": "Historical XNYS session-calendar core for 2021.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "data/jarvise/session-calendar-historical/XNYS/2021/PROVENANCE.json",
+      "sha256": "37756c51c828a40d853137f36715906dc97fe42ffd55103c0744a6a556215790",
+      "byteLength": 2209,
+      "operation": "CREATE",
+      "reason": "Historical XNYS calendar provenance for 2021.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "data/jarvise/session-calendar-historical/XNYS/2022/normalized-source.json",
+      "sha256": "b51a7b1f394658ff6d1d5953cf44528776e76f20cacc50d4673c5b39c3b1bd65",
+      "byteLength": 1237,
+      "operation": "CREATE",
+      "reason": "Normalized historical XNYS source for 2022.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "data/jarvise/session-calendar-historical/XNYS/2022/timezone-ruleset.json",
+      "sha256": "d32b937c80067b73e1cc7c6da33497e19d0a9a6687de12ca66ba8d4fef8544bc",
+      "byteLength": 40344,
+      "operation": "CREATE",
+      "reason": "Historical XNYS timezone ruleset for 2022.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "data/jarvise/session-calendar-historical/XNYS/2022/session-calendar-core.json",
+      "sha256": "705af86cb0f15eb5cf815fbb1016dee849b20f54f3ad9fda8e10354afe38706d",
+      "byteLength": 45777,
+      "operation": "CREATE",
+      "reason": "Historical XNYS session-calendar core for 2022.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "data/jarvise/session-calendar-historical/XNYS/2022/PROVENANCE.json",
+      "sha256": "5f64207191ce71ebd24d2704902f069974b626ae533bc48d9e49c333b922f84d",
+      "byteLength": 2793,
+      "operation": "CREATE",
+      "reason": "Historical XNYS calendar provenance for 2022.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "data/jarvise/session-calendar-historical/XNYS/2023/normalized-source.json",
+      "sha256": "c847e7d18aa5b1aa8c4a20ce30efb3c3e5281a4504803645e23ee17d6260da03",
+      "byteLength": 688,
+      "operation": "CREATE",
+      "reason": "Normalized historical XNYS source for 2023.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "data/jarvise/session-calendar-historical/XNYS/2023/timezone-ruleset.json",
+      "sha256": "5a8ef5635aadfb3c88eb994d121861f3eb4195bc49a44e2fcef1ee2d0c07b632",
+      "byteLength": 40344,
+      "operation": "CREATE",
+      "reason": "Historical XNYS timezone ruleset for 2023.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "data/jarvise/session-calendar-historical/XNYS/2023/session-calendar-core.json",
+      "sha256": "2e38ee8528dabf6fe259b88bf7f0fd2237bdae7b129c4d5ca577c2cc46026acd",
+      "byteLength": 45597,
+      "operation": "CREATE",
+      "reason": "Historical XNYS session-calendar core for 2023.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "data/jarvise/session-calendar-historical/XNYS/2023/PROVENANCE.json",
+      "sha256": "3b11d08f60de7a724ef9d4b4c2539104def2e03e3c4db1d1fc21ce0a588d49d4",
+      "byteLength": 2210,
+      "operation": "CREATE",
+      "reason": "Historical XNYS calendar provenance for 2023.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "data/jarvise/session-calendar-historical/XNYS/2024/normalized-source.json",
+      "sha256": "d99cde6b5d90829d771592c19df631ddf77f725692ea637b529807610fda4cc2",
+      "byteLength": 701,
+      "operation": "CREATE",
+      "reason": "Normalized historical XNYS source for 2024.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "data/jarvise/session-calendar-historical/XNYS/2024/timezone-ruleset.json",
+      "sha256": "4b45e826d7ff121bcb7bc072225b91b82cab678415bce2e40e7aff43daa0ff49",
+      "byteLength": 40454,
+      "operation": "CREATE",
+      "reason": "Historical XNYS timezone ruleset for 2024.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "data/jarvise/session-calendar-historical/XNYS/2024/session-calendar-core.json",
+      "sha256": "702e6466436c7979f33b3c6d2449dec7bd93157db71e6a8910fabbc0a014381e",
+      "byteLength": 45960,
+      "operation": "CREATE",
+      "reason": "Historical XNYS session-calendar core for 2024.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "data/jarvise/session-calendar-historical/XNYS/2024/PROVENANCE.json",
+      "sha256": "859a180dd3824f4725837756786e386d357063ff6fd97626092723c26368dff8",
+      "byteLength": 2210,
+      "operation": "CREATE",
+      "reason": "Historical XNYS calendar provenance for 2024.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "data/jarvise/session-calendar-historical/XNYS/2025/normalized-source.json",
+      "sha256": "d8f867dd2fbfb9038d38d8fa01059a2754976a54259f440ab7c6b516dad3453d",
+      "byteLength": 701,
+      "operation": "CREATE",
+      "reason": "Normalized historical XNYS source for 2025.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "data/jarvise/session-calendar-historical/XNYS/2025/timezone-ruleset.json",
+      "sha256": "95f1cf5c259a8e53923d77c6f09d97e2ee8fa78b723811c14cff483879e3ca61",
+      "byteLength": 40344,
+      "operation": "CREATE",
+      "reason": "Historical XNYS timezone ruleset for 2025.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "data/jarvise/session-calendar-historical/XNYS/2025/session-calendar-core.json",
+      "sha256": "6d04944c57853c7a3971e78e97e1053efe5565e2d24453401081b60372d71331",
+      "byteLength": 45779,
+      "operation": "CREATE",
+      "reason": "Historical XNYS session-calendar core for 2025.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "data/jarvise/session-calendar-historical/XNYS/2025/PROVENANCE.json",
+      "sha256": "d204ec5c7c933fb3893c0a9b7611c3b7ebf3020f57531b4c97627f0ac0ad0591",
+      "byteLength": 2210,
+      "operation": "CREATE",
+      "reason": "Historical XNYS calendar provenance for 2025.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "data/jarvise/session-calendar-historical/XNYS/2026/normalized-source.json",
+      "sha256": "6ae376ad72ba207d9a8edbeb70b254a2636b013233369b6239db5189a3126658",
+      "byteLength": 688,
+      "operation": "CREATE",
+      "reason": "Normalized historical XNYS source for 2026.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "data/jarvise/session-calendar-historical/XNYS/2026/timezone-ruleset.json",
+      "sha256": "9a8208dccc3601f96d971f22f82d0c5dc53b6f72b9233a0f076243b675bd27a6",
+      "byteLength": 40344,
+      "operation": "CREATE",
+      "reason": "Historical XNYS timezone ruleset for 2026.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "data/jarvise/session-calendar-historical/XNYS/2026/session-calendar-core.json",
+      "sha256": "d055b6e03ba672695aa9b93d67360d7701b3ea67dfbf6b6134580185b1f061e6",
+      "byteLength": 45778,
+      "operation": "CREATE",
+      "reason": "Historical XNYS session-calendar core for 2026.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "data/jarvise/session-calendar-historical/XNYS/2026/PROVENANCE.json",
+      "sha256": "0833e3a857e4dfe0cd1f76b12fc2129db21a6943179974be5b83362977ba83dc",
+      "byteLength": 1631,
+      "operation": "CREATE",
+      "reason": "Historical XNYS calendar provenance for 2026.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "data/jarvise/session-calendar-historical/source-evidence/2018/nyse-hours-calendars.html",
+      "sha256": "34dc1338f65915dccbfe15dee38499ac2bc35ac6522b31ed1db64b953d05aea6",
+      "byteLength": 169075,
+      "operation": "CREATE",
+      "reason": "NYSE historical calendar evidence for 2018.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "data/jarvise/session-calendar-historical/source-evidence/2018/nasdaqtrader-calendar.html",
+      "sha256": "4528bce33aec7cfdce0a7b6d1b434f279f5cb185be4d90a1467a1c2f51386d60",
+      "byteLength": 62697,
+      "operation": "CREATE",
+      "reason": "Nasdaq Trader historical calendar evidence for 2018.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "data/jarvise/session-calendar-historical/source-evidence/2018/SOURCE_DIGESTS.json",
+      "sha256": "fbc7fe6e5cd66e784967e84c104c1b5b98c3cd220a724b6ef0246fd11dff1748",
+      "byteLength": 1286,
+      "operation": "CREATE",
+      "reason": "Historical XNYS source digests for 2018.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "data/jarvise/session-calendar-historical/source-evidence/2018/EXCEPTIONAL_CLOSURE_SWEEP.json",
+      "sha256": "95ae6c96460c055df99ef096ddb81d96f88999a17f31cdb7526136ef831e11b9",
+      "byteLength": 493,
+      "operation": "CREATE",
+      "reason": "Historical XNYS exceptional-closure sweep for 2018.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "data/jarvise/session-calendar-historical/source-evidence/2019/nyse-hours-calendars.html",
+      "sha256": "7c2998c0e96196bb232bb3bb45cd0551353c5375d651c9a19021e89dac5d722f",
+      "byteLength": 96890,
+      "operation": "CREATE",
+      "reason": "NYSE historical calendar evidence for 2019.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "data/jarvise/session-calendar-historical/source-evidence/2019/nasdaqtrader-calendar.html",
+      "sha256": "39bc3e45bdf9e9379d2397a64af123feafa2f8b9ce8418cdb6b9e72ee5b998d3",
+      "byteLength": 61993,
+      "operation": "CREATE",
+      "reason": "Nasdaq Trader historical calendar evidence for 2019.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "data/jarvise/session-calendar-historical/source-evidence/2019/SOURCE_DIGESTS.json",
+      "sha256": "57aed691d8e4ed2eca1731b270804f88d39db26f7a2eb84fb768ee74b1b6d347",
+      "byteLength": 1280,
+      "operation": "CREATE",
+      "reason": "Historical XNYS source digests for 2019.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "data/jarvise/session-calendar-historical/source-evidence/2019/EXCEPTIONAL_CLOSURE_SWEEP.json",
+      "sha256": "24db89e45fb169c3a5591d8a8dbf6069e090f39dd3b24d1ded82c6079dec187a",
+      "byteLength": 493,
+      "operation": "CREATE",
+      "reason": "Historical XNYS exceptional-closure sweep for 2019.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "data/jarvise/session-calendar-historical/source-evidence/2020/nyse-hours-calendars.html",
+      "sha256": "902b381d9b42c81e96e26f80f6123e9743434232f60be1c7e2e1d5857e0d0137",
+      "byteLength": 183790,
+      "operation": "CREATE",
+      "reason": "NYSE historical calendar evidence for 2020.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "data/jarvise/session-calendar-historical/source-evidence/2020/nasdaqtrader-calendar.html",
+      "sha256": "71591012f13ac1ec68a9ed287ce56180e66275eb7e855bbd925a73bf699c09f0",
+      "byteLength": 60931,
+      "operation": "CREATE",
+      "reason": "Nasdaq Trader historical calendar evidence for 2020.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "data/jarvise/session-calendar-historical/source-evidence/2020/SOURCE_DIGESTS.json",
+      "sha256": "485187bc80d2070969d858b1e6b4b688ef3adaebe185a5077f8a40a0e97cc154",
+      "byteLength": 1281,
+      "operation": "CREATE",
+      "reason": "Historical XNYS source digests for 2020.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "data/jarvise/session-calendar-historical/source-evidence/2020/EXCEPTIONAL_CLOSURE_SWEEP.json",
+      "sha256": "7e49fafa06b8882a2dec173f77a18df0f9513e2f2b705b0bfccc352e9c530350",
+      "byteLength": 493,
+      "operation": "CREATE",
+      "reason": "Historical XNYS exceptional-closure sweep for 2020.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "data/jarvise/session-calendar-historical/source-evidence/2021/nyse-hours-calendars.html",
+      "sha256": "af093f08804bf09fa345e46d54ce0ac89c09152e7ef24d22aa527b63d6f3b632",
+      "byteLength": 94896,
+      "operation": "CREATE",
+      "reason": "NYSE historical calendar evidence for 2021.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "data/jarvise/session-calendar-historical/source-evidence/2021/nasdaqtrader-calendar.html",
+      "sha256": "691ea1f7a9b274052eae45a96dffa814690798a9fc53db73705639d1d089507b",
+      "byteLength": 62641,
+      "operation": "CREATE",
+      "reason": "Nasdaq Trader historical calendar evidence for 2021.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "data/jarvise/session-calendar-historical/source-evidence/2021/SOURCE_DIGESTS.json",
+      "sha256": "07cfb702f0d7596a35950fe46509f05c48915cc707b96a28e7750afaf09cb2c9",
+      "byteLength": 1280,
+      "operation": "CREATE",
+      "reason": "Historical XNYS source digests for 2021.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "data/jarvise/session-calendar-historical/source-evidence/2021/EXCEPTIONAL_CLOSURE_SWEEP.json",
+      "sha256": "ec8f4f8dbfcc8ffc52d9130062078ed4e1e96a208a5916b49a3947db6e786385",
+      "byteLength": 493,
+      "operation": "CREATE",
+      "reason": "Historical XNYS exceptional-closure sweep for 2021.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "data/jarvise/session-calendar-historical/source-evidence/2022/nyse-hours-calendars.html",
+      "sha256": "af093f08804bf09fa345e46d54ce0ac89c09152e7ef24d22aa527b63d6f3b632",
+      "byteLength": 94896,
+      "operation": "CREATE",
+      "reason": "NYSE historical calendar evidence for 2022.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "data/jarvise/session-calendar-historical/source-evidence/2022/nasdaqtrader-calendar.html",
+      "sha256": "cf646847ff4a89414c2f491ee20314f5ddd883d0414fc387b718ce48810af87d",
+      "byteLength": 55247,
+      "operation": "CREATE",
+      "reason": "Nasdaq Trader historical calendar evidence for 2022.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "data/jarvise/session-calendar-historical/source-evidence/2022/SOURCE_DIGESTS.json",
+      "sha256": "9c489e01cb5bcc7f0d28a83fe282c50cd521c1b59304c32cbddde3b246486a41",
+      "byteLength": 1855,
+      "operation": "CREATE",
+      "reason": "Historical XNYS source digests for 2022.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "data/jarvise/session-calendar-historical/source-evidence/2022/EXCEPTIONAL_CLOSURE_SWEEP.json",
+      "sha256": "fed1af98053d3ab9aaf720a400371f529ba926e6147b7e099481c587e2b07412",
+      "byteLength": 1135,
+      "operation": "CREATE",
+      "reason": "Historical XNYS exceptional-closure sweep for 2022.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "data/jarvise/session-calendar-historical/source-evidence/2023/nyse-hours-calendars.html",
+      "sha256": "9a46162d7a0bfd229f18db2d2b152486f8e46c67c01eeb70048aee8dfa3dcb7f",
+      "byteLength": 101642,
+      "operation": "CREATE",
+      "reason": "NYSE historical calendar evidence for 2023.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "data/jarvise/session-calendar-historical/source-evidence/2023/nasdaqtrader-calendar.html",
+      "sha256": "965d71c7d98d1a3cdb19546d7a81462aafff5490247e44821cea4e89446a8cc9",
+      "byteLength": 56106,
+      "operation": "CREATE",
+      "reason": "Nasdaq Trader historical calendar evidence for 2023.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "data/jarvise/session-calendar-historical/source-evidence/2023/SOURCE_DIGESTS.json",
+      "sha256": "3c5ba0fa0a7069939b706d444d1040975caae8e9a7b0e032c15ca0cacf62e17b",
+      "byteLength": 1281,
+      "operation": "CREATE",
+      "reason": "Historical XNYS source digests for 2023.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "data/jarvise/session-calendar-historical/source-evidence/2023/EXCEPTIONAL_CLOSURE_SWEEP.json",
+      "sha256": "3322ed399aafb888026f75bdbfca0641d592793e71c84883924dfa3ce53d6c32",
+      "byteLength": 493,
+      "operation": "CREATE",
+      "reason": "Historical XNYS exceptional-closure sweep for 2023.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "data/jarvise/session-calendar-historical/source-evidence/2024/nyse-hours-calendars.html",
+      "sha256": "9a46162d7a0bfd229f18db2d2b152486f8e46c67c01eeb70048aee8dfa3dcb7f",
+      "byteLength": 101642,
+      "operation": "CREATE",
+      "reason": "NYSE historical calendar evidence for 2024.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "data/jarvise/session-calendar-historical/source-evidence/2024/nasdaqtrader-calendar.html",
+      "sha256": "144f5810ca4c77e738405a63fd3470775d11a21c142c3a06ff686e4312937e96",
+      "byteLength": 56953,
+      "operation": "CREATE",
+      "reason": "Nasdaq Trader historical calendar evidence for 2024.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "data/jarvise/session-calendar-historical/source-evidence/2024/SOURCE_DIGESTS.json",
+      "sha256": "0f4cbbb550fe52e8f5bd81ea6dbd8cc4d59b5a6b68e948c7c61b6d8a23dd0b54",
+      "byteLength": 1281,
+      "operation": "CREATE",
+      "reason": "Historical XNYS source digests for 2024.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "data/jarvise/session-calendar-historical/source-evidence/2024/EXCEPTIONAL_CLOSURE_SWEEP.json",
+      "sha256": "90880e21042e2c064e02e2e7c90ec588c494ffe07781af7f05277fcd0bbf3e9b",
+      "byteLength": 493,
+      "operation": "CREATE",
+      "reason": "Historical XNYS exceptional-closure sweep for 2024.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "data/jarvise/session-calendar-historical/source-evidence/2025/nyse-hours-calendars.html",
+      "sha256": "9a46162d7a0bfd229f18db2d2b152486f8e46c67c01eeb70048aee8dfa3dcb7f",
+      "byteLength": 101642,
+      "operation": "CREATE",
+      "reason": "NYSE historical calendar evidence for 2025.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "data/jarvise/session-calendar-historical/source-evidence/2025/nasdaqtrader-calendar.html",
+      "sha256": "904df68534be1e61a67e99cf2c734239318416efc5a2b4ce4028a6d749c054b1",
+      "byteLength": 56727,
+      "operation": "CREATE",
+      "reason": "Nasdaq Trader historical calendar evidence for 2025.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "data/jarvise/session-calendar-historical/source-evidence/2025/SOURCE_DIGESTS.json",
+      "sha256": "d92f60cbf57f2ff3d2614a82121283a08cc5afbb93da575ce6e5cb20f4911456",
+      "byteLength": 1281,
+      "operation": "CREATE",
+      "reason": "Historical XNYS source digests for 2025.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "data/jarvise/session-calendar-historical/source-evidence/2025/EXCEPTIONAL_CLOSURE_SWEEP.json",
+      "sha256": "33746fb644f457b38ddb5b48d4430d68eda7b5006d2ab3548dab4771100968e5",
+      "byteLength": 493,
+      "operation": "CREATE",
+      "reason": "Historical XNYS exceptional-closure sweep for 2025.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "data/jarvise/session-calendar-historical/XNYS/registry/R0001/registry-manifest.json",
+      "sha256": "3df426b405f9ae43cb996b14f310d8efed55ce9f6377ed68dea4cd6ef939883f",
+      "byteLength": 885,
+      "operation": "CREATE",
+      "reason": "Historical V2 XNYS registry manifest R0001.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "data/jarvise/session-calendar-historical/XNYS/registry/R0001/PROVENANCE.json",
+      "sha256": "639693e1ce288b7a8dea21783572ecb74b05d41938f1b23276ccbb82e286cb2c",
+      "byteLength": 1364,
+      "operation": "CREATE",
+      "reason": "Historical V2 XNYS registry provenance R0001.",
+      "artifactClass": "MAINTENANCE"
+    }
+  ]
+}

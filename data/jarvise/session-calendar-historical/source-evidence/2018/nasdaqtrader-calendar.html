@@ -1,0 +1,1117 @@
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" >
+
+<head id="Head1">
+<title>Trading Calendar</title>
+
+
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<script type="text/javascript" src="/Snippets/js/cookie_policy.js"></script>
+
+<script language="JavaScript" type="text/javascript">
+<!--
+// -----------------------------------------------------------------------------
+// Globals
+// Major version of Flash required
+var requiredMajorVersion = 9;
+// Minor version of Flash required
+var requiredMinorVersion = 0;
+// Minor version of Flash required
+var requiredRevision = 0;
+// Path to Bin Directory - must have a slash at the end
+var FlashPath = "/components/TraderHomeTabs/bin/";
+// -----------------------------------------------------------------------------
+// -->
+</script>
+<script src="/js/AC_OETags.js" language="javascript"></script>
+<script src="/js/history.js" language="javascript"></script>
+<script src="/js/FlexSwitch.js" language="javascript"></script>
+
+    <script type="text/javascript" src="rpcclient.axd"></script>
+    <script type="text/javascript" src="/js/autoheight.js"></script>
+    <script type="text/javascript" src="/js/utilities.js"></script>
+    <script type="text/javascript" src="/js/PageLoadContent.js"></script>
+    <script type="text/javascript" src="/js/GenWidgets.js"></script>
+
+    <script type="text/javascript" src="/snippets/js/jquery-1.7.1.min.js"></script>
+    <script type="text/javascript" src="/snippets/js/jquery-ui-1-10-3.min.js"></script>
+    
+    <script type="text/javascript">
+        var templateName = "Trader";
+    </script>
+
+<!--[if IE 6]>
+ <script type="text/javascript">
+
+sfHover=function() {
+    var sfEls = document.getElementById("navigation").getElementsByTagName("LI");
+    for(var i=0;i<sfEls.length;i++){
+        sfEls[i].onmouseover=function(){
+            this.className+=" sfhover";
+        }
+        sfEls[i].onmouseout=function(){
+            this.className=this.className.replace(new RegExp(" sfhover\\b"),"");
+        }
+        sfEls[i].onmouseenter=function(){
+            var ul=this.getElementsByTagName('ul')[0];
+                if(ul){
+                    var iframe=document.createElement('iframe');
+                    iframe.style.width=ul.offsetWidth+"px";
+                    iframe.style.height=ul.offsetHeight+"px";
+                    ul.insertBefore(iframe,ul.firstChild);
+                }
+        }
+    }
+}
+
+if(window.attachEvent){
+    window.attachEvent("onload",sfHover);
+}
+</script><![endif]-->
+
+    <link rel="stylesheet" type="text/css" href="/template_styles/Masthead.css"/>
+    <link rel="stylesheet" type="text/css" href="/template_styles/MainContent.css"/>
+    <link rel="stylesheet" type="text/css" href="/template_styles/print.css" media="print"/>
+    <link rel="stylesheet" type="text/css" href="/template_styles/megamenustyles.css"/>
+</head>
+<body>
+    <!-- Omniture Begins Here -->
+    <!-- SiteCatalyst code version: H.14.
+Copyright 1997-2007 Omniture, Inc. More info available at
+http://www.omniture.com -->
+<script language="JavaScript" src="/Template_styles/s_code.js"></script>
+<script language="JavaScript"><!--
+/* You may give each page an identifying name, server, and channel on
+the next lines. */
+
+<!-- Meta Information Logic -->
+function getSection () {
+  var metaElements = document.all ?
+    document.all.tags('META') :
+    document.getElementsByTagName ?
+    document.getElementsByTagName ('META') : new Array();
+  var metaSection = new Array();
+  var i = 0;
+  for (var m = 0; m < metaElements.length; m++)
+    if (metaElements[m].name == 'omnidescription')
+      metaSection[i++] = metaElements[m].content;
+  return metaSection;
+}
+
+s.pageName= document.title
+s.server=""
+s.channel= getSection()
+s.pageType=
+s.prop1=""
+s.prop2=""
+s.prop3=""
+s.prop4=""
+s.prop5=""
+/* Conversion Variables */
+s.campaign=""
+s.state=""
+s.zip=""
+s.events=""
+s.products=""
+s.purchaseID=""
+s.eVar1=""
+s.eVar2=""
+s.eVar3=""
+s.eVar4=""
+s.eVar5=""
+/************* DO NOT ALTER ANYTHING BELOW THIS LINE ! **************/
+var s_code=s.t();if(s_code)document.write(s_code)//--></script>
+<script language="JavaScript"><!--
+if(navigator.appVersion.indexOf('MSIE')>=0)document.write(unescape('%3C')+'\!-'+'-')
+//--></script><noscript><a href="http://www.omniture.com" title="Web Analytics"><img
+src="http://nasdaqnasdaq-newtrader-qc.122.2O7.net/b/ss/nasdaqnasdaq-newtrader-qc/1/H.14--NS/0"
+height="1" width="1" border="0" alt="" /></a></noscript><!--/DO NOT REMOVE/-->
+<!-- End SiteCatalyst code version: H.14. -->
+
+
+
+    <!-- Omniture End Here -->
+
+    <div id="container" style="background-color: #fff;">		
+        <form name="form2" method="post" action="./Trader.aspx?id=Calendar" id="form2">
+<input type="hidden" name="__VIEWSTATE" id="__VIEWSTATE" value="/wEPDwUJMjIyODgxMjU2D2QWCGYPFgIeBFRleHQFEFRyYWRpbmcgQ2FsZW5kYXJkAgEPFgIfAGVkAgMPFgIeCWlubmVyaHRtbAXlBTxkaXY+PGRpdj48L2Rpdj48L2Rpdj4NCg0KPCEtLTxzY3JpcHQgdHlwZT0idGV4dC9qYXZhc2NyaXB0Ij4NClRpbWVyX2R1cmF0aW9uID0gMTU7IC8vbnVtYmVyIG9mIHNlY29uZHMgZm9yIGFkIHN3aXRjaA0KaXNfZGFydFpvbmUgPSAiY2FsZW5kYXIiOw0KPC9zY3JpcHQ+PGRpdiBjbGFzcz0iYWQ3Mjh4OTAiIGlkPSJtYXN0aGVhZEJhbm5lciIgc3R5bGU9InBhZGRpbmctdG9wOiAwcHgiPjxkaXY+PGh0bWw+DQo8aGVhZD48dGl0bGU+PC90aXRsZT48L2hlYWQ+DQo8Ym9keSBzdHlsZT0ibWFyZ2luOjBweCI+DQo8c2NyaXB0IHR5cGU9InRleHQvamF2YXNjcmlwdCI+DQpUaW1lcl9kdXJhdGlvbiA9IDE1OyAvL251bWJlciBvZiBzZWNvbmRzIGZvciBhZCBzd2l0Y2gNCjwvc2NyaXB0Pg0KDQoJPHNjcmlwdCB0eXBlPSJ0ZXh0L2phdmFzY3JpcHQiIHNyYz0iL2NvbnRlbnQvaW1hZ2VzL2Fkcy9EYXJ0QWRFbmdpbmUuanMiPjwvc2NyaXB0Pg0KCTxzY3JpcHQgdHlwZT0idGV4dC9qYXZhc2NyaXB0Ij4NCgl2YXIgZGFydFB0aWxlUmFuID0gTWF0aC5yYW5kb20oKSAqIDEwMDAwMDAwMDAwMDAwMDAwMDA7DQoJbWFrZUFkKCcxJywnNzI4eDkwJywndHJhZGVyJywnY2FsZW5kYXInLCcnLCcnKTsNCgkvL3dpbmRvdy5zZXRUaW1lb3V0KCJ3aW5kb3cubG9jYXRpb24ucmVsb2FkKCkiLFRpbWVyX2R1cmF0aW9uKjEwMDApOw0KCTwvc2NyaXB0Pg0KPC9ib2R5Pg0KPC9odG1sPg0KDQoNCjwvZGl2PjwvZGl2Pi0tPmQCBA8WAh8BBak2PGRpdiBpZD0ibGVmdFdpZGVDT0wiPgogICA8aW1nIHNyYz0iL2ltYWdlcy9uZXdsb2dvLmpwZyIgLz4KICAgPGgxPkNhbGVuZGFyIG9mIEV2ZW50czwvaDE+CiAgIDxkaXY+PHNjcmlwdCB0eXBlPSJ0ZXh0L2phdmFzY3JpcHQiPg0KZnVuY3Rpb24gdGFiX2hpZ2hsaWdodChsaSkNCnsNCiAgICBoaWdobGlnaHRlZCA9IGRvY3VtZW50LmdldEVsZW1lbnRCeUlkKGxpKTsNCiAgICBoaWdobGlnaHRlZC5jbGFzc05hbWUgPSAib24iOw0KfQ0KPC9zY3JpcHQ+DQo8c3R5bGUgdHlwZT0idGV4dC9jc3MiPg0KDQovKi0gTWVudSBUYWJzIDUtLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0gKi8NCg0KICAgICN0YWJzNSB7DQogICAgICBmbG9hdDpsZWZ0Ow0KICAgICAgd2lkdGg6MTAwJTsNCiAgICAgIGJhY2tncm91bmQtY29sb3I6ICNFQ0YzRjk7DQoNCiAgICAgIGZvbnQtc2l6ZTo5MyU7DQogICAgICBsaW5lLWhlaWdodDpub3JtYWw7DQogICAgICBib3JkZXItYm90dG9tOjJweCBzb2xpZCAjNTRjMjQ3Ow0KICAgICAgfQ0KICAgICN0YWJzNSB1bCB7DQoJICBtYXJnaW46MDsNCgkgIHBhZGRpbmc6MTBweCAxMHB4IDAgNTBweDsNCgkgIGxpc3Qtc3R5bGU6bm9uZTsNCiAgICAgIH0NCiAgICAjdGFiczUgbGkgew0KICAgICAgZGlzcGxheTppbmxpbmU7DQogICAgICBtYXJnaW46MDsNCiAgICAgIHBhZGRpbmc6MDsNCiAgICAgIH0NCiAgICAjdGFiczUgYSB7DQogICAgICBmbG9hdDpsZWZ0Ow0KICAgICAgYmFja2dyb3VuZDp1cmwoImh0dHA6Ly93d3cubmFzZGFxdHJhZGVyLmNvbS8vaW1hZ2VzL29wdGlvbnN0YWJsZWZ0LmdpZiIpIG5vLXJlcGVhdCBsZWZ0IHRvcDsNCiAgICAgIG1hcmdpbjowOw0KICAgICAgcGFkZGluZzowIDAgMCA0cHg7DQogICAgICB0ZXh0LWRlY29yYXRpb246bm9uZTsNCg0KICAgICAgfQ0KICAgICN0YWJzNSBhIHNwYW4gew0KICAgICAgZmxvYXQ6bGVmdDsNCiAgICAgIGRpc3BsYXk6YmxvY2s7DQogICAgICBiYWNrZ3JvdW5kOnVybCgiaHR0cDovL3d3dy5uYXNkYXF0cmFkZXIuY29tL2ltYWdlcy9vcHRpb25zdGFicmlnaHQuZ2lmIikgbm8tcmVwZWF0IHJpZ2h0IHRvcDsNCiAgICAgIHBhZGRpbmc6NXB4IDE1cHggNHB4IDZweDsNCiAgICAgIGNvbG9yOiAjZmZmOw0KCWZvbnQtZmFtaWx5OiBBcmlhbCwgSGVsdmV0aWNhLCBzYW5zLXNlcmlmOw0KCWZvbnQtc2l6ZTogMTJweDsNCmZvbnQtd2VpZ2h0OiBib2xkOw0KDQogICAgICB9DQogICAgLyogQ29tbWVudGVkIEJhY2tzbGFzaCBIYWNrIGhpZGVzIHJ1bGUgZnJvbSBJRTUtTWFjIFwqLw0KICAgICN0YWJzNSBhIHNwYW4ge2Zsb2F0Om5vbmU7fQ0KICAgIC8qIEVuZCBJRTUtTWFjIGhhY2sgKi8NCiAgICAjdGFiczUgYTpob3ZlciBzcGFuIHsNCiAgICAgIGNvbG9yOiNGRkY7DQpmb250LXdlaWdodDogYm9sZDsNCiAgICAgIH0NCiAgICAjdGFiczUgYTpob3ZlciB7DQogICAgICBiYWNrZ3JvdW5kLXBvc2l0aW9uOjAlIC00MnB4Ow0KY29sb3I6ICMwMDY2OTk7DQoJZm9udC1mYW1pbHk6IEFyaWFsLCBIZWx2ZXRpY2EsIHNhbnMtc2VyaWY7DQoJZm9udC1zaXplOiAxMnB4Ow0KZm9udC13ZWlnaHQ6IGJvbGQ7DQoNCiAgICAgIH0NCiAgICAjdGFiczUgYTpob3ZlciBzcGFuIHsNCiAgICAgIGJhY2tncm91bmQtcG9zaXRpb246MTAwJSAtNDJweDsNCmNvbG9yOiAjMDA2Njk5Ow0KCWZvbnQtZmFtaWx5OiBBcmlhbCwgSGVsdmV0aWNhLCBzYW5zLXNlcmlmOw0KCWZvbnQtc2l6ZTogMTJweDsNCmZvbnQtd2VpZ2h0OiBib2xkOw0KDQogICAgICB9ICANCg0KICN0YWJzNSAub2ZmdGFiIGEgew0KDQogICAgICAgICAgIGJhY2tncm91bmQtcG9zaXRpb246MCUgLTQycHg7DQoNCmNvbG9yOiAjMDA2Njk5Ow0KDQogICAgICAgICAgIGZvbnQtZmFtaWx5OiBBcmlhbCwgSGVsdmV0aWNhLCBzYW5zLXNlcmlmOw0KDQogICAgICAgICAgIGZvbnQtc2l6ZTogMTJweDsNCg0KZm9udC13ZWlnaHQ6IGJvbGQ7DQoNCiANCg0KICAgICAgfQ0KDQogICAgI3RhYnM1IC5vZmZ0YWIgYSBzcGFuIHsNCg0KICAgICAgICAgICBiYWNrZ3JvdW5kLXBvc2l0aW9uOjEwMCUgLTQycHg7DQoNCmNvbG9yOiAjMDA2Njk5Ow0KDQogICAgICAgICAgIGZvbnQtZmFtaWx5OiBBcmlhbCwgSGVsdmV0aWNhLCBzYW5zLXNlcmlmOw0KDQogICAgICAgICAgIGZvbnQtc2l6ZTogMTJweDsNCg0KZm9udC13ZWlnaHQ6IGJvbGQ7DQoNCiANCg0KICAgICAgfQ0KDQoNCjwvc3R5bGU+DQoNCg0KDQo8L2Rpdj4KCiAgIDx1bCBpZD0idGFiczUiPgogICAgICAgPGxpIGlkPSJfcmVndWxhcmNhbGVuZGFyIj48YSBocmVmPSIvVHJhZGVyLmFzcHg/aWQ9Q2FsZW5kYXIiPjxzcGFuPkVxdWl0aWVzIGFuZCBPcHRpb25zPC9zcGFuPjwvYT48L2xpPgogICAgICAgICAgICAgPGxpIGlkPSJfZml4ZWRpbmNvbWVjYWxlbmRhciIgY2xhc3M9Im9mZnRhYiI+PGEgaHJlZj0iL1RyYWRlci5hc3B4P2lkPUZpeGVkSW5jb21lQ2FsZW5kYXIiPjxzcGFuPkZpeGVkIEluY29tZTwvc3Bhbj48L2E+PC9saT4KICAgPC91bD4KCjxiciAvPjxhIG5hbWU9IiN0b3AiPjwvYT4KCjxoMT5OYXNkYXEgLSBVLlMuIEVxdWl0eSBhbmQgT3B0aW9ucyBNYXJrZXRzIEhvbGlkYXkgU2NoZWR1bGU8L2gxPgoKPGRpdiBjbGFzcz0iZGF0YVRhYmxlIj4KPHRhYmxlPgo8dHI+PHRoIGJnY29sb3I9IiMxNjU3ODgiPjIwMTg8L3RoPjx0aCBiZ2NvbG9yPSIjMTY1Nzg4Ij5Ib2xpZGF5PC90aD48dGggYmdjb2xvcj0iIzE2NTc4OCI+U3RhdHVzPC90aD48L3RyPjwvdGhlYWQ+PHRib2R5PgogPHRyPjx0ZD5KYW51YXJ5IDEsIDIwMTg8L3RkPjx0ZD5OZXcgWWVhcidzIERheSAoT2JzZXJ2ZWQpPC90ZD48dGQ+Q2xvc2VkPC90ZD48L3RyPgogPHRyPjx0ZD5KYW51YXJ5IDE1LCAyMDE4PC90ZD48dGQ+TWFydGluIEx1dGhlciBLaW5nLCBKci4gRGF5PC90ZD48dGQ+Q2xvc2VkPC90ZD48L3RyPgogPHRyPjx0ZD5GZWJydWFyeSAxOSwgMjAxODwvdGQ+PHRkPlByZXNpZGVudCdzIERheSAtIFUuUy48L3RkPjx0ZD5DbG9zZWQ8L3RkPjwvdHI+CiA8dHI+PHRkPk1hcmNoIDMwLCAyMDE4PC90ZD48dGQ+R29vZCBGcmlkYXk8L3RkPjx0ZD5DbG9zZWQ8L3RkPjwvdHI+CiA8dHI+PHRkPk1heSAyOCwgMjAxODwvdGQ+PHRkPk1lbW9yaWFsIERheSAtIFUuUy48L3RkPjx0ZD5DbG9zZWQ8L3RkPjwvdHI+Cjx0cj48dGQ+SnVseSAzLCAyMDE4PC90ZD48dGQ+RWFybHkgQ2xvc2UgLSBVLlMuPC90ZD48dGQ+MTowMCBwLm0uPC90ZD48L3RyPgogPHRyPjx0ZD5KdWx5IDQsIDIwMTg8L3RkPjx0ZD5JbmRlcGVuZGVuY2UgRGF5IC0gVS5TLjwvdGQ+PHRkPkNsb3NlZDwvdGQ+PC90cj4KIDx0cj48dGQ+U2VwdGVtYmVyIDMsIDIwMTg8L3RkPjx0ZD5MYWJvciBEYXkgLSBVLlMuPC90ZD48dGQ+Q2xvc2VkPC90ZD48L3RyPgogPHRyPjx0ZD5Ob3ZlbWJlciAyMiwgMjAxODwvdGQ+PHRkPlRoYW5rc2dpdmluZyBEYXkgLSBVLlMuPC90ZD48dGQ+Q2xvc2VkPC90ZD48L3RyPgogPHRyPjx0ZD5Ob3ZlbWJlciAyMywgMjAxODwvdGQ+PHRkPkVhcmx5IENsb3NlIC0gVS5TLjwvdGQ+PHRkPjE6MDAgcC5tLjwvdGQ+PC90cj4KIDx0cj48dGQ+RGVjZW1iZXIgMjQsIDIwMTg8L3RkPjx0ZD5DaHJpc3RtYXMgRXZlIEVhcmx5IENsb3NlIC0gVS5TLjwvdGQ+PHRkPjE6MDAgcC5tLjwvdGQ+PC90cj4KIDx0cj48dGQ+RGVjZW1iZXIgMjUsIDIwMTg8L3RkPjx0ZD5DaHJpc3RtYXMgRGF5PC90ZD48dGQ+Q2xvc2VkPC90ZD48L3RyPgo8L3Rib2R5PjwvdGFibGU+CjwvZGl2PgoKPGRpdiBjbGFzcz0iZGF0YVRhYmxlIj4KPHRhYmxlPgo8dHI+PHRoIGJnY29sb3I9IiMxNjU3ODgiPjIwMTc8L3RoPjx0aCBiZ2NvbG9yPSIjMTY1Nzg4Ij5Ib2xpZGF5PC90aD48dGggYmdjb2xvcj0iIzE2NTc4OCI+U3RhdHVzPC90aD48L3RyPjwvdGhlYWQ+PHRib2R5PgogIDx0cj48dGQ+RGVjZW1iZXIgMjUsIDIwMTc8L3RkPjx0ZD5DaHJpc3RtYXMgRGF5PC90ZD48dGQ+Q2xvc2VkPC90ZD48L3RyPgo8L3Rib2R5PjwvdGFibGU+CjwvZGl2PgoKPHA+KiBOYXNkYXEgd2lsbCBjb250aW51ZSB0byBzZW5kIGFsZXJ0cyB0byBub3RpZnkgY3VzdG9tZXJzIG9mIGRheXMgd2hlbiB0aGUgTWFya2V0IHdpbGwgY2xvc2UgZWFybHkuIFBsZWFzZSByZWZlciB0byB0aG9zZSBhbGVydHMgZm9yIGZ1bGwgaW5mb3JtYXRpb24sIGluY2x1ZGluZyBzeXN0ZW0gb3BlcmF0aW5nIHRpbWVzLjwvcD4KPGEgbmFtZT0iVHJhZGUiPjwvYT4KPGgyPlRyYWRlRGF0ZSZtZGFzaDtTZXR0bGVtZW50IERhdGUgU2NoZWR1bGU8L2gyPgo8aDMgY2xhc3M9InN0cm9uZyI+T3ZlcnZpZXc8L2gzPgo8cD5QdXJzdWFudCB0byBTZWN0aW9ucyAyMjAuOChiKSgxKSBhbmQgKDQpIG9mIFJlZ3VsYXRpb24gVCBvZiB0aGUgRmVkZXJhbCBSZXNlcnZlIEJvYXJkLCBhIGJyb2tlci1kZWFsZXIgbXVzdCBwcm9tcHRseSBjYW5jZWwgb3Igb3RoZXJ3aXNlIGxpcXVpZGF0ZSBhIGN1c3RvbWVyIHB1cmNoYXNlIHRyYW5zYWN0aW9uIGluIGEgY2FzaCBhY2NvdW50IGlmIGZ1bGwgcGF5bWVudCBpcyBub3QgcmVjZWl2ZWQgd2l0aGluIGZpdmUgYnVzaW5lc3MgZGF5cyBmcm9tIHRoZSBkYXRlIG9mIHB1cmNoYXNlIG9yLCBwdXJzdWFudCB0byBTZWN0aW9uIDIyMC44KGQpKDEpLCBtYWtlIGFwcGxpY2F0aW9uIHRvIGV4dGVuZCB0aGUgdGltZSBwZXJpb2Qgc3BlY2lmaWVkLiBUaGUgZGF0ZSBieSB3aGljaCBtZW1iZXJzIG11c3QgdGFrZSBzdWNoIGFjdGlvbiBpcyBzaG93biBiZWxvdyBpbiB0aGUgY29sdW1uIHRpdGxlZCA8c3Ryb25nPiZsZHF1bztSZWcuIFQgRGF0ZS4mcmRxdW87PC9zdHJvbmc+PC9wPgo8cD5TaW1pbGFybHksIFNFQyBSdWxlIDE1YzMtMyByZXF1aXJlcyBtZW1iZXIgb3JnYW5pemF0aW9ucyB0byB0YWtlIHByb21wdCBzdGVwcyB0byBvYnRhaW4gcG9zc2Vzc2lvbiBvciBjb250cm9sIG9mIHNlY3VyaXRpZXMgcHVyc3VhbnQgdG8gcGFyYWdyYXBoIChtKSB0aHJvdWdoIGEgYnV5LWluIHByb2NlZHVyZSBvciBvdGhlcndpc2UgaWYgc2VjdXJpdGllcyBhcmUgbm90IHJlY2VpdmVkIHdpdGhpbiAxMyBidXNpbmVzcyBkYXlzIGZyb20gdGhlIGRhdGUgb2Ygc2FsZSBvciwgcHVyc3VhbnQgdG8gcGFyYWdyYXBoIChuKSwgbWFrZSBhcHBsaWNhdGlvbiB0byBleHRlbmQgdGhlIHRpbWUgcGVyaW9kIHNwZWNpZmllZC4gVGhlIGRhdGUgYnkgd2hpY2ggbWVtYmVycyBtdXN0IHRha2Ugc3VjaCBhY3Rpb24gaXMgc2hvd24gYmVsb3cgaW4gdGhlIGNvbHVtbiB0aXRsZWQgPHN0cm9uZz4mbGRxdW87U0VDIEV4dGVuc2lvbiBEYXRlLiZyZHF1bzs8L3N0cm9uZz48L3A+CjxwPkJyb2tlcnMsIGRlYWxlcnMgYW5kIG11bmljaXBhbCBzZWN1cml0aWVzIGRlYWxlcnMgc2hvdWxkIHVzZSB0aGUgc2V0dGxlbWVudCBkYXRlcyBmb3IgcHVycG9zZXMgb2YgY2xlYXJpbmcgYW5kIHNldHRsaW5nIHRyYW5zYWN0aW9ucyBwdXJzdWFudCB0byB0aGUgc2VjdXJpdGllcyBleGNoYW5nZXMuPC9wPgoKPGgzIGNsYXNzPSJzdHJvbmciPjIwMTc8L2gzPgo8cD5QbGVhc2UgdmlldyB0aGUgRklOUkEgPGEgdGFyZ2V0PSJvcGVuIG5ldyB3aW5kb3ciIGhyZWY9Imh0dHA6Ly93d3cuZmlucmEub3JnL3NpdGVzL2RlZmF1bHQvZmlsZXMvbm90aWNlX2RvY19maWxlX3JlZi9JbmZvcm1hdGlvbi1Ob3RpY2UtMTIxNDE2LnBkZiI+MjAxNyBIb2xpZGF5IFRyYWRlIERhdGUsIFNldHRsZW1lbnQgRGF0ZSBhbmQgTWFyZ2luIEV4dGVuc2lvbnMgU2NoZWR1bGU8L2E+LjwvcD4KCjwvZGl2PiAKCgoKPCEtLSBjbG9zaW5nIGNvbnRhaW5lciBkaXYgZm9yIGxlZnRXaWRlQ09MIC0tPgoKPGRpdiBpZD0icmlnaHRDT0wiPgo8ZGl2IGNsYXNzPSJjYWxsb3V0Ym94IGNvYl8xIj4KPGRpdiBjbGFzcz0iY2FsbG91dGJveF9oZWFkIj4KPGgyPk1vcmUgSW5mb3JtYXRpb248L2gyPgo8L2Rpdj4KPGRpdiBjbGFzcz0iY2FsbG91dGJveF9ib2R5Ij4KPHVsPgoKPGxpPjxhIHRhcmdldD0ib3BlbiBuZXcgd2luZG93IiBocmVmPSJodHRwOi8vd3d3Lm9wdGlvbnNjbGVhcmluZy5jb20vY29tcG9uZW50cy9kb2NzL2Fib3V0L3B1YmxpY2F0aW9ucy94Y2FsMjAxOC5wZGYiPjIwMTggT3B0aW9ucyBFeHBpcmF0aW9uIENhbGVuZGFyPC9hPjwvbGk+CjxsaT48YSB0YXJnZXQ9Im9wZW4gbmV3IHdpbmRvdyIgaHJlZj0iaHR0cDovL3d3dy5vcHRpb25zY2xlYXJpbmcuY29tL2NvbXBvbmVudHMvZG9jcy9hYm91dC9wdWJsaWNhdGlvbnMveGNhbDIwMTcucGRmIj4yMDE3IE9wdGlvbnMgRXhwaXJhdGlvbiBDYWxlbmRhcjwvYT48L2xpPgogCiAgICA8bGk+PGEgdGFyZ2V0PSJvcGVuIG5ldyB3aW5kb3ciIGhyZWY9Ii9UcmFkZXIuYXNweD9pZD1vcHRpb25zaG91cnMiPk9wdGlvbnMgVHJhZGluZyBIb3VyczwvYT48L2xpPgogICAgPGxpPjxhIHRhcmdldD0ib3BlbiBuZXcgd2luZG93IiBocmVmPSIvVHJhZGVyLmFzcHg/aWQ9Zml4ZWRpbmNvbWVob3VycyI+Rml4ZWQgSW5jb21lIFRyYWRpbmcgSG91cnM8L2E+PC9saT4KICAgIDxsaT48YSB0YXJnZXQ9Im9wZW4gbmV3IHdpbmRvdyIgaHJlZj0iL2NvbnRlbnQvVGVjaG5pY2FsU3VwcG9ydC9uYXNkYXFfc3lzX2hvdXJzLnBkZiI+TmFzZGFxIFN5c3RlbSBIb3VyczwvYT48L2xpPgo8L3VsPgo8cD5RdWVzdGlvbnMgcmVnYXJkaW5nIHRoZSBhcHBsaWNhdGlvbiBvZiB0aG9zZSBzZXR0bGVtZW50IGRhdGVzIHRvIGEgcGFydGljdWxhciBzaXR1YXRpb24gbWF5IGJlIGRpcmVjdGVkIHRvIHRoZSBDb3Jwb3JhdGUgRGF0YSBJbnRlZ3JpdHkgRGVwYXJ0bWVudCBhdDo8L3A+Cjx1bD4KICAgIDxsaT4rMSA4NzcgMzA4IDA1MjM8YnIgLz4KICAgIChVLlMgYW5kIENhbmFkYSk8L2xpPgogICAgPGxpPisxIDIwMyA5MjYgMzUwMTwvbGk+CjwvdWw+CjwvZGl2Pgo8L2Rpdj4KPHA+Jm5ic3A7PC9wPgoKPC9kaXY+IDwhLS0gY2xvc2luZyBjb250YWluZXIgZGl2IGZvciByaWdodENPTCAtLT5kZKYzNTADKRL4ngJxl61x6Crd08Ax" />
+
+<input type="hidden" name="__VIEWSTATEGENERATOR" id="__VIEWSTATEGENERATOR" value="194FB046" />
+            
+            <div id="branding_pub_e" >
+		        <a id="linksHome" class="logo" href="/">
+  <img class="logo_web" src="/images/trader-logo-stacked.png" alt="Return to the NASDAQTrader.com homepage"/>
+  <img class="logo_print" src="/images/trader_logo_print.png" alt="Return to the NASDAQTrader.com homepage"/>
+</a>
+
+<div id="dvHome" class="tagline">
+  <a href="http://www.nasdaqtrader.com" style="text-decoration: none"><img src="/images/home_img.png">&nbsp;<b>Home</b></a>
+</div>	<div id="toptabs">
+		<ul>
+			<li id="current"><a href="/"><span>U.S. Markets</span></a></li>
+			<!--<li><a href="http://www.nasdaqtrader.com/Micro.aspx?id=OptionsMarket"><span>U.S. Options/Futures</span></a></li>-->
+			<li><a href="http://www.nasdaqomxnordic.com"><span>Nordic Market</span></a></li>
+
+			<li><a href="http://www.nasdaqbaltic.com/market/?lang=en"><span>Baltic Market</span></a></li>
+			<li><a href="http://www.nasdaqomxnordic.com"><span>First North</span></a></li>
+<li><a href="http://www.nasdaqomx.com/commodities"><span>NASDAQ Commodities Europe</span></a></li>
+<!--<li><a href="http://www.nasdaqomx.com/transactions/markets/nlx"><span>NLX</span></a></li>-->			
+		</ul>	
+	</div> <!-- navigation -->
+	
+	<!--snippets/toplinks.inc start here-->
+<div id="toplinks_e" style="">
+   
+   <!--<p class="tl_1"><img src="/images/go-link.png" alt="Symbol Directory" /><a href="https://www.nasdaqtrader.com/EASP/Tradereasp.aspx?id=NewsSignupSecure">My Email Account</a></p>-->
+        
+    <p class="tl_1"><img src="/images/go-link_orange.png" alt="Symbol Directory" /><a href="/Trader.aspx?id=symbollookup">Symbol Directory</a></p>
+	
+	<p class="tl_2"><img src="/images/go-link.png" alt="Feedback" /><a href="mailto:subscriber@nasdaq.com?subject=NASDAQtrader.com Web Site Feedback">Feedback</a></p>
+            
+</div>
+<!--snippets/toplinks.inc end here-->        
+	            <div class="search"><b>Search:</b>&nbsp;&nbsp;&nbsp;<input class="searchbox" type="text" 
+                size="25" maxlength="255" name="q" id="headSearchBox" 
+                onkeypress="checkEnter('is_submitSearch()');" />&nbsp;<img onclick="is_submitSearch();" 
+                src='/images/go-search.png' alt=""/></div> 
+		
+                <div id="mastheadBanner" class="ad728x90">    
+	                <iframe name="mastheadBanneriFrame" id="mastheadBanneriFrame" width="728" height="90" src="/content/images/ads/adrotator.html" frameborder="0" scrolling="no"></iframe>
+	            </div>                
+	         </div>
+        </form>
+
+        <!-- START OF NAV AND MENUS -->
+        
+<!--Start navigation Here-->
+
+      <ul id="menu">
+        <li><a href="/Trader.aspx?id=USEquities" class="drop">U.S. Market</a><!-- Begin 5 columns Item -->
+
+          <div class="dropdown_5columns" style="margin-left: 2px; border-left: none; width: 850px">
+          <!-- Begin 5 columns container -->
+
+               <div class="col_1" style="width:190px;">
+<p> <img src="/images/tower_temp.jpg" width="170" height="147" /></p></div>
+<div class="col_1" style="width:130px;">
+
+              <h2><a href="/Trader.aspx?id=USEquities">Equities</a></h2>
+              <ul>
+                 <li><a href="/Trader.aspx?id=TradingUSEquities">Nasdaq</a></li>
+							          <li><a href="Trader.aspx?id=nasdaq_bx">BX</a></li>
+			          <li><a href="/trader.aspx?id=nasdaqPSX">PSX</a></li>
+                                  <li><a href="/trader.aspx?id=ETF">Exchange Traded Funds</a></li>
+                                  <li><a href="/trader.aspx?id=ETMF">NextShares</a></li>
+              </ul>
+                  <h2><a href="http://business.nasdaq.com/list/international-designation">Nasdaq International Designation</a></h2>
+              </div>
+
+              <div class="col_1" style="width:130px;">
+			                <h2><a href="/Trader.aspx?id=FixedIncome">Fixed Income</a></h2>
+			                 <ul>
+			                   <li><a href="/Trader.aspx?id=FixedIncome">Nasdaq Fixed Income</a></li>
+                  </ul> </div>
+
+              <div class="col_1" style="width:100px;">
+               <h2><a href="http://business.nasdaq.com/trade/US-Options/index.html" target="open new window">Options</a></h2>
+ <ul>
+<li><a href="http://business.nasdaq.com/trade/US-Options/BX-Options.html" target="open new window">BX Options</a></li>
+<li><a href="http://business.nasdaq.com/trade/US-Options/NOM.html" target="open new window">NOM</a></li>
+<li><a href="http://business.nasdaq.com/trade/US-Options/PHLX.html" target="open new window">PHLX</a></li>
+<li><a href="http://business.nasdaq.com/trade/US-Options/ISE.html" target="open new window">ISE</a></li>
+<li><a href="http://business.nasdaq.com/trade/US-Options/GEMX.html" target="open new window">GEMX</a></li>
+<li><a href="http://business.nasdaq.com/trade/US-Options/Mercury.html" target="open new window">MRX</a></li>
+
+</ul> </div>
+
+<div class="col_1" style="width:105px;">
+             <h2><a href="/Micro.aspx?id=PBOToverview">Futures</a></h2>
+<ul>
+			                  <li><a href="/Micro.aspx?id=nasdaqfuturesnqf">Nasdaq Futures</a></li>
+</ul>
+ </div>
+
+			          <div class="col_1" style="width:100px;background-image: url(/images/row_bg.jpg); background-repeat: repeat-y; height: 160px; background-position: left top; padding-left: 8px">
+     <h2><a href="/Trader.aspx?id=membership">Membership</a></h2>
+   
+            </div>
+          </div>
+          <!-- End 4 columns container -->
+
+        </li>
+        <!-- End Home Item -->
+
+        <li><a href="/Trader.aspx?id=accessservices" class="drop">Trading Products</a><!-- Begin 4 columns Item -->
+
+          <div class="dropdown_4columns" style="width: 870px"><!-- Begin 4 columns container -->
+
+             <div class="col_1" style="width:175px;">
+             <h2>Order/Ex Management</h2>
+			           <ul>
+
+			                       <li><a href="/Trader.aspx?id=IPOIndicator">IPO Indicator</a></li>
+			                       <li><a href="/TraderP.aspx?id=QView">QView/ Latency Optics</a></li>
+                                               <li><a href="/TraderP.aspx?id=workstation">Nasdaq Workstation</a></li>
+			 		       <li><a href="/Trader.aspx?id=TradeInfo">TradeInfo</a></li>
+			                       <li><a href="/micro.aspx?id=optionstradeinfo">TradeInfo for Options</a></li>
+
+
+			                     </ul>
+			 			          <h2>Nasdaq Crosses</h2>
+
+			 			          <ul>
+			 			          <li><a href="/Trader.aspx?id=OpenClose">Opening/Closing</a></li>
+
+			 			          <li><a href="/Trader.aspx?id=OpenClose#noii">Net Order Imbalance Information</a></li>
+			 </ul>
+
+			 <h2>Exchange Traded Funds</h2>
+                             <ul>
+                             <li><a href="/TraderP.aspx?id=etf">ETF Home</a></li>
+                              <li><a href="/trader.aspx?id=ETMF">NextShares</a></li>
+			     <li><a href="/TraderP.aspx?id=mqp">Market Quality Program</a></li>
+			     <li><a href="/TraderP.aspx?id=circulars_2017">Information Circulars</a></li>
+			     </ul>
+			   </div>
+			 <div class="col_1" style="width:200px;">
+
+			 <h2>Options and Futures</h2>
+			 <ul>
+                       <!--<li><a href="/Micro.aspx?id=Options_USTreasuries">Options on U.S. Treasuries <img src="/images/new_flashtransparent.gif"></a></li>-->
+			<!--<li><a href="/Micro.aspx?id=FXFutures">FX Futures<img src="/images/new_flashtransparent.gif"></a></li>-->
+			 <!--<li><a href="/Micro.aspx?id=alpha">Alpha Indexes</a></li>-->
+			 <li><a href="/Micro.aspx?id=PHLXFOREXOptions">FX Options</a></li>
+                         <li><a href="/Micro.aspx?id=MSCIIndexOptions">MSCI Index Options</a></li>
+                         </ul>
+
+
+			 			             <h2>Trade Reporting</h2>
+			 			         <ul> <li><a href="/Trader.aspx?id=ACT">FINRA/Nasdaq TRF (ACT)</a></li>
+			 			          <li><a href="/Trader.aspx?id=ACTWorkstation">ACT Workstation</a></li>
+			 			          <li><a href="/TraderP.aspx?id=InterACT">InterACT</a></li>
+			                                  <li><a href="/Micro.aspx?id=options_maintenance">Options Maintenance Tool</a></li>
+			      </ul>
+
+			      <h2>
+			       <a href="/trader.aspx?id=reportcenter">Report Center</a>			      </h2>
+<h2><a href="http://www.business.nasdaq.com/tradinginsights">Nasdaq Trading Insights</a></h2>
+
+</div>
+			 		<div class="col_1" style="width:250px;">
+			 			              <h2>Risk Management</h2>
+
+			 			         <ul>
+                                                          <li><a href="/Trader.aspx?id=TradeGuard">TradeGuard</a></li>
+			 			          <li><a href="/Trader.aspx?id=TradeGuard">For Sponsors</a></li>
+			                                  <li><a href="/Trader.aspx?id=TradeGuard">For Clearing Firms</a></li>
+                                                          <li><a href="/Trader.aspx?id=TradeGuard">For Firms</a></li>
+                                                           <li><a href="/trader.aspx?id=reportdataprodsAR">Drop Copy Network</a></li>
+
+			 </ul>
+			 			           <h2>Compliance</h2>
+			 					  			     <ul>
+<li><a href="/Trader.aspx?id=CompDash">Compliance Dashboard</a></li>
+   												  <li><a href="/TraderP.aspx?id=Backgroundcs">Background Check Service</a></li>
+			 					  			         <li><a href="/TraderP.aspx?id=InterACT">InterACT</a></li>
+			 					  			          <li><a href="/TraderP.aspx?id=reportcenter">Equity Trade Journal</a></li>
+		 			          </ul>
+			   </div>
+	<div class="col_1" style="width:188px;background-image: url(/images/row_bg.jpg); background-repeat: repeat-y; height: 300px; background-position: left top; padding-left: 8px">
+			 			               <h2>Trading Support</h2>
+
+			 					   			          
+<ul><li><a href="/Trader.aspx?id=ContactList#admin">Contact</a></li>
+           											       
+<li><a href="/Trader.aspx?id=PriceListTrading2">Price List</a></li>
+			 					   			               
+<li><a href="/Trader.aspx?id=AgreementsTrading">Agreements and Forms</a></li>
+<li><a href="/Trader.aspx?id=TradingSpecs">Specifications</a></li>
+			 					   			               
+<li><a href="/Trader.aspx?id=SYSTEMSETTINGS">Nasdaq System Settings</a></li>
+
+<li><a href="/Trader.aspx?id=BXSYSTEMSETTINGS">BX System Settings</a></li>
+<li><a href="/Trader.aspx?id=PSXSYSTEMSETTINGS">PSX System Settings</a></li>
+
+			 									  </ul>
+
+<h2><a href="/Trader.aspx?id=Support_FactSheets">Fact Sheets and Guides</a></h2>
+
+
+
+
+
+                                                          <h2><a href="/Trader.aspx?id=accessservices">Access Services </br> Product Overview</a></h2>
+           </div>
+			            </div>
+			            <!-- End 4 columns container -->
+
+			          </li>
+        <!-- End 4 columns Item -->
+
+       <li><a href="/Trader.aspx?id=Global_Market_Data" class="drop">Market Data</a><!-- Begin 4 columns Item -->
+
+	            <div class="dropdown_4columns" style="margin-left: -133px; width: 888px"><!-- Begin 4 columns container -->
+
+
+               <div class="col_1" style="width:180px;">
+
+              <h2>Featured Products</h2>
+              <ul>
+               <li><a href="http://www.nasdaqtrader.com/Trader.aspx?id=Totalview2">Nasdaq TotalView</a></li>
+               <li><a href="/Trader.aspx?id=FixedIncome_Data">Nasdaq Fixed Income Market Data</a></li>
+               <li><a href="/Trader.aspx?id=UltrafeedPD">Nasdaq UltraFeed</a></li>
+              <li><a href="https://indexes.nasdaqomx.com/IndexWatch.aspx">Global Index Watch</a></li>
+
+         <!--  <li><a href="/Trader.aspx?id=nasdaqbasic ">Nasdaq Basic</a></li>
+				            <li><a href="http://www.nasdaqtrader.com/Trader.aspx?id=Totalview2">Nasdaq TotalView</a></li>
+				            <li><a href="/Trader.aspx?id=DataOnDemand">Data On Demand </a></li>
+				            <li><a href="/Micro.aspx?id=TOPOPlusOrders">PHLX TOPO+</a></li>
+            <li><a href="/Micro.aspx?id=NOTO">NOTO</a></li>
+<li><a href="/Micro.aspx?id=phlxdepth">PHLX Depth of Market</a></li>-->
+
+              </ul>
+<h2><a href="http://www.business.nasdaq.com/tradinginsights">Nasdaq Trading Insights</a></h2>
+            </div>
+            <div class="col_1" style="width:230px;">
+              <h2><a href="/Trader.aspx?id=DPSpecs">Market Data Product Matrix</a></h2>
+              <h2>Equities</h2>
+              <ul>
+                <li><a href="/Trader.aspx?id=DPSpecs">The Nasdaq Stock Market</a></li>
+				<li><a href="/Trader.aspx?id=DPSpecs#equity_b">Nasdaq BX</a></li>
+                 <li><a href="/Trader.aspx?id=DPSpecs#equity_x">Nasdaq PSX</a></li>
+              </ul>
+
+              <h2>Options and Futures</h2>
+			 <ul> <li><a href="/Trader.aspx?id=DPSpecs#options_x">Nasdaq PHLX</a></li>
+			              <li><a href="/Trader.aspx?id=DPSpecs#options_q">The Nasdaq Options Market</a></li>
+			              <li><a href="/Trader.aspx?id=DPSpecs#options_b">Nasdaq BX Options</a></li>
+			              <li><a href="/Micro.aspx?id=PBOTMarketdata">Nasdaq Future Exchange</a></li>
+
+			    </ul>
+			           <h2>Global Indexes and ETFs</h2>
+			      <ul><li><a href="/Trader.aspx?id=globalindexDS">Global Index Data Service (GIDS)</a></li>
+			      <li><a href="https://indexes.nasdaqomx.com/IndexWatch.aspx" Target="open new window">Global Index Watch (GIW)</a></li>
+
+                </ul>
+            </div>
+            <div class="col_1" style="width:220px;">
+              <h2><a href="/Trader.aspx?id=DPSpecs_Webreports">Equity Analytical Data</a></h2>
+			  <h2><a href="/Trader.aspx?id=MFQS">Nasdaq Fund Network</a></h2>
+
+			  <h2><a href="http://www.utpplan.com/overview">UTP/FINRA</a></h2>
+
+<h2><a href="/Trader.aspx?id=UltrafeedPD">UltraFeed</a></h2>
+			        <h2><a href="https://data.nasdaq.com/">Nasdaq Data Store</a></h2>
+
+       <h2><a href="/Trader.aspx?id=globalaccessprogram">Global Access Program</a></h2>
+            </div>
+            <div class="col_1" style="width:200px;background-image: url(/images/row_bg.jpg); background-repeat: repeat-y; height: 410px; background-position: left top; padding-left: 8px">
+             <h2><a href="/Trader.aspx?id=GDP_Ops">Agreements and Operations</a></h2>
+
+  <ul><li><a href="/Trader.aspx?id=AgreementsData">Agreements and Forms</a></li>
+            <li><a href="/content/AdministrationSupport/AgreementsData/datapolicies.pdf">Data Policies</a></li>
+            <li><a href="/Trader.aspx?id=DataOnlineServices">Data Online Services</a></li>
+            <li><a href="/Trader.aspx?id=MFQS">Nasdaq Fund Network Operations</a></li>
+
+</ul>
+
+        <h2>Technical Documentation</h2>
+        <ul>
+        <li><a href="/Trader.aspx?id=dpspecs&cid=md1">Specifications</a></li>
+        <li><a href="/Trader.aspx?id=ReleaseScheduleDP">Release Schedule</a></li>
+        <li><a href="/Trader.aspx?id=FeedIPS">UDP Address List-US Data Feeds</a></li>
+        
+        <li><a href="/content/technicalsupport/specifications/dataproducts/bandwidthreport.xls">Bandwidth Report</a></li>
+        </ul>
+
+
+
+             	        <ul>
+        <h2><a href="/Trader.aspx?id=DPPriceListAll">Price List - U.S.</a></h2>
+	<h2><a href="http://www.nasdaqomx.com/transactions/marketdata/europeanproducts/european-market-data-pricing">Price List - Nordic</a></h2>
+        <h2><a href="http://www.nasdaqomx.com/transactions/marketdata/europeanproducts/european-market-data-pricing">Price List - Baltic</a></h2>
+        <h2><a href="/Trader.aspx?id=MarketDataVendorsList">Market Data Vendor List</a></h2>
+
+          </div>
+		            </div>
+		            <!-- End 4 columns container -->
+
+		          </li>
+        <!-- End 4 columns Item -->
+
+
+        <li><a href="/Trader.aspx?id=connectivityoptions" class="drop">Connectivity</a><!-- Begin 4 columns Item -->
+
+          <div class="dropdown_4columns" style="margin-left: -240px; width: 700px"><!-- Begin 4 columns container -->
+
+             <div class="col_1" style="width:150px;">
+
+	                 <h2>Trading Access</h2>
+	                 <ul>
+	  		               <li><a href="/Trader.aspx?id=colo">Co-Location &<br> Wireless Connectivity</a></li>
+	  		               <li><a href="/Trader.aspx?id=POPs">Points of Presence</a></li>
+	  		               <li><a href="/content/ProductsServices/Trading/extranets.pdf">Extranets</a></li>
+                                       <li><a href="/Trader.aspx?id=DirectConnect">Direct Connect</a></li>
+	  		               <li><a href="/content/ProductsServices/Trading/direct_connect_providers.pdf">Direct Connect Providers</a></li>
+	  		        <li><a href="/Trader.aspx?id=servicebureaus">Service Bureau</a></li>
+	  		        <li><a href="/Trader.aspx?id=ChicagoDR">Disaster Recovery</a></li>
+
+          <h2>Hosting Services</h2>
+             <ul>
+                 <li><a href="/Trader.aspx?id=colo">Space & Power</a></li>
+                 <li><a href="/content/Productsservices/trading/CoLo/10G_colo_factsheet.pdf">Low Latency Connectivity</a></li>
+		 <li><a href="/content/Productsservices/trading/CoLo/ExpressConnect_factsheet.pdf">Connecting to other</br> Liquidity Providers</a></li>
+	  </ul></div>
+	  <div class="col_1" style="width:150px;">
+
+	  		       <h2>Equity Protocols</h2>
+	  		       <ul>
+                                <li><a href="/Trader.aspx?id=OUCH">Dedicated OUCH</a></li>
+	  		        <li><a href="/Trader.aspx?id=OUCH">OUCH</a></li>
+	  		        <li><a href="/Trader.aspx?id=RASH">RASHPort</a></li>
+	  		        <li><a href="/Trader.aspx?id=FIX">FIX</a></li>
+	  		                <li><a href="/Trader.aspx?id=CTCI">CTCI</a></li>
+	  		                <li><a href="/Trader.aspx?id=QIX">QIX</a></li>
+	  		                </ul>
+
+              <h2>Testing</h2>
+		<ul>
+              <li><a href="/Trader.aspx?id=TestingFacility">Testing Facility</a></li></ul>
+                 </div>
+
+	  		                <div class="col_1" style="width:150px;">
+
+	  		       <h2>Options Protocols</h2>
+	  		               <ul>
+	  		         <li><a href="/Micro.aspx?id=otto">OTTO</a></li>
+	  		       		        <li><a href="/Micro.aspx?id=OptionsFIX">FIX</a></li>
+	  		        <li><a href="http://www.nasdaqtrader.com/content/technicalsupport/specifications/TradingProducts/sqfnom2.0.pdf">SQF</a></li>
+	  </ul>
+	  		     <h2>Market Data Protocols</h2></br>
+	  			           <ul>
+	  		            <li><a href="/Trader.aspx?id=DPSpecs">Specifications</a></li>
+	  						  <li><a href="/Trader.aspx?id=FeedIPS">UDP/IP Addresses </a></li>
+	  						
+	  </ul></div>
+	               <div class="col_1" style="width:200px; background-image: url(/images/row_bg.jpg); background-repeat: repeat-y; height: 200px; background-position: left top; padding-left: 8px">
+
+	  <h2><a href="/Trader.aspx?id=connectivityoptions">Connectivity Matrix</a></h2>
+	  <h2><a href="/Trader.aspx?id=MarketDataVendorsList&cid=mdd16">Market Data Vendors</a></h2>
+
+
+            </div>
+	    </div>
+		            <!-- End 4 columns container -->
+
+		          </li>
+        <!-- End 4 columns Item -->
+
+
+        <li><a href="/Trader.aspx?id=currentregulatory" class="drop">Regulation</a><!-- Begin 4 columns Item -->
+
+          <div class="dropdown_4columns" style="margin-left: -350px; width: 890px"><!-- Begin 4 columns container -->
+
+             <div class="col_1" style="width:220px;">
+
+             <h2><a href="/Trader.aspx?id=TickPilot">Tick Size Pilot Program</a></h2>
+
+		           <h2><a href="/Trader.aspx?id=currentregulatory">Regulatory Initiatives</a></h2>
+
+		   		       <h2><a href="/trader.aspx?id=TradeHalts">Trading Halts</a></h2>
+
+		   		       <h2><a href="/trader.aspx?id=CircuitBreaker">Circuit Breakers</a></h2>
+
+		   		       <h2><a href="/Trader.aspx?id=RegNMS">Regulation NMS</a></h2>
+
+
+
+                                       <h2><a href="/TraderP.aspx?id=Backgroundcs">Background Check Service</a></h2>
+
+
+  </div>
+		  <div class="col_1" style="width:155px;">
+
+
+		   	       <h2>Regulation SHO</h2>
+		   	       <ul> <li><a href="/Trader.aspx?id=RegSho">Regulation SHO</a></li>
+		   		   		        <li><a href="/trader.aspx?id=RegSHOThreshold">Threshold List</a></li>
+		   		        <li><a href="/trader.aspx?id=ShortSaleCircuitBreaker">Short Sale Circuit Breakers</a></li>
+
+		   		       <h2>Regulatory Data</h2>
+		   		        <li><a href="/Trader.aspx?id=SECRule605Report">SEC Rule 605 Report</a></li>
+		   		        <li><a href="/trader.aspx?id=ShortInterest">Short Interest</a></li>
+		   		        <li><a href="/Trader.aspx?id=DailyMPPositionReport">Daily MP Position Report</a></li>
+		   		        <li><a href="/Trader.aspx?id=circulars_2018">Information Circulars</a></li>
+                                        <li><a href="http://business.nasdaq.com/trade/US-Options/LULD/index.html" target="open new window">Options LU/LD Reports</a></li>
+
+		   </ul>  </div>
+
+		     <div class="col_1" style="width:165px;">
+		   		       <h2>Transactions Policies</h2>
+		   		      <ul>  <li><a href="http://www.nasdaqtrader.com/Trader.aspx?id=ClearlyErroneous">Clearly Erroneous</a></li>
+		   		        <li><a href="http://www.nasdaqtrader.com/Micro.aspx?id=ObviousErrorPolicy">Obvious Error</a></li>
+		   		        <li><a href="https://www.nasdaqtrader.com/EASP/TraderEASP.aspx?id=OEForm">Obvious Error Form</a></li></ul>
+
+
+
+		   		        <h2>Disciplinary Actions</h2>
+		   		       <ul> <li><a href="/Trader.aspx?id=NDisciplinaryActions">Nasdaq</a></li>
+		   		        <li><a href="/Trader.aspx?id=NOMDisciplinaryActions">Nasdaq Options</a></li>
+		   		        <li><a href="/Micro.aspx?id=PHLXDisciplinaryActions">Nasdaq PHLX</a></li>
+					<li><a href="/Trader.aspx?id=BXDisciplinaryActions">Nasdaq BX</a></li>
+<li><a href="/Trader.aspx?id=ISEDisciplinaryActions">Nasdaq ISE</a></li>
+		   </ul>  </div>
+		   		  <div class="col_1" style="width:115px;">
+		   <h2><a href="http://nasdaqomx.cchwallstreet.com/" Target="open new window">Rule Manuals</a></h2>
+		   		       <ul> <li><a href="http://nasdaq.cchwallstreet.com/" Target="open new window">Nasdaq/NOM</a></li>
+		   		        <li><a href="http://nasdaqomxbx.cchwallstreet.com/" Target="open new window">BX</a></li>
+		   		        <li><a href="http://nasdaqomxphlx.cchwallstreet.com/" Target="open new window">PHLX/PSX</a></li>
+		   		        <li><a href="http://nasdaqomxphlx.cchwallstreet.com/" Target="open new window">Nasdaq Futures</a></li>
+		   		        <li><a href="http://nasdaqomxphlx.cchwallstreet.com/ "Target="open new window">SCCP</a></li>
+		   		        <li><a href="http://nasdaqomxbx.cchwallstreet.com/" Target="open new window">BSECC</a></li>
+
+
+		   </ul>  </div>
+		   		        <div class="col_1" style="width:155px;  background-image: url(/images/row_bg.jpg); background-repeat: repeat-y; height: 220px; background-position: left top; padding-left: 8px">
+
+		   		       <h2><a href="/Trader.aspx?id=MarketWatch">MarketWatch</a></h2>
+                                       <!--<h2><a href="/trader.aspx?id=FinQloud">FinQloud</a></h2>-->
+		   		       <h2><a href="/Trader.aspx?id=RegulatoryContacts">Regulatory Contacts</a></h2>
+
+		   		       <h2>Industry Regulators</h2>
+		   		       <ul> <li><a href="http://www.finra.org/index.htm" Target="ópen new window">FINRA</a></li>
+		   		        <li><a href="http://www.sec.gov/" Target="open new window">SEC</a></li>
+		   		        <li><a href="http://www.cftc.gov/index.htm" Target="open new window">CFTC</a></li>
+</ul>
+
+
+          </div>
+		 		            </div>
+		 		            <!-- End 4 columns container -->
+
+		 		          </li>
+        <!-- End 4 columns Item -->
+
+
+        <li><a href="/trader.aspx?id=marketshare" class="drop">Market Statistics</a><!-- Begin 4 columns Item -->
+
+          <div class="dropdown_3columns align_right" style="width: 575px"><!-- Begin 4 columns container -->
+
+             <div class="col_1" style="width:180px;">
+           			                <h2>Equities Statistics</h2>
+						         <ul> <li><a href="/trader.aspx?id=marketshare">Monthly Market Share</a></li>
+						          <li><a href="/trader.aspx?id=FullVolumeSummary">Intraday Market Volume</a></li>
+						          <li><a href="/trader.aspx?ID=marketsharedaily">Market Share Stats by Symbol</a></li>
+ <li><a href="/Trader.aspx?id=MELOSymbolData">M-ELO Transparency Statistics</a></li>
+
+
+			</ul> </div>
+		<div class="col_1" style="width:180px;">
+
+						             <h2>Options Statistics</h2>
+						          <ul><li><a href="/Trader.aspx?id=MarketSharenom">Monthly Market Share</a></li>
+						          <li><a href="/Micro.aspx?id=optionsmarket">Intraday Market Volume</a></li>
+						          <li><a href="/trader.aspx?id=PHLXStatistics">PHLX Volume & Settlement</a></li>
+			</ul>
+			<h2><a href="http://www.nasdaqomx.com/trading/indexes/" Target="open new window">Nasdaq Indexes</a></h2>
+
+
+			 </div>
+					      <div class="col_1" style="width:175px; background-image: url(/images/row_bg.jpg); background-repeat: repeat-y; height: 180px; background-position: left top; padding-left: 8px">
+
+						         <h2>Reports</h2>
+						         <ul>
+                                                          <li><a href="/trader.aspx?id=reportcenter">Report Center</a></li>
+                                                          <li><a href="/Trader.aspx?id=DailyMPPositionReport">Daily MP Position Report</a></li>
+						           <li><a href="/Trader.aspx?id=DailyMarketSummary">Daily Market Summary</a></li>
+						          <li><a href="/Trader.aspx?id=DailyMarketFiles">Daily Market Files</a></li>
+						          <li><a href="/Trader.aspx?id=MonthlyMarketSummary">Monthly Market Summary</a></li>
+						          <li><a href="/Trader.aspx?id=MonthlyIssueVolume">Monthly Issue Volume</a></li>
+						          <li><a href="/Trader.aspx?id=dsv" Target="open new window">Monthly MP Volume</a></li>
+
+       </ul>
+
+
+
+   </div>
+  		            </div>
+  		            <!-- End 4 columns container -->
+
+  		          </li>
+        <!-- End 4 columns Item -->
+        <li><a href="/Trader.aspx?id=currentheadlines" class="drop">News</a><!-- Begin 4 columns Item -->
+
+          <div class="dropdown_4columns align_right" style="width: 700px"><!-- Begin 4 columns container -->
+
+             <div class="col_1" style="width:150px;">
+
+		   		        <h2>Equity News</h2>
+		   		        <ul><li><a href="/Trader.aspx?id=archiveheadlines&cat_id=2">Trader Alerts</a></li>
+		   		        <li><a href="/Trader.aspx?id=archiveheadlines&cat_id=7">Technical Alerts</a></li>
+		   		        <li><a href="/Trader.aspx?id=archiveheadlines&cat_id=6">Regulatory Alerts</a></li>
+<li><a href="/Trader.aspx?id=archiveheadlines&cat_id=105">Corporate Action Alerts</a></li>
+</ul>
+
+
+<h2>Futures News</h2>
+						<ul>	   		        <li><a href="/Trader.aspx?id=archiveheadlines&cat_id=51">Trader Alerts</a></li>
+							   		        <li><a href="/Trader.aspx?id=archiveheadlines&cat_id=52">Technical Alerts</a></li>
+		   		        <li><a href="/Trader.aspx?id=archiveheadlines&cat_id=53">Regulatory Alerts</a></li></ul>
+
+
+
+  <h2>Other News</h2>
+<ul>
+<li><a href="/Trader.aspx?id=UPCNotices2017">UPC Notices</a></li>
+
+		   		     </ul>
+
+</div>
+		   		    <div class="col_1" style="width:210px;">
+
+		   		    <h2>Options News</h2>
+							   		        <ul><li><a href="/Trader.aspx?id=archiveheadlines&cat_id=11">Trader Alerts</a></li>
+							   		        <li><a href="/Trader.aspx?id=archiveheadlines&cat_id=12">Technical Alerts</a></li>
+							   		        <li><a href="/Trader.aspx?id=archiveheadlines&cat_id=13">Regulatory Alerts</a></li>
+
+					</ul><br>
+<h2>Historical Options News<br>ISE/GEMX/MRX</h2>
+<br>
+<ul>
+<li><a href="/Trader.aspx?id=ISE_MICS">MICS</a></li>
+<li><a href="/Trader.aspx?id=ISE_RICS">RICs</a></li>
+<li><a href="/Trader.aspx?id=ISE_RegSCI_Notices">Reg SCI</a></li>
+		   		    
+		   		        </ul>
+
+</div>
+		   		    <div class="col_1" style="width:150px;">
+<h2>Market Data News</h2>
+		   		       <ul> <li><a href="/Trader.aspx?id=archiveheadlines&cat_id=5">Data News</a></li>
+		   		        <li><a href="/Trader.aspx?id=archiveheadlines&cat_id=48">Data Technical</a></li>
+		   		        <li><a href="/Trader.aspx?id=archiveheadlines&cat_id=49">Financial Products</a></li>
+		   		        <li><a href="/Trader.aspx?id=archiveheadlines&cat_id=19">Nasdaq Fund Network</a></li></ul>
+
+<h2>Nasdaq Fixed Income</h2>
+<ul><li><a href="https://www.nasdaqtrader.com/SASP/TraderSASP.aspx?id=FixedIncomeMKTdata">Nasdaq Fixed Income News</a></li></ul>
+
+		   		       <h2>UTP News</h2>
+					<ul>
+					<li><a href="/Trader.aspx?id=archiveheadlines&cat_id=9">UTP Vendor News</a></li>
+					</ul>
+
+
+
+		 </div>
+		   		    <div class="col_1" style="width:140px;background-image: url(/images/row_bg.jpg); background-repeat: repeat-y; height: 200px; background-position: left top; padding-left: 8px">
+		    <h2><a href="/Trader.aspx?id=MarketSystemStatus&cid=topnav">System Status</a></h2>
+		   		           <h2><a href="https://www.nasdaqtrader.com/EASP/TraderEASP.aspx?id=NewsSignup">Subscribe to Alerts</a></h2>
+		   		       <h2><a href="/Trader.aspx?id=NewsRSS"><img src="/images/feed-16x16.png"> RSS Feeds</a></h2>
+		   		       <ul> <li><a href="/Trader.aspx?id=NewsRSS">News</a></li>
+		   		        <li><a href="/Trader.aspx?id=TradeHaltRSS">Trade Halts</a></li>
+
+
+
+          </ul>
+     </div>
+			            </div>
+			            <!-- End 4 columns container -->
+
+			          </li>
+        <!-- End 4 columns Item -->
+        <li><a href="/Trader.aspx?id=ContactList#admin" class="drop">Support</a><!-- Begin 3 columns Item -->
+
+          <div class="dropdown_3columns align_right" style="width: 630px"><!-- Begin 3 columns container -->
+
+             <div class="col_1" style="width:190px;">
+
+		    <h2>Price List</h2>
+
+		   		            <ul><li><a href="/Trader.aspx?id=PriceListTrading2">Trading Services</a></li>
+		   		        <li><a href="/Trader.aspx?id=DPPriceListAll">Market Data</a></li>
+
+		   		       <h2>Agreements and Forms</h2>
+		   		        <li><a href="/Trader.aspx?id=AgreementsTrading">Trading Services</a></li>
+		   		        <li><a href="/Trader.aspx?id=AgreementsData">Market Data</a></li>
+                                        <li><a target="new" href="https://www.nasdaqtrader.com/Content/AdministrationSupport/AgreementsTrading/NTSPolicies.pdf">NTS Policies</a></li></ul>
+
+		   		         <h2>Testing</h2>
+		   						       	     <ul>   <li><a href="/Trader.aspx?id=TestingFacility">Nasdaq Testing Facility</a></li>
+		   	        <li><a href="/Trader.aspx?id=test_policy">Saturday Testing Policy</a></li>
+
+		   	        </ul> </div>
+
+		   			          <div class="col_1" style="width:200px;">
+		   		                     <h2>Technical Specifications</h2>
+		   		                    <ul> <li><a href="/Trader.aspx?id=TradingSpecs">Trading Services</a></li>
+		   		                     <li><a href="/Trader.aspx?id=DPSpecs">Market Data</a></li></ul>
+
+		   		       <h2>Technical Documentation</h2>
+		   		       <ul> <li><a href="/Trader.aspx?id=ReleaseScheduleDP&cid=tn12">Release Schedule</a></li>
+		   		        <li><a href="/Trader.aspx?id=FeedIPS&cid=tn13">UDP Address List-US Data Feeds</a></li>
+		   		       
+		   		        <li><a href="/content/technicalsupport/specifications/dataproducts/bandwidthreport.xls ">Bandwidth Report</a></li>
+
+
+
+		   </ul>
+<h2><a href="/Trader.aspx?id=Support_FactSheets">Fact Sheets and Guides</a></h2>
+<h2><a href="/Trader.aspx?id=Help_TradingApplications">Digital Certificate Help</a></h2>
+</div>
+		   <div class="col_1" style="width:200px; background-image: url(/images/row_bg.jpg); background-repeat: repeat-y; height: 240px; background-position: left top; padding-left: 8px">
+		                             <h2><a href="/Trader.aspx?id=ContactList#admin">Contact Information</a></h2>
+		                         <h2><a href="/content/TechnicalSupport/nasdaq_sys_hours.pdf">System Hours</a></h2>
+		   		                <h2><a href="/Trader.aspx?id=Calendar">Trading Calendar</a></h2>
+		   		                <h2><a href="https://www.nasdaqtrader.com/EASP/TraderEASP.aspx?id=NewsSignup">Subscribe to Alerts</a></h2>
+ <h2>System Settings</h2>
+		   		       <ul> <li><a href="/Trader.aspx?id=SYSTEMSETTINGS">Nasdaq</a></li>
+		   		        <li><a href="/Trader.aspx?id=BXSYSTEMSETTINGS">BX</a></li>
+ <li><a href="/Trader.aspx?id=PSXSYSTEMSETTINGS">PSX</a></li>
+
+
+          </ul>
+
+
+
+   </div>
+  		            </div>
+  		            <!-- End 3 columns container -->
+
+  		          </li>
+        <!-- End 3 columns Item -->
+
+        <li><a href="http://www.nasdaqtrader.com/" class="drop"><img src="/images/key.png"> Product Login</a><!-- Begin 3 columns Item -->
+
+          <div class="dropdown_3columns" style="margin-left: -320px; width: 480px"><!-- Begin 3 columns container -->
+
+             <div class="col_1" style="width:170px;">
+                      <h2>Trading Services</h2>
+			              <ul>
+			               <li><a href="https://ipoworkstation.nasdaq.com">IPO Workstation</a></li>
+			                <li><a href="/TraderP.aspx?id=coloconsole">Co-Lo Console</a></li>
+			                <li><a href="https://www.nasdaqtrader.com/SASP/TraderSASP.aspx?id=FixedIncomeTS">Nasdaq Fixed Income</a></li>
+							  <li><a href="https://www.nasdaqworkstation.com">Nasdaq Workstation</a></li>
+                                                            <li><a href="https://stats.nasdaqomx.com/qview/home.xhtml">QView</a></li>
+
+							  <!-- <li><a href="https://www.nasdaqworkstation.com/nnwaces/orderentry.aspx">Weblink ACES</a></li>-->
+							  <!--<li><a href="https://www.nasdaqworkstation.com/NNWACT/TradeEntry.aspx">Weblink ACT 2.0</a></li>-->
+			<li><a href="https://www.nasdaqworkstation.com/weblink3">Weblink ACT 3.0</a></li>
+<li><a href="https://infocenter.inetats.com/home/index.jsp">InfoCenter</a></li>
+ <li><a href="https://www.ndaqoptions.com/">MY Nasdaq </a></li>
+  <li><a href="http://www.nasdaqomx.com/eip">Nasdaq Billing</a></li>
+			              </ul>   </div>
+
+			            <div class="col_1" style="width:150px;">
+ <h2>Market Data</h2>
+  <ul>
+ <li><a href="/Trader.aspx?id=DailyListPD">Daily List</a></li>
+ <li><a href="/Trader.aspx?id=DataFeedStatus">Data Feed Status</a></li>
+ <li><a href="https://www.nasdaqtrader.com/SASP/TraderSASP.aspx?id=FixedIncomeMKTData">Nasdaq Fixed Income</a></li>
+ <li><a href="/Trader.aspx?id=FD">Fundamental Data</a></li>
+<li><a href="/Trader.aspx?id=ITCH">Historical ITCH</a></li>
+ <li><a href="https://www.nasdaqmfqs.com">Nasdaq Fund Network</a></li>
+  <li><a href="/tradernews.aspx?id=nva2008-085">Net Order Imbalance</a></li>
+    <li><a href="https://nora.nasdaq.com/public/home.aspx">Online Vendor Rtg</a></li>
+
+
+	        </ul>
+
+			          </div>
+
+			            <div class="col_1" style="width:130px;">
+			           <h2>Reports</h2>
+		                 <ul>
+                                                         <li><a href="https://www.nasdaqtrader.com/SASP/login.aspx?ReturnUrl=%2freportcenter%2f">Report Center</a></li>
+                                                         <li><a href="https://www.nasdaqtrader.com//pasp/Traderpasp.aspx?id=ACTRecaps">ACT Recaps</a></li>
+							 <li><a href="https://www.nasdaqtrader.com//pasp/Traderpasp.aspx?id=RegulatoryFee">Reg. Transaction Fee</a></li>
+							 <li><a href="https://www.nasdaqtrader.com//PASP/TraderPASP.aspx?id=MPPositionPlusFiles">MP Position Plus</a></li>
+<li><a href="https://reporthq.nasdaq.com">Report HQ</a></li>
+
+
+</ul>
+</div>
+
+
+
+
+			            </div>
+			            <!-- End 3 columns container -->
+
+			          </li>
+        <!-- End 4 columns Item -->
+
+      </ul>
+
+      <!--End navigation Here--><div id="MainNavMenu"><div><div></div></div>
+
+<!--<script type="text/javascript">
+Timer_duration = 15; //number of seconds for ad switch
+is_dartZone = "calendar";
+</script><div class="ad728x90" id="mastheadBanner" style="padding-top: 0px"><div><html>
+<head><title></title></head>
+<body style="margin:0px">
+<script type="text/javascript">
+Timer_duration = 15; //number of seconds for ad switch
+</script>
+
+	<script type="text/javascript" src="/content/images/ads/DartAdEngine.js"></script>
+	<script type="text/javascript">
+	var dartPtileRan = Math.random() * 1000000000000000000;
+	makeAd('1','728x90','trader','calendar','','');
+	//window.setTimeout("window.location.reload()",Timer_duration*1000);
+	</script>
+</body>
+</html>
+
+
+</div></div>--></div> 
+        <!-- END OF NAV AND MENUS -->    
+    
+        <div id="content" style="*z-index: -1; clear: both;">
+            <div id="MainContainer"><div id="leftWideCOL">
+   <img src="/images/newlogo.jpg" />
+   <h1>Calendar of Events</h1>
+   <div><script type="text/javascript">
+function tab_highlight(li)
+{
+    highlighted = document.getElementById(li);
+    highlighted.className = "on";
+}
+</script>
+<style type="text/css">
+
+/*- Menu Tabs 5--------------------------- */
+
+    #tabs5 {
+      float:left;
+      width:100%;
+      background-color: #ECF3F9;
+
+      font-size:93%;
+      line-height:normal;
+      border-bottom:2px solid #54c247;
+      }
+    #tabs5 ul {
+	  margin:0;
+	  padding:10px 10px 0 50px;
+	  list-style:none;
+      }
+    #tabs5 li {
+      display:inline;
+      margin:0;
+      padding:0;
+      }
+    #tabs5 a {
+      float:left;
+      background:url("http://www.nasdaqtrader.com//images/optionstableft.gif") no-repeat left top;
+      margin:0;
+      padding:0 0 0 4px;
+      text-decoration:none;
+
+      }
+    #tabs5 a span {
+      float:left;
+      display:block;
+      background:url("http://www.nasdaqtrader.com/images/optionstabright.gif") no-repeat right top;
+      padding:5px 15px 4px 6px;
+      color: #fff;
+	font-family: Arial, Helvetica, sans-serif;
+	font-size: 12px;
+font-weight: bold;
+
+      }
+    /* Commented Backslash Hack hides rule from IE5-Mac \*/
+    #tabs5 a span {float:none;}
+    /* End IE5-Mac hack */
+    #tabs5 a:hover span {
+      color:#FFF;
+font-weight: bold;
+      }
+    #tabs5 a:hover {
+      background-position:0% -42px;
+color: #006699;
+	font-family: Arial, Helvetica, sans-serif;
+	font-size: 12px;
+font-weight: bold;
+
+      }
+    #tabs5 a:hover span {
+      background-position:100% -42px;
+color: #006699;
+	font-family: Arial, Helvetica, sans-serif;
+	font-size: 12px;
+font-weight: bold;
+
+      }  
+
+ #tabs5 .offtab a {
+
+           background-position:0% -42px;
+
+color: #006699;
+
+           font-family: Arial, Helvetica, sans-serif;
+
+           font-size: 12px;
+
+font-weight: bold;
+
+ 
+
+      }
+
+    #tabs5 .offtab a span {
+
+           background-position:100% -42px;
+
+color: #006699;
+
+           font-family: Arial, Helvetica, sans-serif;
+
+           font-size: 12px;
+
+font-weight: bold;
+
+ 
+
+      }
+
+
+</style>
+
+
+
+</div>
+
+   <ul id="tabs5">
+       <li id="_regularcalendar"><a href="/Trader.aspx?id=Calendar"><span>Equities and Options</span></a></li>
+             <li id="_fixedincomecalendar" class="offtab"><a href="/Trader.aspx?id=FixedIncomeCalendar"><span>Fixed Income</span></a></li>
+   </ul>
+
+<br /><a name="#top"></a>
+
+<h1>Nasdaq - U.S. Equity and Options Markets Holiday Schedule</h1>
+
+<div class="dataTable">
+<table>
+<tr><th bgcolor="#165788">2018</th><th bgcolor="#165788">Holiday</th><th bgcolor="#165788">Status</th></tr></thead><tbody>
+ <tr><td>January 1, 2018</td><td>New Year's Day (Observed)</td><td>Closed</td></tr>
+ <tr><td>January 15, 2018</td><td>Martin Luther King, Jr. Day</td><td>Closed</td></tr>
+ <tr><td>February 19, 2018</td><td>President's Day - U.S.</td><td>Closed</td></tr>
+ <tr><td>March 30, 2018</td><td>Good Friday</td><td>Closed</td></tr>
+ <tr><td>May 28, 2018</td><td>Memorial Day - U.S.</td><td>Closed</td></tr>
+<tr><td>July 3, 2018</td><td>Early Close - U.S.</td><td>1:00 p.m.</td></tr>
+ <tr><td>July 4, 2018</td><td>Independence Day - U.S.</td><td>Closed</td></tr>
+ <tr><td>September 3, 2018</td><td>Labor Day - U.S.</td><td>Closed</td></tr>
+ <tr><td>November 22, 2018</td><td>Thanksgiving Day - U.S.</td><td>Closed</td></tr>
+ <tr><td>November 23, 2018</td><td>Early Close - U.S.</td><td>1:00 p.m.</td></tr>
+ <tr><td>December 24, 2018</td><td>Christmas Eve Early Close - U.S.</td><td>1:00 p.m.</td></tr>
+ <tr><td>December 25, 2018</td><td>Christmas Day</td><td>Closed</td></tr>
+</tbody></table>
+</div>
+
+<div class="dataTable">
+<table>
+<tr><th bgcolor="#165788">2017</th><th bgcolor="#165788">Holiday</th><th bgcolor="#165788">Status</th></tr></thead><tbody>
+  <tr><td>December 25, 2017</td><td>Christmas Day</td><td>Closed</td></tr>
+</tbody></table>
+</div>
+
+<p>* Nasdaq will continue to send alerts to notify customers of days when the Market will close early. Please refer to those alerts for full information, including system operating times.</p>
+<a name="Trade"></a>
+<h2>TradeDate&mdash;Settlement Date Schedule</h2>
+<h3 class="strong">Overview</h3>
+<p>Pursuant to Sections 220.8(b)(1) and (4) of Regulation T of the Federal Reserve Board, a broker-dealer must promptly cancel or otherwise liquidate a customer purchase transaction in a cash account if full payment is not received within five business days from the date of purchase or, pursuant to Section 220.8(d)(1), make application to extend the time period specified. The date by which members must take such action is shown below in the column titled <strong>&ldquo;Reg. T Date.&rdquo;</strong></p>
+<p>Similarly, SEC Rule 15c3-3 requires member organizations to take prompt steps to obtain possession or control of securities pursuant to paragraph (m) through a buy-in procedure or otherwise if securities are not received within 13 business days from the date of sale or, pursuant to paragraph (n), make application to extend the time period specified. The date by which members must take such action is shown below in the column titled <strong>&ldquo;SEC Extension Date.&rdquo;</strong></p>
+<p>Brokers, dealers and municipal securities dealers should use the settlement dates for purposes of clearing and settling transactions pursuant to the securities exchanges.</p>
+
+<h3 class="strong">2017</h3>
+<p>Please view the FINRA <a target="open new window" href="http://www.finra.org/sites/default/files/notice_doc_file_ref/Information-Notice-121416.pdf">2017 Holiday Trade Date, Settlement Date and Margin Extensions Schedule</a>.</p>
+
+</div> 
+
+
+
+<!-- closing container div for leftWideCOL -->
+
+<div id="rightCOL">
+<div class="calloutbox cob_1">
+<div class="calloutbox_head">
+<h2>More Information</h2>
+</div>
+<div class="calloutbox_body">
+<ul>
+
+<li><a target="open new window" href="http://www.optionsclearing.com/components/docs/about/publications/xcal2018.pdf">2018 Options Expiration Calendar</a></li>
+<li><a target="open new window" href="http://www.optionsclearing.com/components/docs/about/publications/xcal2017.pdf">2017 Options Expiration Calendar</a></li>
+ 
+    <li><a target="open new window" href="/Trader.aspx?id=optionshours">Options Trading Hours</a></li>
+    <li><a target="open new window" href="/Trader.aspx?id=fixedincomehours">Fixed Income Trading Hours</a></li>
+    <li><a target="open new window" href="/content/TechnicalSupport/nasdaq_sys_hours.pdf">Nasdaq System Hours</a></li>
+</ul>
+<p>Questions regarding the application of those settlement dates to a particular situation may be directed to the Corporate Data Integrity Department at:</p>
+<ul>
+    <li>+1 877 308 0523<br />
+    (U.S and Canada)</li>
+    <li>+1 203 926 3501</li>
+</ul>
+</div>
+</div>
+<p>&nbsp;</p>
+
+</div> <!-- closing container div for rightCOL --></div>
+        </div>
+
+        <div id="siteinfo">
+		    <div id="siteinfo-legal">
+		    <!--/snippets/includes/footer.html starts here-->
+
+<div id="theFooter" style="clear:both;position:relative;font-size:11px;line-height:14px;margin-top:10px;border-top:#54C24F 0px solid;margin-left:15px;margin-right:0px;white-space:nowrap;">
+	<ul style="margin:0px 8px 0px 10px;padding-top:10px;padding-bottom:10px;list-style:none;border-bottom:#DDDDDD 1px solid;white-space:nowrap;">
+		<li style="border-left:none;margin-left:30px;"><b>Popular Sections:</b></li>
+		<li><a href="/trader.aspx?id=marketshare">Performance Statistics</a></li>
+		<li><a href="/Micro.aspx?id=OptionsMarket">NASDAQ Options Market</a></li>
+		<li><a href="http://www.nasdaqtrader.com/Micro.aspx?id=advertise">Advertise with us</a></li>
+		<li><a href="https://www.nasdaqtrader.com/EASP/TraderEASP.aspx?id=NewsSignup">Email Sign-Up</a>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</li>
+	</ul>
+
+	<ul style="margin:0px 15px -3px 0px;padding-top:0px;padding-bottom:3px;list-style:none;border-top:none;white-space:nowrap;">
+		<li style="border-left:none;margin-left:30px;"><img src="/images/trader_logo_footer.png" style="padding-top: 5px; align: left"></li>
+		<li><a href="/Trader.aspx?id=CopyDisclaimMain">&copy; Copyright</a></li>
+		<li><a href="/Trader.aspx?id=CopyDisclaimMain#Disclaimer">Disclaimer</a></li>
+		<li><a href="./Trader.aspx?id=CopyDisclaimMain#Trademarks">Trademarks</a></li>
+		<li><a href="http://business.nasdaq.com/privacy-statement/index.html">Privacy Statement</a></li>
+		<li><a href="/Trader.aspx?id=ContactList">Contact Us</a></li>
+		<li><a href="/Trader.aspx?id=Help">Help</a></li>
+		<li><a href="mailto:tradingservices@nasdaqomx.com?subject=NASDAQtrader.com Web Site Feedback">Feedback</a></li>
+		<li><a href="http://www.addthis.com/bookmark.php?v=250&amp;pubid=xa-4f907dde7b68beeb">Share</a>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+		</li>
+	</ul>
+</p>
+<p>&nbsp;</p>
+<!--<center>
+<script type="text/javascript" src="http://www.nasdaqtrader.com/content/images/ads/DartAdEngine.js"></script>
+<script type="text/javascript">
+    var dartPtileRan = Math.random() * 1000000000000000000;
+	if (typeof is_dartZone != "undefined"){
+                      if(is_dartZone == '')
+                         makeAd('1','120x60','trader','','','');
+                      else
+					     makeAd('1','120x60','trader',is_dartZone,'','');
+                      }
+	else
+		makeAd('1','120x60','trader','','','');
+    //window.setTimeout("window.location.reload()",Timer_duration*1000);
+</script>
+</center>-->
+<!--/snippets/includes/footer.html ends here-->
+
+            </div>
+        </div>
+    </div>
+</body>
+    <script type="text/javascript" src="/js/ieHover2.js"></script>
+    <script type="text/javascript" src="/js/symlookup.js"></script>    
+</html>

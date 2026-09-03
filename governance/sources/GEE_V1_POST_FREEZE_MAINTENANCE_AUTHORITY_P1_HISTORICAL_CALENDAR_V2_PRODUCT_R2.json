@@ -1,0 +1,61 @@
+{
+  "document": "GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY",
+  "schemaVersion": 2,
+  "authorityId": "P1_HISTORICAL_CALENDAR_V2_PRODUCT_LOCAL_AUTHORITY_R2",
+  "authorityClass": "PROJECT_OWNER_POST_FREEZE_MAINTENANCE_AUTHORITY",
+  "authorityMode": "LOCAL_EXPLICIT_AUTHORITY",
+  "issuedBy": "PROJECT_OWNER",
+  "createdAt": "2026-08-29T00:00:00.000Z",
+  "expiresAt": "2026-12-31T23:59:59.000Z",
+  "targetSystem": "PROJECT_GOVERNANCE",
+  "programId": "P1_HISTORICAL_CALENDAR_V2_PRODUCT_R1",
+  "authorityPurpose": "NORMAL_MAINTENANCE",
+  "resumePoint": "CP-P1-HISTORICAL-CALENDAR-V2-PRODUCT-R1",
+  "maxUse": 1,
+  "preState": {
+    "baseHead": "38b9dab5563571edb01fcdb216790f0df26ab59d",
+    "ledgerEventCount": 104,
+    "ledgerPrefixSha256": "2def19c84b7581da0ab54d2d1ba9d68f5bc2ce40e108443cfbd086835a0116da",
+    "gateId": "GATE24",
+    "gateStatus": "COMPLETE_CONFIRMED",
+    "stateRevision": "R0005",
+    "contractRevision": "R0002",
+    "activeGate": "GATE13",
+    "R8ExpectedAbsent": true
+  },
+  "authorizedPathManifestPath": "governance/historical-architecture/P1_HISTORICAL_CALENDAR_V2_PRODUCT_AUTHORIZED_PATHS_R2.json",
+  "authorizedPathManifestSha256": "7d9bd404d9ecc7c97cc3bab6fc9aaa330c292a32ec266e5f6c568da5ae5b6949",
+  "authorizedOperationClasses": [
+    "MAINTENANCE"
+  ],
+  "commitPolicy": {
+    "maxCommitCount": 1,
+    "allowedGitOperations": [
+      "GIT_ADD_PATHSPEC",
+      "GIT_COMMIT"
+    ],
+    "commitMessage": "jarvise: historical XNYS calendar V2 product",
+    "thirdCommitAuthorized": false
+  },
+  "pushAuthorized": false,
+  "authorityPredecessor": null,
+  "authorityHeadBinding": {
+    "mode": "BASE_HEAD",
+    "baseHead": "38b9dab5563571edb01fcdb216790f0df26ab59d"
+  },
+  "consumptionRecordPath": "governance/historical-architecture/P1_HISTORICAL_CALENDAR_V2_PRODUCT_CONSUMPTION_R2.json",
+  "prohibitedOperations": [
+    "START",
+    "SECOND_START",
+    "AGENT_CLOSURE",
+    "EXTERNAL_CONFIRMATION",
+    "COMPLETE_AGENT",
+    "COMPLETE_CONFIRMED",
+    "ACTIVE_GATE_SWITCH",
+    "GEE_R8",
+    "GIT_PUSH",
+    "HISTORY_REWRITE",
+    "THIRD_COMMIT",
+    "UNRELATED_WRITE"
+  ]
+}

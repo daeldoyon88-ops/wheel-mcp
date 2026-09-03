@@ -1,0 +1,25 @@
+{
+  "document": "MAINTENANCE_PUBLICATION_ADMISSION_OWNER_AUTHORIZATION",
+  "schemaVersion": 1,
+  "authorityId": "P1_HISTORICAL_CALENDAR_V2_PRODUCT_PUBLICATION_OWNER_AUTHORIZATION_R2",
+  "authorityClass": "PROJECT_OWNER_MAINTENANCE_PUBLICATION_ADMISSION_AUTHORITY",
+  "authorityMode": "LOCAL_EXPLICIT_AUTHORITY",
+  "issuedBy": "PROJECT_OWNER",
+  "issuedAtUtc": "2026-08-29T00:00:00.000Z",
+  "decisionId": "P1_HISTORICAL_CALENDAR_V2_PRODUCT_OWNER_DECISION_R2",
+  "purpose": "MAINTENANCE_PUBLICATION_ADMISSION",
+  "reexecutionAuthorized": false,
+  "grantsFutureBytePermission": false,
+  "genericV1Admission": false,
+  "admittedPublications": [
+    {
+      "admissionId": "P1_HISTORICAL_CALENDAR_V2_PRODUCT_PUBLICATION_ADMISSION_R2",
+      "projectId": "WHEEL",
+      "gateId": "GATE24",
+      "programId": "P1_HISTORICAL_CALENDAR_V2_PRODUCT_R1",
+      "admissionPath": "governance/authority/publication-admissions/GATE24/P1_HISTORICAL_CALENDAR_V2_PRODUCT_PUBLICATION_ADMISSION_R2.json",
+      "admissionDigest": "537931eeccdccf36bc676709f329626627b227f80945c7feffac7398e5d3e0bd"
+    }
+  ],
+  "registryDigest": "b3c28a05a357d54b30a315b63c0679b08e5b489c5c8fb99fed5c261568df0b32"
+}

@@ -1,0 +1,790 @@
+{
+  "documentKind": "POST_FREEZE_MAINTENANCE_AUTHORIZED_PATH_MANIFEST",
+  "schemaVersion": 2,
+  "manifestId": "P1_HISTORICAL_CALENDAR_V2_PRODUCT_AUTHORIZED_PATHS_R2",
+  "programId": "P1_HISTORICAL_CALENDAR_V2_PRODUCT_R1",
+  "paths": [
+    {
+      "path": "research/directional-lab/src/contracts/marketCalendarL3V2.mjs",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "V2 market-calendar contract module.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "research/directional-lab/src/canonical/canonicalSchemaRegistryV1.mjs",
+      "operation": "MODIFY",
+      "phase": "MAINTENANCE",
+      "reason": "Additive registration of the V2 market-calendar schemas.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "PRESENT",
+        "sha256": "0ce5e7cd05f91ff9bde949fc68197873c5b175dc65eece266ed1f7d23064730b",
+        "byteLength": 34507
+      }
+    },
+    {
+      "path": "scripts/buildJarviseSessionCalendarXNYSHistorical.mjs",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "Companion historical XNYS calendar builder.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "research/directional-lab/test/market-calendar-l3-v2.test.mjs",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "Positive V2 market-calendar contract validation.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "research/directional-lab/test/market-calendar-l3-v2-adversarial.test.mjs",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "Adversarial V2 market-calendar contract validation.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "research/directional-lab/test/jarvise-session-calendar-xnys-historical.test.mjs",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "Historical XNYS materialization and G24 non-regression validation.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "data/jarvise/session-calendar-historical/XNYS/authority-policy.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "Shared MarketCalendarAuthorityPolicy/2 for historical XNYS materializations.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "data/jarvise/session-calendar-historical/XNYS/2018/normalized-source.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "Normalized historical XNYS source for 2018.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "data/jarvise/session-calendar-historical/XNYS/2018/timezone-ruleset.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "Historical XNYS timezone ruleset for 2018.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "data/jarvise/session-calendar-historical/XNYS/2018/session-calendar-core.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "Historical XNYS session-calendar core for 2018.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "data/jarvise/session-calendar-historical/XNYS/2018/PROVENANCE.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "Historical XNYS calendar provenance for 2018.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "data/jarvise/session-calendar-historical/XNYS/2019/normalized-source.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "Normalized historical XNYS source for 2019.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "data/jarvise/session-calendar-historical/XNYS/2019/timezone-ruleset.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "Historical XNYS timezone ruleset for 2019.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "data/jarvise/session-calendar-historical/XNYS/2019/session-calendar-core.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "Historical XNYS session-calendar core for 2019.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "data/jarvise/session-calendar-historical/XNYS/2019/PROVENANCE.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "Historical XNYS calendar provenance for 2019.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "data/jarvise/session-calendar-historical/XNYS/2020/normalized-source.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "Normalized historical XNYS source for 2020.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "data/jarvise/session-calendar-historical/XNYS/2020/timezone-ruleset.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "Historical XNYS timezone ruleset for 2020.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "data/jarvise/session-calendar-historical/XNYS/2020/session-calendar-core.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "Historical XNYS session-calendar core for 2020.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "data/jarvise/session-calendar-historical/XNYS/2020/PROVENANCE.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "Historical XNYS calendar provenance for 2020.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "data/jarvise/session-calendar-historical/XNYS/2021/normalized-source.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "Normalized historical XNYS source for 2021.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "data/jarvise/session-calendar-historical/XNYS/2021/timezone-ruleset.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "Historical XNYS timezone ruleset for 2021.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "data/jarvise/session-calendar-historical/XNYS/2021/session-calendar-core.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "Historical XNYS session-calendar core for 2021.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "data/jarvise/session-calendar-historical/XNYS/2021/PROVENANCE.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "Historical XNYS calendar provenance for 2021.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "data/jarvise/session-calendar-historical/XNYS/2022/normalized-source.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "Normalized historical XNYS source for 2022.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "data/jarvise/session-calendar-historical/XNYS/2022/timezone-ruleset.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "Historical XNYS timezone ruleset for 2022.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "data/jarvise/session-calendar-historical/XNYS/2022/session-calendar-core.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "Historical XNYS session-calendar core for 2022.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "data/jarvise/session-calendar-historical/XNYS/2022/PROVENANCE.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "Historical XNYS calendar provenance for 2022.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "data/jarvise/session-calendar-historical/XNYS/2023/normalized-source.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "Normalized historical XNYS source for 2023.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "data/jarvise/session-calendar-historical/XNYS/2023/timezone-ruleset.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "Historical XNYS timezone ruleset for 2023.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "data/jarvise/session-calendar-historical/XNYS/2023/session-calendar-core.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "Historical XNYS session-calendar core for 2023.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "data/jarvise/session-calendar-historical/XNYS/2023/PROVENANCE.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "Historical XNYS calendar provenance for 2023.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "data/jarvise/session-calendar-historical/XNYS/2024/normalized-source.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "Normalized historical XNYS source for 2024.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "data/jarvise/session-calendar-historical/XNYS/2024/timezone-ruleset.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "Historical XNYS timezone ruleset for 2024.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "data/jarvise/session-calendar-historical/XNYS/2024/session-calendar-core.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "Historical XNYS session-calendar core for 2024.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "data/jarvise/session-calendar-historical/XNYS/2024/PROVENANCE.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "Historical XNYS calendar provenance for 2024.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "data/jarvise/session-calendar-historical/XNYS/2025/normalized-source.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "Normalized historical XNYS source for 2025.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "data/jarvise/session-calendar-historical/XNYS/2025/timezone-ruleset.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "Historical XNYS timezone ruleset for 2025.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "data/jarvise/session-calendar-historical/XNYS/2025/session-calendar-core.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "Historical XNYS session-calendar core for 2025.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "data/jarvise/session-calendar-historical/XNYS/2025/PROVENANCE.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "Historical XNYS calendar provenance for 2025.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "data/jarvise/session-calendar-historical/XNYS/2026/normalized-source.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "Normalized historical XNYS source for 2026.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "data/jarvise/session-calendar-historical/XNYS/2026/timezone-ruleset.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "Historical XNYS timezone ruleset for 2026.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "data/jarvise/session-calendar-historical/XNYS/2026/session-calendar-core.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "Historical XNYS session-calendar core for 2026.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "data/jarvise/session-calendar-historical/XNYS/2026/PROVENANCE.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "Historical XNYS calendar provenance for 2026.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "data/jarvise/session-calendar-historical/source-evidence/2018/nyse-hours-calendars.html",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "NYSE historical calendar evidence for 2018.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "data/jarvise/session-calendar-historical/source-evidence/2018/nasdaqtrader-calendar.html",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "Nasdaq Trader historical calendar evidence for 2018.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "data/jarvise/session-calendar-historical/source-evidence/2018/SOURCE_DIGESTS.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "Historical XNYS source digests for 2018.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "data/jarvise/session-calendar-historical/source-evidence/2018/EXCEPTIONAL_CLOSURE_SWEEP.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "Historical XNYS exceptional-closure sweep for 2018.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "data/jarvise/session-calendar-historical/source-evidence/2019/nyse-hours-calendars.html",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "NYSE historical calendar evidence for 2019.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "data/jarvise/session-calendar-historical/source-evidence/2019/nasdaqtrader-calendar.html",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "Nasdaq Trader historical calendar evidence for 2019.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "data/jarvise/session-calendar-historical/source-evidence/2019/SOURCE_DIGESTS.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "Historical XNYS source digests for 2019.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "data/jarvise/session-calendar-historical/source-evidence/2019/EXCEPTIONAL_CLOSURE_SWEEP.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "Historical XNYS exceptional-closure sweep for 2019.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "data/jarvise/session-calendar-historical/source-evidence/2020/nyse-hours-calendars.html",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "NYSE historical calendar evidence for 2020.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "data/jarvise/session-calendar-historical/source-evidence/2020/nasdaqtrader-calendar.html",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "Nasdaq Trader historical calendar evidence for 2020.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "data/jarvise/session-calendar-historical/source-evidence/2020/SOURCE_DIGESTS.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "Historical XNYS source digests for 2020.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "data/jarvise/session-calendar-historical/source-evidence/2020/EXCEPTIONAL_CLOSURE_SWEEP.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "Historical XNYS exceptional-closure sweep for 2020.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "data/jarvise/session-calendar-historical/source-evidence/2021/nyse-hours-calendars.html",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "NYSE historical calendar evidence for 2021.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "data/jarvise/session-calendar-historical/source-evidence/2021/nasdaqtrader-calendar.html",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "Nasdaq Trader historical calendar evidence for 2021.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "data/jarvise/session-calendar-historical/source-evidence/2021/SOURCE_DIGESTS.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "Historical XNYS source digests for 2021.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "data/jarvise/session-calendar-historical/source-evidence/2021/EXCEPTIONAL_CLOSURE_SWEEP.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "Historical XNYS exceptional-closure sweep for 2021.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "data/jarvise/session-calendar-historical/source-evidence/2022/nyse-hours-calendars.html",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "NYSE historical calendar evidence for 2022.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "data/jarvise/session-calendar-historical/source-evidence/2022/nasdaqtrader-calendar.html",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "Nasdaq Trader historical calendar evidence for 2022.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "data/jarvise/session-calendar-historical/source-evidence/2022/SOURCE_DIGESTS.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "Historical XNYS source digests for 2022.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "data/jarvise/session-calendar-historical/source-evidence/2022/EXCEPTIONAL_CLOSURE_SWEEP.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "Historical XNYS exceptional-closure sweep for 2022.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "data/jarvise/session-calendar-historical/source-evidence/2023/nyse-hours-calendars.html",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "NYSE historical calendar evidence for 2023.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "data/jarvise/session-calendar-historical/source-evidence/2023/nasdaqtrader-calendar.html",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "Nasdaq Trader historical calendar evidence for 2023.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "data/jarvise/session-calendar-historical/source-evidence/2023/SOURCE_DIGESTS.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "Historical XNYS source digests for 2023.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "data/jarvise/session-calendar-historical/source-evidence/2023/EXCEPTIONAL_CLOSURE_SWEEP.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "Historical XNYS exceptional-closure sweep for 2023.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "data/jarvise/session-calendar-historical/source-evidence/2024/nyse-hours-calendars.html",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "NYSE historical calendar evidence for 2024.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "data/jarvise/session-calendar-historical/source-evidence/2024/nasdaqtrader-calendar.html",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "Nasdaq Trader historical calendar evidence for 2024.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "data/jarvise/session-calendar-historical/source-evidence/2024/SOURCE_DIGESTS.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "Historical XNYS source digests for 2024.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "data/jarvise/session-calendar-historical/source-evidence/2024/EXCEPTIONAL_CLOSURE_SWEEP.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "Historical XNYS exceptional-closure sweep for 2024.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "data/jarvise/session-calendar-historical/source-evidence/2025/nyse-hours-calendars.html",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "NYSE historical calendar evidence for 2025.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "data/jarvise/session-calendar-historical/source-evidence/2025/nasdaqtrader-calendar.html",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "Nasdaq Trader historical calendar evidence for 2025.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "data/jarvise/session-calendar-historical/source-evidence/2025/SOURCE_DIGESTS.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "Historical XNYS source digests for 2025.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "data/jarvise/session-calendar-historical/source-evidence/2025/EXCEPTIONAL_CLOSURE_SWEEP.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "Historical XNYS exceptional-closure sweep for 2025.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "data/jarvise/session-calendar-historical/XNYS/registry/R0001/registry-manifest.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "Historical V2 XNYS registry manifest R0001.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "data/jarvise/session-calendar-historical/XNYS/registry/R0001/PROVENANCE.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "Historical V2 XNYS registry provenance R0001.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "governance/historical-architecture/P1_HISTORICAL_CALENDAR_V2_PRODUCT_CONSUMPTION_R2.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "Single-use P1 V2 authority consumption receipt.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    }
+  ]
+}

@@ -72,10 +72,10 @@ function validPolicy() {
   };
 }
 
-test('L4B-I1 keeps exactly eight macro schemas registered: 129 total, all unique', () => {
+test('L4B-I1 keeps exactly eight macro schemas registered: 132 total, all unique', () => {
   assert.equal(MACRO_INGESTION_L4B_SCHEMA_VERSIONS.length, 8);
-  assert.equal(SNAPSHOT_NAMESPACE_SCHEMA_VERSIONS.length, 129);
-  assert.equal(new Set(SNAPSHOT_NAMESPACE_SCHEMA_VERSIONS).size, 129);
+  assert.equal(SNAPSHOT_NAMESPACE_SCHEMA_VERSIONS.length, 132);
+  assert.equal(new Set(SNAPSHOT_NAMESPACE_SCHEMA_VERSIONS).size, 132);
   assert.deepEqual(SNAPSHOT_NAMESPACE_SCHEMA_VERSIONS.slice(-40, -32),
     [...MACRO_INGESTION_L4B_SCHEMA_VERSIONS]);
 });

@@ -1,0 +1,25 @@
+{
+  "document": "MAINTENANCE_PUBLICATION_ADMISSION_OWNER_AUTHORIZATION",
+  "schemaVersion": 1,
+  "authorityId": "MAINTENANCE_PUBLICATION_ADMISSION_OWNER_AUTHORIZATION_SUCCESSOR_MAINTENANCE_FOR_SNAPSHOT_NAMESPACE_COUNT_132_R1",
+  "authorityClass": "PROJECT_OWNER_MAINTENANCE_PUBLICATION_ADMISSION_AUTHORITY",
+  "authorityMode": "LOCAL_EXPLICIT_AUTHORITY",
+  "issuedBy": "PROJECT_OWNER",
+  "issuedAtUtc": "2026-09-01T00:00:00.000Z",
+  "decisionId": "SUCCESSOR_MAINTENANCE_FOR_SNAPSHOT_NAMESPACE_COUNT_132_OWNER_DECISION_R1",
+  "purpose": "MAINTENANCE_PUBLICATION_ADMISSION",
+  "reexecutionAuthorized": false,
+  "grantsFutureBytePermission": false,
+  "genericV1Admission": false,
+  "admittedPublications": [
+    {
+      "admissionId": "SUCCESSOR_MAINTENANCE_FOR_SNAPSHOT_NAMESPACE_COUNT_132_PUBLICATION_ADMISSION_R1",
+      "projectId": "WHEEL",
+      "gateId": "GATE24",
+      "programId": "SUCCESSOR_MAINTENANCE_FOR_SNAPSHOT_NAMESPACE_COUNT_132",
+      "admissionPath": "governance/authority/publication-admissions/GATE24/SUCCESSOR_MAINTENANCE_FOR_SNAPSHOT_NAMESPACE_COUNT_132_PUBLICATION_ADMISSION_R1.json",
+      "admissionDigest": "bc6f88222a90248ced5ebb63968b4cd9caec29fc2df207e354f2da8f7f4a2888"
+    }
+  ],
+  "registryDigest": "e44e1410df5a9a450bdc4ff85ce81512e9e979726c12a6aeb933f1a6236f8dbf"
+}

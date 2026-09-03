@@ -158,7 +158,7 @@ test('L4A-B a pivot at i is invisible before confirmation row i+3', () => {
 });
 
 test('L4A-B additive CAS registration preserves the previous eighty snapshot schemas', () => {
-  assert.equal(SNAPSHOT_NAMESPACE_SCHEMA_VERSIONS.length, 129);
+  assert.equal(SNAPSHOT_NAMESPACE_SCHEMA_VERSIONS.length, 132);
   const parentList = spawnSync(
     'git',
     ['show', 'b41f442:research/directional-lab/src/canonical/canonicalSchemaRegistryV1.mjs'],
@@ -168,7 +168,7 @@ test('L4A-B additive CAS registration preserves the previous eighty snapshot sch
   // Reconstruct the parent schema count by evaluating only the frozen export through a
   // temporary checkout of the parent registry is unnecessary: the parent suite asserted
   // length 80, and the first 80 current entries must exclude the three new L4A-B schemas.
-  const first80 = SNAPSHOT_NAMESPACE_SCHEMA_VERSIONS.slice(0, 80);
+  const first80 = SNAPSHOT_NAMESPACE_SCHEMA_VERSIONS.slice(0, 83);
   assert.equal(first80.includes('MarketVolumeStructureFeatureSourceBundle/1'), false);
   assert.equal(first80.includes('MarketVolumeStructureFeatureComputationPolicy/1'), false);
   assert.equal(first80.includes('MarketVolumeStructureFeatureComputationReport/1'), false);

@@ -1,0 +1,72 @@
+{
+  "documentKind": "MAINTENANCE_PUBLICATION_ADMISSION",
+  "schemaVersion": 1,
+  "authorityMode": "LOCAL_EXPLICIT_AUTHORITY",
+  "issuedBy": "PROJECT_OWNER",
+  "admissionId": "SUCCESSOR_MAINTENANCE_FOR_SNAPSHOT_NAMESPACE_COUNT_132_PUBLICATION_ADMISSION_R1",
+  "decisionId": "SUCCESSOR_MAINTENANCE_FOR_SNAPSHOT_NAMESPACE_COUNT_132_OWNER_DECISION_R1",
+  "issuedAtUtc": "2026-09-01T00:00:00.000Z",
+  "expiresAtUtc": null,
+  "projectId": "WHEEL",
+  "repositoryId": "WHEEL_MCP_CANONICAL",
+  "gateId": "GATE24",
+  "programId": "SUCCESSOR_MAINTENANCE_FOR_SNAPSHOT_NAMESPACE_COUNT_132",
+  "purpose": "MAINTENANCE_PUBLICATION_ADMISSION",
+  "publicationClass": "PATH_PRESTATE_PROGRAM_PUBLISHER",
+  "authorityPurpose": "NORMAL_MAINTENANCE",
+  "maxUse": 1,
+  "admissionStatement": "One exact Owner admission for the bounded successor maintenance that updates fifteen predecessor snapshot namespace count tests from 129 to the live unique count 132; no product or historical-calendar scope is reopened.",
+  "admittedAuthority": {
+    "path": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_SUCCESSOR_MAINTENANCE_FOR_SNAPSHOT_NAMESPACE_COUNT_132_R1.json",
+    "sha256": "0bf353ca54076f52978dd79a3e5f9b6c0dbad0e07da183aeefbab8c26de7c91e",
+    "byteLength": 2347,
+    "schemaVersion": 2,
+    "documentId": "SUCCESSOR_MAINTENANCE_FOR_SNAPSHOT_NAMESPACE_COUNT_132_LOCAL_AUTHORITY_R1"
+  },
+  "admittedManifest": {
+    "path": "governance/historical-architecture/SUCCESSOR_MAINTENANCE_FOR_SNAPSHOT_NAMESPACE_COUNT_132_AUTHORIZED_PATHS_R1.json",
+    "sha256": "3ea44e89308a2bab421d2a8e1cb22b3260e3e2a6d0a3aa5bba25ea3be284bcf6",
+    "byteLength": 9470,
+    "schemaVersion": 2,
+    "documentId": "SUCCESSOR_MAINTENANCE_FOR_SNAPSHOT_NAMESPACE_COUNT_132_AUTHORIZED_PATHS_R1"
+  },
+  "admittedPrestate": {
+    "baseHead": "38b9dab5563571edb01fcdb216790f0df26ab59d",
+    "ledgerEventCount": 104,
+    "ledgerPrefixSha256": "2def19c84b7581da0ab54d2d1ba9d68f5bc2ce40e108443cfbd086835a0116da",
+    "gateId": "GATE24",
+    "gateStatus": "COMPLETE_CONFIRMED",
+    "stateRevision": "R0005",
+    "contractRevision": "R0002",
+    "activeGate": "GATE13",
+    "R8ExpectedAbsent": true
+  },
+  "admittedOperationClasses": [
+    "MAINTENANCE"
+  ],
+  "grantsFutureBytePermission": false,
+  "grantsGateAuthorizationPermission": false,
+  "grantsStartPermission": false,
+  "grantsStatusTransitionPermission": false,
+  "grantsHistoricalAdmissionWidening": false,
+  "genericV1Admission": false,
+  "derivedFromGitDelta": false,
+  "derivedFromFinalGateIntegrityFindings": false,
+  "prohibitedOperations": [
+    "START",
+    "SECOND_START",
+    "GATE_AUTHORIZATION",
+    "STATUS_TRANSITION",
+    "ACTIVE_GATE_SWITCH",
+    "GEE_R8",
+    "GIT_PUSH",
+    "HISTORY_REWRITE",
+    "GENERIC_V1_ADMISSION",
+    "HISTORICAL_ADMISSION_WIDENING",
+    "SELF_ADMISSION"
+  ],
+  "successorRequirement": "A later publication requires a new exact Owner admission over a new exact pre-state.",
+  "admissionDigest": "bc6f88222a90248ced5ebb63968b4cd9caec29fc2df207e354f2da8f7f4a2888",
+  "ownerAuthorizationPath": "governance/sources/MAINTENANCE_PUBLICATION_ADMISSION_OWNER_AUTHORIZATION_SUCCESSOR_MAINTENANCE_FOR_SNAPSHOT_NAMESPACE_COUNT_132_R1.json",
+  "ownerAuthorizationSha256": "cd84d415d53b39434caf4be8e940c64625e85a66cb7ec7bf2abcab7d15d7776f"
+}

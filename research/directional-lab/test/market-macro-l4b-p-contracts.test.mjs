@@ -22,10 +22,10 @@ import {
   sampleRegistry,
 } from './helpers/marketMacroFeaturePublicationSamplesL4BPV1.mjs';
 
-test('L4B-P remains registered in the additive snapshot registry (129 unique)', () => {
+test('L4B-P remains registered in the additive snapshot registry (132 unique)', () => {
   assert.equal(MARKET_MACRO_FEATURE_PUBLICATION_L4BP_SCHEMA_VERSIONS.length, 4);
-  assert.equal(SNAPSHOT_NAMESPACE_SCHEMA_VERSIONS.length, 129);
-  assert.equal(new Set(SNAPSHOT_NAMESPACE_SCHEMA_VERSIONS).size, 129);
+  assert.equal(SNAPSHOT_NAMESPACE_SCHEMA_VERSIONS.length, 132);
+  assert.equal(new Set(SNAPSHOT_NAMESPACE_SCHEMA_VERSIONS).size, 132);
   assert.deepEqual(SNAPSHOT_NAMESPACE_SCHEMA_VERSIONS.slice(-20, -16),
     MARKET_MACRO_FEATURE_PUBLICATION_L4BP_SCHEMA_VERSIONS);
 });

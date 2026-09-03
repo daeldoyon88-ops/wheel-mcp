@@ -18,8 +18,8 @@ import { withOfficialL4C3Publication } from './marketFeaturePublicationL4C3Fixtu
 test('L4A-C3 official A/B/C reference publication, registry and as-of resolution', () => (
   withOfficialL4C3Publication((context) => {
     const { store, publication, registry, genesis } = context;
-    assert.equal(SNAPSHOT_NAMESPACE_SCHEMA_VERSIONS.length, 129);
-    assert.equal(new Set(SNAPSHOT_NAMESPACE_SCHEMA_VERSIONS).size, 129);
+    assert.equal(SNAPSHOT_NAMESPACE_SCHEMA_VERSIONS.length, 132);
+    assert.equal(new Set(SNAPSHOT_NAMESPACE_SCHEMA_VERSIONS).size, 132);
     assert.deepEqual(SNAPSHOT_NAMESPACE_SCHEMA_VERSIONS.slice(-43, -40),
       [...MARKET_FEATURE_PUBLICATION_L4_SCHEMA_VERSIONS]);
     assert.equal(NORMALIZED_NAMESPACE_SCHEMA_VERSIONS.length, 5);

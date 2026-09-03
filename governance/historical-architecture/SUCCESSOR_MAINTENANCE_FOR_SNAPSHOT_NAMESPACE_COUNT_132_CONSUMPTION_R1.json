@@ -1,0 +1,160 @@
+{
+  "documentKind": "POST_FREEZE_MAINTENANCE_AUTHORITY_CONSUMPTION",
+  "schemaVersion": 2,
+  "authorityId": "SUCCESSOR_MAINTENANCE_FOR_SNAPSHOT_NAMESPACE_COUNT_132_LOCAL_AUTHORITY_R1",
+  "programId": "SUCCESSOR_MAINTENANCE_FOR_SNAPSHOT_NAMESPACE_COUNT_132",
+  "manifestSha256": "3ea44e89308a2bab421d2a8e1cb22b3260e3e2a6d0a3aa5bba25ea3be284bcf6",
+  "baseHead": "38b9dab5563571edb01fcdb216790f0df26ab59d",
+  "consumedUse": 1,
+  "transactionId": "SUCCESSOR_MAINTENANCE_FOR_SNAPSHOT_NAMESPACE_COUNT_132_TRANSACTION_R1",
+  "recordedAt": "2026-09-03T12:30:02.788Z",
+  "commitMessage": "test: update snapshot namespace count to 132",
+  "publicationAdmission": {
+    "admissionId": "SUCCESSOR_MAINTENANCE_FOR_SNAPSHOT_NAMESPACE_COUNT_132_PUBLICATION_ADMISSION_R1",
+    "admissionPath": "governance/authority/publication-admissions/GATE24/SUCCESSOR_MAINTENANCE_FOR_SNAPSHOT_NAMESPACE_COUNT_132_PUBLICATION_ADMISSION_R1.json",
+    "admissionSha256": "a4d3a0e32e2bc3c97794043c020dcd07192afc2d0516e4be8686b615d31f7e37"
+  },
+  "cohortSelfExclusion": {
+    "path": "governance/historical-architecture/SUCCESSOR_MAINTENANCE_FOR_SNAPSHOT_NAMESPACE_COUNT_132_CONSUMPTION_R1.json",
+    "reason": "The consumption record cannot hash its own final bytes; its identity is bound by the authority and manifest instead."
+  },
+  "cohortPathCount": 18,
+  "cohort": [
+    {
+      "path": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_SUCCESSOR_MAINTENANCE_FOR_SNAPSHOT_NAMESPACE_COUNT_132_R1.json",
+      "sha256": "0bf353ca54076f52978dd79a3e5f9b6c0dbad0e07da183aeefbab8c26de7c91e",
+      "byteLength": 2347,
+      "operation": "CREATE",
+      "reason": "Single-use successor maintenance authority for the snapshot namespace count 132 repair.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "governance/historical-architecture/SUCCESSOR_MAINTENANCE_FOR_SNAPSHOT_NAMESPACE_COUNT_132_AUTHORIZED_PATHS_R1.json",
+      "sha256": "3ea44e89308a2bab421d2a8e1cb22b3260e3e2a6d0a3aa5bba25ea3be284bcf6",
+      "byteLength": 9470,
+      "operation": "CREATE",
+      "reason": "Exact finite successor cohort for the snapshot namespace count 132 repair.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "research/directional-lab/test/market-data-l3-i3.test.mjs",
+      "sha256": "04a922c5cf3815c0ca768ac7208fb465b545fd4a7b9fc7b83f826a9d7b59092c",
+      "byteLength": 82520,
+      "operation": "MODIFY",
+      "reason": "Advance frozen snapshot namespace count assertions and identified human-readable references from 129 to 132.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "research/directional-lab/test/market-data-l3-i4.test.mjs",
+      "sha256": "28698724c49ed1ea4a0015c1f0d84fa291a766118acee35cf096f9b6124746c4",
+      "byteLength": 76137,
+      "operation": "MODIFY",
+      "reason": "Advance frozen snapshot namespace count assertions and identified human-readable references from 129 to 132.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "research/directional-lab/test/market-data-l3-i5.test.mjs",
+      "sha256": "2d0bed6e53167b0611e92b3e1f89793c2fce62b51a68ca58c3e8f27bfc25885c",
+      "byteLength": 43391,
+      "operation": "MODIFY",
+      "reason": "Advance frozen snapshot namespace count assertions and identified human-readable references from 129 to 132.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "research/directional-lab/test/market-data-l3-i6.test.mjs",
+      "sha256": "14eeeb242804b37a1178f3857bc2d7307966b4cfcbf1709ee38da2d821f9af32",
+      "byteLength": 59574,
+      "operation": "MODIFY",
+      "reason": "Advance frozen snapshot namespace count assertions and identified human-readable references from 129 to 132.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "research/directional-lab/test/market-features-l4a-a-integration.test.mjs",
+      "sha256": "dc494eb98941e51d00383aa104653ce9aa393132682c1c60fd92ffef8ac0faf8",
+      "byteLength": 8461,
+      "operation": "MODIFY",
+      "reason": "Advance frozen snapshot namespace count assertions and identified human-readable references from 129 to 132.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "research/directional-lab/test/market-features-l4a-b-adversarial.test.mjs",
+      "sha256": "57d0a4ee0650f51b28cc84da83c83fecb33720c7227e75fa77fba989e4544f34",
+      "byteLength": 34053,
+      "operation": "MODIFY",
+      "reason": "Advance the frozen snapshot namespace count assertion to 132 and preserve the intended predecessor endpoint with slice(0, 83).",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "research/directional-lab/test/market-features-l4a-b-integration.test.mjs",
+      "sha256": "a1620405a29eca461b06afd594d0a92ebf779d01ff41b0c53f9d33d539af81bb",
+      "byteLength": 17533,
+      "operation": "MODIFY",
+      "reason": "Advance frozen snapshot namespace count assertions and identified human-readable references from 129 to 132.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "research/directional-lab/test/market-features-l4a-c1-contracts.test.mjs",
+      "sha256": "e5419b35524f1aff4fd81afdcb1fe773cbd565101c31aab69447d8a7040bf77b",
+      "byteLength": 5843,
+      "operation": "MODIFY",
+      "reason": "Advance frozen snapshot namespace count assertions and identified human-readable references from 129 to 132.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "research/directional-lab/test/market-features-l4a-c2-report.test.mjs",
+      "sha256": "3ec6115b67c82ade3ce08febe5f59d4a5a4cd09672475006f1ae4a6b35260b71",
+      "byteLength": 14991,
+      "operation": "MODIFY",
+      "reason": "Advance frozen snapshot namespace count assertions and identified human-readable references from 129 to 132.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "research/directional-lab/test/market-features-l4a-c3-integration.test.mjs",
+      "sha256": "9eb12bf92e56d95c4235a37fe63a685de45e645f44c87a84fc359dac5fde57b9",
+      "byteLength": 4509,
+      "operation": "MODIFY",
+      "reason": "Advance frozen snapshot namespace count assertions and identified human-readable references from 129 to 132.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "research/directional-lab/test/market-macro-l4b-f1-contracts.test.mjs",
+      "sha256": "c9cb3dc8a797662d4d0df285c58fc09bf5c631cf46eb1a1d8fae005f834f5cbd",
+      "byteLength": 9464,
+      "operation": "MODIFY",
+      "reason": "Advance frozen snapshot namespace count assertions and identified human-readable references from 129 to 132.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "research/directional-lab/test/market-macro-l4b-f2-contracts.test.mjs",
+      "sha256": "ed912cad6cd4660f7e7424aa9d7a939c516c577e2bf558595fdc4f9ebdb7044a",
+      "byteLength": 5765,
+      "operation": "MODIFY",
+      "reason": "Advance frozen snapshot namespace count assertions and identified human-readable references from 129 to 132.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "research/directional-lab/test/market-macro-l4b-i1-contracts.test.mjs",
+      "sha256": "7378dd7ab878ccdad095e87e86675839787ebcc2b40c60799c9aa9cbc2a0fc54",
+      "byteLength": 14704,
+      "operation": "MODIFY",
+      "reason": "Advance frozen snapshot namespace count assertions and identified human-readable references from 129 to 132.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "research/directional-lab/test/market-macro-l4b-i2-contracts.test.mjs",
+      "sha256": "67900447ba8f6883248b588d9816a01b5872f6ce5863f396f2fcfacad247e86b",
+      "byteLength": 6156,
+      "operation": "MODIFY",
+      "reason": "Advance frozen snapshot namespace count assertions and identified human-readable references from 129 to 132.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "research/directional-lab/test/market-macro-l4b-p-contracts.test.mjs",
+      "sha256": "4fafa9dd4dbd2cc98edecc5e6b8a9d8f96beaa02b687753881326d07754a1d12",
+      "byteLength": 3688,
+      "operation": "MODIFY",
+      "reason": "Advance frozen snapshot namespace count assertions and identified human-readable references from 129 to 132.",
+      "artifactClass": "MAINTENANCE"
+    }
+  ]
+}

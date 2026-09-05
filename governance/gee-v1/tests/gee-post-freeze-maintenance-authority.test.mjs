@@ -524,6 +524,16 @@ test('LA-C09: a present V2 receipt makes the single-use authority unavailable fo
   assert.ok(result.findings.some((finding) => finding.code === 'AUTHORITY_ALREADY_CONSUMED'));
 });
 
+test('LA-C10: AUTHORIZE does not require a consumption receipt, while VERIFY does', () => {
+  const fixture = makeV2Fixture();
+  fixture.observed.consumptionCohort = undefined;
+  const authorize = evaluatePostFreezeMaintenanceAuthorityV2({ ...fixture, phase: PHASE_AUTHORIZE_PROGRAM_APPLY });
+  assert.equal(authorize.decision, 'AUTHORIZED', JSON.stringify(authorize.findings));
+  const verify = evaluatePostFreezeMaintenanceAuthorityV2({ ...fixture, phase: PHASE_VERIFY_PROGRAM_CONSUMPTION });
+  assert.equal(verify.decision, 'BLOCKED');
+  assert.ok(verify.findings.some((finding) => finding.code === 'CONSUMPTION_RECORD_MISSING'));
+});
+
 function makeFinalClosureFixture() {
   const fixture = makeV2Fixture();
   fixture.authority = {

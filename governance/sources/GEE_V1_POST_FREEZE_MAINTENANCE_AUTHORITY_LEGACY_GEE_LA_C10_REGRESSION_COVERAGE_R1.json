@@ -1,0 +1,61 @@
+{
+  "document": "GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY",
+  "schemaVersion": 2,
+  "authorityId": "LEGACY_GEE_LA_C10_REGRESSION_COVERAGE_LOCAL_AUTHORITY_R1",
+  "authorityClass": "PROJECT_OWNER_POST_FREEZE_MAINTENANCE_AUTHORITY",
+  "authorityMode": "LOCAL_EXPLICIT_AUTHORITY",
+  "issuedBy": "PROJECT_OWNER",
+  "createdAt": "2026-09-04T00:00:00.000Z",
+  "expiresAt": "2026-12-31T23:59:59.000Z",
+  "targetSystem": "PROJECT_GOVERNANCE",
+  "programId": "LEGACY_GEE_LA_C10_REGRESSION_COVERAGE_R1",
+  "authorityPurpose": "NORMAL_MAINTENANCE",
+  "resumePoint": "CP-LEGACY-GEE-LA-C10-REGRESSION-COVERAGE-R1",
+  "maxUse": 1,
+  "preState": {
+    "baseHead": "b804bd9cb91c3e3960655751ce48f5f8d3524533",
+    "ledgerEventCount": 104,
+    "ledgerPrefixSha256": "2def19c84b7581da0ab54d2d1ba9d68f5bc2ce40e108443cfbd086835a0116da",
+    "gateId": "GATE24",
+    "gateStatus": "COMPLETE_CONFIRMED",
+    "stateRevision": "R0005",
+    "contractRevision": "R0002",
+    "activeGate": "GATE13",
+    "R8ExpectedAbsent": true
+  },
+  "authorizedPathManifestPath": "governance/historical-architecture/LEGACY_GEE_LA_C10_REGRESSION_COVERAGE_AUTHORIZED_PATHS_R1.json",
+  "authorizedPathManifestSha256": "497b53321527234e5010cea5d3cf948fb6c593c0a186a7c0547fb586ebafe92f",
+  "authorizedOperationClasses": [
+    "MAINTENANCE"
+  ],
+  "commitPolicy": {
+    "maxCommitCount": 1,
+    "allowedGitOperations": [
+      "GIT_ADD_PATHSPEC",
+      "GIT_COMMIT"
+    ],
+    "commitMessage": "test: restore LA-C10 consumption receipt authority coverage",
+    "thirdCommitAuthorized": false
+  },
+  "pushAuthorized": false,
+  "authorityPredecessor": null,
+  "authorityHeadBinding": {
+    "mode": "BASE_HEAD",
+    "baseHead": "b804bd9cb91c3e3960655751ce48f5f8d3524533"
+  },
+  "consumptionRecordPath": "governance/historical-architecture/LEGACY_GEE_LA_C10_REGRESSION_COVERAGE_CONSUMPTION_R1.json",
+  "prohibitedOperations": [
+    "START",
+    "SECOND_START",
+    "AGENT_CLOSURE",
+    "EXTERNAL_CONFIRMATION",
+    "COMPLETE_AGENT",
+    "COMPLETE_CONFIRMED",
+    "ACTIVE_GATE_SWITCH",
+    "GEE_R8",
+    "GIT_PUSH",
+    "HISTORY_REWRITE",
+    "THIRD_COMMIT",
+    "UNRELATED_WRITE"
+  ]
+}

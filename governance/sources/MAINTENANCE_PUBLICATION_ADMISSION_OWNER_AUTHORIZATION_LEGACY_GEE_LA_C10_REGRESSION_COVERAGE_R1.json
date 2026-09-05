@@ -1,0 +1,25 @@
+{
+  "document": "MAINTENANCE_PUBLICATION_ADMISSION_OWNER_AUTHORIZATION",
+  "schemaVersion": 1,
+  "authorityId": "LEGACY_GEE_LA_C10_REGRESSION_COVERAGE_PUBLICATION_OWNER_AUTHORIZATION_R1",
+  "authorityClass": "PROJECT_OWNER_MAINTENANCE_PUBLICATION_ADMISSION_AUTHORITY",
+  "authorityMode": "LOCAL_EXPLICIT_AUTHORITY",
+  "issuedBy": "PROJECT_OWNER",
+  "issuedAtUtc": "2026-09-04T00:00:00.000Z",
+  "decisionId": "LEGACY_GEE_LA_C10_REGRESSION_COVERAGE_OWNER_DECISION_R1",
+  "purpose": "MAINTENANCE_PUBLICATION_ADMISSION",
+  "reexecutionAuthorized": false,
+  "grantsFutureBytePermission": false,
+  "genericV1Admission": false,
+  "admittedPublications": [
+    {
+      "admissionId": "LEGACY_GEE_LA_C10_REGRESSION_COVERAGE_PUBLICATION_ADMISSION_R1",
+      "projectId": "WHEEL",
+      "gateId": "GATE24",
+      "programId": "LEGACY_GEE_LA_C10_REGRESSION_COVERAGE_R1",
+      "admissionPath": "governance/authority/publication-admissions/GATE24/LEGACY_GEE_LA_C10_REGRESSION_COVERAGE_PUBLICATION_ADMISSION_R1.json",
+      "admissionDigest": "5402e98b5e40a9da999ef4efab4da6919db62769536e3b809520623aa6d5c96f"
+    }
+  ],
+  "registryDigest": "be0d03cf9cd7ec66b001bf1741e6d190a3522f38f6f6f2063da58962f4e67425"
+}

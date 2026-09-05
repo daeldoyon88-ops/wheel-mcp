@@ -1,0 +1,72 @@
+{
+  "documentKind": "MAINTENANCE_PUBLICATION_ADMISSION",
+  "schemaVersion": 1,
+  "authorityMode": "LOCAL_EXPLICIT_AUTHORITY",
+  "issuedBy": "PROJECT_OWNER",
+  "admissionId": "LEGACY_GEE_LA_C10_REGRESSION_COVERAGE_PUBLICATION_ADMISSION_R1",
+  "decisionId": "LEGACY_GEE_LA_C10_REGRESSION_COVERAGE_OWNER_DECISION_R1",
+  "issuedAtUtc": "2026-09-04T00:00:00.000Z",
+  "expiresAtUtc": null,
+  "projectId": "WHEEL",
+  "repositoryId": "WHEEL_MCP_CANONICAL",
+  "gateId": "GATE24",
+  "programId": "LEGACY_GEE_LA_C10_REGRESSION_COVERAGE_R1",
+  "purpose": "MAINTENANCE_PUBLICATION_ADMISSION",
+  "publicationClass": "PATH_PRESTATE_PROGRAM_PUBLISHER",
+  "authorityPurpose": "NORMAL_MAINTENANCE",
+  "maxUse": 1,
+  "admissionStatement": "One exact Owner admission for the bounded LEGACY GEE LA-C10 regression coverage restoration maintenance publication. gateId GATE24 is an ADMINISTRATIVE FILING CONTEXT required by this primitive and nothing more: this admission grants no GATE24 reopening, PRECONTRACT, START, BUILD, lifecycle transition, gate execution authority or ACTIVE_GATE change.",
+  "admittedAuthority": {
+    "path": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_LEGACY_GEE_LA_C10_REGRESSION_COVERAGE_R1.json",
+    "sha256": "8a6a04ff5658582b3075bedc2086d09af96b59879c2e55fd4fb7f5cd7f4d2b61",
+    "byteLength": 2132,
+    "schemaVersion": 2,
+    "documentId": "LEGACY_GEE_LA_C10_REGRESSION_COVERAGE_LOCAL_AUTHORITY_R1"
+  },
+  "admittedManifest": {
+    "path": "governance/historical-architecture/LEGACY_GEE_LA_C10_REGRESSION_COVERAGE_AUTHORIZED_PATHS_R1.json",
+    "sha256": "497b53321527234e5010cea5d3cf948fb6c593c0a186a7c0547fb586ebafe92f",
+    "byteLength": 2424,
+    "schemaVersion": 2,
+    "documentId": "LEGACY_GEE_LA_C10_REGRESSION_COVERAGE_AUTHORIZED_PATHS_R1"
+  },
+  "admittedPrestate": {
+    "baseHead": "b804bd9cb91c3e3960655751ce48f5f8d3524533",
+    "ledgerEventCount": 104,
+    "ledgerPrefixSha256": "2def19c84b7581da0ab54d2d1ba9d68f5bc2ce40e108443cfbd086835a0116da",
+    "gateId": "GATE24",
+    "gateStatus": "COMPLETE_CONFIRMED",
+    "stateRevision": "R0005",
+    "contractRevision": "R0002",
+    "activeGate": "GATE13",
+    "R8ExpectedAbsent": true
+  },
+  "admittedOperationClasses": [
+    "MAINTENANCE"
+  ],
+  "grantsFutureBytePermission": false,
+  "grantsGateAuthorizationPermission": false,
+  "grantsStartPermission": false,
+  "grantsStatusTransitionPermission": false,
+  "grantsHistoricalAdmissionWidening": false,
+  "genericV1Admission": false,
+  "derivedFromGitDelta": false,
+  "derivedFromFinalGateIntegrityFindings": false,
+  "prohibitedOperations": [
+    "START",
+    "SECOND_START",
+    "GATE_AUTHORIZATION",
+    "STATUS_TRANSITION",
+    "ACTIVE_GATE_SWITCH",
+    "GEE_R8",
+    "GIT_PUSH",
+    "HISTORY_REWRITE",
+    "GENERIC_V1_ADMISSION",
+    "HISTORICAL_ADMISSION_WIDENING",
+    "SELF_ADMISSION"
+  ],
+  "successorRequirement": "A later publication requires a new exact Owner admission over a new exact pre-state.",
+  "admissionDigest": "5402e98b5e40a9da999ef4efab4da6919db62769536e3b809520623aa6d5c96f",
+  "ownerAuthorizationPath": "governance/sources/MAINTENANCE_PUBLICATION_ADMISSION_OWNER_AUTHORIZATION_LEGACY_GEE_LA_C10_REGRESSION_COVERAGE_R1.json",
+  "ownerAuthorizationSha256": "71aef129ed721d01ed6329b66179a60e6228639abd6247139c2a38a7ff948830"
+}

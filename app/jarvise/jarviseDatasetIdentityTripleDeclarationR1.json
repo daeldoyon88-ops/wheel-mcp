@@ -64,7 +64,7 @@
   ],
   "fixtureProhibition": true,
   "byteConditionalObservationReproducibility": true,
-  "historicalReplaySupport": "UNAVAILABLE",
+  "historicalReplaySupport": "RETROSPECTIVE_RECONSTRUCTION_FROM_PINNED_SNAPSHOT",
   "duplicateFeatureRecordPolicy": "REFUSE",
   "canonicalGateMutation": false
 }

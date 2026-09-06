@@ -1,0 +1,13 @@
+{
+  "schemaVersion": "WHEEL_JARVISE_HISTORICAL_ACQUISITION_AUTHORITY/1",
+  "authorityId": "P2_PRE_FETCH_PREPARATION_NO_ACQUISITION_R1",
+  "programId": "P2_PRE_FETCH_PREPARATION_R1",
+  "executionAuthorized": false,
+  "networkAuthorized": false,
+  "providerCallsAuthorized": 0,
+  "yahooFetchAuthorized": false,
+  "macroIngestionAuthorized": false,
+  "currentMissionCapability": "LOCAL_PERSISTENCE_SURFACE_ONLY",
+  "futureRequiredAuthority": "DISTINCT_PROJECT_OWNER_FETCH_ONCE_AUTHORITY",
+  "impliedAuthority": "NONE"
+}

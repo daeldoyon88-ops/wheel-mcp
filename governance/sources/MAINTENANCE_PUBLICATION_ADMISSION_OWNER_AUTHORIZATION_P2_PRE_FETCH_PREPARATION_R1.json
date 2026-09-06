@@ -1,0 +1,25 @@
+{
+  "document": "MAINTENANCE_PUBLICATION_ADMISSION_OWNER_AUTHORIZATION",
+  "schemaVersion": 1,
+  "authorityId": "P2_PRE_FETCH_PREPARATION_PUBLICATION_OWNER_AUTHORIZATION_R1",
+  "authorityClass": "PROJECT_OWNER_MAINTENANCE_PUBLICATION_ADMISSION_AUTHORITY",
+  "authorityMode": "LOCAL_EXPLICIT_AUTHORITY",
+  "issuedBy": "PROJECT_OWNER",
+  "issuedAtUtc": "2026-09-05T00:00:00.000Z",
+  "decisionId": "P2_PRE_FETCH_PREPARATION_OWNER_DECISION_R1",
+  "purpose": "MAINTENANCE_PUBLICATION_ADMISSION",
+  "reexecutionAuthorized": false,
+  "grantsFutureBytePermission": false,
+  "genericV1Admission": false,
+  "admittedPublications": [
+    {
+      "admissionId": "P2_PRE_FETCH_PREPARATION_PUBLICATION_ADMISSION_R1",
+      "projectId": "WHEEL",
+      "gateId": "GATE24",
+      "programId": "P2_PRE_FETCH_PREPARATION_R1",
+      "admissionPath": "governance/authority/publication-admissions/GATE24/P2_PRE_FETCH_PREPARATION_PUBLICATION_ADMISSION_R1.json",
+      "admissionDigest": "43829be58e8f228fe5c67d72e9b3fd76a2d7fa19932dc9cce3b85bc8b2a9b308"
+    }
+  ],
+  "registryDigest": "767273ea9d19dc5927aadf5f1c37ddf1a6c90c000fa0a81624e2af364bd96096"
+}

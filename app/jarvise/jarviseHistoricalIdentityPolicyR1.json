@@ -1,0 +1,14 @@
+{
+  "schemaVersion": "WHEEL_JARVISE_HISTORICAL_IDENTITY_POLICY/1",
+  "policyId": "JARVISE_HISTORICAL_IDENTITY_NO_BACKDATING_R1",
+  "providerId": "yahoo-finance2",
+  "venueId": "XNYS",
+  "currentAliasValidFrom": "2026-05-03",
+  "earliestAdmissibleSession": "2026-05-04",
+  "admittedBarsRule": "EVERY_SESSION_DATE_GTE_ALIAS_VALID_FROM",
+  "aliasBackdating": "FORBIDDEN",
+  "identityResolutionRule": "RESOLVE_AT_EACH_HISTORICAL_SESSION_DATE",
+  "historicalAliasEvidenceBeforeValidFrom": "SEPARATE_FUTURE_PROGRAM_REQUIRED",
+  "retroactive2026IdentityApplication": "FORBIDDEN",
+  "failureMode": "FAIL_CLOSED"
+}

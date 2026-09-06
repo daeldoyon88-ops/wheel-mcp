@@ -3,6 +3,7 @@ import { normalizeDailyBars } from '../../research/directional-lab/src/data/norm
 import { requestHistoricalCausalData } from '../../governance/gates/GATE21/implementation/causal-data-interface.mjs';
 import { getCapturedYahooChartResult } from './g21BridgeCaptureR1.mjs';
 import { MP1_XNYS_CALENDAR_PATH, selectClosedMp1Sessions } from './closedSessionSelectorR1.mjs';
+import { applyPinnedSessionTimestampsR1 } from './pinnedSessionTimestampsR1.mjs';
 
 export const G21_YAHOO_SOURCE_ID = 'YAHOO_CHART_EOD';
 export const G21_YAHOO_PRICE_BASIS = 'SPLIT_ADJUSTED';
@@ -106,15 +107,16 @@ export function buildG21ClosedSessionBridgeR1({ symbol, knowledgeCutoff, capture
     timezone: 'America/New_York',
     loaderVersion: 'g21ClosedSessionBridgeR1/1',
   });
+  const pinned = applyPinnedSessionTimestampsR1(normalized, selected.sessions);
   const cutoffMs = Date.parse(effectiveKnowledgeCutoff);
-  const admissibleBars = normalized.filter((bar) => {
+  const admissibleBars = pinned.filter((bar) => {
     const admissible = Date.parse(bar.eventTime) <= cutoffMs
       && Date.parse(bar.availableAt) <= cutoffMs
       && Date.parse(bar.availableAt) >= Date.parse(bar.eventTime);
     if (!admissible) exclusions.push({ sessionDate: bar.sessionDate, reasonCode: 'NORMALIZED_BAR_NOT_AVAILABLE_AT_K' });
     return admissible;
   });
-  const excludedNotYetAvailableCount = normalized.length - admissibleBars.length;
+  const excludedNotYetAvailableCount = pinned.length - admissibleBars.length;
   const admission = requestHistoricalCausalDataFn({
     sourceId: G21_YAHOO_SOURCE_ID,
     bars: admissibleBars,
@@ -135,7 +137,7 @@ export function buildG21ClosedSessionBridgeR1({ symbol, knowledgeCutoff, capture
     requestedLatestClosedSession: requestedLatest,
     priceBasis: G21_YAHOO_PRICE_BASIS,
     historicalPlaneStatus: admission.plane ?? 'HISTORICAL',
-    normalizedBarCount: normalized.length,
+    normalizedBarCount: pinned.length,
     admittedBarCount: admission.records.length,
     excludedCurrentSessionCount,
     excludedNotYetAvailableCount,

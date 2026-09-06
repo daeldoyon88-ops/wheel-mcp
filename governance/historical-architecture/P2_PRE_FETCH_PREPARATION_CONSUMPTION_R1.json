@@ -1,0 +1,152 @@
+{
+  "documentKind": "POST_FREEZE_MAINTENANCE_AUTHORITY_CONSUMPTION",
+  "schemaVersion": 2,
+  "authorityId": "P2_PRE_FETCH_PREPARATION_LOCAL_AUTHORITY_R1",
+  "programId": "P2_PRE_FETCH_PREPARATION_R1",
+  "manifestSha256": "5bc6339a6441ade634cc7544c15858c4d66db6a3129d9c8cc8ed40c18d4f7ea2",
+  "baseHead": "d618fb59b7132090e3c8c59a39d5505febc0c07b",
+  "consumedUse": 1,
+  "transactionId": "P2_PRE_FETCH_PREPARATION_R1_TRANSACTION",
+  "recordedAt": "2026-09-06T01:51:10.818Z",
+  "commitMessage": "jarvise: P2 pre-fetch preparation (half-day repair, snapshot persistence, historical identity policy, calendar V2 binding)",
+  "publicationAdmission": {
+    "admissionId": "P2_PRE_FETCH_PREPARATION_PUBLICATION_ADMISSION_R1",
+    "admissionPath": "governance/authority/publication-admissions/GATE24/P2_PRE_FETCH_PREPARATION_PUBLICATION_ADMISSION_R1.json",
+    "admissionSha256": "de3331f4b44ad05ad91b1017de4aad101da7fb4fb5062529314823765d5d6035"
+  },
+  "cohortSelfExclusion": {
+    "path": "governance/historical-architecture/P2_PRE_FETCH_PREPARATION_CONSUMPTION_R1.json",
+    "reason": "The consumption record cannot hash its own final bytes; its identity is bound by the authority and manifest instead."
+  },
+  "cohortPathCount": 17,
+  "cohort": [
+    {
+      "path": "app/jarvise/pinnedSessionTimestampsR1.mjs",
+      "sha256": "3fbbcc69ff7a2debbf077fbfb4052bdb51ddb22b77571242b47140ea0ef85757",
+      "byteLength": 2073,
+      "operation": "CREATE",
+      "reason": "A: rebinds eventTime and availableAt to the pinned canonical session closeUtc between normalizeDailyBars and causal K-admission; forbidden primitive marketSession.mjs::sessionCloseUtc is not imported.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "app/jarvise/pinnedSessionTimestampsR1.test.mjs",
+      "sha256": "1990275611f49740e82865c8293731fd382e12f8289747fb20ebeab1b9422591",
+      "byteLength": 3548,
+      "operation": "CREATE",
+      "reason": "A: T1 regular non-regression, T2 all V2 half-days corrected, T3 half-day anchor recovery, T4 schema invariance, T6 forbidden wall-clock primitive.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "app/jarvise/jarviseHistoricalCalendarBindingR1.json",
+      "sha256": "15f5fd28f8bca3b09c573e1c64679573ebf8ed297a1aecaac14812d8d63ca612",
+      "byteLength": 1132,
+      "operation": "CREATE",
+      "reason": "D: additive publication of CalendarWindowBindingId 3fe7456e03175fc49fb8af810d2050e58f34d2e3d548b27ad071db8957882308 over WHEEL_JARVISE_US_EQUITY_XNYS_CALENDAR/2; GATE24 V1 binding ac801193 is not mutated.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "app/jarvise/jarviseHistoricalCalendarBindingR1.mjs",
+      "sha256": "8f4c93097326569a989c60e96c7ea711940df5d036609174445f3870da9e1e29",
+      "byteLength": 3369,
+      "operation": "CREATE",
+      "reason": "D: recomputes the V2 binding from already-published P1 bytes; declares the historical-plane boundary OBSERVATION plus FEATURE and forbids GATE24 RegimeRecord emission under V2.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "app/jarvise/jarviseHistoricalCalendarBindingR1.test.mjs",
+      "sha256": "895bbe1653c1ea21d389e569a1b826996998a5649c4210d831dee15547d6449e",
+      "byteLength": 1544,
+      "operation": "CREATE",
+      "reason": "D: T7 V2 binding recomputation equals 3fe7456e and V1 ac801193 stays unchanged; runnable in-repo without P1_CANDIDATE_ROOT.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "app/jarvise/jarviseHistoricalIdentityPolicyR1.json",
+      "sha256": "1c92df78fddc0d1ce15bef36b3fbbf1060be34be393a070bdced808a2ed1c640",
+      "byteLength": 606,
+      "operation": "CREATE",
+      "reason": "C: strict policy in governed bytes; no admittedBars member may carry sessionDate below alias validFrom 2026-05-03; earliest admissible XNYS session 2026-05-04; no alias backdating.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "app/jarvise/jarviseSnapshotPersistenceR1.mjs",
+      "sha256": "17851ed644005ce86f512b293043480ab38ce3694971a10512e1f1590964b0b7",
+      "byteLength": 28930,
+      "operation": "CREATE",
+      "reason": "B: FETCH_ONCE, NORMALIZE, VERSION_CACHE, REUSE over DatasetSnapshotCore/1, DatasetSnapshotRecord/1, SnapshotDatasetManifestV1, DatasetManifestV1, coverage/1, DatasetSnapshotInstrumentBinding/1; network-free, constructs no HTTP client.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "app/jarvise/jarviseSnapshotPersistenceR1.test.mjs",
+      "sha256": "a120d421b0fc10553bebfcba588ed9f061a9bd7e87a7255eddfa3d7c819487df",
+      "byteLength": 23664,
+      "operation": "CREATE",
+      "reason": "B: T9 persistence round-trip, T10 crash-safe resume with zero refetch after RAW_PINNED, T11 network-free suite.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "app/jarvise/jarviseAcquisitionAuthorityR1.json",
+      "sha256": "b68ce58d0c0bdae3d7084b85010e0e4008581b200467c9dcf9aa61e88efa9ea3",
+      "byteLength": 517,
+      "operation": "CREATE",
+      "reason": "E: future acquisition surface described with executionAuthorized false and networkAuthorized false; grants no network permission and requires a distinct later Owner authority.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "scripts/materializeJarviseHistoricalCalendarBindingR1.mjs",
+      "sha256": "dfffade1f61d16e396d0d305d3cf10ea3df3879f231b76aff32ad6e0f3565f7f",
+      "byteLength": 590,
+      "operation": "CREATE",
+      "reason": "D: deterministic local materializer for the V2 binding from existing calendar bytes; performs no acquisition.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "data/jarvise/observation-snapshots/PROVENANCE.json",
+      "sha256": "a61dcf3e49876e3b3d1fd1f5fc93d3f02d3f0e44193c5ab0d592e14deb8a9a3e",
+      "byteLength": 3901,
+      "operation": "CREATE",
+      "reason": "B: persistence root provenance declaring RETROSPECTIVE_RECONSTRUCTION and the DatasetSnapshotRecord/1 acquisition-instant binding; contains no acquired bytes.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "app/jarvise/g21ClosedSessionBridgeR1.mjs",
+      "sha256": "62bdc738f4071c3146be43a8e4f44e2d07b7170adc7dd5eaa35ccb762526687b",
+      "byteLength": 6729,
+      "operation": "MODIFY",
+      "reason": "A: applies pinnedSessionTimestampsR1 before causal K-admission; regular sessions stay byte-equivalent.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "app/jarvise/g21ClosedSessionBridgeR1.test.mjs",
+      "sha256": "0d030bda01a76ee99177d58e15924ff3598cca0c3cf20e4b3d9ad12b09ed6b19",
+      "byteLength": 8872,
+      "operation": "MODIFY",
+      "reason": "A: half-day admission coverage at K equal to the half-day canonical close.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "app/jarvise/jarviseDatasetIdentityTripleDeclarationR1.json",
+      "sha256": "ade86ddc7bb58430e34e7d4f55e814ca70dde639c1c27727e94214525d1f9d45",
+      "byteLength": 2516,
+      "operation": "MODIFY",
+      "reason": "B: historicalReplaySupport becomes RETROSPECTIVE_RECONSTRUCTION_FROM_PINNED_SNAPSHOT; R2ObservationDataset/1 and R2FeatureDataset/1 are retained with no successor.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "app/jarvise/jarvisePipelineR1.mjs",
+      "sha256": "eb7b298fa00f4334a2e27ed0e9f3d5951f0bdec2a227371a04862c32419d7c66",
+      "byteLength": 16378,
+      "operation": "MODIFY",
+      "reason": "A and B: consumes the repaired bridge and the persistence layer; emits no GATE24 RegimeRecord under the V2 binding.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "app/jarvise/jarvisePipelineR1.test.mjs",
+      "sha256": "d05d7caf4ae0d980ed22d5b22746cc2b18f4f5fddb8f7a96028f16dd2041e8d0",
+      "byteLength": 8923,
+      "operation": "MODIFY",
+      "reason": "T5 DatasetId_observation expected delta and T12 GATE24 V1 non-regression.",
+      "artifactClass": "MAINTENANCE"
+    }
+  ]
+}

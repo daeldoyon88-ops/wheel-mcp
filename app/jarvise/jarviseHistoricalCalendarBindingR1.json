@@ -1,0 +1,22 @@
+{
+  "schemaVersion": "WHEEL_JARVISE_HISTORICAL_CALENDAR_BINDING/1",
+  "calendarWindowBinding": {
+    "schemaVersion": "GATE23_CalendarWindowBinding/1",
+    "calendarAuthorityPolicyId": "sha256:6bb5d738b9df8593187bcd5111d389dfef8add2ffc3d6ad4fedeebfcd1a59c41",
+    "calendarRegistryManifestId": "sha256:3df426b405f9ae43cb996b14f310d8efed55ce9f6377ed68dea4cd6ef939883f",
+    "allowedSessionKinds": [
+      "HALF_DAY_SESSION",
+      "REGULAR_SESSION"
+    ],
+    "calendarNamespaceVersion": "WHEEL_JARVISE_US_EQUITY_XNYS_CALENDAR/2",
+    "unit": "CANONICAL_DAILY_TRADING_SESSION",
+    "knowledgeCutoffBoundary": "PINNED_CANONICAL_SESSION_CLOSE_UTC",
+    "cutoffDerivation": "PINNED_CANONICAL_SESSION_CLOSE_UTC",
+    "calendarWindowBindingId": "3fe7456e03175fc49fb8af810d2050e58f34d2e3d548b27ad071db8957882308"
+  },
+  "historicalProcessingBoundary": "OBSERVATION_FEATURE",
+  "gate24RegimeRecordEmission": "FORBIDDEN_UNDER_CALENDAR_V2",
+  "retrospectiveSemantics": "RETROSPECTIVE_RECONSTRUCTION",
+  "mutatesGate24V1Binding": false,
+  "gate24V1CalendarWindowBindingId": "ac801193ad4ca02b7f0343ebaa4af93a8bdb118d3219edc12f80a9ef1046b023"
+}

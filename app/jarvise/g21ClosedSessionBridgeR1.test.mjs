@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { readFileSync } from 'node:fs';
 import basis from './yahooSourceBasisDeclarationR1.json' with { type: 'json' };
 import { captureYahooChartResult, clearCapturedYahooChartResultsForTest, getCapturedYahooChartResult, setCaptureFailureForTest } from './g21BridgeCaptureR1.mjs';
 import { selectClosedMp1Sessions } from './closedSessionSelectorR1.mjs';
@@ -60,6 +61,8 @@ test('same latest MP-1 session is admitted at canonical K(T), without a second Y
   assert.equal(bridge.records[0].selected.close, 102);
   assert.equal(bridge.records[0].selected.close, quotes[0].close);
   assert.equal(bridge.records[0].source, 'YAHOO_CHART_EOD');
+  assert.equal(bridge.records[0].eventTime, '2026-11-25T21:00:00.000Z');
+  assert.equal(bridge.records[0].availableAt, '2026-11-25T21:00:00.000Z');
   assert.equal(bridge.records[1].selected.close, quotes[1].close);
   assert.equal(bridge.records[1].selected.volume, null);
   assert.equal(bridge.records[1].missing.missingReason, 'VOLUME_MISSING');
@@ -83,20 +86,51 @@ test('old requested K is mechanically refused before G21 admission', () => {
   assert.equal(g21Calls, 0);
 });
 
-test('MP-1 excludes current sessions and conservatively delays half-day bars at canonical K(T)', () => {
-  const selected = selectClosedMp1Sessions(calendar, '2026-11-27T19:00:00.000Z');
+test('half-day anchor is admitted at canonical K(T) and the old +3h timestamp is adversarially rejected', () => {
+  const halfDayClose = '2026-11-27T18:00:00.000Z';
+  const selected = selectClosedMp1Sessions(calendar, halfDayClose);
   assert.equal(selected.latestClosedSession.sessionDate, '2026-11-27');
-  assert.equal(selected.latestClosedSession.closeUtc, '2026-11-27T18:00:00.000Z');
+  assert.equal(selected.latestClosedSession.closeUtc, halfDayClose);
   const bridge = buildG21ClosedSessionBridgeR1({
-    symbol: 'AAPL', knowledgeCutoff: '2026-11-27T19:00:00.000Z',
+    symbol: 'AAPL', knowledgeCutoff: halfDayClose,
     captureRecord: { chartResult: { quotes }, capturedAt: '2026-11-27T19:00:00.000Z' }, calendar,
   });
-  assert.equal(bridge.effectiveKnowledgeCutoff, '2026-11-27T18:00:00.000Z');
-  assert.equal(bridge.admittedBarCount, 1);
+  assert.equal(bridge.effectiveKnowledgeCutoff, halfDayClose);
+  assert.equal(bridge.admittedBarCount, 2);
   assert.equal(bridge.excludedCurrentSessionCount, 1);
-  assert.equal(bridge.excludedNotYetAvailableCount, 1);
-  assert.equal(bridge.records[0].sessionDate, '2026-11-25');
-  assert.equal(bridge.exclusions.some((entry) => entry.reasonCode === 'NORMALIZED_BAR_NOT_AVAILABLE_AT_K'), true);
+  assert.equal(bridge.excludedNotYetAvailableCount, 0);
+  const halfDay = bridge.records.find((record) => record.sessionDate === '2026-11-27');
+  assert.equal(halfDay.eventTime, halfDayClose);
+  assert.equal(halfDay.availableAt, halfDayClose);
+  assert.equal(Date.parse('2026-11-27T21:00:00.000Z') > Date.parse(halfDayClose), true);
+});
+
+test('T2 every historical V2 half-day is admitted at its pinned canonical closeUtc', () => {
+  let halfDayCount = 0;
+  for (const year of [2018, 2019, 2020, 2021, 2022, 2023, 2024, 2025, 2026]) {
+    const historicalCalendar = JSON.parse(readFileSync(
+      new URL(`../../data/jarvise/session-calendar-historical/XNYS/${year}/session-calendar-core.json`, import.meta.url),
+      'utf8',
+    ));
+    for (const session of historicalCalendar.sessions.filter((entry) => entry.sessionKind === 'HALF_DAY_SESSION')) {
+      const capturedAt = new Date(Date.parse(session.closeUtc) + 60_000).toISOString();
+      const bridge = buildG21ClosedSessionBridgeR1({
+        symbol: 'AAPL',
+        knowledgeCutoff: session.closeUtc,
+        captureRecord: {
+          chartResult: { quotes: [{ date: session.sessionDate, open: 100, high: 102, low: 99, close: 101, volume: 10 }] },
+          capturedAt,
+        },
+        calendar: { sessions: [session] },
+      });
+      assert.equal(bridge.status, 'AVAILABLE', session.sessionDate);
+      assert.equal(bridge.admittedBarCount, 1, session.sessionDate);
+      assert.equal(bridge.records[0].eventTime, session.closeUtc, session.sessionDate);
+      assert.equal(bridge.records[0].availableAt, session.closeUtc, session.sessionDate);
+      halfDayCount += 1;
+    }
+  }
+  assert.ok(halfDayCount > 0);
 });
 
 test('bridge and canonical G21 refuse live, substitution, future, timezone, fill, and volume-coercion paths', () => {
@@ -104,7 +138,7 @@ test('bridge and canonical G21 refuse live, substitution, future, timezone, fill
     symbol: 'AAPL', knowledgeCutoff: '2026-11-27T19:00:00.000Z',
     captureRecord: { chartResult: { quotes }, capturedAt: '2026-11-27T19:00:00.000Z' }, calendar,
   });
-  assert.equal(bridge.records.some((record) => record.sessionDate === '2026-11-27'), false);
+  assert.equal(bridge.records.some((record) => record.sessionDate === '2026-11-27'), true);
   assert.equal(bridge.records[0].selected.volume, 0);
   assert.equal(bridge.records[0].basis, 'SPLIT_ADJUSTED');
   assert.equal(requestHistoricalCausalData({ plane: 'LIVE' }).code, 'LIVE_PLANE_NOT_IMPLEMENTED');

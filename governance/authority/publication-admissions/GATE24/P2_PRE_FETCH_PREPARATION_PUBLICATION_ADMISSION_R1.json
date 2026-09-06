@@ -1,0 +1,72 @@
+{
+  "documentKind": "MAINTENANCE_PUBLICATION_ADMISSION",
+  "schemaVersion": 1,
+  "authorityMode": "LOCAL_EXPLICIT_AUTHORITY",
+  "issuedBy": "PROJECT_OWNER",
+  "admissionId": "P2_PRE_FETCH_PREPARATION_PUBLICATION_ADMISSION_R1",
+  "decisionId": "P2_PRE_FETCH_PREPARATION_OWNER_DECISION_R1",
+  "issuedAtUtc": "2026-09-05T00:00:00.000Z",
+  "expiresAtUtc": null,
+  "projectId": "WHEEL",
+  "repositoryId": "WHEEL_MCP_CANONICAL",
+  "gateId": "GATE24",
+  "programId": "P2_PRE_FETCH_PREPARATION_R1",
+  "purpose": "MAINTENANCE_PUBLICATION_ADMISSION",
+  "publicationClass": "PATH_PRESTATE_PROGRAM_PUBLISHER",
+  "authorityPurpose": "NORMAL_MAINTENANCE",
+  "maxUse": 1,
+  "admissionStatement": "One exact Owner admission for the bounded P2 pre-fetch preparation program: half-day pinned-session timestamp repair, GATE21 snapshot persistence and version cache, strict historical instrument identity policy at alias validFrom 2026-05-03, and additive historical calendar V2 binding 3fe7456e03175fc49fb8af810d2050e58f34d2e3d548b27ad071db8957882308. The historical plane terminates at OBSERVATION plus FEATURE and emits no GATE24 RegimeRecord under V2. Historical Yahoo snapshots are classified RETROSPECTIVE_RECONSTRUCTION, never POINT_IN_TIME_VINTAGE. No network, no Yahoo fetch, no macro ingestion, no GATE25 start, no GATE25 ledger transition, no GATE24 mutation, no P1 reopening, no R2FeatureDataset/2. Future network acquisition requires a distinct later Owner authority and is not granted here. No scope is widened.",
+  "admittedAuthority": {
+    "path": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_P2_PRE_FETCH_PREPARATION_R1.json",
+    "sha256": "756433b638d2c6a15d2e4c9fc97c9f41efc2e711500954cb26b5af72890b2451",
+    "byteLength": 2140,
+    "schemaVersion": 2,
+    "documentId": "P2_PRE_FETCH_PREPARATION_LOCAL_AUTHORITY_R1"
+  },
+  "admittedManifest": {
+    "path": "governance/historical-architecture/P2_PRE_FETCH_PREPARATION_AUTHORIZED_PATHS_R1.json",
+    "sha256": "5bc6339a6441ade634cc7544c15858c4d66db6a3129d9c8cc8ed40c18d4f7ea2",
+    "byteLength": 7526,
+    "schemaVersion": 2,
+    "documentId": "P2_PRE_FETCH_PREPARATION_AUTHORIZED_PATHS_R1"
+  },
+  "admittedPrestate": {
+    "baseHead": "d618fb59b7132090e3c8c59a39d5505febc0c07b",
+    "ledgerEventCount": 104,
+    "ledgerPrefixSha256": "2def19c84b7581da0ab54d2d1ba9d68f5bc2ce40e108443cfbd086835a0116da",
+    "gateId": "GATE24",
+    "gateStatus": "COMPLETE_CONFIRMED",
+    "stateRevision": "R0005",
+    "contractRevision": "R0002",
+    "activeGate": "GATE13",
+    "R8ExpectedAbsent": true
+  },
+  "admittedOperationClasses": [
+    "MAINTENANCE"
+  ],
+  "grantsFutureBytePermission": false,
+  "grantsGateAuthorizationPermission": false,
+  "grantsStartPermission": false,
+  "grantsStatusTransitionPermission": false,
+  "grantsHistoricalAdmissionWidening": false,
+  "genericV1Admission": false,
+  "derivedFromGitDelta": false,
+  "derivedFromFinalGateIntegrityFindings": false,
+  "prohibitedOperations": [
+    "START",
+    "SECOND_START",
+    "GATE_AUTHORIZATION",
+    "STATUS_TRANSITION",
+    "ACTIVE_GATE_SWITCH",
+    "GEE_R8",
+    "GIT_PUSH",
+    "HISTORY_REWRITE",
+    "GENERIC_V1_ADMISSION",
+    "HISTORICAL_ADMISSION_WIDENING",
+    "SELF_ADMISSION"
+  ],
+  "successorRequirement": "A later publication requires a new exact Owner admission over a new exact pre-state.",
+  "admissionDigest": "43829be58e8f228fe5c67d72e9b3fd76a2d7fa19932dc9cce3b85bc8b2a9b308",
+  "ownerAuthorizationPath": "governance/sources/MAINTENANCE_PUBLICATION_ADMISSION_OWNER_AUTHORIZATION_P2_PRE_FETCH_PREPARATION_R1.json",
+  "ownerAuthorizationSha256": "0c15774f26877518516365d12ce3c2df59acb9c2c5743b6ea2cbdde5218d37d5"
+}

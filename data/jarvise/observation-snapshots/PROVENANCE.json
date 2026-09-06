@@ -1,0 +1,63 @@
+{
+  "schemaVersion": "JarviseObservationSnapshotPersistenceProvenance/1",
+  "acquiredBytesPresent": false,
+  "acquiredSourceObjectIds": [],
+  "acquisitionAuthorityId": "P2_PRE_FETCH_PREPARATION_NO_ACQUISITION_R1",
+  "acquisitionAuthorityPath": "app/jarvise/jarviseAcquisitionAuthorityR1.json",
+  "acquisitionProvenanceBinding": {
+    "boundThrough": "DatasetSnapshotRecord/1",
+    "semantics": "Every future acquisition instant is recorded only in a DatasetSnapshotRecord/1 body pinned beside the raw object it describes. No acquisition instant is ever inferred from file mtime, from the ingestion clock or from any field outside that record.",
+    "fields": {
+      "sourceAcquiredAt": "UTC instant at which the provider bytes were obtained, or null while no acquisition has occurred. Null is the only admissible value under the current authority.",
+      "acquisitionMethod": "Identifier of the mechanism that produced the raw bytes. LOCAL_PINNED_BYTES_NO_ACQUISITION is the only value reachable without a distinct later Owner fetch authority.",
+      "acquisitionToolVersion": "Version identifier of the tool that performed the acquisition, defaulting to the persistence surface version when the bytes were supplied locally.",
+      "acquisitionRequestIdentity": "Structured identity of the request that obtained the bytes, including the governing authority identifier and whether network was authorized.",
+      "acquisitionEvidenceIds": "Sorted, de-duplicated sha256 content addresses of acquisition evidence objects. Empty while nothing has been acquired."
+    }
+  },
+  "acquisitionState": "NO_ACQUISITION_PERFORMED",
+  "authoritative": false,
+  "canonicalSerializationVersion": "CanonicalJSON/1",
+  "casNamespaces": {
+    "normalized": "objects/normalized/sha256/<aa>/<sha256hex>",
+    "snapshots": "snapshots/sha256/<aa>/<sha256hex>.json",
+    "source": "objects/source/sha256/<aa>/<sha256hex>"
+  },
+  "historicalReplaySupport": "RETROSPECTIVE_RECONSTRUCTION_FROM_PINNED_SNAPSHOT",
+  "immutability": {
+    "manifests": "APPEND_ONLY_CONTENT_ADDRESSED",
+    "normalizedObjects": "IMMUTABLE_CONTENT_ADDRESSED",
+    "rawObjects": "IMMUTABLE_CONTENT_ADDRESSED",
+    "supersessionRule": "A new manifest is published under a new content address; no previously published manifest, raw object or normalized object is ever rewritten."
+  },
+  "macroIngestion": "OUT_OF_SCOPE_NOT_PERFORMED",
+  "networkAuthorized": false,
+  "persistenceLifecycle": [
+    "EMPTY",
+    "RAW_PINNED",
+    "NORMALIZED",
+    "VERSION_CACHED"
+  ],
+  "persistenceModulePath": "app/jarvise/jarviseSnapshotPersistenceR1.mjs",
+  "persistenceModuleVersion": "jarviseSnapshotPersistenceR1/1",
+  "persistenceRootPath": "data/jarvise/observation-snapshots",
+  "programId": "P2_PRE_FETCH_PREPARATION_R1",
+  "providerBytesPresent": false,
+  "providerCallsPerformed": 0,
+  "resumeSemantics": {
+    "crashSafety": "The raw object is durably written and re-verified in the content-addressed store before the journal advances to RAW_PINNED, so a crash between the two loses the journal entry and never the bytes.",
+    "journalSchemaVersion": "JarviseSnapshotPersistenceJournalEntry/1",
+    "zeroRefetch": "Once an acquisition key is RAW_PINNED no acquirer is consulted for it again; every later stage re-reads the pinned bytes out of the store."
+  },
+  "retrospectiveSemantics": "RETROSPECTIVE_RECONSTRUCTION",
+  "retrospectiveSemanticsRationale": "The historical plane reconstructs prior sessions from bytes pinned at a single later acquisition instant. It does not reproduce what a consumer could have observed at each historical session, so no vintage claim is made for any date before sourceAcquiredAt.",
+  "reusedContracts": [
+    "DatasetSnapshotCore/1",
+    "DatasetSnapshotRecord/1",
+    "SnapshotDatasetManifestV1",
+    "DatasetManifestV1",
+    "coverage/1",
+    "DatasetSnapshotInstrumentBinding/1"
+  ],
+  "vintageClaim": "NONE"
+}

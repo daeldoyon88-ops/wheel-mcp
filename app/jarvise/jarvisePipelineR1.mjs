@@ -12,9 +12,16 @@ import { createFeatureVectorBinding } from '../../governance/gates/GATE24/implem
 import { emitRegimeRecord } from '../../governance/gates/GATE24/implementation/regime-store-v1.mjs';
 import { buildG21ClosedSessionBridgeR1 } from './g21ClosedSessionBridgeR1.mjs';
 import { selectClosedMp1Sessions } from './closedSessionSelectorR1.mjs';
+import jarviseHistoricalIdentityPolicyR1 from './jarviseHistoricalIdentityPolicyR1.json' with { type: 'json' };
 import { deriveJarviseDatasetIdentityTripleR1, verifyJarviseFeatureDatasetCohortR1 } from './jarviseDatasetIdentityTripleR1.mjs';
 import { loadJarviseG24ProductionFoundationR1 } from './jarviseG24ProductionFoundationR1.mjs';
 import { produceJarviseEmptyMacroContextR1 } from './jarviseEmptyMacroContextProducerR1.mjs';
+import {
+  HISTORICAL_PROCESSING_BOUNDARY,
+  computeJarviseHistoricalCalendarBindingR1,
+  loadJarviseHistoricalCalendarR1,
+} from './jarviseHistoricalCalendarBindingR1.mjs';
+import { HISTORICAL_REPLAY_SUPPORT, RETROSPECTIVE_SEMANTICS } from './jarviseSnapshotPersistenceR1.mjs';
 
 const REPOSITORY_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 const readJson = (path) => JSON.parse(readFileSync(path, 'utf8'));
@@ -41,6 +48,31 @@ function runtimeAuthority() {
     throw new Error('MP1_CALENDAR_BINDING_ID_MISMATCH');
   }
   return { calendar, calendarWindowBinding, identityProvenance, namespace };
+}
+
+function historicalRuntimeAuthority() {
+  const identityPolicy = jarviseHistoricalIdentityPolicyR1;
+  if (identityPolicy.currentAliasValidFrom !== '2026-05-03'
+    || identityPolicy.earliestAdmissibleSession !== '2026-05-04'
+    || identityPolicy.admittedBarsRule !== 'EVERY_SESSION_DATE_GTE_ALIAS_VALID_FROM'
+    || identityPolicy.identityResolutionRule !== 'RESOLVE_AT_EACH_HISTORICAL_SESSION_DATE'
+    || identityPolicy.aliasBackdating !== 'FORBIDDEN') {
+    throw new Error('HISTORICAL_IDENTITY_POLICY_INVALID');
+  }
+  const historicalCalendar = loadJarviseHistoricalCalendarR1();
+  const sessions = historicalCalendar.sessions.filter(
+    (session) => session.sessionDate >= identityPolicy.currentAliasValidFrom,
+  );
+  if (sessions[0]?.sessionDate !== identityPolicy.earliestAdmissibleSession) {
+    throw new Error('HISTORICAL_IDENTITY_BOUNDARY_MISMATCH');
+  }
+  return {
+    calendar: { ...historicalCalendar, sessions },
+    calendarWindowBinding: computeJarviseHistoricalCalendarBindingR1(),
+    identityPolicy,
+    identityProvenance: readJson(resolve(REPOSITORY_ROOT, 'data/jarvise/instrument-identity/PROVENANCE.json')),
+    namespace: readJson(resolve(REPOSITORY_ROOT, 'data/jarvise/instrument-identity/symbol-namespace-policy.json')),
+  };
 }
 
 function resolveIdentity({ authority, symbol, sessionDate }) {
@@ -74,6 +106,69 @@ function observationBars(records) {
       availableAt: record.availableAt,
     },
   }));
+}
+
+function persistedSnapshotCapture(snapshotPersistence, acquisitionKey) {
+  if (!snapshotPersistence || typeof snapshotPersistence.reuse !== 'function') {
+    throw new Error('SNAPSHOT_PERSISTENCE_REQUIRED');
+  }
+  if (typeof acquisitionKey !== 'string' || acquisitionKey.length === 0) {
+    throw new Error('SNAPSHOT_ACQUISITION_KEY_REQUIRED');
+  }
+  const beforeInvocations = typeof snapshotPersistence.acquisitionInvocations === 'function'
+    ? snapshotPersistence.acquisitionInvocations() : null;
+  const reused = snapshotPersistence.reuse({ acquisitionKey });
+  const afterInvocations = typeof snapshotPersistence.acquisitionInvocations === 'function'
+    ? snapshotPersistence.acquisitionInvocations() : null;
+  if (reused?.refetched !== false
+    || reused?.historicalReplaySupport !== HISTORICAL_REPLAY_SUPPORT
+    || reused?.retrospectiveSemantics !== RETROSPECTIVE_SEMANTICS
+    || (beforeInvocations !== null && afterInvocations !== beforeInvocations)) {
+    throw new Error('SNAPSHOT_PERSISTENCE_REUSE_INVALID');
+  }
+  const capturedAt = reused?.snapshot?.record?.sourceAcquiredAt;
+  const bars = reused?.snapshot?.normalizedDailyBars?.bars;
+  if (!isStrictUtcIso(capturedAt) || !Array.isArray(bars) || bars.length === 0) {
+    throw new Error('SNAPSHOT_PERSISTENCE_CONTENT_INVALID');
+  }
+  const quotes = bars.map((bar) => ({
+    date: bar?.sessionDate,
+    open: bar?.open ?? bar?.adjusted?.open,
+    high: bar?.high ?? bar?.adjusted?.high,
+    low: bar?.low ?? bar?.adjusted?.low,
+    close: bar?.close ?? bar?.adjusted?.close,
+    volume: bar?.volume ?? bar?.adjusted?.volume ?? null,
+  }));
+  return {
+    captureRecord: { chartResult: { quotes }, capturedAt },
+    evidence: {
+      acquisitionKey,
+      manifestId: reused.manifestId ?? null,
+      sourceAcquiredAt: capturedAt,
+      historicalReplaySupport: reused.historicalReplaySupport,
+      retrospectiveSemantics: reused.retrospectiveSemantics,
+      refetched: false,
+      acquisitionInvocationsDelta: beforeInvocations === null ? null : afterInvocations - beforeInvocations,
+    },
+  };
+}
+
+function resolveHistoricalIdentityCohort({ authority, symbol, records }) {
+  const resolutions = [];
+  for (const record of records) {
+    if (record.sessionDate < authority.identityPolicy.currentAliasValidFrom) {
+      return result('FAIL_CLOSED', 'HISTORICAL_IDENTITY_BACKDATING_FORBIDDEN');
+    }
+    const identity = resolveIdentity({ authority, symbol, sessionDate: record.sessionDate });
+    if (identity.status === 'ABSENT') return identity;
+    resolutions.push({ sessionDate: record.sessionDate, ...identity });
+  }
+  const ids = new Set(resolutions.map((identity) => identity.instrumentIdentityId));
+  if (ids.size !== 1) return result('FAIL_CLOSED', 'HISTORICAL_IDENTITY_COHORT_MIXED');
+  return result('RESOLVED', null, {
+    instrumentIdentityId: resolutions[0].instrumentIdentityId,
+    resolutions,
+  });
 }
 
 /** Consumes only the existing process-local G21 capture; it never fetches Yahoo. */
@@ -161,5 +256,86 @@ export function runJarvisePipelineR1({ symbol, knowledgeCutoff } = {}) {
     });
   } catch (cause) {
     return result('FAIL_CLOSED', cause?.code ?? cause?.message ?? 'JARVISE_PIPELINE_FAILED');
+  }
+}
+
+/**
+ * Reuses an already version-cached snapshot on the historical V2 calendar.
+ * This path has no acquisition arm and terminates after G21 observation plus
+ * G23 feature materialization; it never reaches the GATE24 regime surfaces.
+ */
+export function runJarviseHistoricalPreFetchPipelineR1({
+  symbol, knowledgeCutoff, snapshotPersistence, acquisitionKey,
+} = {}) {
+  const normalizedSymbol = String(symbol ?? '').trim().toUpperCase();
+  if (!normalizedSymbol) return result('FAIL_CLOSED', 'SYMBOL_INVALID');
+  if (!isStrictUtcIso(knowledgeCutoff)) return result('FAIL_CLOSED', 'KNOWLEDGE_CUTOFF_INVALID');
+
+  try {
+    const authority = historicalRuntimeAuthority();
+    const persisted = persistedSnapshotCapture(snapshotPersistence, acquisitionKey);
+    const selected = selectClosedMp1Sessions(authority.calendar, knowledgeCutoff);
+    if (selected.status !== 'AVAILABLE') return result(selected.status, selected.reasonCode);
+
+    const g21 = buildG21ClosedSessionBridgeR1({
+      symbol: normalizedSymbol,
+      knowledgeCutoff,
+      captureRecord: persisted.captureRecord,
+      calendar: authority.calendar,
+    });
+    if (g21.status !== 'AVAILABLE') return result(g21.status, g21.reasonCode, { g21 });
+    if (g21.records.some((record) => record.sessionDate < authority.identityPolicy.currentAliasValidFrom)) {
+      return result('FAIL_CLOSED', 'HISTORICAL_IDENTITY_BACKDATING_FORBIDDEN', { g21 });
+    }
+
+    const identityCohort = resolveHistoricalIdentityCohort({
+      authority, symbol: normalizedSymbol, records: g21.records,
+    });
+    if (identityCohort.status !== 'RESOLVED') {
+      return result(identityCohort.status, identityCohort.reasonCode, { g21, identityCohort });
+    }
+    const triple = deriveJarviseDatasetIdentityTripleR1({
+      g21BridgeOutput: g21,
+      instrumentIdentityId: identityCohort.instrumentIdentityId,
+      priceBasisId: 'SPLIT_ADJUSTED',
+      calendarWindowBinding: authority.calendarWindowBinding,
+    });
+    const featureSet = materializeFeatureRecords({
+      instrumentIdentityId: identityCohort.instrumentIdentityId,
+      sessionDate: g21.sessionDate,
+      calendarWindowBinding: authority.calendarWindowBinding,
+      sessions: authority.calendar.sessions,
+      observationBars: observationBars(g21.records),
+      registry: createFeatureRegistry([F1_DEFINITION]),
+      vector: declareFeatureVector(CORE_FEATURE_SET_V1),
+      sourceBindingId: triple.sourceBindingId,
+      datasetIdObservation: triple.datasetIdObservation,
+    });
+    if (featureSet.status !== 'RESOLVED') {
+      return result(featureSet.status, featureSet.code, { g21, triple, featureSet });
+    }
+    const cohort = verifyJarviseFeatureDatasetCohortR1({
+      datasetIdObservation: triple.datasetIdObservation,
+      datasetIdFeature: triple.datasetIdFeature,
+      featureRecords: featureSet.records,
+      calendarWindowBinding: authority.calendarWindowBinding,
+    });
+    return result('AVAILABLE', null, {
+      pipelineMode: 'HISTORICAL_PRE_FETCH_V2',
+      symbol: normalizedSymbol,
+      g21,
+      identityPolicy: authority.identityPolicy,
+      identityCohort,
+      triple,
+      featureSet,
+      cohort,
+      calendarWindowBindingId: authority.calendarWindowBinding.calendarWindowBindingId,
+      historicalProcessingBoundary: HISTORICAL_PROCESSING_BOUNDARY,
+      gate24RegimeRecordEmission: 'FORBIDDEN_UNDER_CALENDAR_V2',
+      historicalReplaySupport: HISTORICAL_REPLAY_SUPPORT,
+      snapshotPersistence: persisted.evidence,
+    });
+  } catch (cause) {
+    return result('FAIL_CLOSED', cause?.code ?? cause?.message ?? 'JARVISE_HISTORICAL_PIPELINE_FAILED');
   }
 }

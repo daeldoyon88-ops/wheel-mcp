@@ -1,0 +1,138 @@
+{
+  "documentKind": "POST_FREEZE_MAINTENANCE_AUTHORIZED_PATH_MANIFEST",
+  "schemaVersion": 2,
+  "manifestId": "P3_HISTORICAL_YAHOO_FETCH_ONCE_AUTHORIZED_PATHS_R2",
+  "programId": "P3_HISTORICAL_YAHOO_FETCH_ONCE_R1",
+  "paths": [
+    {
+      "path": "app/jarvise/jarviseHistoricalAcquisitionWindowR1.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "C: pins the ratified OD-P3-1 window 2018-01-02 through 2026-09-04 with cutoff close 2026-09-04T20:00:00.000Z; runtime wall-clock derivation is declared FORBIDDEN and the 81 calendar sessions after the cutoff are explicitly excluded.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "app/jarvise/jarviseHistoricalCohortBindingR1.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "D: pins the 802-identity cohort by registryManifestId sha256:cdcb86d1, authorityPolicyId sha256:a83a34cb and namespacePolicyId sha256:747e1108; enumeration is from the authoritative CAS registry manifest and runtime symbol enumeration is FORBIDDEN.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "app/jarvise/jarviseCorporateActionPolicyBindingR1.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "F: closes the corporateActionPolicyHash gap with a real canonicalHash over the frozen CORPORATE_ACTION_POLICY.SPLIT_ADJUSTED policy, the policy module bytes and the ratified source declaration; no placeholder.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "app/jarvise/jarviseTransformImplementationManifestR1.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "G: closes the transformImplementationHash gap with a real TransformImplementationManifest/1 over the five module bytes that define the raw to CanonicalDailyBars/1 transform; no placeholder.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "app/jarvise/jarviseAcquisitionQueryIdentityR1.mjs",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "E: deterministic acquisitionRequestIdentity and acquisitionKey derivation, CAS cohort enumeration, and recomputation of both snapshot-core hashes. Reads no clock and constructs no HTTP client.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "app/jarvise/jarviseYahooChartAdapterR1.mjs",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "H: OD-P3-3 CANONICAL_PROVIDER_RESULT_BYTES serialization plus the pinned-raw to CanonicalDailyBars/1 normalizer; rebinds every timestamp to the pinned canonical session close so half-days are correct.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "app/jarvise/jarviseYahooFetchOnceAcquirerR1.mjs",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "I: bounded acquirer enforcing OD-P3-4 (3 attempts per EMPTY key, 2406 invocation ceiling, retry only on TIMEOUT/429/5xx). Imports no provider library at module scope.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "app/jarvise/jarviseFetchOnceExecutionAuthorityR1.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "J: the prepared execution authority published as PREPARED_NOT_EXECUTABLE with executionAuthorized and networkAuthorized false; it declares future bounds and grants no network. The P2 authority is referenced, never mutated.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "scripts/runJarviseHistoricalFetchOnceR1.mjs",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "K: the single governed execution entry point. Terminates at VERSION_CACHED, never acquires a non-EMPTY key, and fail-closes without an Owner activation document.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "app/jarvise/jarviseAcquisitionQueryIdentityR1.test.mjs",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "T: window determinism, 2183 sessions, exact 802 cohort, key determinism and sensitivity, both non-placeholder hashes, identity boundary, no vintage claim, no regime emission.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "app/jarvise/jarviseYahooChartAdapterR1.test.mjs",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "T: canonical serialization determinism, half-day pinned timestamps, split/dividend carriage, and fail-closed behaviour for empty, malformed, duplicate, out-of-window and non-calendar results.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "app/jarvise/jarviseYahooFetchOnceAcquirerR1.test.mjs",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "T: prepared-not-executable authority, activation byte binding, 3-attempt bound, 4th attempt refusal, 2406 ceiling, retry taxonomy, and no refetch after RAW_PINNED.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "governance/historical-architecture/P3_HISTORICAL_YAHOO_FETCH_ONCE_CONSUMPTION_R1.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "Single-use P3 historical Yahoo FETCH_ONCE authority consumption receipt. Authorized by this manifest; created by the canonical publisher; not supplied as a candidate.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    }
+  ]
+}

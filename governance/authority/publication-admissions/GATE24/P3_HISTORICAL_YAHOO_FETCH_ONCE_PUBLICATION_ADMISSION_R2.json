@@ -1,0 +1,72 @@
+{
+  "documentKind": "MAINTENANCE_PUBLICATION_ADMISSION",
+  "schemaVersion": 1,
+  "authorityMode": "LOCAL_EXPLICIT_AUTHORITY",
+  "issuedBy": "PROJECT_OWNER",
+  "admissionId": "P3_HISTORICAL_YAHOO_FETCH_ONCE_PUBLICATION_ADMISSION_R2",
+  "decisionId": "P3_HISTORICAL_YAHOO_FETCH_ONCE_OWNER_DECISION_R2",
+  "issuedAtUtc": "2026-09-06T00:00:00.000Z",
+  "expiresAtUtc": null,
+  "projectId": "WHEEL",
+  "repositoryId": "WHEEL_MCP_CANONICAL",
+  "gateId": "GATE24",
+  "programId": "P3_HISTORICAL_YAHOO_FETCH_ONCE_R1",
+  "purpose": "MAINTENANCE_PUBLICATION_ADMISSION",
+  "publicationClass": "PATH_PRESTATE_PROGRAM_PUBLISHER",
+  "authorityPurpose": "NORMAL_MAINTENANCE",
+  "maxUse": 1,
+  "admissionStatement": "One exact Owner admission for the bounded P3 historical Yahoo FETCH_ONCE authority and pre-fetch build preparation program. It publishes twelve CREATE work artifacts plus one publisher-generated consumption receipt, and no CAS, reservation or acquisition-root paths. It publishes the pinned acquisition window 2018-01-02 through 2026-09-04 at cutoff close 2026-09-04T20:00:00.000Z, the content-addressed 802-instrument cohort under registry manifest sha256:cdcb86d15d0a286d0eb02ee5af7ae5259b26a799c22a91517a610f796d6a3aa0, deterministic acquisitionRequestIdentity and acquisition keys, the CANONICAL_PROVIDER_RESULT_BYTES serialization, real non-placeholder corporateActionPolicyHash and transformImplementationHash, the bounded acquirer at 3 attempts per EMPTY key and a 2406 provider invocation ceiling, and one prepared execution authority published as PREPARED_NOT_EXECUTABLE with executionAuthorized and networkAuthorized false. This program performs no network acquisition, no Yahoo fetch, no HTTP call, no IBKR access and no macro ingestion. It does not mutate the P2 acquisition authority, does not admit any bar into DatasetId_observation, does not emit a GATE24 V2 RegimeRecord, does not start or ratify GATE25, appends no ledger event and does not switch ACTIVE_GATE. Execution of the prepared authority requires a separate explicit Owner activation act that is deliberately not created here. No scope is widened. Creating these candidate bytes does not itself constitute Owner approval or activation.",
+  "admittedAuthority": {
+    "path": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_P3_HISTORICAL_YAHOO_FETCH_ONCE_R2.json",
+    "sha256": "2039b190516192d80ddf44a09ec16a5d1acff240c5097b16ece68710ccc338c6",
+    "byteLength": 2154,
+    "schemaVersion": 2,
+    "documentId": "P3_HISTORICAL_YAHOO_FETCH_ONCE_LOCAL_AUTHORITY_R2"
+  },
+  "admittedManifest": {
+    "path": "governance/historical-architecture/P3_HISTORICAL_YAHOO_FETCH_ONCE_AUTHORIZED_PATHS_R2.json",
+    "sha256": "396c34f8be6b44b345b016e6e7fc12bbb92576e8ef7ddc5ee25d2c44d26e3952",
+    "byteLength": 6058,
+    "schemaVersion": 2,
+    "documentId": "P3_HISTORICAL_YAHOO_FETCH_ONCE_AUTHORIZED_PATHS_R2"
+  },
+  "admittedPrestate": {
+    "baseHead": "95ba8c6c3f92ed7dbc673f72593ff08953d43497",
+    "ledgerEventCount": 104,
+    "ledgerPrefixSha256": "2def19c84b7581da0ab54d2d1ba9d68f5bc2ce40e108443cfbd086835a0116da",
+    "gateId": "GATE24",
+    "gateStatus": "COMPLETE_CONFIRMED",
+    "stateRevision": "R0005",
+    "contractRevision": "R0002",
+    "activeGate": "GATE13",
+    "R8ExpectedAbsent": true
+  },
+  "admittedOperationClasses": [
+    "MAINTENANCE"
+  ],
+  "grantsFutureBytePermission": false,
+  "grantsGateAuthorizationPermission": false,
+  "grantsStartPermission": false,
+  "grantsStatusTransitionPermission": false,
+  "grantsHistoricalAdmissionWidening": false,
+  "genericV1Admission": false,
+  "derivedFromGitDelta": false,
+  "derivedFromFinalGateIntegrityFindings": false,
+  "prohibitedOperations": [
+    "START",
+    "SECOND_START",
+    "GATE_AUTHORIZATION",
+    "STATUS_TRANSITION",
+    "ACTIVE_GATE_SWITCH",
+    "GEE_R8",
+    "GIT_PUSH",
+    "HISTORY_REWRITE",
+    "GENERIC_V1_ADMISSION",
+    "HISTORICAL_ADMISSION_WIDENING",
+    "SELF_ADMISSION"
+  ],
+  "successorRequirement": "A later publication requires a new exact Owner admission over a new exact pre-state. Execution of the prepared fetch authority additionally requires a separate explicit Owner activation act.",
+  "admissionDigest": "9405f3de1e26aaa245c5c25a9146f55b991453b0b4e1d349c3d62365a10c71c0",
+  "ownerAuthorizationPath": "governance/sources/MAINTENANCE_PUBLICATION_ADMISSION_OWNER_AUTHORIZATION_P3_HISTORICAL_YAHOO_FETCH_ONCE_R2.json",
+  "ownerAuthorizationSha256": "c16ed1cca44c44d5e6bfa088be8cded97ca0f42b4039e6671d96a88f9c5441af"
+}

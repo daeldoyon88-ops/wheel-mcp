@@ -1,0 +1,25 @@
+{
+  "document": "MAINTENANCE_PUBLICATION_ADMISSION_OWNER_AUTHORIZATION",
+  "schemaVersion": 1,
+  "authorityId": "P3_HISTORICAL_YAHOO_FETCH_ONCE_PUBLICATION_OWNER_AUTHORIZATION_R2",
+  "authorityClass": "PROJECT_OWNER_MAINTENANCE_PUBLICATION_ADMISSION_AUTHORITY",
+  "authorityMode": "LOCAL_EXPLICIT_AUTHORITY",
+  "issuedBy": "PROJECT_OWNER",
+  "issuedAtUtc": "2026-09-06T00:00:00.000Z",
+  "decisionId": "P3_HISTORICAL_YAHOO_FETCH_ONCE_OWNER_DECISION_R2",
+  "purpose": "MAINTENANCE_PUBLICATION_ADMISSION",
+  "reexecutionAuthorized": false,
+  "grantsFutureBytePermission": false,
+  "genericV1Admission": false,
+  "admittedPublications": [
+    {
+      "admissionId": "P3_HISTORICAL_YAHOO_FETCH_ONCE_PUBLICATION_ADMISSION_R2",
+      "projectId": "WHEEL",
+      "gateId": "GATE24",
+      "programId": "P3_HISTORICAL_YAHOO_FETCH_ONCE_R1",
+      "admissionPath": "governance/authority/publication-admissions/GATE24/P3_HISTORICAL_YAHOO_FETCH_ONCE_PUBLICATION_ADMISSION_R2.json",
+      "admissionDigest": "9405f3de1e26aaa245c5c25a9146f55b991453b0b4e1d349c3d62365a10c71c0"
+    }
+  ],
+  "registryDigest": "14856e64a31b3364e5dcabcec2bf5c81d35271d407704a3426fa2562de12b1a6"
+}

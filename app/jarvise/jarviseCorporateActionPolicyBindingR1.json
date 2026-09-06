@@ -1,0 +1,39 @@
+{
+  "schemaVersion": "WHEEL_JARVISE_CORPORATE_ACTION_POLICY_BINDING_DECLARATION/1",
+  "bindingId": "P3_HISTORICAL_YAHOO_FETCH_ONCE_CORPORATE_ACTION_POLICY_R1",
+  "programId": "P3_HISTORICAL_YAHOO_FETCH_ONCE_R1",
+  "corporateActionPolicyHash": "sha256:e665576df88d23978d816d8bb0b03e5d5a684a6685b94a4259a273ebf414b45e",
+  "hashAlgorithm": "canonicalHash(CanonicalJSON/1) over the preimage below",
+  "placeholder": false,
+  "derivedFrom": [
+    "research/directional-lab/src/data/corporateActionPolicy.mjs (frozen CORPORATE_ACTION_POLICY.SPLIT_ADJUSTED)",
+    "app/jarvise/yahooSourceBasisDeclarationR1.json (ratified SHA fb9e5a17)",
+    "OD-P3-2 events policy SPLITS + DIVIDENDS"
+  ],
+  "preimage": {
+    "schemaVersion": "WHEEL_JARVISE_CORPORATE_ACTION_POLICY_BINDING/1",
+    "corporateActionPolicyVersion": "corporateActionPolicy/1",
+    "corporateActionPolicyModuleSha256": "sha256:16b911355406c4a046af9cdde715d68588b5d7b2f16ecde8dec2f02911f8bbe7",
+    "priceBasis": "SPLIT_ADJUSTED",
+    "basisPolicy": {
+      "priceBasis": "SPLIT_ADJUSTED",
+      "engineAppliesSplit": false,
+      "creditsCashDividend": true,
+      "pricesIncludeSplits": true,
+      "pricesIncludeDividends": false,
+      "refusesCorporateActions": false
+    },
+    "corporateActionTreatment": "PROVIDER_SPLIT_ADJUSTED_UNTRANSFORMED",
+    "sourceId": "YAHOO_CHART_EOD",
+    "sourceBasisDeclarationSha256": "fb9e5a17f4ef5503c58e2f2beac49fe3c3f035f3525b06fe282a13a60540364b",
+    "eventsPolicy": {
+      "splits": true,
+      "dividends": true,
+      "otherEventFamilies": false
+    },
+    "adjcloseDisposition": "LINEAGE_TOTAL_RETURN_CLOSE_ONLY"
+  },
+  "semantics": "Identifies the corporate-action POLICY governing this dataset, not a registry of realized corporate-action events. Yahoo chart OHLC arrives provider-split-adjusted and untransformed, so the engine never re-applies splits; cash dividends are not embedded in the price series and are carried per bar in corporateActions.cashDividend.",
+  "eventRegistryDisposition": "A CorporateActionRegistry/1 of realized events is NOT built by P3. Split and dividend events returned by the provider are pinned inside the raw object and carried per bar; building an event registry is a later local program and requires no re-fetch.",
+  "notRegistryManifestId": true
+}

@@ -1,0 +1,39 @@
+{
+  "schemaVersion": "WHEEL_JARVISE_TRANSFORM_IMPLEMENTATION_BINDING_DECLARATION/1",
+  "bindingId": "P3_HISTORICAL_YAHOO_FETCH_ONCE_TRANSFORM_IMPLEMENTATION_R1",
+  "programId": "P3_HISTORICAL_YAHOO_FETCH_ONCE_R1",
+  "transformImplementationHash": "sha256:fb237edb106ad76e1ddd3cfeca00de2b164e2317cf1111c9ff2a7a3df1021bf9",
+  "hashAlgorithm": "transformImplementationHash(TransformImplementationManifest/1) via canonicalHash(CanonicalJSON/1)",
+  "placeholder": false,
+  "builder": "research/directional-lab/src/data/transformImplementationManifestV1.mjs::buildTransformImplementationManifest",
+  "labRoot": "REPOSITORY_ROOT",
+  "manifest": {
+    "schemaVersion": "TransformImplementationManifest/1",
+    "modules": [
+      {
+        "logicalPath": "app/jarvise/jarviseYahooChartAdapterR1.mjs",
+        "contentSha256": "sha256:249fb8e4b512f5ac6833a2a7abb9dcca9953d51afb80bee79e54734f3d963e8f"
+      },
+      {
+        "logicalPath": "app/jarvise/pinnedSessionTimestampsR1.mjs",
+        "contentSha256": "sha256:3fbbcc69ff7a2debbf077fbfb4052bdb51ddb22b77571242b47140ea0ef85757"
+      },
+      {
+        "logicalPath": "research/directional-lab/src/canonical/canonicalDailyBarsV1.mjs",
+        "contentSha256": "sha256:ac9e2fb70377ec5c2fdc6d294bd0e752722b7cef73f735e424151c6b01f148a6"
+      },
+      {
+        "logicalPath": "research/directional-lab/src/canonical/canonicalJsonV1.mjs",
+        "contentSha256": "sha256:5619cb9f39407c487196ddb881b9303f848c468ea9b0531f2287d5bdab78260d"
+      },
+      {
+        "logicalPath": "research/directional-lab/src/data/normalizeDailyBars.mjs",
+        "contentSha256": "sha256:91cf798f4d59d12671e3178262167ddc343f16b2ba400a525e2f1e7292d25778"
+      }
+    ],
+    "runtimeContractVersion": "jarviseHistoricalYahooTransformR1/1"
+  },
+  "semantics": "Content-addresses the exact module bytes that define the pinned-raw to CanonicalDailyBars/1 transform. Any edit to any listed module changes this hash, so a snapshot core built under different transform bytes is not mistakable for this one.",
+  "pinnedSessionTimestampsCrossCheck": "pinnedSessionTimestampsR1.mjs contentSha256 3fbbcc69 equals the byte recorded in P2_PRE_FETCH_PREPARATION_CONSUMPTION_R1, confirming the published P2 transform bytes are unmodified.",
+  "regenerationRule": "Recompute with computeJarviseTransformImplementationHashR1 whenever any listed module changes; never hand-edit."
+}

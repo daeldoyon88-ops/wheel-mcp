@@ -1,0 +1,120 @@
+{
+  "documentKind": "POST_FREEZE_MAINTENANCE_AUTHORITY_CONSUMPTION",
+  "schemaVersion": 2,
+  "authorityId": "P3_HISTORICAL_YAHOO_FETCH_ONCE_LOCAL_AUTHORITY_R2",
+  "programId": "P3_HISTORICAL_YAHOO_FETCH_ONCE_R1",
+  "manifestSha256": "396c34f8be6b44b345b016e6e7fc12bbb92576e8ef7ddc5ee25d2c44d26e3952",
+  "baseHead": "95ba8c6c3f92ed7dbc673f72593ff08953d43497",
+  "consumedUse": 1,
+  "transactionId": "P3_HISTORICAL_YAHOO_FETCH_ONCE_R1_TRANSACTION",
+  "recordedAt": "2026-09-06T07:47:29.683Z",
+  "commitMessage": "jarvise: P3 historical Yahoo FETCH_ONCE authority and pre-fetch build preparation (no network)",
+  "publicationAdmission": {
+    "admissionId": "P3_HISTORICAL_YAHOO_FETCH_ONCE_PUBLICATION_ADMISSION_R2",
+    "admissionPath": "governance/authority/publication-admissions/GATE24/P3_HISTORICAL_YAHOO_FETCH_ONCE_PUBLICATION_ADMISSION_R2.json",
+    "admissionSha256": "9f29432699c2febec8d4cde85cd0dc4af986fba3542571ded727d52e7aaef1a7"
+  },
+  "cohortSelfExclusion": {
+    "path": "governance/historical-architecture/P3_HISTORICAL_YAHOO_FETCH_ONCE_CONSUMPTION_R1.json",
+    "reason": "The consumption record cannot hash its own final bytes; its identity is bound by the authority and manifest instead."
+  },
+  "cohortPathCount": 13,
+  "cohort": [
+    {
+      "path": "app/jarvise/jarviseHistoricalAcquisitionWindowR1.json",
+      "sha256": "1130d8df7d5ef56c7cbc2e52aefd7a41a3ad8e61f3d06f1712a282c5a7e28b0c",
+      "byteLength": 1592,
+      "operation": "CREATE",
+      "reason": "C: pins the ratified OD-P3-1 window 2018-01-02 through 2026-09-04 with cutoff close 2026-09-04T20:00:00.000Z; runtime wall-clock derivation is declared FORBIDDEN and the 81 calendar sessions after the cutoff are explicitly excluded.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "app/jarvise/jarviseHistoricalCohortBindingR1.json",
+      "sha256": "6c238fa7f4d93c747fd599297a5bcaac2a2d3e95b30b22ed07a0d44ba61a4c91",
+      "byteLength": 2420,
+      "operation": "CREATE",
+      "reason": "D: pins the 802-identity cohort by registryManifestId sha256:cdcb86d1, authorityPolicyId sha256:a83a34cb and namespacePolicyId sha256:747e1108; enumeration is from the authoritative CAS registry manifest and runtime symbol enumeration is FORBIDDEN.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "app/jarvise/jarviseCorporateActionPolicyBindingR1.json",
+      "sha256": "e2e62dfb27a9d4b8a0b5a362ec047c98ca541f989869ddd3d58adac08c5cd1d7",
+      "byteLength": 2290,
+      "operation": "CREATE",
+      "reason": "F: closes the corporateActionPolicyHash gap with a real canonicalHash over the frozen CORPORATE_ACTION_POLICY.SPLIT_ADJUSTED policy, the policy module bytes and the ratified source declaration; no placeholder.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "app/jarvise/jarviseTransformImplementationManifestR1.json",
+      "sha256": "3305b3cc865d5ddeb8c738dc97d758193e4aca62a5db4e545d52ce1ef1703a77",
+      "byteLength": 2390,
+      "operation": "CREATE",
+      "reason": "G: closes the transformImplementationHash gap with a real TransformImplementationManifest/1 over the five module bytes that define the raw to CanonicalDailyBars/1 transform; no placeholder.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "app/jarvise/jarviseAcquisitionQueryIdentityR1.mjs",
+      "sha256": "da99c40759a2a1430a56c14043f2301f44df29b14c8dfbc87656ed73f0a61043",
+      "byteLength": 18578,
+      "operation": "CREATE",
+      "reason": "E: deterministic acquisitionRequestIdentity and acquisitionKey derivation, CAS cohort enumeration, and recomputation of both snapshot-core hashes. Reads no clock and constructs no HTTP client.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "app/jarvise/jarviseYahooChartAdapterR1.mjs",
+      "sha256": "249fb8e4b512f5ac6833a2a7abb9dcca9953d51afb80bee79e54734f3d963e8f",
+      "byteLength": 13680,
+      "operation": "CREATE",
+      "reason": "H: OD-P3-3 CANONICAL_PROVIDER_RESULT_BYTES serialization plus the pinned-raw to CanonicalDailyBars/1 normalizer; rebinds every timestamp to the pinned canonical session close so half-days are correct.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "app/jarvise/jarviseYahooFetchOnceAcquirerR1.mjs",
+      "sha256": "6d137263dc092a27570aba6c1e858b72ca18c10ccb7b8950178c45805d2342d9",
+      "byteLength": 38442,
+      "operation": "CREATE",
+      "reason": "I: bounded acquirer enforcing OD-P3-4 (3 attempts per EMPTY key, 2406 invocation ceiling, retry only on TIMEOUT/429/5xx). Imports no provider library at module scope.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "app/jarvise/jarviseFetchOnceExecutionAuthorityR1.json",
+      "sha256": "85d692679bde92ee64e05f470c826dd4aafff5c7530259c9ce1ea9d06555e90e",
+      "byteLength": 3652,
+      "operation": "CREATE",
+      "reason": "J: the prepared execution authority published as PREPARED_NOT_EXECUTABLE with executionAuthorized and networkAuthorized false; it declares future bounds and grants no network. The P2 authority is referenced, never mutated.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "scripts/runJarviseHistoricalFetchOnceR1.mjs",
+      "sha256": "53bf5dfe8b6a28823b92804f8ae754775779d3c4180caa90551ea976e34148aa",
+      "byteLength": 12448,
+      "operation": "CREATE",
+      "reason": "K: the single governed execution entry point. Terminates at VERSION_CACHED, never acquires a non-EMPTY key, and fail-closes without an Owner activation document.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "app/jarvise/jarviseAcquisitionQueryIdentityR1.test.mjs",
+      "sha256": "1960c700aa19236e8ed65aa95cb08ed5584084b7250ef83f3ec56cd37650451b",
+      "byteLength": 15287,
+      "operation": "CREATE",
+      "reason": "T: window determinism, 2183 sessions, exact 802 cohort, key determinism and sensitivity, both non-placeholder hashes, identity boundary, no vintage claim, no regime emission.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "app/jarvise/jarviseYahooChartAdapterR1.test.mjs",
+      "sha256": "15c524ed78fa8715d58fa4f08d5c25cacf87645e10b863f480eec1bb405ee6d8",
+      "byteLength": 9510,
+      "operation": "CREATE",
+      "reason": "T: canonical serialization determinism, half-day pinned timestamps, split/dividend carriage, and fail-closed behaviour for empty, malformed, duplicate, out-of-window and non-calendar results.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "app/jarvise/jarviseYahooFetchOnceAcquirerR1.test.mjs",
+      "sha256": "9494837000ab26cd3ca008b5090a45150f0bc969fe1c5c1d3e263d22a0359e3d",
+      "byteLength": 42511,
+      "operation": "CREATE",
+      "reason": "T: prepared-not-executable authority, activation byte binding, 3-attempt bound, 4th attempt refusal, 2406 ceiling, retry taxonomy, and no refetch after RAW_PINNED.",
+      "artifactClass": "MAINTENANCE"
+    }
+  ]
+}

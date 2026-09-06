@@ -1,0 +1,25 @@
+{
+  "document": "MAINTENANCE_PUBLICATION_ADMISSION_OWNER_AUTHORIZATION",
+  "schemaVersion": 1,
+  "authorityId": "P3E_YAHOO_PROVIDER_FACTORY_WIRING_PUBLICATION_OWNER_AUTHORIZATION_R1",
+  "authorityClass": "PROJECT_OWNER_MAINTENANCE_PUBLICATION_ADMISSION_AUTHORITY",
+  "authorityMode": "LOCAL_EXPLICIT_AUTHORITY",
+  "issuedBy": "PROJECT_OWNER",
+  "issuedAtUtc": "2026-09-06T00:00:00.000Z",
+  "decisionId": "P3E_YAHOO_PROVIDER_FACTORY_WIRING_OWNER_DECISION_R1",
+  "purpose": "MAINTENANCE_PUBLICATION_ADMISSION",
+  "reexecutionAuthorized": false,
+  "grantsFutureBytePermission": false,
+  "genericV1Admission": false,
+  "admittedPublications": [
+    {
+      "admissionId": "P3E_YAHOO_PROVIDER_FACTORY_WIRING_PUBLICATION_ADMISSION_R1",
+      "projectId": "WHEEL",
+      "gateId": "GATE24",
+      "programId": "P3E_YAHOO_PROVIDER_FACTORY_WIRING_R1",
+      "admissionPath": "governance/authority/publication-admissions/GATE24/P3E_YAHOO_PROVIDER_FACTORY_WIRING_PUBLICATION_ADMISSION_R1.json",
+      "admissionDigest": "db8525c0157e1521041272b5d0b3cd8213266c8451a7aeda49f946eeed68ac6a"
+    }
+  ],
+  "registryDigest": "62c01b2159d482f015016c8f88e25be49a09c0982faae05910fc3c2927eb9096"
+}

@@ -1,0 +1,72 @@
+{
+  "documentKind": "MAINTENANCE_PUBLICATION_ADMISSION",
+  "schemaVersion": 1,
+  "authorityMode": "LOCAL_EXPLICIT_AUTHORITY",
+  "issuedBy": "PROJECT_OWNER",
+  "admissionId": "P3E_YAHOO_PROVIDER_FACTORY_WIRING_PUBLICATION_ADMISSION_R1",
+  "decisionId": "P3E_YAHOO_PROVIDER_FACTORY_WIRING_OWNER_DECISION_R1",
+  "issuedAtUtc": "2026-09-06T00:00:00.000Z",
+  "expiresAtUtc": null,
+  "projectId": "WHEEL",
+  "repositoryId": "WHEEL_MCP_CANONICAL",
+  "gateId": "GATE24",
+  "programId": "P3E_YAHOO_PROVIDER_FACTORY_WIRING_R1",
+  "purpose": "MAINTENANCE_PUBLICATION_ADMISSION",
+  "publicationClass": "PATH_PRESTATE_PROGRAM_PUBLISHER",
+  "authorityPurpose": "NORMAL_MAINTENANCE",
+  "maxUse": 1,
+  "admissionStatement": "One exact Owner admission for the bounded P3E Yahoo provider factory wiring program. It publishes two CREATE factory artifacts, three MODIFY transport-wiring artifacts, and one publisher-generated consumption receipt. It does not mutate P3 dataset identity JSON, does not change prepared execution-authority semantics, performs no network acquisition, no Yahoo fetch, no HTTP call, no IBKR access and no macro ingestion. It does not start or ratify GATE25, appends no ledger event and does not switch ACTIVE_GATE. Creating these candidate bytes does not itself constitute Owner approval or activation. Final publication of this admission requires a later explicit Owner ratification of the Owner-authorization candidate.",
+  "admittedAuthority": {
+    "path": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_P3E_YAHOO_PROVIDER_FACTORY_WIRING_R1.json",
+    "sha256": "54b8f4c95ee51b72c7a0346931cd86454cd565ed4aeaf6c9330d632d125d5e75",
+    "byteLength": 2128,
+    "schemaVersion": 2,
+    "documentId": "P3E_YAHOO_PROVIDER_FACTORY_WIRING_LOCAL_AUTHORITY_R1"
+  },
+  "admittedManifest": {
+    "path": "governance/historical-architecture/P3E_YAHOO_PROVIDER_FACTORY_WIRING_AUTHORIZED_PATHS_R1.json",
+    "sha256": "f16b55826768b22ec99f11fc15a0c87f79baab702ed46dfc622f94b25d87eb2c",
+    "byteLength": 3025,
+    "schemaVersion": 2,
+    "documentId": "P3E_YAHOO_PROVIDER_FACTORY_WIRING_AUTHORIZED_PATHS_R1"
+  },
+  "admittedPrestate": {
+    "baseHead": "86ecc76e5bfabdf3c4d7289bb4d73db7a5dfdfa0",
+    "ledgerEventCount": 104,
+    "ledgerPrefixSha256": "2def19c84b7581da0ab54d2d1ba9d68f5bc2ce40e108443cfbd086835a0116da",
+    "gateId": "GATE24",
+    "gateStatus": "COMPLETE_CONFIRMED",
+    "stateRevision": "R0005",
+    "contractRevision": "R0002",
+    "activeGate": "GATE13",
+    "R8ExpectedAbsent": true
+  },
+  "admittedOperationClasses": [
+    "MAINTENANCE"
+  ],
+  "grantsFutureBytePermission": false,
+  "grantsGateAuthorizationPermission": false,
+  "grantsStartPermission": false,
+  "grantsStatusTransitionPermission": false,
+  "grantsHistoricalAdmissionWidening": false,
+  "genericV1Admission": false,
+  "derivedFromGitDelta": false,
+  "derivedFromFinalGateIntegrityFindings": false,
+  "prohibitedOperations": [
+    "START",
+    "SECOND_START",
+    "GATE_AUTHORIZATION",
+    "STATUS_TRANSITION",
+    "ACTIVE_GATE_SWITCH",
+    "GEE_R8",
+    "GIT_PUSH",
+    "HISTORY_REWRITE",
+    "GENERIC_V1_ADMISSION",
+    "HISTORICAL_ADMISSION_WIDENING",
+    "SELF_ADMISSION"
+  ],
+  "successorRequirement": "A later publication requires a new exact Owner admission over a new exact pre-state. This candidate Owner-authorization is prepared for later explicit Owner ratification and is not itself an issued ratification.",
+  "admissionDigest": "db8525c0157e1521041272b5d0b3cd8213266c8451a7aeda49f946eeed68ac6a",
+  "ownerAuthorizationPath": "governance/sources/MAINTENANCE_PUBLICATION_ADMISSION_OWNER_AUTHORIZATION_P3E_YAHOO_PROVIDER_FACTORY_WIRING_R1.json",
+  "ownerAuthorizationSha256": "d861f783ef8087ae99cd6087b8bb25096f19d2f39e10ccc3f34485c0ad66df7e"
+}

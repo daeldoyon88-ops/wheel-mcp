@@ -39,6 +39,7 @@ import {
   createJarviseYahooFetchOnceAcquirerR1,
   resolveEffectiveAcquisitionAuthorityR1,
 } from '../app/jarvise/jarviseYahooFetchOnceAcquirerR1.mjs';
+import { createJarviseYahooFinance2ChartClientR1 } from '../app/jarvise/jarviseYahooFinance2ChartClientFactoryR1.mjs';
 import {
   JARVISE_SNAPSHOT_PERSISTENCE_VERSION,
   createJarviseSnapshotDirectoryJournalR1,
@@ -309,6 +310,7 @@ if (invokedDirectly) {
   runJarviseHistoricalFetchOnceR1({
     acquisitionRoot: parsed.acquisitionRoot,
     executionGrantPath: parsed.executionGrantPath,
+    createProviderClient: createJarviseYahooFinance2ChartClientR1,
   })
     .then((summary) => {
       process.stdout.write(`${JSON.stringify(summary, null, 2)}\n`);

@@ -51,6 +51,10 @@ import {
   parseJarviseHistoricalFetchOnceArgsR1,
   runJarviseHistoricalFetchOnceR1,
 } from '../../scripts/runJarviseHistoricalFetchOnceR1.mjs';
+import {
+  createJarviseYahooFinance2ChartClientR1,
+  projectYahooFinance2HttpErrorR1,
+} from './jarviseYahooFinance2ChartClientFactoryR1.mjs';
 
 const REPOSITORY_ROOT = fileURLToPath(new URL('../..', import.meta.url));
 const PREPARED_AUTHORITY_URL = new URL('./jarviseFetchOnceExecutionAuthorityR1.json', import.meta.url);
@@ -970,4 +974,408 @@ test('P3-S1b-P2 runner does not mkdir a junction child before containment proof'
   } finally {
     rmSync(scratch, { recursive: true, force: true });
   }
+});
+
+function p3eHttpError(code) {
+  const error = new Error(`p3e stub HTTP ${code}`);
+  error.name = 'HTTPError';
+  error.code = code;
+  return error;
+}
+
+test('P3E-T2 no grant means zero provider-factory creation', async (t) => {
+  const acquisitionRoot = temporaryAcquisitionRoot(t);
+  let factoryCalls = 0;
+  const acquirer = makeAcquirer(t, {
+    acquisitionRoot,
+    authority: resolveEffectiveAcquisitionAuthorityR1({ root: REPOSITORY_ROOT, executionGrant: null }),
+    createProviderClient: async () => {
+      factoryCalls += 1;
+      assert.fail('P3E-T2 factory must not run without a grant');
+    },
+  });
+  await assert.rejects(
+    () => acquirer.acquireRawBytesFor(planEntry()),
+    (error) => error.code === 'ACQUIRER_NOT_AUTHORIZED',
+  );
+  assert.equal(factoryCalls, 0);
+  assert.equal(acquirer.providerClientConstructed(), false);
+  assert.equal(countDurableAttemptReservationsR1(acquisitionRoot), 0);
+});
+
+test('P3E-T3 unsafe acquisition root means zero provider-factory creation', async () => {
+  let factoryCalls = 0;
+  assert.throws(
+    () => createJarviseYahooFetchOnceAcquirerR1({
+      authority: activatedAuthority(),
+      acquisitionRoot: REPOSITORY_ROOT,
+      gitRoot: REPOSITORY_ROOT,
+      permittedAcquisitionKeys: permittedKeys(),
+      journal: EMPTY_JOURNAL,
+      createProviderClient: async () => {
+        factoryCalls += 1;
+        assert.fail('P3E-T3 factory must not run for an in-repo root');
+      },
+    }),
+    (error) => error.code === 'ACQUISITION_ROOT_INSIDE_REPOSITORY',
+  );
+  assert.equal(factoryCalls, 0);
+});
+
+test('P3E-T4 invalid grant means zero provider-factory creation', async (t) => {
+  assert.throws(
+    () => resolveEffectiveAcquisitionAuthorityR1({
+      root: REPOSITORY_ROOT,
+      executionGrant: { ...TEST_EXECUTION_GRANT, preparedAuthoritySha256: 'f'.repeat(64) },
+    }),
+    (error) => error.code === 'EXECUTION_GRANT_BINDING_MISMATCH',
+  );
+  const acquisitionRoot = temporaryAcquisitionRoot(t);
+  let factoryCalls = 0;
+  await assert.rejects(
+    () => runJarviseHistoricalFetchOnceR1({
+      root: REPOSITORY_ROOT,
+      gitRoot: REPOSITORY_ROOT,
+      acquisitionRoot,
+      executionGrant: { ...TEST_EXECUTION_GRANT, networkAuthorized: false },
+      createProviderClient: async () => {
+        factoryCalls += 1;
+        assert.fail('P3E-T4 factory must not run for an invalid grant');
+      },
+    }),
+    (error) => error.code === 'EXECUTION_GRANT_INVALID' || error.message.includes('EXECUTION_GRANT_INVALID'),
+  );
+  assert.equal(factoryCalls, 0);
+});
+
+test('P3E-T5 valid authority but reservation cannot be acquired means zero chart call', async (t) => {
+  const acquisitionRoot = temporaryAcquisitionRoot(t);
+  const reservationsRoot = join(acquisitionRoot, 'reservations');
+  mkdirSync(reservationsRoot, { recursive: true });
+  for (let index = 0; index < STRUCTURAL_MAX_PROVIDER_INVOCATION_COUNT; index += 1) {
+    const hex = createHash('sha256').update(`p3e-t5-seed-${index}`, 'utf8').digest('hex');
+    const dir = join(reservationsRoot, hex);
+    mkdirSync(dir, { recursive: true });
+    writeFileSync(join(dir, '1.json'), `${JSON.stringify({ schemaVersion: 'JarviseYahooFetchOnceAttemptReservation/1', seed: index })}\n`, { flag: 'wx' });
+  }
+  let factoryCalls = 0;
+  let chartCalls = 0;
+  const acquirer = makeAcquirer(t, {
+    acquisitionRoot,
+    createProviderClient: async () => {
+      factoryCalls += 1;
+      return {
+        chart: async () => {
+          chartCalls += 1;
+          assert.fail('P3E-T5 chart must not run when a reservation cannot be acquired');
+        },
+      };
+    },
+  });
+  await assert.rejects(
+    () => acquirer.acquireRawBytesFor(planEntry()),
+    (error) => error.code === 'ACQUIRER_INVOCATION_CEILING_REACHED',
+  );
+  assert.equal(factoryCalls, 0);
+  assert.equal(chartCalls, 0);
+  assert.equal(acquirer.providerClientConstructed(), false);
+});
+
+test('P3E-T6 factory is invoked only after a durable reservation is committed', async (t) => {
+  const acquisitionRoot = temporaryAcquisitionRoot(t);
+  const entry = planEntry();
+  const events = [];
+  const acquirer = makeAcquirer(t, {
+    acquisitionRoot,
+    createProviderClient: async () => {
+      events.push({
+        at: 'factory',
+        reserved: countDurableAttemptsForKeyR1(acquisitionRoot, entry.acquisitionKey),
+      });
+      return {
+        chart: async (symbol, params) => {
+          events.push({
+            at: 'chart',
+            reserved: countDurableAttemptsForKeyR1(acquisitionRoot, entry.acquisitionKey),
+            symbol,
+            params,
+          });
+          return chartFor(symbol);
+        },
+      };
+    },
+  });
+  const bytes = await acquirer.acquireRawBytesFor(entry);
+  assert.ok(Buffer.isBuffer(bytes));
+  assert.equal(events.length, 2);
+  assert.equal(events[0].at, 'factory');
+  assert.equal(events[0].reserved, 1);
+  assert.equal(events[1].at, 'chart');
+  assert.equal(events[1].reserved, 1);
+  assert.equal(existsSync(jarviseAttemptReservationPathR1(acquisitionRoot, entry.acquisitionKey, 1)), true);
+  assert.equal(events[1].symbol, entry.acquisitionRequestIdentity.providerSymbol);
+  assert.deepEqual(events[1].params, {
+    period1: entry.acquisitionRequestIdentity.period1,
+    period2: entry.acquisitionRequestIdentity.period2,
+    interval: entry.acquisitionRequestIdentity.interval,
+    events: 'div|split',
+    return: 'array',
+  });
+});
+
+test('P3E-T6A concurrent first-client construction remains memoized to one client', async (t) => {
+  const acquisitionRoot = temporaryAcquisitionRoot(t);
+  let factoryCalls = 0;
+  let inFlight = 0;
+  let maxInFlight = 0;
+  const gate = { release: null };
+  const hold = new Promise((resolve) => {
+    gate.release = resolve;
+  });
+  const acquirer = makeAcquirer(t, {
+    acquisitionRoot,
+    createProviderClient: async () => {
+      factoryCalls += 1;
+      inFlight += 1;
+      maxInFlight = Math.max(maxInFlight, inFlight);
+      await hold;
+      inFlight -= 1;
+      return {
+        chart: async (symbol) => chartFor(symbol),
+      };
+    },
+  });
+  const first = acquirer.acquireRawBytesFor(planEntry(0));
+  const second = acquirer.acquireRawBytesFor(planEntry(1));
+  const started = Date.now();
+  while (Date.now() - started < 5_000 && factoryCalls === 0) {
+    await delay(10);
+  }
+  assert.equal(factoryCalls, 1, 'only one factory construction may start');
+  gate.release();
+  const [bytesA, bytesB] = await Promise.all([first, second]);
+  assert.ok(Buffer.isBuffer(bytesA));
+  assert.ok(Buffer.isBuffer(bytesB));
+  assert.equal(factoryCalls, 1);
+  assert.equal(maxInFlight, 1);
+  assert.equal(acquirer.providerClientConstructed(), true);
+  assert.equal(acquirer.providerInvocations(), 2);
+});
+
+test('P3E-T7 exactly one chart invocation per reserved provider invocation', async (t) => {
+  const entry = planEntry();
+  let factoryCalls = 0;
+  let chartCalls = 0;
+  const acquirer = makeAcquirer(t, {
+    createProviderClient: async () => {
+      factoryCalls += 1;
+      return {
+        chart: async (symbol) => {
+          chartCalls += 1;
+          return chartFor(symbol);
+        },
+      };
+    },
+  });
+  await acquirer.acquireRawBytesFor(entry);
+  assert.equal(factoryCalls, 1);
+  assert.equal(chartCalls, 1);
+  assert.equal(acquirer.providerInvocations(), 1);
+  assert.equal(acquirer.attemptsFor(entry.acquisitionKey), 1);
+});
+
+test('P3E-T8 same-key concurrency still permits maximum one provider contact', async (t) => {
+  const acquisitionRoot = temporaryAcquisitionRoot(t);
+  const markerA = temporaryAcquisitionRoot(t);
+  const markerB = temporaryAcquisitionRoot(t);
+  const releasePath = join(markerA, 'RELEASE');
+  writeFileSync(join(markerA, 'child-a.mjs'), childScript({
+    mode: 'hold-in-flight', acquisitionRoot, markerDir: markerA, releasePath,
+  }));
+  writeFileSync(join(markerB, 'child-b.mjs'), childScript({
+    mode: 'success', acquisitionRoot, markerDir: markerB,
+  }));
+  const childA = spawnChild(join(markerA, 'child-a.mjs'));
+  t.after(() => {
+    childA.kill();
+  });
+  const readyDeadline = Date.now() + 60_000;
+  while (Date.now() < readyDeadline && !existsSync(join(markerA, `IN_FLIGHT_${childA.pid}`))) {
+    await delay(50);
+  }
+  assert.equal(existsSync(join(markerA, `PROVIDER_CONTACTED_${childA.pid}`)), true, 'A must contact the provider stub');
+  const childB = spawnChild(join(markerB, 'child-b.mjs'));
+  t.after(() => {
+    childB.kill();
+  });
+  const statusB = await new Promise((resolveStatus) => childB.on('exit', (code) => resolveStatus(code)));
+  assert.notEqual(statusB, 0);
+  assert.equal(existsSync(join(markerB, `PROVIDER_CONTACTED_${childB.pid}`)), false, 'B must not contact the provider');
+  writeFileSync(releasePath, '1');
+  await new Promise((resolveStatus) => childA.on('exit', (code) => resolveStatus(code)));
+});
+
+test('P3E-T9 timeout conditions remain retryable TIMEOUT through the factory wrapper', async (t) => {
+  let chartCalls = 0;
+  const acquirer = makeAcquirer(t, {
+    createProviderClient: () => createJarviseYahooFinance2ChartClientR1({
+      loadYahooFinance2: async () => ({
+        default: class {
+          async chart() {
+            chartCalls += 1;
+            const error = new Error('stub timeout');
+            error.code = 'ETIMEDOUT';
+            throw error;
+          }
+        },
+      }),
+    }),
+  });
+  await assert.rejects(
+    () => acquirer.acquireRawBytesFor(planEntry()),
+    (error) => error.code === 'ACQUIRER_RETRY_BUDGET_EXHAUSTED',
+  );
+  assert.equal(chartCalls, 3);
+  const classified = classifyAcquisitionFailureR1(projectYahooFinance2HttpErrorR1(Object.assign(new Error('timed out'), { code: 'ETIMEDOUT' })));
+  assert.equal(classified.condition, 'TIMEOUT');
+  assert.equal(classified.retryEligible, true);
+});
+
+test('P3E-T10 HTTPError 429 is classified PROVIDER_RATE_LIMITED / retryable', async (t) => {
+  let chartCalls = 0;
+  const acquirer = makeAcquirer(t, {
+    createProviderClient: () => createJarviseYahooFinance2ChartClientR1({
+      loadYahooFinance2: async () => ({
+        default: class {
+          async chart() {
+            chartCalls += 1;
+            throw p3eHttpError(429);
+          }
+        },
+      }),
+    }),
+  });
+  await assert.rejects(
+    () => acquirer.acquireRawBytesFor(planEntry()),
+    (error) => error.code === 'ACQUIRER_RETRY_BUDGET_EXHAUSTED',
+  );
+  assert.equal(chartCalls, 3);
+  const classified = classifyAcquisitionFailureR1(projectYahooFinance2HttpErrorR1(p3eHttpError(429)));
+  assert.equal(classified.condition, 'PROVIDER_RATE_LIMITED');
+  assert.equal(classified.retryEligible, true);
+});
+
+test('P3E-T11 HTTPError 5xx is classified PROVIDER_SERVER_ERROR / retryable', async (t) => {
+  let chartCalls = 0;
+  const acquirer = makeAcquirer(t, {
+    createProviderClient: () => createJarviseYahooFinance2ChartClientR1({
+      loadYahooFinance2: async () => ({
+        default: class {
+          async chart() {
+            chartCalls += 1;
+            throw p3eHttpError(502);
+          }
+        },
+      }),
+    }),
+  });
+  await assert.rejects(
+    () => acquirer.acquireRawBytesFor(planEntry()),
+    (error) => error.code === 'ACQUIRER_RETRY_BUDGET_EXHAUSTED',
+  );
+  assert.equal(chartCalls, 3);
+  const classified = classifyAcquisitionFailureR1(projectYahooFinance2HttpErrorR1(p3eHttpError(502)));
+  assert.equal(classified.condition, 'PROVIDER_SERVER_ERROR');
+  assert.equal(classified.retryEligible, true);
+});
+
+test('P3E-T12 malformed provider response remains terminal / fail-closed', async (t) => {
+  let chartCalls = 0;
+  const acquirer = makeAcquirer(t, {
+    createProviderClient: () => createJarviseYahooFinance2ChartClientR1({
+      loadYahooFinance2: async () => ({
+        default: class {
+          async chart() {
+            chartCalls += 1;
+            return null;
+          }
+        },
+      }),
+    }),
+  });
+  await assert.rejects(
+    () => acquirer.acquireRawBytesFor(planEntry()),
+    (error) => error.code === 'ACQUIRER_FAIL_CLOSED' && error.details.condition === 'MALFORMED_PROVIDER_RESULT',
+  );
+  assert.equal(chartCalls, 1);
+});
+
+test('P3E-T13 empty provider result remains terminal / fail-closed', async (t) => {
+  let chartCalls = 0;
+  const acquirer = makeAcquirer(t, {
+    createProviderClient: () => createJarviseYahooFinance2ChartClientR1({
+      loadYahooFinance2: async () => ({
+        default: class {
+          async chart(symbol) {
+            chartCalls += 1;
+            return { meta: { symbol }, quotes: [], events: { dividends: [], splits: [] } };
+          }
+        },
+      }),
+    }),
+  });
+  await assert.rejects(
+    () => acquirer.acquireRawBytesFor(planEntry()),
+    (error) => error.code === 'ACQUIRER_FAIL_CLOSED' && error.details.condition === 'EMPTY_PROVIDER_RESULT',
+  );
+  assert.equal(chartCalls, 1);
+});
+
+test('P3E-T14 RAW_PINNED prevents provider factory and chart refetch', async (t) => {
+  const store = temporaryStore(t);
+  const journal = createJarviseSnapshotMemoryJournalR1();
+  const authority = activatedAuthority();
+  const entry = planEntry();
+  const bytes = canonicalProviderResultBytesR1(chartFor(entry.acquisitionRequestIdentity.providerSymbol));
+  const persistence = createJarviseSnapshotPersistenceR1({ store, journal, acquisitionAuthority: authority });
+  persistence.pinRawOnce({
+    acquisitionKey: entry.acquisitionKey,
+    acquisition: {
+      sourceAcquiredAt: '2026-09-05T12:00:00.000Z',
+      ingestedIntoLabAt: '2026-09-05T12:00:01.000Z',
+      acquisitionMethod: ACQUISITION_METHOD,
+      acquisitionToolVersion: 'runJarviseHistoricalFetchOnceR1/1',
+      acquisitionRequestIdentity: entry.acquisitionRequestIdentity,
+      acquisitionEvidenceIds: [],
+    },
+    acquireRawBytes: () => bytes,
+  });
+  let factoryCalls = 0;
+  const acquirer = makeAcquirer(t, {
+    journal,
+    createProviderClient: async () => {
+      factoryCalls += 1;
+      assert.fail('P3E-T14 RAW_PINNED must not construct a factory client');
+    },
+  });
+  await assert.rejects(
+    () => acquirer.acquireRawBytesFor(entry),
+    (error) => error.code === 'ACQUIRER_REFETCH_FORBIDDEN',
+  );
+  assert.equal(factoryCalls, 0);
+  assert.equal(acquirer.providerClientConstructed(), false);
+});
+
+test('P3E programmatic runner still fail-closes when createProviderClient is omitted', async (t) => {
+  const acquisitionRoot = temporaryAcquisitionRoot(t);
+  const summary = await runJarviseHistoricalFetchOnceR1({
+    root: REPOSITORY_ROOT,
+    gitRoot: REPOSITORY_ROOT,
+    acquisitionRoot,
+    executionGrant: TEST_EXECUTION_GRANT,
+    limit: 1,
+  });
+  assert.equal(summary.failed, 1);
+  assert.equal(summary.acquired, 0);
+  assert.equal(summary.results[0].error.code === 'ACQUIRER_FAIL_CLOSED' || summary.results[0].error.code === 'ACQUIRER_PROVIDER_UNAVAILABLE', true);
 });

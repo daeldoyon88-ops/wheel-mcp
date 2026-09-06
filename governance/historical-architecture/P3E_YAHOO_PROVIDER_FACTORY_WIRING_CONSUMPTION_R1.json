@@ -1,0 +1,64 @@
+{
+  "documentKind": "POST_FREEZE_MAINTENANCE_AUTHORITY_CONSUMPTION",
+  "schemaVersion": 2,
+  "authorityId": "P3E_YAHOO_PROVIDER_FACTORY_WIRING_LOCAL_AUTHORITY_R1",
+  "programId": "P3E_YAHOO_PROVIDER_FACTORY_WIRING_R1",
+  "manifestSha256": "f16b55826768b22ec99f11fc15a0c87f79baab702ed46dfc622f94b25d87eb2c",
+  "baseHead": "86ecc76e5bfabdf3c4d7289bb4d73db7a5dfdfa0",
+  "consumedUse": 1,
+  "transactionId": "P3E_YAHOO_PROVIDER_FACTORY_WIRING_R1_TRANSACTION",
+  "recordedAt": "2026-09-06T11:09:43.485Z",
+  "commitMessage": "jarvise: P3E Yahoo provider factory wiring (no network, no execution grant)",
+  "publicationAdmission": {
+    "admissionId": "P3E_YAHOO_PROVIDER_FACTORY_WIRING_PUBLICATION_ADMISSION_R1",
+    "admissionPath": "governance/authority/publication-admissions/GATE24/P3E_YAHOO_PROVIDER_FACTORY_WIRING_PUBLICATION_ADMISSION_R1.json",
+    "admissionSha256": "6e2aca548d08d068fe7d5198cfe63291b49fe5fc7073c80eedb4ddef593ba82e"
+  },
+  "cohortSelfExclusion": {
+    "path": "governance/historical-architecture/P3E_YAHOO_PROVIDER_FACTORY_WIRING_CONSUMPTION_R1.json",
+    "reason": "The consumption record cannot hash its own final bytes; its identity is bound by the authority and manifest instead."
+  },
+  "cohortPathCount": 6,
+  "cohort": [
+    {
+      "path": "app/jarvise/jarviseYahooFinance2ChartClientFactoryR1.mjs",
+      "sha256": "fd947ead1009529a63dab05ed64d3a6845ecc37e0542b2e167d5dbb46ccb2772",
+      "byteLength": 4620,
+      "operation": "CREATE",
+      "reason": "P3E factory: lazily constructs the yahoo-finance2@3.14.0 chart surface after a durable reservation, with no module-scope Yahoo import and no live cache reuse.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "app/jarvise/jarviseYahooFinance2ChartClientFactoryR1.test.mjs",
+      "sha256": "97ecfc4a7826431296db2da7f2ec344567f6967c2307563b2c46db10b8a0828d",
+      "byteLength": 10509,
+      "operation": "CREATE",
+      "reason": "P3E factory tests: fake loader only, HTTPError numeric projection, zero Yahoo/network contact.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "scripts/runJarviseHistoricalFetchOnceR1.mjs",
+      "sha256": "a7fdfb8a294dee9c0b043e0fd67f9ca9c06b5c420a2d113cdbda0957613717d8",
+      "byteLength": 12634,
+      "operation": "MODIFY",
+      "reason": "Inject createJarviseYahooFinance2ChartClientR1 only on the direct CLI execution path; programmatic callers that omit createProviderClient remain fail-closed.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "app/jarvise/jarviseYahooFetchOnceAcquirerR1.mjs",
+      "sha256": "0c1c0aa6794805c5d64e1b35bd8a7a04b49858ee1be731f319f35cfb52041400",
+      "byteLength": 38984,
+      "operation": "MODIFY",
+      "reason": "Await createProviderClient only after durable reservation commit, with one-client-per-acquirer promise memoization. Retry taxonomy unchanged.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "app/jarvise/jarviseYahooFetchOnceAcquirerR1.test.mjs",
+      "sha256": "3b841ddceb7a2254abb222cc127e1544dac4a2a0d27dae8c5f0c610243d11420",
+      "byteLength": 57326,
+      "operation": "MODIFY",
+      "reason": "P3E acquirer coverage: authority/reservation-before-factory ordering, memoized first-client construction, HTTPError projection through the existing classifier.",
+      "artifactClass": "MAINTENANCE"
+    }
+  ]
+}

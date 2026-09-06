@@ -557,7 +557,7 @@ function commitOwnedTerminal(input) {
  *   permittedAcquisitionKeys: Iterable<string>,
  *   journal?: {readEntry: Function},
  *   readPersistenceStage?: (acquisitionKey: string) => string|null,
- *   createProviderClient?: () => {chart: Function},
+ *   createProviderClient?: () => ({chart: Function}|Promise<{chart: Function}>),
  *   sleep?: (ms: number) => Promise<void>,
  * }} options
  */
@@ -608,6 +608,7 @@ export function createJarviseYahooFetchOnceAcquirerR1(options) {
   }
 
   let client = null;
+  let clientInFlight = null;
 
   function readPersistenceStage(acquisitionKey) {
     if (typeof options.readPersistenceStage === 'function') {
@@ -646,19 +647,32 @@ export function createJarviseYahooFetchOnceAcquirerR1(options) {
 
   /**
    * Provider factory is unreachable until a durable reservation is held.
+   * One in-flight construction is memoized so concurrent first-client awaits
+   * cannot race into multiple factory calls.
    * @param {string} acquisitionKey
    */
-  function providerClientAfterReservation(acquisitionKey) {
-    if (client === null) {
+  async function providerClientAfterReservation(acquisitionKey) {
+    if (client !== null) return client;
+    if (clientInFlight === null) {
       if (typeof options.createProviderClient !== 'function') {
         fail('ACQUIRER_PROVIDER_UNAVAILABLE', 'no provider client factory was supplied', { acquisitionKey });
       }
-      client = options.createProviderClient();
-      if (!client || typeof client.chart !== 'function') {
-        fail('ACQUIRER_PROVIDER_UNAVAILABLE', 'provider client must expose a chart function', { acquisitionKey });
-      }
+      clientInFlight = Promise.resolve()
+        .then(() => options.createProviderClient())
+        .then((constructed) => {
+          if (!constructed || typeof constructed.chart !== 'function') {
+            fail('ACQUIRER_PROVIDER_UNAVAILABLE', 'provider client must expose a chart function', { acquisitionKey });
+          }
+          client = constructed;
+          return constructed;
+        });
     }
-    return client;
+    try {
+      return await clientInFlight;
+    } catch (error) {
+      if (client === null) clientInFlight = null;
+      throw error;
+    }
   }
 
   /**
@@ -821,7 +835,7 @@ export function createJarviseYahooFetchOnceAcquirerR1(options) {
 
       let chartResult;
       try {
-        chartResult = await providerClientAfterReservation(acquisitionKey).chart(identity.providerSymbol, chartParams);
+        chartResult = await (await providerClientAfterReservation(acquisitionKey)).chart(identity.providerSymbol, chartParams);
       } catch (error) {
         const classified = classifyAcquisitionFailureR1(error);
         lastFailure = { ...classified, message: /** @type {Error} */ (error)?.message ?? null };

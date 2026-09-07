@@ -30,20 +30,25 @@ import { canonicalProviderResultBytesR1 } from './jarviseYahooChartAdapterR1.mjs
 import {
   ATTEMPT_STATE_ABANDONED,
   ATTEMPT_STATE_FAILED_RETRYABLE,
+  ATTEMPT_STATE_FAILED_TERMINAL,
   RETRY_ELIGIBLE_CONDITIONS,
   RETRY_INELIGIBLE_CONDITIONS,
   STRUCTURAL_MAX_ATTEMPTS_PER_EMPTY_KEY,
   STRUCTURAL_MAX_PROVIDER_INVOCATION_COUNT,
   assertExternalAcquisitionRootR1,
+  canonicalChartParamsR1,
   classifyAcquisitionFailureR1,
   countDurableAttemptReservationsR1,
   countDurableAttemptsForKeyR1,
   createJarviseYahooFetchOnceAcquirerR1,
+  inspectJarviseAttemptR1,
   jarviseAttemptReservationPathR1,
   jarviseAttemptTerminalPathR1,
+  mutableProviderChartParamsR1,
   resolveEffectiveAcquisitionAuthorityR1,
 } from './jarviseYahooFetchOnceAcquirerR1.mjs';
 import {
+  createJarviseSnapshotDirectoryJournalR1,
   createJarviseSnapshotMemoryJournalR1,
   createJarviseSnapshotPersistenceR1,
 } from './jarviseSnapshotPersistenceR1.mjs';
@@ -54,7 +59,15 @@ import {
 import {
   createJarviseYahooFinance2ChartClientR1,
   projectYahooFinance2HttpErrorR1,
+  extractP3ePerCallFetchTransportCodeR1,
 } from './jarviseYahooFinance2ChartClientFactoryR1.mjs';
+import {
+  ATTEMPT_RESERVATION_SCHEMA_VERSION_V2,
+  CANONICAL_PREPARED_AUTHORITY_SHA256,
+  assertGitCanonicalTrackedWorktreeEquivalenceR1,
+  loadOwnerIncidentRecoveryGrantR1,
+  parseOwnerIncidentRecoveryGrantObjectR1,
+} from './jarviseYahooIncidentRecoveryAuthorizationR1.mjs';
 
 const REPOSITORY_ROOT = fileURLToPath(new URL('../..', import.meta.url));
 const PREPARED_AUTHORITY_URL = new URL('./jarviseFetchOnceExecutionAuthorityR1.json', import.meta.url);
@@ -116,6 +129,15 @@ function providerError(code, status) {
   const error = new Error(`stub provider failure ${code}`);
   if (code) error.code = code;
   if (status !== undefined) error.status = status;
+  return error;
+}
+
+/** @param {string} code */
+function p3eTransportError(code) {
+  const error = new TypeError('fetch failed');
+  error.p3eTransportFailure = Object.freeze({ source: 'P3E_PER_CALL_FETCH', code });
+  error.p3eOwnedTimeoutAbort = false;
+  error.p3eHttpCapture = Object.freeze({ responseSeen: false, responseStatus: null });
   return error;
 }
 
@@ -216,12 +238,14 @@ const acquirer = createJarviseYahooFetchOnceAcquirerR1({
           }
           const held = new Error('stub timeout after in-flight hold');
           held.code = 'ETIMEDOUT';
+          held.p3eTransportFailure = { source: 'P3E_PER_CALL_FETCH', code: 'ETIMEDOUT' };
           writeFileSync(markerDir + '/PROVIDER_LEAVE_' + process.pid, '1');
           throw held;
         }
         if (mode === 'timeout-once') {
           const error = new Error('stub timeout');
           error.code = 'ETIMEDOUT';
+          error.p3eTransportFailure = { source: 'P3E_PER_CALL_FETCH', code: 'ETIMEDOUT' };
           writeFileSync(markerDir + '/PROVIDER_LEAVE_' + process.pid, '1');
           throw error;
         }
@@ -376,7 +400,7 @@ test('P3-F6 a retry-eligible failure retries at most 3 times, then fails closed'
     createProviderClient: () => ({
       chart: async () => {
         calls += 1;
-        throw providerError('ETIMEDOUT');
+        throw p3eTransportError('ETIMEDOUT');
       },
     }),
   });
@@ -474,7 +498,7 @@ test('P3-F10 the retry taxonomy matches the ratified decision exactly', () => {
     'MALFORMED_PROVIDER_RESULT', 'EMPTY_PROVIDER_RESULT', 'DIGEST_DIVERGENCE',
     'CAS_DIVERGENCE', 'SCHEMA_FAILURE', 'AUTHORIZATION_FAILURE',
   ]);
-  assert.equal(classifyAcquisitionFailureR1(providerError('ETIMEDOUT')).retryEligible, true);
+  assert.equal(classifyAcquisitionFailureR1(p3eTransportError('ETIMEDOUT')).retryEligible, true);
   assert.equal(classifyAcquisitionFailureR1(providerError(undefined, 429)).retryEligible, true);
   assert.equal(classifyAcquisitionFailureR1(providerError(undefined, 502)).retryEligible, true);
   assert.equal(classifyAcquisitionFailureR1(providerError(undefined, 404)).retryEligible, false);
@@ -869,8 +893,6 @@ test('P3-R8a acquisition root equal or inside the repository fails closed', asyn
   );
   await assert.rejects(
     () => runJarviseHistoricalFetchOnceR1({
-      root: REPOSITORY_ROOT,
-      gitRoot: REPOSITORY_ROOT,
       acquisitionRoot: REPOSITORY_ROOT,
       executionGrant: TEST_EXECUTION_GRANT,
       createProviderClient: () => assert.fail('runner must not construct a provider for an in-repo root'),
@@ -879,15 +901,13 @@ test('P3-R8a acquisition root equal or inside the repository fails closed', asyn
   );
   await assert.rejects(
     () => runJarviseHistoricalFetchOnceR1({
-      root: REPOSITORY_ROOT,
-      gitRoot: REPOSITORY_ROOT,
       executionGrant: TEST_EXECUTION_GRANT,
     }),
     (error) => error.code === 'RUN_ACQUISITION_ROOT_REQUIRED',
   );
   assert.deepEqual(
     parseJarviseHistoricalFetchOnceArgsR1(['--acquisition-root', 'C:\\outside\\acq']),
-    { acquisitionRoot: 'C:\\outside\\acq', executionGrantPath: null },
+    { acquisitionRoot: 'C:\\outside\\acq', executionGrantPath: null, recoveryGrantPath: null },
   );
 });
 
@@ -981,13 +1001,12 @@ test('P3-S1b-P2 runner does not mkdir a junction child before containment proof'
   try {
     await assert.rejects(
       () => runJarviseHistoricalFetchOnceR1({
-        root: REPOSITORY_ROOT,
         gitRoot: fakeGit,
         acquisitionRoot: candidate,
         executionGrant: TEST_EXECUTION_GRANT,
         createProviderClient: () => assert.fail('runner must not construct a provider'),
       }),
-      (error) => error.code === 'ACQUISITION_ROOT_INSIDE_REPOSITORY',
+      (error) => error.code === 'RUN_GIT_ROOT_INJECTION_FORBIDDEN',
     );
     assert.equal(existsSync(join(fakeGit, 'YahooData')), false, 'runner write-before-check is forbidden');
     assert.equal(existsSync(candidate), false);
@@ -1054,8 +1073,6 @@ test('P3E-T4 invalid grant means zero provider-factory creation', async (t) => {
   let factoryCalls = 0;
   await assert.rejects(
     () => runJarviseHistoricalFetchOnceR1({
-      root: REPOSITORY_ROOT,
-      gitRoot: REPOSITORY_ROOT,
       acquisitionRoot,
       executionGrant: { ...TEST_EXECUTION_GRANT, networkAuthorized: false },
       createProviderClient: async () => {
@@ -1243,9 +1260,7 @@ test('P3E-T9 timeout conditions remain retryable TIMEOUT through the factory wra
         default: class {
           async chart() {
             chartCalls += 1;
-            const error = new Error('stub timeout');
-            error.code = 'ETIMEDOUT';
-            throw error;
+            throw p3eTransportError('ETIMEDOUT');
           }
         },
       }),
@@ -1256,7 +1271,7 @@ test('P3E-T9 timeout conditions remain retryable TIMEOUT through the factory wra
     (error) => error.code === 'ACQUIRER_RETRY_BUDGET_EXHAUSTED',
   );
   assert.equal(chartCalls, 3);
-  const classified = classifyAcquisitionFailureR1(projectYahooFinance2HttpErrorR1(Object.assign(new Error('timed out'), { code: 'ETIMEDOUT' })));
+  const classified = classifyAcquisitionFailureR1(p3eTransportError('ETIMEDOUT'));
   assert.equal(classified.condition, 'TIMEOUT');
   assert.equal(classified.retryEligible, true);
 });
@@ -1389,8 +1404,6 @@ test('P3E-T14 RAW_PINNED prevents provider factory and chart refetch', async (t)
 test('P3E programmatic runner still fail-closes when createProviderClient is omitted', async (t) => {
   const acquisitionRoot = temporaryAcquisitionRoot(t);
   const summary = await runJarviseHistoricalFetchOnceR1({
-    root: REPOSITORY_ROOT,
-    gitRoot: REPOSITORY_ROOT,
     acquisitionRoot,
     executionGrant: testExecutionGrant(acquisitionRoot),
     limit: 1,
@@ -1482,8 +1495,6 @@ test('P3F-T4/T5/T6 wrong root fails before mkdir, reservation, and provider fact
   assert.equal(existsSync(missingTarget), false);
   await assert.rejects(
     () => runJarviseHistoricalFetchOnceR1({
-      root: REPOSITORY_ROOT,
-      gitRoot: REPOSITORY_ROOT,
       acquisitionRoot: missingTarget,
       executionGrant: testExecutionGrant(boundRoot),
       createProviderClient: () => {
@@ -1534,8 +1545,6 @@ test('P3F-T9/T10/T11 same grant and bound root may resume, reuse partial state, 
   const grant = testExecutionGrant(acquisitionRoot);
   const events = { factoryCalls: 0, chartCalls: 0 };
   const first = await runJarviseHistoricalFetchOnceR1({
-    root: REPOSITORY_ROOT,
-    gitRoot: REPOSITORY_ROOT,
     acquisitionRoot,
     executionGrant: grant,
     createProviderClient: fakeChartFactory(events),
@@ -1548,8 +1557,6 @@ test('P3F-T9/T10/T11 same grant and bound root may resume, reuse partial state, 
   assert.equal(events.factoryCalls, 1);
   assert.equal(events.chartCalls, 1);
   const second = await runJarviseHistoricalFetchOnceR1({
-    root: REPOSITORY_ROOT,
-    gitRoot: REPOSITORY_ROOT,
     acquisitionRoot,
     executionGrant: grant,
     createProviderClient: fakeChartFactory(events),
@@ -1567,8 +1574,6 @@ test('P3F-T12 another root cannot reset budget because mismatch occurs before re
   const boundRoot = temporaryAcquisitionRoot(t);
   const events = { factoryCalls: 0, chartCalls: 0 };
   const first = await runJarviseHistoricalFetchOnceR1({
-    root: REPOSITORY_ROOT,
-    gitRoot: REPOSITORY_ROOT,
     acquisitionRoot: boundRoot,
     executionGrant: testExecutionGrant(boundRoot),
     createProviderClient: fakeChartFactory(events),
@@ -1581,8 +1586,6 @@ test('P3F-T12 another root cannot reset budget because mismatch occurs before re
   let otherFactoryCalls = 0;
   await assert.rejects(
     () => runJarviseHistoricalFetchOnceR1({
-      root: REPOSITORY_ROOT,
-      gitRoot: REPOSITORY_ROOT,
       acquisitionRoot: otherRoot,
       executionGrant: testExecutionGrant(boundRoot),
       createProviderClient: () => {
@@ -1661,7 +1664,7 @@ test('P3F-T15 current retry ceiling remains 3', async (t) => {
     createProviderClient: () => ({
       chart: async () => {
         chartCalls += 1;
-        throw providerError('ETIMEDOUT');
+        throw p3eTransportError('ETIMEDOUT');
       },
     }),
   });
@@ -1800,3 +1803,1015 @@ test('P3F-T20 no Yahoo or network is required by these tests', () => {
   assert.equal(preparedAuthority.networkAuthorized, false);
   assert.equal(preparedAuthority.executionAuthorized, false);
 });
+
+function p3hGrantFields(acquisitionRoot) {
+  return {
+    schemaVersion: 'JarviseYahooIncidentRecoveryAuthorization/1',
+    mechanism: 'OWNER_INCIDENT_RECOVERY_AUTHORIZATION',
+    recoveryMechanismVersion: 'jarviseYahooIncidentRecoveryR1/1',
+    incidentRecoveryId: 'P3G_ZERO_HTTP_MALFORMED_802_R1',
+    grantId: 'P3H-TEST-GRANT',
+    issuedAt: '2026-09-07T00:00:00.000Z',
+    issuedBy: 'PROJECT_OWNER',
+    decisionType: 'PROJECT_OWNER_INCIDENT_RECOVERY_AUTHORIZATION',
+    preparedAuthoritySha256: CANONICAL_PREPARED_AUTHORITY_SHA256,
+    providerLibraryVersion: '3.14.0',
+    acquisitionRoot,
+    digestAlgorithmIds: {
+      incidentEvidenceDigest: 'JarviseYahooIncidentOrdinal1EvidenceDigest/1',
+      reservationsOnlyDigest: 'JarviseYahooIncidentOrdinal1ReservationsDigest/1',
+      terminalsOnlyDigest: 'JarviseYahooIncidentOrdinal1TerminalsDigest/1',
+      cohort802KeyDigest: 'JarviseYahooIncidentCohort802KeyDigest/1',
+    },
+    incidentEvidenceDigest: '8af220d4b119a8b6eca03f06a50422f93c46ef8b3885cadbca6dd96e33026bea',
+    reservationsOnlyDigest: 'ed7518ee18455a6179ba8022ec2e52f02a332d8d4a4dce13379ea7887677e0b7',
+    terminalsOnlyDigest: '537e45b485522eb522821225cc873ef40d0e503b40042763c1a47556e7f93705',
+    cohort802KeyDigest: '1372f49e8b032d99e3480332a15a413b1431e27502756fe4e5d7590b5d23bc5b',
+    expectedReservationCount: 802,
+    expectedTerminalCount: 802,
+    expectedIncidentOrdinal: 1,
+    expectedCondition: 'MALFORMED_PROVIDER_RESULT',
+    expectedRetryEligible: false,
+    expectedJournalStage: 'EMPTY',
+    expectedRawPinnedCount: 0,
+    expectedOrdinal2Count: 0,
+    expectedBudgetConsumed: 802,
+    permittedNextOrdinal: 2,
+    recoveryImplementationManifestSchemaVersion: 'TransformImplementationManifest/1',
+    recoveryImplementationManifestDigest: 'a'.repeat(64),
+    implementationCommit: 'b'.repeat(40),
+    implementationTree: 'c'.repeat(40),
+  };
+}
+
+function seedOrdinal1Terminal(acquisitionRoot, entry, extra = {}) {
+  const reservationPath = jarviseAttemptReservationPathR1(acquisitionRoot, entry.acquisitionKey, 1);
+  const terminalPath = jarviseAttemptTerminalPathR1(acquisitionRoot, entry.acquisitionKey, 1);
+  mkdirSync(dirname(reservationPath), { recursive: true });
+  const reservation = {
+    schemaVersion: 'JarviseYahooFetchOnceAttemptReservation/1',
+    acquisitionKey: entry.acquisitionKey,
+    attemptOrdinal: 1,
+    attemptState: 'IN_FLIGHT',
+    ownerPid: process.pid,
+    createdAt: '2026-09-05T12:00:00.000Z',
+    acquisitionRequestIdentityHash: 'sha256:deadbeef',
+    authorityId: preparedAuthority.authorityId,
+    preparedAuthoritySha256: preparedSha256,
+  };
+  writeFileSync(reservationPath, `${JSON.stringify(reservation, null, 2)}\n`);
+  const terminal = {
+    schemaVersion: 'JarviseYahooFetchOnceAttemptTerminal/1',
+    acquisitionKey: entry.acquisitionKey,
+    attemptOrdinal: 1,
+    attemptState: ATTEMPT_STATE_FAILED_TERMINAL,
+    condition: 'MALFORMED_PROVIDER_RESULT',
+    retryEligible: false,
+    ownerPid: process.pid,
+    ...extra,
+  };
+  writeFileSync(terminalPath, `${JSON.stringify(terminal, null, 2)}\n`);
+  return { reservationPath, terminalPath };
+}
+
+function p3hHttpCapture(status, extra = {}) {
+  const error = new Error(`finance.error stub ${status}`);
+  error.p3eHttpCapture = Object.freeze({ responseSeen: true, responseStatus: status });
+  error.p3eOwnedTimeoutAbort = false;
+  Object.assign(error, extra);
+  return error;
+}
+
+test('P3H-T1 mutable copy after reservation; canonical frozen ISO intact', async (t) => {
+  const seen = [];
+  const acquirer = makeAcquirer(t, {
+    createProviderClient: () => ({
+      chart: async (_symbol, params) => {
+        seen.push(params);
+        return chartFor('X');
+      },
+    }),
+  });
+  const identity = planEntry().acquisitionRequestIdentity;
+  const canonical = canonicalChartParamsR1(identity);
+  await acquirer.acquireRawBytesFor(planEntry());
+  assert.equal(seen.length, 1);
+  assert.notEqual(seen[0], canonical);
+  assert.equal(Object.isFrozen(canonical), true);
+  assert.equal(canonical.period1, '2018-01-01T00:00:00.000Z');
+  assert.equal(canonical.period2, '2026-09-05T00:00:00.000Z');
+  assert.equal(canonical.interval, '1d');
+  assert.equal(canonical.events, 'div|split');
+  assert.equal(canonical.return, 'array');
+});
+
+test('P3H-T2 frozen canonical is a distinct object from the mutable provider copy', () => {
+  const canonical = canonicalChartParamsR1(planEntry().acquisitionRequestIdentity);
+  const mutable = mutableProviderChartParamsR1(canonical);
+  assert.notEqual(mutable, canonical);
+  mutable.period1 = new Date();
+  assert.equal(canonical.period1, '2018-01-01T00:00:00.000Z');
+});
+
+test('P3H-T5/T6/T7/T11/T12/T14 HTTP and finance.error classification', () => {
+  const rate = classifyAcquisitionFailureR1(p3hHttpCapture(429));
+  assert.equal(rate.condition, 'PROVIDER_RATE_LIMITED');
+  assert.equal(rate.retryEligible, true);
+  const server = classifyAcquisitionFailureR1(p3hHttpCapture(503));
+  assert.equal(server.condition, 'PROVIDER_SERVER_ERROR');
+  const schema = classifyAcquisitionFailureR1(p3hHttpCapture(404));
+  assert.equal(schema.condition, 'SCHEMA_FAILURE');
+  const malformed200 = classifyAcquisitionFailureR1(p3hHttpCapture(200));
+  assert.equal(malformed200.condition, 'MALFORMED_PROVIDER_RESULT');
+  assert.equal(malformed200.retryEligible, false);
+  const unknown = classifyAcquisitionFailureR1(new Error('nope'));
+  assert.equal(unknown.condition, 'MALFORMED_PROVIDER_RESULT');
+  const http429 = providerError(null, 429);
+  http429.name = 'HTTPError';
+  http429.code = 429;
+  http429.status = 429;
+  assert.equal(classifyAcquisitionFailureR1(http429).condition, 'PROVIDER_RATE_LIMITED');
+});
+
+test('P3H-T8 unowned AbortError is MALFORMED', () => {
+  const abort = new Error('aborted');
+  abort.name = 'AbortError';
+  abort.p3eTransportFailure = { source: 'P3E_PER_CALL_FETCH', code: 'ABORT_ERR' };
+  abort.p3eOwnedTimeoutAbort = false;
+  assert.equal(classifyAcquisitionFailureR1(abort).retryEligible, false);
+});
+
+test('P3H-T9 real-shape TypeError cause.code ETIMEDOUT is TIMEOUT at per-call fetch', () => {
+  const error = new TypeError('fetch failed', { cause: { code: 'ETIMEDOUT' } });
+  assert.equal(extractP3ePerCallFetchTransportCodeR1(error), 'ETIMEDOUT');
+  error.p3eTransportFailure = { source: 'P3E_PER_CALL_FETCH', code: extractP3ePerCallFetchTransportCodeR1(error) };
+  assert.equal(classifyAcquisitionFailureR1(error).condition, 'TIMEOUT');
+});
+
+test('P3H-T10 ENOTFOUND is MALFORMED', () => {
+  assert.equal(classifyAcquisitionFailureR1(p3eTransportError('ENOTFOUND')).retryEligible, false);
+  assert.equal(classifyAcquisitionFailureR1(p3eTransportError('ECONNREFUSED')).retryEligible, false);
+});
+
+test('P3H-T13 empty quotes remain EMPTY_PROVIDER_RESULT', async (t) => {
+  const acquirer = makeAcquirer(t, {
+    createProviderClient: () => ({
+      chart: async (symbol) => ({ meta: { symbol }, quotes: [], events: { dividends: [], splits: [] } }),
+    }),
+  });
+  await assert.rejects(
+    () => acquirer.acquireRawBytesFor(planEntry()),
+    (error) => error.details.condition === 'EMPTY_PROVIDER_RESULT',
+  );
+});
+
+test('P3H-T15 without recovery grant ordinal1 FAILED_TERMINAL blocks ordinal2', async (t) => {
+  const acquisitionRoot = temporaryAcquisitionRoot(t);
+  seedOrdinal1Terminal(acquisitionRoot, planEntry());
+  const acquirer = makeAcquirer(t, {
+    acquisitionRoot,
+    createProviderClient: () => ({ chart: async () => assert.fail('no chart') }),
+  });
+  await assert.rejects(
+    () => acquirer.acquireRawBytesFor(planEntry()),
+    (error) => error.code === 'ACQUIRER_RETRY_NOT_AUTHORIZED' || error.code === 'ACQUIRER_RECOVERY_GRANT_REQUIRED',
+  );
+  assert.equal(existsSync(jarviseAttemptReservationPathR1(acquisitionRoot, planEntry().acquisitionKey, 2)), false);
+});
+
+test('P3H-T16 exact waiver match creates exactly one ordinal2', async (t) => {
+  const acquisitionRoot = temporaryAcquisitionRoot(t);
+  seedOrdinal1Terminal(acquisitionRoot, planEntry());
+  const grant = parseOwnerIncidentRecoveryGrantObjectR1(p3hGrantFields(acquisitionRoot));
+  const acquirer = makeAcquirer(t, {
+    acquisitionRoot,
+    recoveryGrant: grant,
+    recoveryGrantSha256: 'd'.repeat(64),
+    verifyGitBinding: () => {},
+    validateIncidentRoot: () => {},
+    createProviderClient: () => ({ chart: async () => chartFor(planEntry().acquisitionRequestIdentity.providerSymbol) }),
+  });
+  const bytes = await acquirer.acquireRawBytesFor(planEntry());
+  assert.equal(Buffer.isBuffer(bytes) || bytes instanceof Uint8Array, true);
+  const reservation2 = JSON.parse(readFileSync(jarviseAttemptReservationPathR1(acquisitionRoot, planEntry().acquisitionKey, 2), 'utf8'));
+  assert.equal(reservation2.schemaVersion, ATTEMPT_RESERVATION_SCHEMA_VERSION_V2);
+  assert.equal(existsSync(jarviseAttemptReservationPathR1(acquisitionRoot, planEntry().acquisitionKey, 3)), false);
+});
+
+test('P3H-T17 second ordinal2 is write-once', async (t) => {
+  const acquisitionRoot = temporaryAcquisitionRoot(t);
+  seedOrdinal1Terminal(acquisitionRoot, planEntry());
+  const grant = parseOwnerIncidentRecoveryGrantObjectR1(p3hGrantFields(acquisitionRoot));
+  const acquirer = makeAcquirer(t, {
+    acquisitionRoot,
+    recoveryGrant: grant,
+    recoveryGrantSha256: 'd'.repeat(64),
+    verifyGitBinding: () => {},
+    validateIncidentRoot: () => {},
+    createProviderClient: () => ({ chart: async () => chartFor(planEntry().acquisitionRequestIdentity.providerSymbol) }),
+  });
+  await acquirer.acquireRawBytesFor(planEntry());
+  await assert.rejects(() => acquirer.acquireRawBytesFor(planEntry()));
+});
+
+test('P3H-T18 ordinal2 FAILED_RETRYABLE permits ordinal3; grant does not authorize it directly', async (t) => {
+  const acquisitionRoot = temporaryAcquisitionRoot(t);
+  seedOrdinal1Terminal(acquisitionRoot, planEntry());
+  const grant = parseOwnerIncidentRecoveryGrantObjectR1(p3hGrantFields(acquisitionRoot));
+  let calls = 0;
+  const acquirer = makeAcquirer(t, {
+    acquisitionRoot,
+    recoveryGrant: grant,
+    recoveryGrantSha256: 'd'.repeat(64),
+    verifyGitBinding: () => {},
+    validateIncidentRoot: () => {},
+    createProviderClient: () => ({
+      chart: async () => {
+        calls += 1;
+        if (calls === 1) throw p3eTransportError('ETIMEDOUT');
+        return chartFor(planEntry().acquisitionRequestIdentity.providerSymbol);
+      },
+    }),
+  });
+  await acquirer.acquireRawBytesFor(planEntry());
+  assert.equal(calls, 2);
+  assert.equal(existsSync(jarviseAttemptReservationPathR1(acquisitionRoot, planEntry().acquisitionKey, 3)), true);
+});
+
+test('P3H-T19/T37 ordinal2 FAILED_TERMINAL never waives to ordinal3', async (t) => {
+  const acquisitionRoot = temporaryAcquisitionRoot(t);
+  seedOrdinal1Terminal(acquisitionRoot, planEntry());
+  const grant = parseOwnerIncidentRecoveryGrantObjectR1(p3hGrantFields(acquisitionRoot));
+  const acquirer = makeAcquirer(t, {
+    acquisitionRoot,
+    recoveryGrant: grant,
+    recoveryGrantSha256: 'd'.repeat(64),
+    verifyGitBinding: () => {},
+    validateIncidentRoot: () => {},
+    createProviderClient: () => ({
+      chart: async () => {
+        throw p3hHttpCapture(404);
+      },
+    }),
+  });
+  await assert.rejects(() => acquirer.acquireRawBytesFor(planEntry()), (error) => error.code === 'ACQUIRER_FAIL_CLOSED');
+  assert.equal(existsSync(jarviseAttemptReservationPathR1(acquisitionRoot, planEntry().acquisitionKey, 3)), false);
+});
+
+test('P3H-T20 RAW_PINNED local continuation without recovery grant never constructs provider', async (t) => {
+  const acquisitionRoot = temporaryAcquisitionRoot(t);
+  const grant = testExecutionGrant(acquisitionRoot);
+  const events = { factoryCalls: 0, chartCalls: 0 };
+  await runJarviseHistoricalFetchOnceR1({
+    acquisitionRoot,
+    executionGrant: grant,
+    createProviderClient: fakeChartFactory(events),
+    limit: 1,
+  });
+  let secondFactory = 0;
+  const summary = await runJarviseHistoricalFetchOnceR1({
+    acquisitionRoot,
+    executionGrant: grant,
+    createProviderClient: async () => {
+      secondFactory += 1;
+      throw new Error('provider factory must not be constructed');
+    },
+    limit: 1,
+  });
+  assert.equal(secondFactory, 0);
+  assert.equal(summary.results[0].stage, 'VERSION_CACHED');
+  assert.equal(summary.reused, 1);
+});
+
+test('P3H-T21 digest/root mismatch fail closed with zero ordinal2', async (t) => {
+  const acquisitionRoot = temporaryAcquisitionRoot(t);
+  seedOrdinal1Terminal(acquisitionRoot, planEntry());
+  const otherRoot = temporaryAcquisitionRoot(t);
+  const grant = parseOwnerIncidentRecoveryGrantObjectR1(p3hGrantFields(otherRoot));
+  const acquirer = makeAcquirer(t, {
+    acquisitionRoot,
+    recoveryGrant: grant,
+    recoveryGrantSha256: 'd'.repeat(64),
+    verifyGitBinding: () => {},
+    validateIncidentRoot: () => {},
+    createProviderClient: () => ({ chart: async () => assert.fail('no chart') }),
+  });
+  await assert.rejects(() => acquirer.acquireRawBytesFor(planEntry()));
+  assert.equal(existsSync(jarviseAttemptReservationPathR1(acquisitionRoot, planEntry().acquisitionKey, 2)), false);
+});
+
+test('P3H-T24/T26/T44 budget remains 802×3=2406 with a single counter and no refund', async (t) => {
+  const acquirer = makeAcquirer(t, {
+    createProviderClient: () => ({ chart: async () => chartFor('X') }),
+  });
+  assert.equal(acquirer.describe().maxProviderInvocationCount, 2406);
+  assert.equal(acquirer.providerInvocations(), acquirer.durableProviderAttemptReservations());
+  await acquirer.acquireRawBytesFor(planEntry());
+  assert.equal(acquirer.providerInvocations(), 1);
+  assert.equal(acquirer.remainingInvocationBudget(), 2405);
+});
+
+test('P3H-T33 fresh mutable copy per ordinal uses ISO strings not mutated Dates', async (t) => {
+  const seen = [];
+  const acquirer = makeAcquirer(t, {
+    createProviderClient: () => ({
+      chart: async (_symbol, params) => {
+        seen.push({ period1: params.period1, period2: params.period2 });
+        params.period1 = new Date(params.period1);
+        throw p3eTransportError('ETIMEDOUT');
+      },
+    }),
+  });
+  await assert.rejects(() => acquirer.acquireRawBytesFor(planEntry()));
+  assert.equal(seen.length, 3);
+  for (const item of seen) {
+    assert.equal(typeof item.period1, 'string');
+    assert.equal(item.period1, '2018-01-01T00:00:00.000Z');
+  }
+});
+
+test('P3H-T35 retryable transport set is exact; unknown is MALFORMED', () => {
+  for (const code of ['ETIMEDOUT', 'UND_ERR_CONNECT_TIMEOUT', 'UND_ERR_HEADERS_TIMEOUT', 'ECONNRESET', 'UND_ERR_SOCKET', 'EAI_AGAIN']) {
+    assert.equal(classifyAcquisitionFailureR1(p3eTransportError(code)).condition, 'TIMEOUT');
+  }
+  assert.equal(classifyAcquisitionFailureR1(p3eTransportError('ESOCKETTIMEDOUT')).retryEligible, false);
+  assert.equal(classifyAcquisitionFailureR1(p3eTransportError('UND_ERR_BODY_TIMEOUT')).retryEligible, false);
+});
+
+test('P3H-T36 free-text timeout message is not retryable', () => {
+  const error = new Error('request timed out');
+  assert.equal(classifyAcquisitionFailureR1(error).retryEligible, false);
+});
+
+test('P3H-T49/T50 per-call fetch cells do not leak HTTP status', async () => {
+  let call = 0;
+  const FakeYahooFinance = class {
+    async chart(_symbol, _params, moduleOptions) {
+      const status = call === 0 ? 429 : 200;
+      call += 1;
+      const perCallFetch = moduleOptions['fetch'];
+      await perCallFetch(`https://example.invalid/${status}`, {});
+      throw Object.assign(new Error('finance.error'), {});
+    }
+  };
+  let fetchCall = 0;
+  const client = await createJarviseYahooFinance2ChartClientR1({
+    loadYahooFinance2: async () => ({ default: FakeYahooFinance }),
+    fetch: async () => {
+      const status = fetchCall === 0 ? 429 : 200;
+      fetchCall += 1;
+      return { status, headers: { getSetCookie: () => [] }, text: async () => '{}' };
+    },
+  });
+  await assert.rejects(
+    () => client.chart('A', {}),
+    (error) => error.p3eHttpCapture.responseStatus === 429,
+  );
+  await assert.rejects(
+    () => client.chart('B', {}),
+    (error) => {
+      assert.equal(error.p3eHttpCapture.responseStatus, 200);
+      assert.equal(classifyAcquisitionFailureR1(error).condition, 'MALFORMED_PROVIDER_RESULT');
+      return true;
+    },
+  );
+});
+
+test('P3H-T51 forged ordinal2 without live grant and malformed tuple fail closed', async (t) => {
+  const acquisitionRoot = temporaryAcquisitionRoot(t);
+  seedOrdinal1Terminal(acquisitionRoot, planEntry());
+  const reservation2 = jarviseAttemptReservationPathR1(acquisitionRoot, planEntry().acquisitionKey, 2);
+  mkdirSync(dirname(reservation2), { recursive: true });
+  const snapshotRes = JSON.parse(readFileSync(jarviseAttemptReservationPathR1(acquisitionRoot, planEntry().acquisitionKey, 1)));
+  const snapshotTerm = JSON.parse(readFileSync(jarviseAttemptTerminalPathR1(acquisitionRoot, planEntry().acquisitionKey, 1)));
+  const resBytes = readFileSync(jarviseAttemptReservationPathR1(acquisitionRoot, planEntry().acquisitionKey, 1));
+  const termBytes = readFileSync(jarviseAttemptTerminalPathR1(acquisitionRoot, planEntry().acquisitionKey, 1));
+  writeFileSync(reservation2, `${JSON.stringify({
+    schemaVersion: 'JarviseYahooFetchOnceAttemptReservation/2',
+    acquisitionKey: planEntry().acquisitionKey,
+    attemptOrdinal: 2,
+    attemptState: 'IN_FLIGHT',
+    ownerPid: process.pid,
+    createdAt: '2026-09-07T00:00:00.000Z',
+    acquisitionRequestIdentityHash: 'sha256:deadbeef',
+    authorityId: preparedAuthority.authorityId,
+    preparedAuthoritySha256: preparedSha256,
+    recoveryProvenance: {
+      schemaVersion: 'JarviseYahooIncidentRecoveryProvenance/1',
+      mechanism: 'OWNER_INCIDENT_RECOVERY_AUTHORIZATION',
+      incidentRecoveryId: 'P3G_ZERO_HTTP_MALFORMED_802_R1',
+      recoveryGrantId: 'FORGED',
+      recoveryGrantSha256: 'a'.repeat(64),
+      recoveryImplementationManifestSchemaVersion: 'TransformImplementationManifest/1',
+      recoveryImplementationManifestDigest: 'a'.repeat(64),
+      preparedAuthoritySha256: CANONICAL_PREPARED_AUTHORITY_SHA256,
+      incidentEvidenceDigest: '8af220d4b119a8b6eca03f06a50422f93c46ef8b3885cadbca6dd96e33026bea',
+      cohort802KeyDigest: '1372f49e8b032d99e3480332a15a413b1431e27502756fe4e5d7590b5d23bc5b',
+      acquisitionKey: planEntry().acquisitionKey,
+      attemptOrdinal: 2,
+      permittedFromIncidentOrdinal: 1,
+      ordinal1Reservation: {
+        relPath: `reservations/${createHash('sha256').update(planEntry().acquisitionKey, 'utf8').digest('hex')}/1.json`,
+        sha256: createHash('sha256').update(resBytes).digest('hex'),
+        byteLength: resBytes.byteLength,
+      },
+      ordinal1Terminal: {
+        relPath: `reservations/${createHash('sha256').update(planEntry().acquisitionKey, 'utf8').digest('hex')}/1.terminal.json`,
+        sha256: createHash('sha256').update(termBytes).digest('hex'),
+        byteLength: termBytes.byteLength,
+      },
+    },
+  }, null, 2)}\n`);
+  writeFileSync(jarviseAttemptTerminalPathR1(acquisitionRoot, planEntry().acquisitionKey, 2), `${JSON.stringify({
+    schemaVersion: 'JarviseYahooFetchOnceAttemptTerminal/1',
+    acquisitionKey: planEntry().acquisitionKey,
+    attemptOrdinal: 2,
+    attemptState: ATTEMPT_STATE_FAILED_RETRYABLE,
+    condition: 'TIMEOUT',
+    retryEligible: true,
+    ownerPid: process.pid,
+  }, null, 2)}\n`);
+  const acquirer = makeAcquirer(t, {
+    acquisitionRoot,
+    createProviderClient: () => ({ chart: async () => assert.fail('no chart') }),
+  });
+  await assert.rejects(
+    () => acquirer.acquireRawBytesFor(planEntry()),
+    (error) => error.code === 'ACQUIRER_RECOVERY_GRANT_REQUIRED',
+  );
+  assert.equal(existsSync(jarviseAttemptReservationPathR1(acquisitionRoot, planEntry().acquisitionKey, 3)), false);
+
+  const hostileRoot = temporaryAcquisitionRoot(t);
+  seedOrdinal1Terminal(hostileRoot, planEntry());
+  const hostile2 = jarviseAttemptReservationPathR1(hostileRoot, planEntry().acquisitionKey, 2);
+  mkdirSync(dirname(hostile2), { recursive: true });
+  writeFileSync(hostile2, `${JSON.stringify({
+    schemaVersion: 'JarviseYahooFetchOnceAttemptReservation/1',
+    acquisitionKey: planEntry().acquisitionKey,
+    attemptOrdinal: 2,
+    attemptState: 'IN_FLIGHT',
+    ownerPid: process.pid,
+    createdAt: '2026-09-07T00:00:00.000Z',
+    acquisitionRequestIdentityHash: 'sha256:deadbeef',
+    authorityId: preparedAuthority.authorityId,
+    preparedAuthoritySha256: preparedSha256,
+  }, null, 2)}\n`);
+  writeFileSync(jarviseAttemptTerminalPathR1(hostileRoot, planEntry().acquisitionKey, 2), `${JSON.stringify({
+    schemaVersion: 'JarviseYahooFetchOnceAttemptTerminal/1',
+    acquisitionKey: planEntry().acquisitionKey,
+    attemptOrdinal: 2,
+    attemptState: ATTEMPT_STATE_FAILED_RETRYABLE,
+    condition: 'MALFORMED_PROVIDER_RESULT',
+    retryEligible: false,
+    ownerPid: process.pid,
+  }, null, 2)}\n`);
+  const hostile = makeAcquirer(t, {
+    acquisitionRoot: hostileRoot,
+    createProviderClient: () => ({ chart: async () => assert.fail('no chart') }),
+  });
+  await assert.rejects(
+    () => hostile.acquireRawBytesFor(planEntry()),
+    (error) => error.code === 'ACQUIRER_ATTEMPT_STATE_INVALID',
+  );
+});
+
+test('P3H-T52 post-wx ordinal1 mutation is existing MALFORMED terminal only', async (t) => {
+  const acquisitionRoot = temporaryAcquisitionRoot(t);
+  const seeded = seedOrdinal1Terminal(acquisitionRoot, planEntry());
+  const grant = parseOwnerIncidentRecoveryGrantObjectR1(p3hGrantFields(acquisitionRoot));
+  const original = readFileSync(seeded.reservationPath);
+  const acquirer = makeAcquirer(t, {
+    acquisitionRoot,
+    recoveryGrant: grant,
+    recoveryGrantSha256: 'd'.repeat(64),
+    verifyGitBinding: () => {},
+    validateIncidentRoot: () => {},
+    onAfterOrdinal2Wx: () => {
+      writeFileSync(seeded.reservationPath, Buffer.concat([original, Buffer.from(' ')]));
+    },
+    createProviderClient: () => ({ chart: async () => assert.fail('chart must not run') }),
+  });
+  await assert.rejects(
+    () => acquirer.acquireRawBytesFor(planEntry()),
+    (error) => error.code === 'ACQUIRER_FAIL_CLOSED' && error.details.condition === 'MALFORMED_PROVIDER_RESULT',
+  );
+  const terminal2 = JSON.parse(readFileSync(jarviseAttemptTerminalPathR1(acquisitionRoot, planEntry().acquisitionKey, 2), 'utf8'));
+  assert.equal(terminal2.attemptState, ATTEMPT_STATE_FAILED_TERMINAL);
+  assert.equal(terminal2.condition, 'MALFORMED_PROVIDER_RESULT');
+  assert.equal(terminal2.retryEligible, false);
+  assert.equal(existsSync(jarviseAttemptReservationPathR1(acquisitionRoot, planEntry().acquisitionKey, 3)), false);
+});
+
+test('P3H-T56 structural 802×3 injective domain never names ordinal 4', () => {
+  const root = mkdtempSync(join(tmpdir(), 'p3h-t56-'));
+  try {
+    assert.throws(() => jarviseAttemptReservationPathR1(root, 'k', 4), (error) => error.code === 'ACQUIRER_ATTEMPT_ORDINAL_INVALID');
+    assert.equal(STRUCTURAL_MAX_ATTEMPTS_PER_EMPTY_KEY * 802, STRUCTURAL_MAX_PROVIDER_INVOCATION_COUNT);
+    assert.equal(STRUCTURAL_MAX_PROVIDER_INVOCATION_COUNT, 2406);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test('P3H-T57 AggregateError unanimity at top-level and cause', () => {
+  const unanimous = new AggregateError([Object.assign(new Error('a'), { code: 'ETIMEDOUT' }), Object.assign(new Error('b'), { code: 'ETIMEDOUT' })]);
+  assert.equal(extractP3ePerCallFetchTransportCodeR1(unanimous), 'ETIMEDOUT');
+  const mixed = new AggregateError([Object.assign(new Error('a'), { code: 'ETIMEDOUT' }), Object.assign(new Error('b'), { code: 'ECONNREFUSED' })]);
+  mixed.code = 'ETIMEDOUT';
+  assert.equal(extractP3ePerCallFetchTransportCodeR1(mixed), null);
+  const wrappedMixed = new TypeError('fetch failed', { cause: mixed });
+  assert.equal(extractP3ePerCallFetchTransportCodeR1(wrappedMixed), null);
+  const simpleCause = new TypeError('fetch failed', { cause: Object.assign(new Error('reset'), { code: 'ECONNRESET' }) });
+  assert.equal(extractP3ePerCallFetchTransportCodeR1(simpleCause), 'ECONNRESET');
+  assert.equal(classifyAcquisitionFailureR1(Object.assign(new Error('x'), {
+    p3eTransportFailure: { source: 'P3E_PER_CALL_FETCH', code: null },
+  })).retryEligible, false);
+});
+
+test('P3H-T58 live grant removed after ordinal2 exists fail-closes recovery traversal', async (t) => {
+  const acquisitionRoot = temporaryAcquisitionRoot(t);
+  seedOrdinal1Terminal(acquisitionRoot, planEntry());
+  const grant = parseOwnerIncidentRecoveryGrantObjectR1(p3hGrantFields(acquisitionRoot));
+  const first = makeAcquirer(t, {
+    acquisitionRoot,
+    recoveryGrant: grant,
+    recoveryGrantSha256: 'd'.repeat(64),
+    verifyGitBinding: () => {},
+    validateIncidentRoot: () => {},
+    sleep: async (attemptOrdinal) => {
+      if (attemptOrdinal === 2) {
+        const error = new Error('stop-after-ordinal2');
+        error.code = 'TEST_STOP_AFTER_ORDINAL2';
+        throw error;
+      }
+    },
+    createProviderClient: () => ({
+      chart: async () => {
+        throw p3eTransportError('ETIMEDOUT');
+      },
+    }),
+  });
+  await assert.rejects(() => first.acquireRawBytesFor(planEntry()), (error) => error.code === 'TEST_STOP_AFTER_ORDINAL2');
+  assert.equal(existsSync(jarviseAttemptReservationPathR1(acquisitionRoot, planEntry().acquisitionKey, 2)), true);
+  assert.equal(existsSync(jarviseAttemptReservationPathR1(acquisitionRoot, planEntry().acquisitionKey, 3)), false);
+  const second = makeAcquirer(t, {
+    acquisitionRoot,
+    createProviderClient: () => ({ chart: async () => assert.fail('no chart') }),
+  });
+  await assert.rejects(
+    () => second.acquireRawBytesFor(planEntry()),
+    (error) => error.code === 'ACQUIRER_RECOVERY_GRANT_REQUIRED',
+  );
+});
+
+test('P3H-T3 factory constructor never receives fetch', async () => {
+  let constructorOptions = null;
+  const FakeYahooFinance = class {
+    constructor(options) {
+      constructorOptions = options;
+    }
+    async chart() {
+      return {};
+    }
+  };
+  await createJarviseYahooFinance2ChartClientR1({
+    loadYahooFinance2: async () => ({ default: FakeYahooFinance }),
+    fetch: async () => ({ status: 200, headers: { getSetCookie: () => [] }, text: async () => '{}' }),
+  });
+  assert.equal(Object.hasOwn(constructorOptions, 'fetch'), false);
+  assert.equal(constructorOptions.versionCheck, false);
+});
+
+test('P3H-T22/T23/T42 recovery provenance without live grant cannot authorize ordinal3', async (t) => {
+  const acquisitionRoot = temporaryAcquisitionRoot(t);
+  seedOrdinal1Terminal(acquisitionRoot, planEntry());
+  const reservation2 = jarviseAttemptReservationPathR1(acquisitionRoot, planEntry().acquisitionKey, 2);
+  mkdirSync(dirname(reservation2), { recursive: true });
+  const resBytes = readFileSync(jarviseAttemptReservationPathR1(acquisitionRoot, planEntry().acquisitionKey, 1));
+  const termBytes = readFileSync(jarviseAttemptTerminalPathR1(acquisitionRoot, planEntry().acquisitionKey, 1));
+  writeFileSync(reservation2, `${JSON.stringify({
+    schemaVersion: 'JarviseYahooFetchOnceAttemptReservation/2',
+    acquisitionKey: planEntry().acquisitionKey,
+    attemptOrdinal: 2,
+    attemptState: 'IN_FLIGHT',
+    ownerPid: process.pid,
+    createdAt: '2026-09-07T00:00:00.000Z',
+    acquisitionRequestIdentityHash: 'sha256:deadbeef',
+    authorityId: preparedAuthority.authorityId,
+    preparedAuthoritySha256: preparedSha256,
+    recoveryProvenance: {
+      schemaVersion: 'JarviseYahooIncidentRecoveryProvenance/1',
+      mechanism: 'OWNER_INCIDENT_RECOVERY_AUTHORIZATION',
+      incidentRecoveryId: 'P3G_ZERO_HTTP_MALFORMED_802_R1',
+      recoveryGrantId: 'FORGED',
+      recoveryGrantSha256: 'a'.repeat(64),
+      recoveryImplementationManifestSchemaVersion: 'TransformImplementationManifest/1',
+      recoveryImplementationManifestDigest: 'a'.repeat(64),
+      preparedAuthoritySha256: CANONICAL_PREPARED_AUTHORITY_SHA256,
+      incidentEvidenceDigest: '8af220d4b119a8b6eca03f06a50422f93c46ef8b3885cadbca6dd96e33026bea',
+      cohort802KeyDigest: '1372f49e8b032d99e3480332a15a413b1431e27502756fe4e5d7590b5d23bc5b',
+      acquisitionKey: planEntry().acquisitionKey,
+      attemptOrdinal: 2,
+      permittedFromIncidentOrdinal: 1,
+      ordinal1Reservation: {
+        relPath: `reservations/${createHash('sha256').update(planEntry().acquisitionKey, 'utf8').digest('hex')}/1.json`,
+        sha256: createHash('sha256').update(resBytes).digest('hex'),
+        byteLength: resBytes.byteLength,
+      },
+      ordinal1Terminal: {
+        relPath: `reservations/${createHash('sha256').update(planEntry().acquisitionKey, 'utf8').digest('hex')}/1.terminal.json`,
+        sha256: createHash('sha256').update(termBytes).digest('hex'),
+        byteLength: termBytes.byteLength,
+      },
+    },
+  }, null, 2)}\n`);
+  writeFileSync(jarviseAttemptTerminalPathR1(acquisitionRoot, planEntry().acquisitionKey, 2), `${JSON.stringify({
+    schemaVersion: 'JarviseYahooFetchOnceAttemptTerminal/1',
+    acquisitionKey: planEntry().acquisitionKey,
+    attemptOrdinal: 2,
+    attemptState: ATTEMPT_STATE_FAILED_RETRYABLE,
+    condition: 'TIMEOUT',
+    retryEligible: true,
+    ownerPid: process.pid,
+  }, null, 2)}\n`);
+  const acquirer = makeAcquirer(t, {
+    acquisitionRoot,
+    createProviderClient: () => ({ chart: async () => assert.fail('no chart') }),
+  });
+  await assert.rejects(
+    () => acquirer.acquireRawBytesFor(planEntry()),
+    (error) => error.code === 'ACQUIRER_RECOVERY_GRANT_REQUIRED',
+  );
+  assert.equal(existsSync(jarviseAttemptReservationPathR1(acquisitionRoot, planEntry().acquisitionKey, 3)), false);
+});
+
+test('P3H-T25 recovery grant permittedNextOrdinal cannot skip to ordinal3', () => {
+  const grant = p3hGrantFields('C:\\\\abs\\\\root');
+  grant.permittedNextOrdinal = 3;
+  assert.throws(
+    () => parseOwnerIncidentRecoveryGrantObjectR1(grant),
+    (error) => error.code === 'RECOVERY_GRANT_WRONG_VALUE',
+  );
+});
+
+test('P3H-T27 ordinal1 evidence is not deleted or rewritten by a successful waiver', async (t) => {
+  const acquisitionRoot = temporaryAcquisitionRoot(t);
+  const seeded = seedOrdinal1Terminal(acquisitionRoot, planEntry());
+  const beforeRes = readFileSync(seeded.reservationPath);
+  const beforeTerm = readFileSync(seeded.terminalPath);
+  const grant = parseOwnerIncidentRecoveryGrantObjectR1(p3hGrantFields(acquisitionRoot));
+  const acquirer = makeAcquirer(t, {
+    acquisitionRoot,
+    recoveryGrant: grant,
+    recoveryGrantSha256: 'd'.repeat(64),
+    verifyGitBinding: () => {},
+    validateIncidentRoot: () => {},
+    createProviderClient: () => ({ chart: async () => chartFor(planEntry().acquisitionRequestIdentity.providerSymbol) }),
+  });
+  await acquirer.acquireRawBytesFor(planEntry());
+  assert.deepEqual(readFileSync(seeded.reservationPath), beforeRes);
+  assert.deepEqual(readFileSync(seeded.terminalPath), beforeTerm);
+});
+
+test('P3H-T34 finance.error is 429 only when this call captured 429', () => {
+  const captured = p3hHttpCapture(200);
+  assert.equal(classifyAcquisitionFailureR1(captured).condition, 'MALFORMED_PROVIDER_RESULT');
+  const unseen = new Error('finance.error');
+  unseen.p3eHttpCapture = Object.freeze({ responseSeen: false, responseStatus: 429 });
+  assert.equal(classifyAcquisitionFailureR1(unseen).retryEligible, false);
+  unseen.p3eHttpCapture = Object.freeze({ responseSeen: true, responseStatus: 429 });
+  assert.equal(classifyAcquisitionFailureR1(unseen).condition, 'PROVIDER_RATE_LIMITED');
+});
+
+test('P3H-T38/T39/T40/T41 inspectAttempt FAIL CLOSED on malformed state/condition/retry tuples', (t) => {
+  const acquisitionRoot = temporaryAcquisitionRoot(t);
+  seedOrdinal1Terminal(acquisitionRoot, planEntry(), {
+    attemptState: ATTEMPT_STATE_FAILED_RETRYABLE,
+    condition: 'TIMEOUT',
+    retryEligible: false,
+  });
+  assert.throws(
+    () => inspectJarviseAttemptR1(acquisitionRoot, planEntry().acquisitionKey, 1, {
+      authority: activatedAuthority(acquisitionRoot),
+    }),
+    (error) => error.code === 'ACQUIRER_ATTEMPT_STATE_INVALID',
+  );
+});
+
+test('P3H-T45 computed digest does not itself authorize recovery', async (t) => {
+  const acquisitionRoot = temporaryAcquisitionRoot(t);
+  seedOrdinal1Terminal(acquisitionRoot, planEntry());
+  const acquirer = makeAcquirer(t, {
+    acquisitionRoot,
+    createProviderClient: () => ({ chart: async () => assert.fail('no chart') }),
+  });
+  await assert.rejects(
+    () => acquirer.acquireRawBytesFor(planEntry()),
+    (error) => error.code === 'ACQUIRER_RETRY_NOT_AUTHORIZED' || error.code === 'ACQUIRER_RECOVERY_GRANT_REQUIRED',
+  );
+});
+
+test('P3H-T46/T47 budget-claims directory is not a second counter', async (t) => {
+  const acquirer = makeAcquirer(t, {
+    createProviderClient: () => ({ chart: async () => chartFor('X') }),
+  });
+  await acquirer.acquireRawBytesFor(planEntry());
+  assert.equal(existsSync(join(acquirer.acquisitionRoot, 'budget-claims')), false);
+  assert.equal(acquirer.providerInvocations(), acquirer.durableProviderAttemptReservations());
+  assert.equal(countDurableAttemptReservationsR1(acquirer.acquisitionRoot), 1);
+});
+
+test('P3H-T53 unknown nested retryable-looking transport remains MALFORMED', () => {
+  const nested = new Error('outer');
+  nested.cause = Object.assign(new Error('inner'), { code: 'ETIMEDOUT' });
+  assert.equal(classifyAcquisitionFailureR1(nested).retryEligible, false);
+  const abort = new Error('aborted');
+  abort.name = 'AbortError';
+  abort.code = 'ABORT_ERR';
+  assert.equal(classifyAcquisitionFailureR1(abort).retryEligible, false);
+  assert.equal(classifyAcquisitionFailureR1(p3eTransportError('ENOTFOUND')).retryEligible, false);
+  assert.equal(classifyAcquisitionFailureR1(p3eTransportError('ECONNREFUSED')).retryEligible, false);
+  for (const code of ['ETIMEDOUT', 'UND_ERR_CONNECT_TIMEOUT', 'UND_ERR_HEADERS_TIMEOUT', 'ECONNRESET', 'UND_ERR_SOCKET', 'EAI_AGAIN']) {
+    assert.equal(classifyAcquisitionFailureR1(p3eTransportError(code)).retryEligible, true);
+  }
+});
+
+function seedOrdinal1IncidentCohort(acquisitionRoot, entries, { omitKey = null, mutateKey = null } = {}) {
+  for (const entry of entries) {
+    if (omitKey !== null && entry.acquisitionKey === omitKey) continue;
+    const seeded = seedOrdinal1Terminal(acquisitionRoot, entry);
+    if (mutateKey !== null && entry.acquisitionKey === mutateKey) {
+      const original = readFileSync(seeded.reservationPath);
+      writeFileSync(seeded.reservationPath, Buffer.concat([original, Buffer.from(' ')]));
+    }
+  }
+}
+
+test('P3H-R4A-A partial incident root fail-closes before chart and reservation', async (t) => {
+  const acquisitionRoot = temporaryAcquisitionRoot(t);
+  seedOrdinal1Terminal(acquisitionRoot, planEntry());
+  const grant = parseOwnerIncidentRecoveryGrantObjectR1(p3hGrantFields(acquisitionRoot));
+  let factoryCalls = 0;
+  let chartCalls = 0;
+  const acquirer = makeAcquirer(t, {
+    acquisitionRoot,
+    recoveryGrant: grant,
+    recoveryGrantSha256: 'd'.repeat(64),
+    verifyGitBinding: () => {},
+    createProviderClient: () => {
+      factoryCalls += 1;
+      return {
+        chart: async () => {
+          chartCalls += 1;
+          assert.fail('partial incident root must not reach chart');
+        },
+      };
+    },
+  });
+  await assert.rejects(
+    () => acquirer.acquireRawBytesFor(planEntry()),
+    (error) => error.code === 'INCIDENT_ROOT_INVALID',
+  );
+  assert.equal(factoryCalls, 0);
+  assert.equal(chartCalls, 0);
+  assert.equal(existsSync(jarviseAttemptReservationPathR1(acquisitionRoot, planEntry().acquisitionKey, 2)), false);
+  assert.equal(acquirer.providerClientConstructed(), false);
+});
+
+test('P3H-R4A-B altered incident root fail-closes before recovery', { timeout: 120000 }, async (t) => {
+  const acquisitionRoot = temporaryAcquisitionRoot(t);
+  seedOrdinal1IncidentCohort(acquisitionRoot, plan().entries, { mutateKey: planEntry().acquisitionKey });
+  const grant = parseOwnerIncidentRecoveryGrantObjectR1(p3hGrantFields(acquisitionRoot));
+  let factoryCalls = 0;
+  const acquirer = makeAcquirer(t, {
+    acquisitionRoot,
+    recoveryGrant: grant,
+    recoveryGrantSha256: 'd'.repeat(64),
+    verifyGitBinding: () => {},
+    createProviderClient: () => {
+      factoryCalls += 1;
+      assert.fail('altered incident root must not construct provider');
+    },
+  });
+  await assert.rejects(
+    () => acquirer.acquireRawBytesFor(planEntry()),
+    (error) => error.code === 'INCIDENT_ROOT_INVALID',
+  );
+  assert.equal(factoryCalls, 0);
+  assert.equal(existsSync(jarviseAttemptReservationPathR1(acquisitionRoot, planEntry().acquisitionKey, 2)), false);
+});
+
+test('P3H-R4A-C ordinal2 provenance corruption fail-closes with no ordinal3 and no chart', async (t) => {
+  const acquisitionRoot = temporaryAcquisitionRoot(t);
+  const seeded = seedOrdinal1Terminal(acquisitionRoot, planEntry());
+  const grant = parseOwnerIncidentRecoveryGrantObjectR1(p3hGrantFields(acquisitionRoot));
+  const first = makeAcquirer(t, {
+    acquisitionRoot,
+    recoveryGrant: grant,
+    recoveryGrantSha256: 'd'.repeat(64),
+    verifyGitBinding: () => {},
+    validateIncidentRoot: () => {},
+    sleep: async (attemptOrdinal) => {
+      if (attemptOrdinal === 2) {
+        const error = new Error('stop-after-ordinal2');
+        error.code = 'TEST_STOP_AFTER_ORDINAL2';
+        throw error;
+      }
+    },
+    createProviderClient: () => ({
+      chart: async () => {
+        throw p3eTransportError('ETIMEDOUT');
+      },
+    }),
+  });
+  await assert.rejects(() => first.acquireRawBytesFor(planEntry()), (error) => error.code === 'TEST_STOP_AFTER_ORDINAL2');
+  assert.equal(existsSync(jarviseAttemptReservationPathR1(acquisitionRoot, planEntry().acquisitionKey, 2)), true);
+  assert.equal(existsSync(jarviseAttemptReservationPathR1(acquisitionRoot, planEntry().acquisitionKey, 3)), false);
+
+  const original = readFileSync(seeded.reservationPath);
+  writeFileSync(seeded.reservationPath, Buffer.concat([original, Buffer.from(' ')]));
+
+  let chartCalls = 0;
+  const second = makeAcquirer(t, {
+    acquisitionRoot,
+    recoveryGrant: grant,
+    recoveryGrantSha256: 'd'.repeat(64),
+    verifyGitBinding: () => {},
+    validateIncidentRoot: () => {},
+    createProviderClient: () => ({
+      chart: async () => {
+        chartCalls += 1;
+        assert.fail('stale ordinal2 provenance must not reach chart');
+      },
+    }),
+  });
+  await assert.rejects(
+    () => second.acquireRawBytesFor(planEntry()),
+    (error) => error.code === 'ACQUIRER_ORDINAL2_RECOVERY_PROVENANCE_INVALID',
+  );
+  assert.equal(chartCalls, 0);
+  assert.equal(existsSync(jarviseAttemptReservationPathR1(acquisitionRoot, planEntry().acquisitionKey, 3)), false);
+});
+
+test('P3H-R4A-D RAW_PINNED production runner continues locally without grants', async (t) => {
+  const acquisitionRoot = temporaryAcquisitionRoot(t);
+  const persistenceRoot = resolve(acquisitionRoot, 'observation-snapshots');
+  mkdirSync(persistenceRoot, { recursive: true });
+  const persistence = createJarviseSnapshotPersistenceR1({
+    store: createContentAddressedStore({ root: persistenceRoot }),
+    journal: createJarviseSnapshotDirectoryJournalR1({ root: persistenceRoot }),
+    acquisitionAuthority: resolveEffectiveAcquisitionAuthorityR1({ root: REPOSITORY_ROOT, executionGrant: null }),
+  });
+  const entry = planEntry();
+  persistence.pinRawOnce({
+    acquisitionKey: entry.acquisitionKey,
+    acquisition: {
+      sourceAcquiredAt: '2026-09-05T12:00:00.000Z',
+      ingestedIntoLabAt: '2026-09-05T12:00:01.000Z',
+      acquisitionMethod: ACQUISITION_METHOD,
+      acquisitionToolVersion: 'runJarviseHistoricalFetchOnceR1/1',
+      acquisitionRequestIdentity: entry.acquisitionRequestIdentity,
+      acquisitionEvidenceIds: [],
+    },
+    rawBytes: canonicalProviderResultBytesR1(chartFor(entry.acquisitionRequestIdentity.providerSymbol)),
+  });
+  assert.equal(persistence.stageOf(entry.acquisitionKey), 'RAW_PINNED');
+  const reservationsBefore = countDurableAttemptReservationsR1(acquisitionRoot);
+  let factoryCalls = 0;
+  let chartCalls = 0;
+  const summary = await runJarviseHistoricalFetchOnceR1({
+    acquisitionRoot,
+    createProviderClient: async () => {
+      factoryCalls += 1;
+      return {
+        chart: async () => {
+          chartCalls += 1;
+          throw new Error('RAW_PINNED must not chart');
+        },
+      };
+    },
+    limit: 1,
+  });
+  assert.equal(factoryCalls, 0);
+  assert.equal(chartCalls, 0);
+  assert.equal(summary.results[0].stage, 'VERSION_CACHED');
+  assert.equal(summary.reused, 1);
+  assert.equal(countDurableAttemptReservationsR1(acquisitionRoot), reservationsBefore, 'RAW_PINNED local continuation must not create a new reservation');
+});
+
+test('P3H-R4A-E production runner rejects injected recoveryGrant object', async (t) => {
+  const acquisitionRoot = temporaryAcquisitionRoot(t);
+  const grant = parseOwnerIncidentRecoveryGrantObjectR1(p3hGrantFields(acquisitionRoot));
+  let factoryCalls = 0;
+  await assert.rejects(
+    () => runJarviseHistoricalFetchOnceR1({
+      acquisitionRoot,
+      executionGrant: testExecutionGrant(acquisitionRoot),
+      recoveryGrant: grant,
+      createProviderClient: () => {
+        factoryCalls += 1;
+        assert.fail('grant-object injection must not construct a provider');
+      },
+      limit: 1,
+    }),
+    (error) => error.code === 'RUN_RECOVERY_GRANT_OBJECT_FORBIDDEN',
+  );
+  assert.equal(factoryCalls, 0);
+  assert.equal(existsSync(join(acquisitionRoot, 'reservations')), false);
+});
+
+test('P3H-R4A-F production runner rejects injected Git verifier callback', async (t) => {
+  const acquisitionRoot = temporaryAcquisitionRoot(t);
+  let factoryCalls = 0;
+  await assert.rejects(
+    () => runJarviseHistoricalFetchOnceR1({
+      acquisitionRoot,
+      executionGrant: testExecutionGrant(acquisitionRoot),
+      verifyGitBinding: () => true,
+      createProviderClient: () => {
+        factoryCalls += 1;
+        assert.fail('git-verifier injection must not construct a provider');
+      },
+      limit: 1,
+    }),
+    (error) => error.code === 'RUN_GIT_VERIFIER_INJECTION_FORBIDDEN',
+  );
+  assert.equal(factoryCalls, 0);
+});
+
+test('P3H-R4A-G production runner rejects foreign gitRoot/root injection before recovery', async (t) => {
+  const repoB = mkdtempSync(join(tmpdir(), 'p3h-r4a-g-repo-b-'));
+  t.after(() => rmSync(repoB, { recursive: true, force: true }));
+  const gitAtB = (args) => {
+    const result = spawnSync('git', args, { cwd: repoB, encoding: 'utf8', windowsHide: true });
+    if (result.status !== 0) {
+      throw new Error(`git ${args.join(' ')} failed: ${result.stderr || result.stdout}`);
+    }
+    return (result.stdout ?? '').replace(/\r\n/g, '\n');
+  };
+  gitAtB(['-c', 'init.defaultBranch=main', 'init']);
+  gitAtB(['config', 'user.email', 'r4ag@local']);
+  gitAtB(['config', 'user.name', 'R4AG']);
+  gitAtB(['config', 'core.autocrlf', 'false']);
+  writeFileSync(join(repoB, 'tracked.txt'), 'clean-b\n');
+  gitAtB(['add', '--', 'tracked.txt']);
+  gitAtB(['commit', '-m', 'seed-b']);
+  const head = gitAtB(['rev-parse', 'HEAD']).trim();
+  const tree = gitAtB(['rev-parse', 'HEAD^{tree}']).trim();
+
+  const acquisitionRoot = temporaryAcquisitionRoot(t);
+  const matchingGrant = {
+    ...p3hGrantFields(acquisitionRoot),
+    implementationCommit: head,
+    implementationTree: tree,
+  };
+  assert.equal(
+    assertGitCanonicalTrackedWorktreeEquivalenceR1({ gitRoot: repoB, grant: matchingGrant }).passed,
+    true,
+    'repo B is clean and matches the grant; a leaked gitRoot would not fail Git verification',
+  );
+
+  const grantPath = join(acquisitionRoot, 'recovery-grant-b.json');
+  writeFileSync(grantPath, `${JSON.stringify(matchingGrant, null, 2)}\n`);
+
+  let factoryCalls = 0;
+  const forbiddenFactory = () => {
+    factoryCalls += 1;
+    assert.fail('foreign-root injection must not construct a provider');
+  };
+
+  await assert.rejects(
+    () => runJarviseHistoricalFetchOnceR1({
+      gitRoot: repoB,
+      acquisitionRoot,
+      executionGrant: testExecutionGrant(acquisitionRoot),
+      recoveryGrantPath: grantPath,
+      createProviderClient: forbiddenFactory,
+      limit: 1,
+    }),
+    (error) => {
+      assert.equal(error.code, 'RUN_GIT_ROOT_INJECTION_FORBIDDEN');
+      assert.equal(String(error.code).startsWith('GIT_BINDING_'), false);
+      return true;
+    },
+  );
+  await assert.rejects(
+    () => runJarviseHistoricalFetchOnceR1({
+      root: repoB,
+      acquisitionRoot,
+      executionGrant: testExecutionGrant(acquisitionRoot),
+      recoveryGrantPath: grantPath,
+      createProviderClient: forbiddenFactory,
+      limit: 1,
+    }),
+    (error) => {
+      assert.equal(error.code, 'RUN_ROOT_INJECTION_FORBIDDEN');
+      assert.equal(String(error.code).startsWith('GIT_BINDING_'), false);
+      return true;
+    },
+  );
+  assert.equal(factoryCalls, 0);
+  assert.equal(existsSync(join(acquisitionRoot, 'reservations')), false);
+  assert.equal(countDurableAttemptReservationsR1(acquisitionRoot), 0);
+});
+

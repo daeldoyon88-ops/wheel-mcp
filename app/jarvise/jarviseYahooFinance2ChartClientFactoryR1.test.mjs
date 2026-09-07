@@ -38,9 +38,9 @@ function fakeYahooFinanceClass({ chart } = {}) {
       this.chartCalls = [];
     }
 
-    async chart(symbol, params) {
-      this.chartCalls.push({ symbol, params });
-      if (typeof chart === 'function') return chart(symbol, params);
+    async chart(symbol, params, moduleOptions) {
+      this.chartCalls.push({ symbol, params, moduleOptions });
+      if (typeof chart === 'function') return chart(symbol, params, moduleOptions);
       return { meta: { symbol }, quotes: [{ close: 1 }], events: { dividends: [], splits: [] } };
     }
   };
@@ -119,25 +119,51 @@ test('P3E production construction uses suppressNotices yahooSurvey', async () =>
   await createJarviseYahooFinance2ChartClientR1({
     loadYahooFinance2: async () => ({ default: FakeYahooFinance }),
   });
-  assert.deepEqual(seenOptions, { suppressNotices: ['yahooSurvey'] });
+  assert.deepEqual(seenOptions, { suppressNotices: ['yahooSurvey'], versionCheck: false });
 });
 
-test('P3E-T9 timeout-style errors remain TIMEOUT and are not projected as HTTP', () => {
-  const timeout = new Error('request timed out');
-  timeout.code = 'ETIMEDOUT';
-  const projected = projectYahooFinance2HttpErrorR1(timeout);
-  assert.equal(projected, timeout);
-  assert.equal(projected.status, undefined);
-  assert.equal(classifyAcquisitionFailureR1(projected).condition, 'TIMEOUT');
-  assert.equal(classifyAcquisitionFailureR1(projected).retryEligible, true);
+test('P3E-T9 timeout-style errors remain TIMEOUT only via owned per-call fetch projection', async () => {
+  const FakeYahooFinance = fakeYahooFinanceClass({
+    chart: async (_symbol, _params, moduleOptions) => {
+      await moduleOptions.fetch('https://example.invalid/timeout', {});
+      return { quotes: [] };
+    },
+  });
+  const client = await createJarviseYahooFinance2ChartClientR1({
+    loadYahooFinance2: async () => ({ default: FakeYahooFinance }),
+    fetch: async () => {
+      throw new TypeError('fetch failed', { cause: { code: 'ETIMEDOUT' } });
+    },
+  });
+  await assert.rejects(
+    () => client.chart('SOXL', { interval: '1d' }),
+    (error) => {
+      const classified = classifyAcquisitionFailureR1(error);
+      assert.equal(classified.condition, 'TIMEOUT');
+      assert.equal(classified.retryEligible, true);
+      assert.equal(error.p3eTransportFailure.source, 'P3E_PER_CALL_FETCH');
+      assert.equal(error.p3eTransportFailure.code, 'ETIMEDOUT');
+      return true;
+    },
+  );
 
-  const abort = new Error('aborted');
-  abort.name = 'AbortError';
-  assert.equal(classifyAcquisitionFailureR1(projectYahooFinance2HttpErrorR1(abort)).condition, 'TIMEOUT');
-
-  const und = new Error('headers timeout');
-  und.code = 'UND_ERR_HEADERS_TIMEOUT';
-  assert.equal(classifyAcquisitionFailureR1(projectYahooFinance2HttpErrorR1(und)).condition, 'TIMEOUT');
+  const abortClient = await createJarviseYahooFinance2ChartClientR1({
+    loadYahooFinance2: async () => ({ default: FakeYahooFinance }),
+    fetch: async () => {
+      const abort = new Error('aborted');
+      abort.name = 'AbortError';
+      throw abort;
+    },
+  });
+  await assert.rejects(
+    () => abortClient.chart('SOXL', { interval: '1d' }),
+    (error) => {
+      const classified = classifyAcquisitionFailureR1(error);
+      assert.equal(classified.condition, 'MALFORMED_PROVIDER_RESULT');
+      assert.equal(classified.retryEligible, false);
+      return true;
+    },
+  );
 });
 
 test('P3E-T10 HTTPError numeric 429 is projected to status and classified PROVIDER_RATE_LIMITED', () => {

@@ -1,0 +1,25 @@
+{
+  "document": "MAINTENANCE_PUBLICATION_ADMISSION_OWNER_AUTHORIZATION",
+  "schemaVersion": 1,
+  "authorityId": "P3H_YAHOO_INCIDENT_RECOVERY_PUBLICATION_OWNER_AUTHORIZATION_R1",
+  "authorityClass": "PROJECT_OWNER_MAINTENANCE_PUBLICATION_ADMISSION_AUTHORITY",
+  "authorityMode": "LOCAL_EXPLICIT_AUTHORITY",
+  "issuedBy": "PROJECT_OWNER",
+  "issuedAtUtc": "2026-09-07T00:00:00.000Z",
+  "decisionId": "P3H_YAHOO_INCIDENT_RECOVERY_OWNER_DECISION_R1",
+  "purpose": "MAINTENANCE_PUBLICATION_ADMISSION",
+  "reexecutionAuthorized": false,
+  "grantsFutureBytePermission": false,
+  "genericV1Admission": false,
+  "admittedPublications": [
+    {
+      "admissionId": "P3H_YAHOO_INCIDENT_RECOVERY_PUBLICATION_ADMISSION_R1",
+      "projectId": "WHEEL",
+      "gateId": "GATE24",
+      "programId": "P3H_YAHOO_INCIDENT_RECOVERY_R1",
+      "admissionPath": "governance/authority/publication-admissions/GATE24/P3H_YAHOO_INCIDENT_RECOVERY_PUBLICATION_ADMISSION_R1.json",
+      "admissionDigest": "a9ed22b80b8a7f235642d018c580742cdd7b81079d77fd0d85babc547b30890c"
+    }
+  ],
+  "registryDigest": "253fe520f1511d932c42227ca7896a7c7052520662de148323f4a45fdf67d9e0"
+}

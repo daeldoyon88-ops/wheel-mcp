@@ -35,9 +35,24 @@ import { basename, dirname, isAbsolute, join, relative, resolve, sep } from 'nod
 import { fileURLToPath } from 'node:url';
 
 import { canonicalProviderResultBytesR1 } from './jarviseYahooChartAdapterR1.mjs';
+import {
+  P3E_PER_CALL_FETCH_SOURCE,
+  P3E_RETRYABLE_TRANSPORT_CODES,
+} from './jarviseYahooFinance2ChartClientFactoryR1.mjs';
+import {
+  ATTEMPT_RESERVATION_SCHEMA_VERSION_V1,
+  ATTEMPT_RESERVATION_SCHEMA_VERSION_V2,
+  assertCurrentIncidentRootMatchesGrantR1,
+  assertGitCanonicalTrackedWorktreeEquivalenceR1,
+  assertOrdinal1EvidenceUnchangedR1,
+  assertRecoveryGrantRootEqualsPresentedR1,
+  CANONICAL_PREPARED_AUTHORITY_SHA256,
+  snapshotOrdinal1EvidenceR1,
+  validateOrdinal2RecoveryProvenanceR1,
+} from './jarviseYahooIncidentRecoveryAuthorizationR1.mjs';
 
 export const JARVISE_YAHOO_FETCH_ONCE_ACQUIRER_VERSION = 'jarviseYahooFetchOnceAcquirerR1/1';
-export const ATTEMPT_RESERVATION_SCHEMA_VERSION = 'JarviseYahooFetchOnceAttemptReservation/1';
+export const ATTEMPT_RESERVATION_SCHEMA_VERSION = ATTEMPT_RESERVATION_SCHEMA_VERSION_V1;
 export const ATTEMPT_TERMINAL_SCHEMA_VERSION = 'JarviseYahooFetchOnceAttemptTerminal/1';
 
 export const ATTEMPT_STATE_IN_FLIGHT = 'IN_FLIGHT';
@@ -62,9 +77,13 @@ export const RETRY_INELIGIBLE_CONDITIONS = Object.freeze([
 ]);
 
 const REPOSITORY_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
-const TIMEOUT_CODES = new Set(['ETIMEDOUT', 'ESOCKETTIMEDOUT', 'ECONNRESET', 'ABORT_ERR', 'UND_ERR_CONNECT_TIMEOUT', 'UND_ERR_HEADERS_TIMEOUT']);
+const RETRYABLE_TRANSPORT_CODES = new Set(P3E_RETRYABLE_TRANSPORT_CODES);
 const LEGAL_ATTEMPT_ORDINALS = Object.freeze([1, 2, 3]);
 const PINNED_OR_LATER = new Set(['RAW_PINNED', 'NORMALIZED', 'VERSION_CACHED']);
+const RETRY_AUTHORIZING = new Set(RETRY_ELIGIBLE_CONDITIONS);
+
+export const CANONICAL_CHART_PERIOD1 = '2018-01-01T00:00:00.000Z';
+export const CANONICAL_CHART_PERIOD2 = '2026-09-05T00:00:00.000Z';
 
 export class JarviseAcquirerError extends Error {
   /** @param {string} code @param {string} message @param {object} [details] */
@@ -194,24 +213,50 @@ export function assertExternalAcquisitionRootR1(acquisitionRoot, gitRoot) {
   return lexical;
 }
 
+function httpStatusFromCandidate(candidate) {
+  const projected = Number(candidate?.status ?? candidate?.statusCode ?? candidate?.response?.status ?? NaN);
+  if (Number.isInteger(projected) && projected >= 100 && projected <= 599) return projected;
+  return null;
+}
+
+function httpStatusFromOwnedCapture(candidate) {
+  const capture = candidate?.p3eHttpCapture;
+  if (!capture || capture.responseSeen !== true) return null;
+  const status = capture.responseStatus;
+  if (Number.isInteger(status) && status >= 100 && status <= 599) return status;
+  return null;
+}
+
+function classifyHttpStatus(status) {
+  if (status === 429) return { condition: 'PROVIDER_RATE_LIMITED', retryEligible: true };
+  if (status >= 500 && status <= 599) return { condition: 'PROVIDER_SERVER_ERROR', retryEligible: true };
+  if (status >= 400 && status <= 499) return { condition: 'SCHEMA_FAILURE', retryEligible: false };
+  return { condition: 'MALFORMED_PROVIDER_RESULT', retryEligible: false };
+}
+
 /** @param {unknown} error */
 export function classifyAcquisitionFailureR1(error) {
   const candidate = /** @type {any} */ (error);
-  const status = Number(candidate?.status ?? candidate?.statusCode ?? candidate?.response?.status ?? NaN);
-  const code = typeof candidate?.code === 'string' ? candidate.code : null;
-  const name = typeof candidate?.name === 'string' ? candidate.name : '';
-  const message = typeof candidate?.message === 'string' ? candidate.message : '';
+  const transport = candidate?.p3eTransportFailure;
+  if (transport && transport.source === P3E_PER_CALL_FETCH_SOURCE) {
+    if (candidate?.p3eOwnedTimeoutAbort === true) {
+      return { condition: 'TIMEOUT', retryEligible: true };
+    }
+    if (typeof transport.code === 'string' && RETRYABLE_TRANSPORT_CODES.has(transport.code)) {
+      return { condition: 'TIMEOUT', retryEligible: true };
+    }
+    return { condition: 'MALFORMED_PROVIDER_RESULT', retryEligible: false };
+  }
 
-  if (status === 429) return { condition: 'PROVIDER_RATE_LIMITED', retryEligible: true };
-  if (Number.isFinite(status) && status >= 500 && status <= 599) {
-    return { condition: 'PROVIDER_SERVER_ERROR', retryEligible: true };
-  }
-  if ((code !== null && TIMEOUT_CODES.has(code)) || name === 'AbortError' || /timed?\s*out/i.test(message)) {
-    return { condition: 'TIMEOUT', retryEligible: true };
-  }
-  if (Number.isFinite(status) && status >= 400 && status <= 499) {
-    return { condition: 'SCHEMA_FAILURE', retryEligible: false };
-  }
+  const httpErrorStatus = isYahooFinance2HttpErrorLike(candidate) ? httpStatusFromCandidate(candidate) : null;
+  if (httpErrorStatus !== null) return classifyHttpStatus(httpErrorStatus);
+
+  const captured = httpStatusFromOwnedCapture(candidate);
+  if (captured !== null) return classifyHttpStatus(captured);
+
+  const fallbackStatus = httpStatusFromCandidate(candidate);
+  if (fallbackStatus !== null) return classifyHttpStatus(fallbackStatus);
+
   if (candidate?.name === 'JarviseYahooChartAdapterError') {
     const adapterCode = String(candidate.code ?? '');
     if (adapterCode === 'PROVIDER_RESULT_EMPTY') return { condition: 'EMPTY_PROVIDER_RESULT', retryEligible: false };
@@ -220,7 +265,34 @@ export function classifyAcquisitionFailureR1(error) {
   return { condition: 'MALFORMED_PROVIDER_RESULT', retryEligible: false };
 }
 
+/** @param {any} candidate */
+function isYahooFinance2HttpErrorLike(candidate) {
+  if (candidate === null || candidate === undefined || typeof candidate !== 'object') return false;
+  return candidate.name === 'HTTPError' || candidate.constructor?.name === 'HTTPError';
+}
+
 /**
+ * Canonical frozen chart identity. Never passed into yahoo-finance2 validation.
+ * @param {Record<string, any>} identity
+ */
+export function canonicalChartParamsR1(identity) {
+  return Object.freeze({
+    period1: identity.period1,
+    period2: identity.period2,
+    interval: identity.interval,
+    events: 'div|split',
+    return: 'array',
+  });
+}
+
+/**
+ * Fresh mutable shallow copy for one attempt. Callers must not reuse across ordinals.
+ * @param {Readonly<Record<string, unknown>>} canonical
+ */
+export function mutableProviderChartParamsR1(canonical) {
+  return { ...canonical };
+}
+
 /**
  * Physical compare-key for an already-validated acquisition root. Reuses the
  * existing destination reconstruction; does not mkdir.
@@ -510,12 +582,113 @@ function readJsonObjectIfPresent(filePath) {
   }
 }
 
+function expectedReservationSchema(attemptOrdinal) {
+  return attemptOrdinal === 2 ? ATTEMPT_RESERVATION_SCHEMA_VERSION_V2 : ATTEMPT_RESERVATION_SCHEMA_VERSION_V1;
+}
+
+function assertReservationIdentity(reservation, acquisitionKey, attemptOrdinal, context) {
+  if (!isPlainObject(reservation)) {
+    fail('ACQUIRER_ATTEMPT_STATE_INVALID', 'reservation must be a plain object', { acquisitionKey, attemptOrdinal });
+  }
+  const recoveryOrdinal2 = attemptOrdinal === 2 && reservation.schemaVersion === ATTEMPT_RESERVATION_SCHEMA_VERSION_V2;
+  const expectedSchema = recoveryOrdinal2
+    ? ATTEMPT_RESERVATION_SCHEMA_VERSION_V2
+    : ATTEMPT_RESERVATION_SCHEMA_VERSION_V1;
+  if (reservation.schemaVersion !== expectedSchema) {
+    fail('ACQUIRER_ATTEMPT_STATE_INVALID', 'reservation schemaVersion does not match ordinal', {
+      acquisitionKey, attemptOrdinal, schemaVersion: reservation.schemaVersion ?? null,
+    });
+  }
+  if (reservation.acquisitionKey !== acquisitionKey) {
+    fail('ACQUIRER_ATTEMPT_STATE_INVALID', 'reservation acquisitionKey mismatch', { acquisitionKey, attemptOrdinal });
+  }
+  if (reservation.attemptOrdinal !== attemptOrdinal) {
+    fail('ACQUIRER_ATTEMPT_STATE_INVALID', 'reservation attemptOrdinal mismatch', { acquisitionKey, attemptOrdinal });
+  }
+  if (reservation.attemptState !== ATTEMPT_STATE_IN_FLIGHT) {
+    fail('ACQUIRER_ATTEMPT_STATE_INVALID', 'reservation attemptState must remain IN_FLIGHT', {
+      acquisitionKey, attemptOrdinal, attemptState: reservation.attemptState ?? null,
+    });
+  }
+  if (context?.authority) {
+    if (reservation.authorityId !== context.authority.authorityId) {
+      fail('ACQUIRER_ATTEMPT_STATE_INVALID', 'reservation authorityId mismatch', { acquisitionKey, attemptOrdinal });
+    }
+    if (reservation.preparedAuthoritySha256 !== context.authority.preparedSha256) {
+      fail('ACQUIRER_ATTEMPT_STATE_INVALID', 'reservation preparedAuthoritySha256 mismatch', { acquisitionKey, attemptOrdinal });
+    }
+  }
+  if (recoveryOrdinal2) {
+    validateOrdinal2RecoveryProvenanceR1(reservation.recoveryProvenance, {
+      acquisitionKey,
+      acquisitionRoot: context?.acquisitionRoot,
+      grant: context?.recoveryGrant ?? null,
+      recoveryGrantSha256: context?.recoveryGrantSha256 ?? null,
+    });
+  } else if (Object.hasOwn(reservation, 'recoveryProvenance')) {
+    fail('ACQUIRER_ATTEMPT_STATE_INVALID', 'recoveryProvenance is forbidden on this ordinal', {
+      acquisitionKey, attemptOrdinal,
+    });
+  }
+}
+
+function assertTerminalIdentity(terminal, reservation, acquisitionKey, attemptOrdinal) {
+  if (!isPlainObject(terminal)) {
+    fail('ACQUIRER_ATTEMPT_STATE_INVALID', 'terminal must be a plain object', { acquisitionKey, attemptOrdinal });
+  }
+  if (terminal.schemaVersion !== ATTEMPT_TERMINAL_SCHEMA_VERSION) {
+    fail('ACQUIRER_ATTEMPT_STATE_INVALID', 'terminal schemaVersion mismatch', { acquisitionKey, attemptOrdinal });
+  }
+  if (terminal.acquisitionKey !== acquisitionKey || terminal.acquisitionKey !== reservation.acquisitionKey) {
+    fail('ACQUIRER_ATTEMPT_STATE_INVALID', 'terminal acquisitionKey mismatch', { acquisitionKey, attemptOrdinal });
+  }
+  if (terminal.attemptOrdinal !== attemptOrdinal || terminal.attemptOrdinal !== reservation.attemptOrdinal) {
+    fail('ACQUIRER_ATTEMPT_STATE_INVALID', 'terminal attemptOrdinal mismatch', { acquisitionKey, attemptOrdinal });
+  }
+  const state = terminal.attemptState;
+  if (
+    state !== ATTEMPT_STATE_FAILED_RETRYABLE
+    && state !== ATTEMPT_STATE_FAILED_TERMINAL
+    && state !== ATTEMPT_STATE_ABANDONED
+  ) {
+    fail('ACQUIRER_ATTEMPT_STATE_INVALID', `unknown terminal attemptState ${String(state)}`, {
+      acquisitionKey, attemptOrdinal,
+    });
+  }
+  const retryEligible = terminal.retryEligible;
+  const condition = terminal.condition;
+  if (state === ATTEMPT_STATE_FAILED_RETRYABLE) {
+    if (retryEligible !== true || !RETRY_AUTHORIZING.has(condition)) {
+      fail('ACQUIRER_ATTEMPT_STATE_INVALID', 'FAILED_RETRYABLE cross-invariant failed', {
+        acquisitionKey, attemptOrdinal, condition, retryEligible,
+      });
+    }
+  } else if (state === ATTEMPT_STATE_FAILED_TERMINAL) {
+    if (
+      retryEligible !== false
+      || RETRY_AUTHORIZING.has(condition)
+      || !RETRY_INELIGIBLE_CONDITIONS.includes(condition)
+    ) {
+      fail('ACQUIRER_ATTEMPT_STATE_INVALID', 'FAILED_TERMINAL cross-invariant failed', {
+        acquisitionKey, attemptOrdinal, condition, retryEligible,
+      });
+    }
+  } else if (state === ATTEMPT_STATE_ABANDONED) {
+    if (condition !== 'OWNER_PROCESS_DEAD' || retryEligible !== false) {
+      fail('ACQUIRER_ATTEMPT_STATE_INVALID', 'ABANDONED cross-invariant failed', {
+        acquisitionKey, attemptOrdinal, condition, retryEligible,
+      });
+    }
+  }
+}
+
 /**
  * @param {string} acquisitionRoot
  * @param {string} acquisitionKey
  * @param {number} attemptOrdinal
+ * @param {{authority?: Record<string, any>, recoveryGrant?: Record<string, any>|null, recoveryGrantSha256?: string|null}} [context]
  */
-function inspectAttempt(acquisitionRoot, acquisitionKey, attemptOrdinal) {
+export function inspectJarviseAttemptR1(acquisitionRoot, acquisitionKey, attemptOrdinal, context = {}) {
   const reservationPath = jarviseAttemptReservationPathR1(acquisitionRoot, acquisitionKey, attemptOrdinal);
   const terminalPath = jarviseAttemptTerminalPathR1(acquisitionRoot, acquisitionKey, attemptOrdinal);
   const reservationRead = readJsonObjectIfPresent(reservationPath);
@@ -534,24 +707,16 @@ function inspectAttempt(acquisitionRoot, acquisitionKey, attemptOrdinal) {
   if (terminalRead.malformed) {
     fail('ACQUIRER_ATTEMPT_STATE_INVALID', 'terminal outcome file is unreadable', { acquisitionKey, attemptOrdinal });
   }
+  assertReservationIdentity(reservationRead.value, acquisitionKey, attemptOrdinal, context);
   if (terminalRead.present) {
-    const state = terminalRead.value.attemptState;
-    if (
-      state === ATTEMPT_STATE_FAILED_RETRYABLE
-      || state === ATTEMPT_STATE_FAILED_TERMINAL
-      || state === ATTEMPT_STATE_ABANDONED
-    ) {
-      return {
-        kind: state,
-        reservationPath,
-        terminalPath,
-        reservation: reservationRead.value,
-        terminal: terminalRead.value,
-      };
-    }
-    fail('ACQUIRER_ATTEMPT_STATE_INVALID', `unknown terminal attemptState ${String(state)}`, {
-      acquisitionKey, attemptOrdinal,
-    });
+    assertTerminalIdentity(terminalRead.value, reservationRead.value, acquisitionKey, attemptOrdinal);
+    return {
+      kind: terminalRead.value.attemptState,
+      reservationPath,
+      terminalPath,
+      reservation: reservationRead.value,
+      terminal: terminalRead.value,
+    };
   }
   const liveness = ownerLiveness(reservationRead.value.ownerPid);
   if (liveness === 'ALIVE') {
@@ -575,6 +740,10 @@ function inspectAttempt(acquisitionRoot, acquisitionKey, attemptOrdinal) {
     reservation: reservationRead.value,
     terminal: null,
   };
+}
+
+function inspectAttempt(acquisitionRoot, acquisitionKey, attemptOrdinal, context = {}) {
+  return inspectJarviseAttemptR1(acquisitionRoot, acquisitionKey, attemptOrdinal, context);
 }
 
 /** @param {string} kind */
@@ -694,6 +863,68 @@ export function createJarviseYahooFetchOnceAcquirerR1(options) {
 
   let client = null;
   let clientInFlight = null;
+  const recoveryGrant = options.recoveryGrant === undefined ? null : options.recoveryGrant;
+  const recoveryGrantSha256 = options.recoveryGrantSha256 ?? null;
+  const inspectContext = { authority, recoveryGrant, recoveryGrantSha256, acquisitionRoot };
+  let gitBindingVerified = false;
+  let incidentRootValidated = false;
+  const ordinal1EvidenceSnapshots = new Map();
+
+  function inspectContextFor(attemptOrdinal) {
+    if (attemptOrdinal === 2 && !isPlainObject(recoveryGrant)) {
+      return { authority, recoveryGrant: null, recoveryGrantSha256: null, acquisitionRoot };
+    }
+    return inspectContext;
+  }
+
+  function requireRecoveryTraversalAuthorized(acquisitionKey) {
+    if (!isPlainObject(recoveryGrant)) {
+      fail('ACQUIRER_RECOVERY_GRANT_REQUIRED', 'live Owner recovery grant is required for provider recovery traversal', {
+        acquisitionKey,
+      });
+    }
+    if (recoveryGrant.preparedAuthoritySha256 !== CANONICAL_PREPARED_AUTHORITY_SHA256) {
+      fail('RECOVERY_GRANT_WRONG_VALUE', 'recovery grant preparedAuthoritySha256 mismatch');
+    }
+    if (recoveryGrant.preparedAuthoritySha256 !== authority.preparedSha256) {
+      fail('RECOVERY_GRANT_WRONG_VALUE', 'recovery grant is not bound to the effective prepared authority');
+    }
+    const grantRoot = assertExternalAcquisitionRootR1(recoveryGrant.acquisitionRoot, gitRoot);
+    assertRecoveryGrantRootEqualsPresentedR1(grantRoot, acquisitionRoot);
+    if (grant.providerLibraryVersion !== recoveryGrant.providerLibraryVersion) {
+      fail('RECOVERY_GRANT_WRONG_VALUE', 'providerLibraryVersion mismatch');
+    }
+    if (!incidentRootValidated) {
+      if (typeof options.validateIncidentRoot === 'function') {
+        options.validateIncidentRoot({
+          acquisitionRoot,
+          grant: recoveryGrant,
+          acquisitionKeys: permittedAcquisitionKeys,
+        });
+      } else {
+        assertCurrentIncidentRootMatchesGrantR1({
+          acquisitionRoot,
+          grant: recoveryGrant,
+          acquisitionKeys: permittedAcquisitionKeys,
+        });
+      }
+      incidentRootValidated = true;
+    }
+    if (gitBindingVerified) return;
+    if (typeof options.verifyGitBinding === 'function') {
+      options.verifyGitBinding({ gitRoot, grant: recoveryGrant });
+    } else {
+      assertGitCanonicalTrackedWorktreeEquivalenceR1({ gitRoot, grant: recoveryGrant });
+    }
+    gitBindingVerified = true;
+  }
+
+  function waiverAuthorizesOrdinal2(previous) {
+    return previous.kind === ATTEMPT_STATE_FAILED_TERMINAL
+      && previous.terminal?.condition === 'MALFORMED_PROVIDER_RESULT'
+      && previous.terminal?.retryEligible === false
+      && previous.reservation?.attemptOrdinal === 1;
+  }
 
   function readPersistenceStage(acquisitionKey) {
     if (typeof options.readPersistenceStage === 'function') {
@@ -765,14 +996,14 @@ export function createJarviseYahooFetchOnceAcquirerR1(options) {
    * @param {number} attemptOrdinal
    */
   function recoverAbandonedIfNeeded(acquisitionKey, attemptOrdinal) {
-    let attempt = inspectAttempt(acquisitionRoot, acquisitionKey, attemptOrdinal);
+    let attempt = inspectAttempt(acquisitionRoot, acquisitionKey, attemptOrdinal, inspectContextFor(attemptOrdinal));
     if (attempt.kind !== 'ABANDONED_UNMARKED') return attempt;
     commitAbandonedTerminal({
       acquisitionKey,
       attempt,
       recoveredByPid: process.pid,
     });
-    attempt = inspectAttempt(acquisitionRoot, acquisitionKey, attemptOrdinal);
+    attempt = inspectAttempt(acquisitionRoot, acquisitionKey, attemptOrdinal, inspectContextFor(attemptOrdinal));
     if (attempt.kind === 'ABANDONED_UNMARKED') {
       fail('ACQUIRER_ATTEMPT_STATE_INVALID', 'abandoned recovery did not produce a durable terminal', {
         acquisitionKey, attemptOrdinal, kind: attempt.kind,
@@ -815,13 +1046,7 @@ export function createJarviseYahooFetchOnceAcquirerR1(options) {
 
     assertStillEmpty(acquisitionKey);
 
-    const chartParams = Object.freeze({
-      period1: identity.period1,
-      period2: identity.period2,
-      interval: identity.interval,
-      events: 'div|split',
-      return: 'array',
-    });
+    const canonicalChartParams = canonicalChartParamsR1(identity);
 
     let lastFailure = null;
     for (const attemptOrdinal of LEGAL_ATTEMPT_ORDINALS) {
@@ -841,6 +1066,7 @@ export function createJarviseYahooFetchOnceAcquirerR1(options) {
         });
       }
       if (current.kind === ATTEMPT_STATE_FAILED_TERMINAL) {
+        if (attemptOrdinal === 1) continue;
         fail('ACQUIRER_FAIL_CLOSED', `previous attempt is durably terminal: ${String(current.terminal?.condition)}`, {
           acquisitionKey,
           attemptOrdinal,
@@ -848,6 +1074,9 @@ export function createJarviseYahooFetchOnceAcquirerR1(options) {
         });
       }
       if (current.kind === ATTEMPT_STATE_FAILED_RETRYABLE || current.kind === ATTEMPT_STATE_ABANDONED) {
+        if (attemptOrdinal === 2 && current.reservation?.schemaVersion === ATTEMPT_RESERVATION_SCHEMA_VERSION_V2) {
+          requireRecoveryTraversalAuthorized(acquisitionKey);
+        }
         continue;
       }
       if (current.kind !== 'ABSENT') {
@@ -856,6 +1085,7 @@ export function createJarviseYahooFetchOnceAcquirerR1(options) {
         });
       }
 
+      let creatingRecoveryOrdinal2 = false;
       if (attemptOrdinal > 1) {
         const previous = recoverAbandonedIfNeeded(acquisitionKey, attemptOrdinal - 1);
         if (previous.kind === ATTEMPT_STATE_IN_FLIGHT) {
@@ -863,7 +1093,14 @@ export function createJarviseYahooFetchOnceAcquirerR1(options) {
             acquisitionKey, attemptOrdinal, previousOrdinal: attemptOrdinal - 1,
           });
         }
-        if (!previousAuthorizesNextOrdinal(previous.kind)) {
+        creatingRecoveryOrdinal2 = attemptOrdinal === 2 && waiverAuthorizesOrdinal2(previous);
+        if (creatingRecoveryOrdinal2) {
+          requireRecoveryTraversalAuthorized(acquisitionKey);
+        } else if (previousAuthorizesNextOrdinal(previous.kind)) {
+          if (previous.reservation?.schemaVersion === ATTEMPT_RESERVATION_SCHEMA_VERSION_V2) {
+            requireRecoveryTraversalAuthorized(acquisitionKey);
+          }
+        } else {
           fail('ACQUIRER_RETRY_NOT_AUTHORIZED', 'ordinal N+1 requires a durable retryable or abandoned terminal for ordinal N', {
             acquisitionKey, attemptOrdinal, previousKind: previous.kind,
           });
@@ -880,7 +1117,7 @@ export function createJarviseYahooFetchOnceAcquirerR1(options) {
       const reservationPath = jarviseAttemptReservationPathR1(acquisitionRoot, acquisitionKey, attemptOrdinal);
       const terminalPath = jarviseAttemptTerminalPathR1(acquisitionRoot, acquisitionKey, attemptOrdinal);
       const reservationBody = {
-        schemaVersion: ATTEMPT_RESERVATION_SCHEMA_VERSION,
+        schemaVersion: creatingRecoveryOrdinal2 ? ATTEMPT_RESERVATION_SCHEMA_VERSION_V2 : ATTEMPT_RESERVATION_SCHEMA_VERSION_V1,
         acquisitionKey,
         attemptOrdinal,
         attemptState: ATTEMPT_STATE_IN_FLIGHT,
@@ -890,6 +1127,31 @@ export function createJarviseYahooFetchOnceAcquirerR1(options) {
         authorityId: authority.authorityId,
         preparedAuthoritySha256: authority.preparedSha256,
       };
+      if (creatingRecoveryOrdinal2) {
+        let snapshot = ordinal1EvidenceSnapshots.get(acquisitionKey);
+        if (!snapshot) {
+          snapshot = snapshotOrdinal1EvidenceR1(acquisitionRoot, acquisitionKey);
+          ordinal1EvidenceSnapshots.set(acquisitionKey, snapshot);
+        }
+        assertOrdinal1EvidenceUnchangedR1(acquisitionRoot, acquisitionKey, snapshot);
+        reservationBody.recoveryProvenance = {
+          schemaVersion: 'JarviseYahooIncidentRecoveryProvenance/1',
+          mechanism: 'OWNER_INCIDENT_RECOVERY_AUTHORIZATION',
+          incidentRecoveryId: 'P3G_ZERO_HTTP_MALFORMED_802_R1',
+          recoveryGrantId: recoveryGrant.grantId,
+          recoveryGrantSha256,
+          recoveryImplementationManifestSchemaVersion: recoveryGrant.recoveryImplementationManifestSchemaVersion,
+          recoveryImplementationManifestDigest: recoveryGrant.recoveryImplementationManifestDigest,
+          preparedAuthoritySha256: recoveryGrant.preparedAuthoritySha256,
+          incidentEvidenceDigest: recoveryGrant.incidentEvidenceDigest,
+          cohort802KeyDigest: recoveryGrant.cohort802KeyDigest,
+          acquisitionKey,
+          attemptOrdinal: 2,
+          permittedFromIncidentOrdinal: 1,
+          ordinal1Reservation: snapshot.reservation,
+          ordinal1Terminal: snapshot.terminal,
+        };
+      }
       const reserved = commitWriteOnceReservation({ path: reservationPath, body: reservationBody });
       if (!reserved.committed) {
         const raced = recoverAbandonedIfNeeded(acquisitionKey, attemptOrdinal);
@@ -911,6 +1173,28 @@ export function createJarviseYahooFetchOnceAcquirerR1(options) {
         });
       }
 
+      if (creatingRecoveryOrdinal2 && typeof options.onAfterOrdinal2Wx === 'function') {
+        options.onAfterOrdinal2Wx({ acquisitionKey, reservationPath, terminalPath });
+      }
+      if (creatingRecoveryOrdinal2 && options.postWxOrdinal1EvidenceCheck !== false) {
+        try {
+          const snapshot = ordinal1EvidenceSnapshots.get(acquisitionKey);
+          if (snapshot) assertOrdinal1EvidenceUnchangedR1(acquisitionRoot, acquisitionKey, snapshot);
+        } catch {
+          commitOwnedTerminal({
+            acquisitionKey,
+            attemptOrdinal,
+            terminalPath,
+            attemptState: ATTEMPT_STATE_FAILED_TERMINAL,
+            condition: 'MALFORMED_PROVIDER_RESULT',
+            retryEligible: false,
+          });
+          fail('ACQUIRER_FAIL_CLOSED', 'ordinal1 evidence mutated after ordinal2 reservation', {
+            acquisitionKey, condition: 'MALFORMED_PROVIDER_RESULT',
+          });
+        }
+      }
+
       const cardinalityAfter = assertCardinalityWithinCeiling();
       if (cardinalityAfter > durableCeiling()) {
         fail('ACQUIRER_INVOCATION_CEILING_REACHED', `durable reservation cardinality ${cardinalityAfter} exceeds ceiling ${durableCeiling()}`, {
@@ -918,9 +1202,10 @@ export function createJarviseYahooFetchOnceAcquirerR1(options) {
         });
       }
 
+      const providerChartParams = mutableProviderChartParamsR1(canonicalChartParams);
       let chartResult;
       try {
-        chartResult = await (await providerClientAfterReservation(acquisitionKey)).chart(identity.providerSymbol, chartParams);
+        chartResult = await (await providerClientAfterReservation(acquisitionKey)).chart(identity.providerSymbol, providerChartParams);
       } catch (error) {
         const classified = classifyAcquisitionFailureR1(error);
         lastFailure = { ...classified, message: /** @type {Error} */ (error)?.message ?? null };
@@ -990,6 +1275,7 @@ export function createJarviseYahooFetchOnceAcquirerR1(options) {
     acquireRawBytesFor,
     acquisitionRoot: acquisitionRootReal,
     providerInvocations: () => countDurableAttemptReservationsR1(acquisitionRoot),
+    durableProviderAttemptReservations: () => countDurableAttemptReservationsR1(acquisitionRoot),
     attemptsFor: (acquisitionKey) => countDurableAttemptsForKeyR1(acquisitionRoot, acquisitionKey),
     remainingInvocationBudget: () => durableCeiling() - countDurableAttemptReservationsR1(acquisitionRoot),
     providerClientConstructed: () => client !== null,
@@ -1001,6 +1287,7 @@ export function createJarviseYahooFetchOnceAcquirerR1(options) {
       maxAttemptsPerEmptyKey,
       maxProviderInvocationCount: durableCeiling(),
       providerInvocations: countDurableAttemptReservationsR1(acquisitionRoot),
+      durableProviderAttemptReservations: countDurableAttemptReservationsR1(acquisitionRoot),
       retryEligibleConditions: RETRY_ELIGIBLE_CONDITIONS,
       retryIneligibleConditions: RETRY_INELIGIBLE_CONDITIONS,
       acquisitionRootPolicy: 'OUTSIDE_GOVERNED_REPOSITORY',

@@ -36,10 +36,12 @@ import {
 } from '../app/jarvise/jarviseYahooChartAdapterR1.mjs';
 import {
   assertExternalAcquisitionRootR1,
+  countDurableAttemptReservationsR1,
   createJarviseYahooFetchOnceAcquirerR1,
   resolveEffectiveAcquisitionAuthorityR1,
 } from '../app/jarvise/jarviseYahooFetchOnceAcquirerR1.mjs';
 import { createJarviseYahooFinance2ChartClientR1 } from '../app/jarvise/jarviseYahooFinance2ChartClientFactoryR1.mjs';
+import { loadOwnerIncidentRecoveryGrantR1 } from '../app/jarvise/jarviseYahooIncidentRecoveryAuthorizationR1.mjs';
 import {
   JARVISE_SNAPSHOT_PERSISTENCE_VERSION,
   createJarviseSnapshotDirectoryJournalR1,
@@ -74,7 +76,7 @@ function fail(code, message, details = {}) {
  * @param {string[]} argv
  */
 export function parseJarviseHistoricalFetchOnceArgsR1(argv) {
-  const parsed = { acquisitionRoot: null, executionGrantPath: null };
+  const parsed = { acquisitionRoot: null, executionGrantPath: null, recoveryGrantPath: null };
   for (let index = 0; index < argv.length; index += 1) {
     const token = argv[index];
     if (token === '--acquisition-root') {
@@ -84,6 +86,11 @@ export function parseJarviseHistoricalFetchOnceArgsR1(argv) {
     }
     if (token === '--execution-grant') {
       parsed.executionGrantPath = argv[index + 1];
+      index += 1;
+      continue;
+    }
+    if (token === '--recovery-grant') {
+      parsed.recoveryGrantPath = argv[index + 1];
       index += 1;
     }
   }
@@ -143,19 +150,49 @@ export function buildSnapshotCoreFieldsR1(input) {
 /**
  * Execute the FETCH_ONCE pass.
  * @param {{
- *   root?: string,
- *   gitRoot?: string,
  *   acquisitionRoot: string,
  *   executionGrant?: Record<string, any>|null,
  *   executionGrantPath?: string|null,
+ *   recoveryGrantPath?: string|null,
  *   createProviderClient?: () => {chart: Function},
  *   now?: () => string,
  *   limit?: number,
  * }} options
  */
 export async function runJarviseHistoricalFetchOnceR1(options = {}) {
-  const root = options.root ?? REPOSITORY_ROOT;
-  const gitRoot = options.gitRoot ?? root;
+  if (Object.hasOwn(options, 'recoveryGrant')) {
+    fail(
+      'RUN_RECOVERY_GRANT_OBJECT_FORBIDDEN',
+      'production runner refuses already-parsed recoveryGrant objects; supply an explicit external --recovery-grant path',
+    );
+  }
+  if (Object.hasOwn(options, 'recoveryGrantSha256')) {
+    fail(
+      'RUN_RECOVERY_GRANT_OBJECT_FORBIDDEN',
+      'production runner refuses injected recoveryGrantSha256; it is derived from the external grant file',
+    );
+  }
+  if (Object.hasOwn(options, 'verifyGitBinding')) {
+    fail(
+      'RUN_GIT_VERIFIER_INJECTION_FORBIDDEN',
+      'production runner hard-wires GIT_CANONICAL_TRACKED_WORKTREE_EQUIVALENCE; custom verifiers are forbidden',
+    );
+  }
+  if (Object.hasOwn(options, 'root')) {
+    fail(
+      'RUN_ROOT_INJECTION_FORBIDDEN',
+      'production runner derives repository root from the executing module; caller-supplied root is forbidden',
+    );
+  }
+  if (Object.hasOwn(options, 'gitRoot')) {
+    fail(
+      'RUN_GIT_ROOT_INJECTION_FORBIDDEN',
+      'production runner binds Git verification to the executing repository; caller-supplied gitRoot is forbidden',
+    );
+  }
+
+  const root = REPOSITORY_ROOT;
+  const gitRoot = REPOSITORY_ROOT;
   if (options.acquisitionRoot === undefined || options.acquisitionRoot === null || options.acquisitionRoot === '') {
     fail('RUN_ACQUISITION_ROOT_REQUIRED', '--acquisition-root <absolute-path> is required; the repository is not an acquisition write target');
   }
@@ -170,12 +207,6 @@ export async function runJarviseHistoricalFetchOnceR1(options = {}) {
     acquisitionRoot,
     executionGrant,
   });
-  if (!authority.activated) {
-    fail('RUN_NOT_AUTHORIZED', 'no Owner EXPLICIT_MISSION_GRANT is present; the prepared authority grants no network', {
-      reasonCode: authority.reasonCode,
-      preparedAuthoritySha256: authority.preparedSha256,
-    });
-  }
 
   const provenance = readJarviseSnapshotPersistenceProvenanceR1({ root });
   if (provenance.vintageClaim !== 'NONE') fail('RUN_PROVENANCE_INVALID', 'persistence root must claim no vintage');
@@ -203,14 +234,36 @@ export async function runJarviseHistoricalFetchOnceR1(options = {}) {
     toolVersion: JARVISE_SNAPSHOT_PERSISTENCE_VERSION,
   });
 
-  const acquirer = createJarviseYahooFetchOnceAcquirerR1({
-    authority,
-    acquisitionRoot,
-    gitRoot,
-    permittedAcquisitionKeys: plan.entries.map((entry) => entry.acquisitionKey),
-    journal,
-    createProviderClient: options.createProviderClient,
-  });
+  const PINNED_OR_LATER = new Set(['RAW_PINNED', 'NORMALIZED', 'VERSION_CACHED']);
+  let acquirer = null;
+
+  function requireAcquirerForEmptyKey() {
+    if (acquirer !== null) return acquirer;
+    if (!authority.activated) {
+      fail('RUN_NOT_AUTHORIZED', 'no Owner EXPLICIT_MISSION_GRANT is present; the prepared authority grants no network', {
+        reasonCode: authority.reasonCode,
+        preparedAuthoritySha256: authority.preparedSha256,
+      });
+    }
+    let recoveryGrant = null;
+    let recoveryGrantSha256 = null;
+    if (options.recoveryGrantPath) {
+      const loaded = loadOwnerIncidentRecoveryGrantR1({ grantPath: options.recoveryGrantPath });
+      recoveryGrant = loaded.grant;
+      recoveryGrantSha256 = loaded.recoveryGrantSha256;
+    }
+    acquirer = createJarviseYahooFetchOnceAcquirerR1({
+      authority,
+      acquisitionRoot,
+      gitRoot,
+      permittedAcquisitionKeys: plan.entries.map((entry) => entry.acquisitionKey),
+      journal,
+      createProviderClient: options.createProviderClient,
+      recoveryGrant,
+      recoveryGrantSha256,
+    });
+    return acquirer;
+  }
 
   const now = options.now ?? (() => new Date().toISOString());
   const entries = options.limit === undefined ? plan.entries : plan.entries.slice(0, options.limit);
@@ -223,11 +276,19 @@ export async function runJarviseHistoricalFetchOnceR1(options = {}) {
     const acquisitionKey = entry.acquisitionKey;
     try {
       let rawBytes = null;
-      try {
-        rawBytes = await acquirer.acquireRawBytesFor(entry);
-      } catch (error) {
-        if (/** @type {any} */ (error)?.code !== 'ACQUIRER_REFETCH_FORBIDDEN') throw error;
+      const durableStage = persistence.stageOf(acquisitionKey);
+      if (PINNED_OR_LATER.has(durableStage)) {
         rawBytes = null;
+      } else if (durableStage !== 'EMPTY') {
+        fail('RUN_STAGE_INVALID', `unknown durable stage ${durableStage}`, { acquisitionKey, stage: durableStage });
+      } else {
+        try {
+          rawBytes = await requireAcquirerForEmptyKey().acquireRawBytesFor(entry);
+        } catch (error) {
+          if (/** @type {any} */ (error)?.code === 'RUN_NOT_AUTHORIZED') throw error;
+          if (/** @type {any} */ (error)?.code !== 'ACQUIRER_REFETCH_FORBIDDEN') throw error;
+          rawBytes = null;
+        }
       }
 
       const pin = persistence.pinRawOnce({
@@ -276,6 +337,7 @@ export async function runJarviseHistoricalFetchOnceR1(options = {}) {
         reused: pin.reused === true,
       });
     } catch (error) {
+      if (/** @type {any} */ (error)?.code === 'RUN_NOT_AUTHORIZED') throw error;
       failed += 1;
       results.push({
         symbol: entry.symbol,
@@ -298,7 +360,9 @@ export async function runJarviseHistoricalFetchOnceR1(options = {}) {
     reused,
     failed,
     completed,
-    providerInvocations: acquirer.providerInvocations(),
+    providerInvocations: acquirer === null
+      ? countDurableAttemptReservationsR1(acquisitionRoot)
+      : acquirer.providerInvocations(),
     maxProviderInvocationCount: authority.grant.maxProviderInvocationCount,
     cohortStatus: completed === plan.acquisitionKeyCount ? 'COMPLETE' : 'PARTIAL_RESUMABLE',
     resumeSemantics: 'FROM_PINNED_LOCAL_STATE',
@@ -315,6 +379,7 @@ if (invokedDirectly) {
   runJarviseHistoricalFetchOnceR1({
     acquisitionRoot: parsed.acquisitionRoot,
     executionGrantPath: parsed.executionGrantPath,
+    recoveryGrantPath: parsed.recoveryGrantPath,
     createProviderClient: createJarviseYahooFinance2ChartClientR1,
   })
     .then((summary) => {

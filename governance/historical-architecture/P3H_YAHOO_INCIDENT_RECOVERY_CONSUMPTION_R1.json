@@ -1,0 +1,88 @@
+{
+  "documentKind": "POST_FREEZE_MAINTENANCE_AUTHORITY_CONSUMPTION",
+  "schemaVersion": 2,
+  "authorityId": "P3H_YAHOO_INCIDENT_RECOVERY_LOCAL_AUTHORITY_R1",
+  "programId": "P3H_YAHOO_INCIDENT_RECOVERY_R1",
+  "manifestSha256": "a2b3a118789a02b311b32d27e3aa99f201b5fc1ef19b5cdaa4bea75af2cdef1a",
+  "baseHead": "be478a284fbb2cefc76f6da6cab7ac92f3fc271a",
+  "consumedUse": 1,
+  "transactionId": "P3H_YAHOO_INCIDENT_RECOVERY_R1_TRANSACTION",
+  "recordedAt": "2026-09-07T11:51:29.830Z",
+  "commitMessage": "jarvise: P3H Yahoo incident recovery (no network, no execution grant)",
+  "publicationAdmission": {
+    "admissionId": "P3H_YAHOO_INCIDENT_RECOVERY_PUBLICATION_ADMISSION_R1",
+    "admissionPath": "governance/authority/publication-admissions/GATE24/P3H_YAHOO_INCIDENT_RECOVERY_PUBLICATION_ADMISSION_R1.json",
+    "admissionSha256": "f9d9cd0e2fb0056a006adce7aa0fe4c9e3cc7ae7b1c1e138234d7db8f95c74ef"
+  },
+  "cohortSelfExclusion": {
+    "path": "governance/historical-architecture/P3H_YAHOO_INCIDENT_RECOVERY_CONSUMPTION_R1.json",
+    "reason": "The consumption record cannot hash its own final bytes; its identity is bound by the authority and manifest instead."
+  },
+  "cohortPathCount": 9,
+  "cohort": [
+    {
+      "path": "app/jarvise/jarviseYahooFetchOnceAcquirerR1.mjs",
+      "sha256": "af78087e567d108a3dfd290d516f7cd5680310dd34039991eb8fa6b27ae1c1db",
+      "byteLength": 56333,
+      "operation": "MODIFY",
+      "reason": "P3H incident recovery: recover Yahoo transport failures on the existing acquirer without mutating the P3G execution grant, incident root, or network authorization. Preserve P3F acquisitionRoot binding and P3E factory-after-reservation order.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "app/jarvise/jarviseYahooFinance2ChartClientFactoryR1.mjs",
+      "sha256": "8e9581ce9d1e755a9db05da09eae44df6aab19d44b792d5f950203d7244da572",
+      "byteLength": 9558,
+      "operation": "MODIFY",
+      "reason": "P3H incident recovery: freeze yahoo-finance2@3.14.0 chart-client construction params for recovered calls. No module-scope Yahoo import, no live cache reuse, no network.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "scripts/runJarviseHistoricalFetchOnceR1.mjs",
+      "sha256": "f077ba541da608d74ae46087b902fa44b9ff6944948609d400d723cb5b9b6424",
+      "byteLength": 15331,
+      "operation": "MODIFY",
+      "reason": "P3H incident recovery: resolve recovery authorization with CLI acquisitionRoot before mkdir, reservation, persistence, acquirer or provider factory. No Yahoo fetch and no execution-grant mutation.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "app/jarvise/jarviseYahooFetchOnceAcquirerR1.test.mjs",
+      "sha256": "7a09f315455139a38656313fd76fb04add15b978f6aac0e8fd3517ad9fe62134",
+      "byteLength": 119221,
+      "operation": "MODIFY",
+      "reason": "P3H offline fake-provider coverage for incident recovery, grant separation, resume, budget continuity and P3E/P3F invariances. Zero Yahoo/network contact.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "app/jarvise/jarviseYahooFinance2ChartClientFactoryR1.test.mjs",
+      "sha256": "15d5e75b5d9e373e08fdb57535c094ad849ab216ff3628e91023130101e2d988",
+      "byteLength": 11336,
+      "operation": "MODIFY",
+      "reason": "P3H factory coverage for frozen chart params and recovered-call construction. Fake loader only, zero Yahoo/network contact.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "app/jarvise/jarviseYahooIncidentRecoveryAuthorizationR1.mjs",
+      "sha256": "987849f1aed85cdc6c7eaa1483203318de697430d14d574b222214c7bb799284",
+      "byteLength": 44244,
+      "operation": "CREATE",
+      "reason": "P3H recovery-authorization module: parse and separate execution grant vs recovery grant. Does not emit a recovery grant, does not mutate P3G, and does not authorize Yahoo.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "app/jarvise/jarviseYahooIncidentRecoveryAuthorizationR1.test.mjs",
+      "sha256": "b200830d631336595cfe4fb43bc3ebae09eb9d3e04e8a8dad3fb3085bb6913cf",
+      "byteLength": 12182,
+      "operation": "CREATE",
+      "reason": "P3H recovery-authorization tests: offline coverage for grant separation, fail-closed malformed grants, and no grant emission. Zero Yahoo/network contact.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "app/jarvise/jarviseYahooFinance2FrozenParamsRealPackageR1.test.mjs",
+      "sha256": "2300f7773afdaf61bf3a326b4d89c5be7c9891ea8df6a6cb5f188ef7377bfcba",
+      "byteLength": 3704,
+      "operation": "CREATE",
+      "reason": "P3H offline GIT_CANONICAL_TRACKED_WORKTREE_EQUIVALENCE coverage for frozen yahoo-finance2@3.14.0 chart params against the tracked real package. Zero Yahoo/network contact.",
+      "artifactClass": "MAINTENANCE"
+    }
+  ]
+}

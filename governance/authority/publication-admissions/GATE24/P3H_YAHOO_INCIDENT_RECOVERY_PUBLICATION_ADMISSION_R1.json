@@ -1,0 +1,72 @@
+{
+  "documentKind": "MAINTENANCE_PUBLICATION_ADMISSION",
+  "schemaVersion": 1,
+  "authorityMode": "LOCAL_EXPLICIT_AUTHORITY",
+  "issuedBy": "PROJECT_OWNER",
+  "admissionId": "P3H_YAHOO_INCIDENT_RECOVERY_PUBLICATION_ADMISSION_R1",
+  "decisionId": "P3H_YAHOO_INCIDENT_RECOVERY_OWNER_DECISION_R1",
+  "issuedAtUtc": "2026-09-07T00:00:00.000Z",
+  "expiresAtUtc": null,
+  "projectId": "WHEEL",
+  "repositoryId": "WHEEL_MCP_CANONICAL",
+  "gateId": "GATE24",
+  "programId": "P3H_YAHOO_INCIDENT_RECOVERY_R1",
+  "purpose": "MAINTENANCE_PUBLICATION_ADMISSION",
+  "publicationClass": "PATH_PRESTATE_PROGRAM_PUBLISHER",
+  "authorityPurpose": "NORMAL_MAINTENANCE",
+  "maxUse": 1,
+  "admissionStatement": "One exact Owner admission for the bounded P3H Yahoo incident recovery program. It publishes five MODIFY work artifacts, three CREATE work artifacts, and one publisher-generated consumption receipt. It does not mutate GATE25, appends no ledger event, does not switch ACTIVE_GATE, performs no network acquisition, no Yahoo fetch, no HTTP call, no IBKR access and no macro ingestion. It does not create a recovery grant, does not mutate the P3G execution grant, and does not mutate the incident root. Creating these candidate bytes does not itself constitute Owner approval or activation. Final publication of this admission requires a later explicit Owner ratification of the Owner-authorization candidate.",
+  "admittedAuthority": {
+    "path": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_P3H_YAHOO_INCIDENT_RECOVERY_R1.json",
+    "sha256": "e42ac8df6a52edccca394b9b01f834ed0bd5dcbcce1cc5f155baa61e2b86c7f7",
+    "byteLength": 2092,
+    "schemaVersion": 2,
+    "documentId": "P3H_YAHOO_INCIDENT_RECOVERY_LOCAL_AUTHORITY_R1"
+  },
+  "admittedManifest": {
+    "path": "governance/historical-architecture/P3H_YAHOO_INCIDENT_RECOVERY_AUTHORIZED_PATHS_R1.json",
+    "sha256": "a2b3a118789a02b311b32d27e3aa99f201b5fc1ef19b5cdaa4bea75af2cdef1a",
+    "byteLength": 4695,
+    "schemaVersion": 2,
+    "documentId": "P3H_YAHOO_INCIDENT_RECOVERY_AUTHORIZED_PATHS_R1"
+  },
+  "admittedPrestate": {
+    "baseHead": "be478a284fbb2cefc76f6da6cab7ac92f3fc271a",
+    "ledgerEventCount": 104,
+    "ledgerPrefixSha256": "2def19c84b7581da0ab54d2d1ba9d68f5bc2ce40e108443cfbd086835a0116da",
+    "gateId": "GATE24",
+    "gateStatus": "COMPLETE_CONFIRMED",
+    "stateRevision": "R0005",
+    "contractRevision": "R0002",
+    "activeGate": "GATE13",
+    "R8ExpectedAbsent": true
+  },
+  "admittedOperationClasses": [
+    "MAINTENANCE"
+  ],
+  "grantsFutureBytePermission": false,
+  "grantsGateAuthorizationPermission": false,
+  "grantsStartPermission": false,
+  "grantsStatusTransitionPermission": false,
+  "grantsHistoricalAdmissionWidening": false,
+  "genericV1Admission": false,
+  "derivedFromGitDelta": false,
+  "derivedFromFinalGateIntegrityFindings": false,
+  "prohibitedOperations": [
+    "START",
+    "SECOND_START",
+    "GATE_AUTHORIZATION",
+    "STATUS_TRANSITION",
+    "ACTIVE_GATE_SWITCH",
+    "GEE_R8",
+    "GIT_PUSH",
+    "HISTORY_REWRITE",
+    "GENERIC_V1_ADMISSION",
+    "HISTORICAL_ADMISSION_WIDENING",
+    "SELF_ADMISSION"
+  ],
+  "successorRequirement": "A later publication requires a new exact Owner admission over a new exact pre-state. This candidate Owner-authorization is prepared for later explicit Owner ratification and is not itself an issued ratification.",
+  "admissionDigest": "a9ed22b80b8a7f235642d018c580742cdd7b81079d77fd0d85babc547b30890c",
+  "ownerAuthorizationPath": "governance/sources/MAINTENANCE_PUBLICATION_ADMISSION_OWNER_AUTHORIZATION_P3H_YAHOO_INCIDENT_RECOVERY_R1.json",
+  "ownerAuthorizationSha256": "e835f804c725842966065d34e7fc2e560aa3b312150c9cd28e45edb2e712057c"
+}

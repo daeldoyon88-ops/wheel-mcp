@@ -221,11 +221,92 @@ export function classifyAcquisitionFailureR1(error) {
 }
 
 /**
+/**
+ * Physical compare-key for an already-validated acquisition root. Reuses the
+ * existing destination reconstruction; does not mkdir.
+ * @param {string} lexical
+ */
+function canonicalPhysicalAcquisitionRootIdentity(lexical) {
+  const destination = physicalAcquisitionDestination(lexical);
+  return {
+    lexical,
+    physical: destination.physical,
+    compareKey: normalizePathForCompare(destination.physical),
+  };
+}
+
+/**
+ * Validate and canonicalize an acquisition root against gitRoot using the
+ * existing external-root path algebra. Does not mkdir.
+ * @param {unknown} acquisitionRoot
+ * @param {unknown} gitRoot
+ */
+function canonicalizePresentedAcquisitionRoot(acquisitionRoot, gitRoot) {
+  const lexical = assertExternalAcquisitionRootR1(acquisitionRoot, gitRoot);
+  return canonicalPhysicalAcquisitionRootIdentity(lexical);
+}
+
+/**
+ * After prepared SHA and authorization booleans pass, bind grant.acquisitionRoot
+ * to the presented CLI/acquirer root. Unknown extra grant fields are ignored.
+ * @param {Record<string, any>} executionGrant
+ * @param {{root?: string, gitRoot?: string, acquisitionRoot?: unknown}} options
+ */
+function bindActivatingGrantAcquisitionRoot(executionGrant, options) {
+  const grantRoot = executionGrant.acquisitionRoot;
+  if (grantRoot === undefined || grantRoot === null || grantRoot === '') {
+    fail('EXECUTION_GRANT_ACQUISITION_ROOT_REQUIRED', 'activating grant must bind acquisitionRoot');
+  }
+  const gitRoot = options.gitRoot ?? options.root ?? REPOSITORY_ROOT;
+  const bound = canonicalizePresentedAcquisitionRoot(grantRoot, gitRoot);
+  const presentedRoot = options.acquisitionRoot;
+  if (presentedRoot === undefined || presentedRoot === null || presentedRoot === '') {
+    fail('EXECUTION_GRANT_ACQUISITION_ROOT_REQUIRED', 'presented acquisitionRoot is required to bind an activating grant');
+  }
+  const presented = canonicalizePresentedAcquisitionRoot(presentedRoot, gitRoot);
+  if (bound.compareKey !== presented.compareKey) {
+    fail('EXECUTION_GRANT_ACQUISITION_ROOT_MISMATCH', 'grant acquisitionRoot does not bind the presented acquisitionRoot', {
+      grantAcquisitionRoot: bound.lexical,
+      presentedAcquisitionRoot: presented.lexical,
+      grantPhysical: bound.physical,
+      presentedPhysical: presented.physical,
+    });
+  }
+  return bound;
+}
+
+/**
+ * Defense in depth: an activated authority may not be used against another root.
+ * In-repo / malformed presented roots still fail with ACQUISITION_ROOT_*.
+ * @param {Record<string, any>} authority
+ * @param {unknown} acquisitionRoot
+ * @param {unknown} gitRoot
+ */
+function assertActivatedAuthorityBoundToAcquisitionRoot(authority, acquisitionRoot, gitRoot) {
+  if (authority.activated !== true) return;
+  if (typeof authority.boundAcquisitionRoot !== 'string' || authority.boundAcquisitionRoot.length === 0) {
+    fail('EXECUTION_GRANT_ACQUISITION_ROOT_REQUIRED', 'activated authority must bind acquisitionRoot');
+  }
+  const presented = canonicalizePresentedAcquisitionRoot(acquisitionRoot, gitRoot);
+  const bound = canonicalizePresentedAcquisitionRoot(authority.boundAcquisitionRoot, gitRoot);
+  if (presented.compareKey !== bound.compareKey) {
+    fail('EXECUTION_GRANT_ACQUISITION_ROOT_MISMATCH', 'activated authority is bound to a different acquisitionRoot', {
+      boundAcquisitionRoot: bound.lexical,
+      presentedAcquisitionRoot: presented.lexical,
+      boundPhysical: bound.physical,
+      presentedPhysical: presented.physical,
+    });
+  }
+}
+
+/**
  * Resolve the authority the persistence surface will actually see.
  *
  * With no Owner-supplied EXPLICIT_MISSION_GRANT the prepared bounds are returned
  * with network still denied. P3 never creates or self-issues that grant.
- * @param {{root?: string, preparedAuthority?: Record<string, any>, executionGrant?: Record<string, any>|null}} [options]
+ * An activating grant must bind acquisitionRoot to the presented root after
+ * prepared SHA and authorization booleans pass.
+ * @param {{root?: string, gitRoot?: string, acquisitionRoot?: unknown, preparedAuthority?: Record<string, any>, executionGrant?: Record<string, any>|null}} [options]
  */
 export function resolveEffectiveAcquisitionAuthorityR1(options = {}) {
   const root = options.root ?? REPOSITORY_ROOT;
@@ -255,6 +336,7 @@ export function resolveEffectiveAcquisitionAuthorityR1(options = {}) {
       reasonCode: 'OWNER_MISSION_GRANT_ABSENT',
       grant: Object.freeze({ ...prepared.preparedGrant }),
       preparedSha256,
+      boundAcquisitionRoot: null,
     });
   }
 
@@ -276,6 +358,7 @@ export function resolveEffectiveAcquisitionAuthorityR1(options = {}) {
   if (executionGrant.executionAuthorized !== true || executionGrant.networkAuthorized !== true) {
     fail('EXECUTION_GRANT_INVALID', 'execution grant must explicitly authorize execution and network');
   }
+  const bound = bindActivatingGrantAcquisitionRoot(executionGrant, options);
   return Object.freeze({
     authorityId: prepared.authorityId,
     executionAuthorized: true,
@@ -284,6 +367,7 @@ export function resolveEffectiveAcquisitionAuthorityR1(options = {}) {
     reasonCode: null,
     grant: Object.freeze({ ...prepared.preparedGrant }),
     preparedSha256,
+    boundAcquisitionRoot: bound.lexical,
   });
 }
 
@@ -584,6 +668,7 @@ export function createJarviseYahooFetchOnceAcquirerR1(options) {
   }
 
   const gitRoot = options.gitRoot ?? REPOSITORY_ROOT;
+  assertActivatedAuthorityBoundToAcquisitionRoot(authority, options.acquisitionRoot, gitRoot);
   const acquisitionRoot = assertExternalAcquisitionRootR1(options.acquisitionRoot, gitRoot);
   mkdirSync(acquisitionRoot, { recursive: true });
   let acquisitionRootReal;

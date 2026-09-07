@@ -14,7 +14,7 @@
   "authorityPredecessor": null,
   "authorityPredecessorPath": null,
   "predecessorDisposition": "NONE",
-  "twoPhaseSafety": "This document declares the bounds of a future acquisition. It does not grant one. executionAuthorized and networkAuthorized are false in the published bytes, so jarviseSnapshotPersistenceR1::pinRawOnce refuses every acquirer while only this document is present. Network execution requires an Owner-supplied EXPLICIT_MISSION_GRANT. P3 never creates or self-issues that grant.",
+  "twoPhaseSafety": "This document declares the bounds of a future acquisition. It does not grant one. The effective runtime gates are executionAuthorized and networkAuthorized; both are false in the published bytes, so jarviseSnapshotPersistenceR1::pinRawOnce refuses every acquirer while only this document is present. yahooFetchAuthorized is declarative non-runtime metadata and is not a third runtime authorization gate. Network execution requires an Owner-supplied EXPLICIT_MISSION_GRANT that binds acquisitionRoot. P3 never creates or self-issues that grant.",
   "executionAuthorization": {
     "mechanism": "EXPLICIT_MISSION_GRANT",
     "optionalDurableOwnerRecord": "PROJECT_OWNER_TEMPORARY_SINGLE_USE_AUTHORIZATION",
@@ -22,7 +22,11 @@
     "selfAuthorization": "FORBIDDEN",
     "grantDocumentPresent": false,
     "grantBindsPreparedAuthoritySha256": true,
-    "effectOnGrant": "executionAuthorized and networkAuthorized become true for exactly one run bounded by preparedGrant."
+    "activatingGrantMustBindAcquisitionRoot": true,
+    "resumePolicy": "ONE_LOGICAL_MISSION_MULTI_RESUME_SAME_BOUND_ROOT",
+    "yahooFetchAuthorizedRole": "DECLARATIVE_NON_RUNTIME_METADATA",
+    "effectiveRuntimeGates": ["executionAuthorized", "networkAuthorized"],
+    "effectOnGrant": "executionAuthorized and networkAuthorized become true for one logical Owner mission that may resume across multiple CLI invocations against the same bound acquisitionRoot, bounded by preparedGrant. PROJECT_OWNER_TEMPORARY_SINGLE_USE_AUTHORIZATION names that one logical mission, not one process or one CLI invocation. The activating grant must bind acquisitionRoot. The same grant may be reused only for resumes against that same bound root until the cohort is COMPLETE or the Owner explicitly abandons and deletes the grant. maxProviderInvocationCount is the durable reservation ceiling under that single bound mission root. No technical expiry is required. Grant lifetime is operational: retain during resumptions; Owner deletes after COMPLETE or on explicit abandonment."
   },
   "acquisitionRootPolicy": "OUTSIDE_GOVERNED_REPOSITORY",
   "repositoryDynamicAcquisitionWrites": "FORBIDDEN",

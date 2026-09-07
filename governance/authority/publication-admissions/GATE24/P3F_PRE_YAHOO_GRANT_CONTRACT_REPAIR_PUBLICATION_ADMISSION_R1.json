@@ -1,0 +1,72 @@
+{
+  "documentKind": "MAINTENANCE_PUBLICATION_ADMISSION",
+  "schemaVersion": 1,
+  "authorityMode": "LOCAL_EXPLICIT_AUTHORITY",
+  "issuedBy": "PROJECT_OWNER",
+  "admissionId": "P3F_PRE_YAHOO_GRANT_CONTRACT_REPAIR_PUBLICATION_ADMISSION_R1",
+  "decisionId": "P3F_PRE_YAHOO_GRANT_CONTRACT_REPAIR_OWNER_DECISION_R1",
+  "issuedAtUtc": "2026-09-07T00:00:00.000Z",
+  "expiresAtUtc": null,
+  "projectId": "WHEEL",
+  "repositoryId": "WHEEL_MCP_CANONICAL",
+  "gateId": "GATE24",
+  "programId": "P3F_PRE_YAHOO_GRANT_CONTRACT_REPAIR_R1",
+  "purpose": "MAINTENANCE_PUBLICATION_ADMISSION",
+  "publicationClass": "PATH_PRESTATE_PROGRAM_PUBLISHER",
+  "authorityPurpose": "NORMAL_MAINTENANCE",
+  "maxUse": 1,
+  "admissionStatement": "One exact Owner admission for the bounded P3F pre-Yahoo grant contract repair program. It publishes four MODIFY work artifacts and one publisher-generated consumption receipt. It does not mutate GATE25, appends no ledger event, does not switch ACTIVE_GATE, performs no network acquisition, no Yahoo fetch, no HTTP call, no IBKR access and no macro ingestion. Creating these candidate bytes does not itself constitute Owner approval or activation. Final publication of this admission requires a later explicit Owner ratification of the Owner-authorization candidate.",
+  "admittedAuthority": {
+    "path": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_P3F_PRE_YAHOO_GRANT_CONTRACT_REPAIR_R1.json",
+    "sha256": "d0bbf1c6a244355a1185c3a9122df8c198b6d50741cc5985f973895921fefc4e",
+    "byteLength": 2140,
+    "schemaVersion": 2,
+    "documentId": "P3F_PRE_YAHOO_GRANT_CONTRACT_REPAIR_LOCAL_AUTHORITY_R1"
+  },
+  "admittedManifest": {
+    "path": "governance/historical-architecture/P3F_PRE_YAHOO_GRANT_CONTRACT_REPAIR_AUTHORIZED_PATHS_R1.json",
+    "sha256": "e2dc9767ac27b7cbd453bf805f0c79d8580c67d22d062e3b24e7d53253af2d93",
+    "byteLength": 3263,
+    "schemaVersion": 2,
+    "documentId": "P3F_PRE_YAHOO_GRANT_CONTRACT_REPAIR_AUTHORIZED_PATHS_R1"
+  },
+  "admittedPrestate": {
+    "baseHead": "1b22be53d7e434ef40b2aff9e39929b175691d52",
+    "ledgerEventCount": 104,
+    "ledgerPrefixSha256": "2def19c84b7581da0ab54d2d1ba9d68f5bc2ce40e108443cfbd086835a0116da",
+    "gateId": "GATE24",
+    "gateStatus": "COMPLETE_CONFIRMED",
+    "stateRevision": "R0005",
+    "contractRevision": "R0002",
+    "activeGate": "GATE13",
+    "R8ExpectedAbsent": true
+  },
+  "admittedOperationClasses": [
+    "MAINTENANCE"
+  ],
+  "grantsFutureBytePermission": false,
+  "grantsGateAuthorizationPermission": false,
+  "grantsStartPermission": false,
+  "grantsStatusTransitionPermission": false,
+  "grantsHistoricalAdmissionWidening": false,
+  "genericV1Admission": false,
+  "derivedFromGitDelta": false,
+  "derivedFromFinalGateIntegrityFindings": false,
+  "prohibitedOperations": [
+    "START",
+    "SECOND_START",
+    "GATE_AUTHORIZATION",
+    "STATUS_TRANSITION",
+    "ACTIVE_GATE_SWITCH",
+    "GEE_R8",
+    "GIT_PUSH",
+    "HISTORY_REWRITE",
+    "GENERIC_V1_ADMISSION",
+    "HISTORICAL_ADMISSION_WIDENING",
+    "SELF_ADMISSION"
+  ],
+  "successorRequirement": "A later publication requires a new exact Owner admission over a new exact pre-state. This candidate Owner-authorization is prepared for later explicit Owner ratification and is not itself an issued ratification.",
+  "admissionDigest": "1cb190fb4ca42f2430a4723b91f9c8ea415ee78e7ccfaf8121a3814b4be0d82d",
+  "ownerAuthorizationPath": "governance/sources/MAINTENANCE_PUBLICATION_ADMISSION_OWNER_AUTHORIZATION_P3F_PRE_YAHOO_GRANT_CONTRACT_REPAIR_R1.json",
+  "ownerAuthorizationSha256": "113d53a99972685babc313e373118d45fe495daa0198f0bd7b8d8b6e94928a15"
+}

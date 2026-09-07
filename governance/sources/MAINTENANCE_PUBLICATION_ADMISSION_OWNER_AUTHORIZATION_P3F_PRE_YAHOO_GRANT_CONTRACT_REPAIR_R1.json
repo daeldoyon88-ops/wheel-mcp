@@ -1,0 +1,25 @@
+{
+  "document": "MAINTENANCE_PUBLICATION_ADMISSION_OWNER_AUTHORIZATION",
+  "schemaVersion": 1,
+  "authorityId": "P3F_PRE_YAHOO_GRANT_CONTRACT_REPAIR_PUBLICATION_OWNER_AUTHORIZATION_R1",
+  "authorityClass": "PROJECT_OWNER_MAINTENANCE_PUBLICATION_ADMISSION_AUTHORITY",
+  "authorityMode": "LOCAL_EXPLICIT_AUTHORITY",
+  "issuedBy": "PROJECT_OWNER",
+  "issuedAtUtc": "2026-09-07T00:00:00.000Z",
+  "decisionId": "P3F_PRE_YAHOO_GRANT_CONTRACT_REPAIR_OWNER_DECISION_R1",
+  "purpose": "MAINTENANCE_PUBLICATION_ADMISSION",
+  "reexecutionAuthorized": false,
+  "grantsFutureBytePermission": false,
+  "genericV1Admission": false,
+  "admittedPublications": [
+    {
+      "admissionId": "P3F_PRE_YAHOO_GRANT_CONTRACT_REPAIR_PUBLICATION_ADMISSION_R1",
+      "projectId": "WHEEL",
+      "gateId": "GATE24",
+      "programId": "P3F_PRE_YAHOO_GRANT_CONTRACT_REPAIR_R1",
+      "admissionPath": "governance/authority/publication-admissions/GATE24/P3F_PRE_YAHOO_GRANT_CONTRACT_REPAIR_PUBLICATION_ADMISSION_R1.json",
+      "admissionDigest": "1cb190fb4ca42f2430a4723b91f9c8ea415ee78e7ccfaf8121a3814b4be0d82d"
+    }
+  ],
+  "registryDigest": "d4024aa227643e8253c559ab6f0e2179ce2608d61d924c1c14f39602cf432a9f"
+}

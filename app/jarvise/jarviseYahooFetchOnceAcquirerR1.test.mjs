@@ -13,7 +13,7 @@ import { spawn, spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync, existsSync, symlinkSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { dirname, join, resolve } from 'node:path';
+import { dirname, join, resolve, sep } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { setTimeout as delay } from 'node:timers/promises';
 
@@ -65,7 +65,7 @@ const preparedBytes = readFileSync(PREPARED_AUTHORITY_URL);
 const preparedAuthority = JSON.parse(preparedBytes.toString('utf8'));
 const preparedSha256 = createHash('sha256').update(preparedBytes).digest('hex');
 
-/** Owner-supplied EXPLICIT_MISSION_GRANT stand-in. Never published by P3. */
+/** Owner-supplied EXPLICIT_MISSION_GRANT stand-in without a bound root. Never published by P3. */
 const TEST_EXECUTION_GRANT = Object.freeze({
   mechanism: 'EXPLICIT_MISSION_GRANT',
   decisionType: 'PROJECT_OWNER_TEMPORARY_SINGLE_USE_AUTHORIZATION',
@@ -74,9 +74,19 @@ const TEST_EXECUTION_GRANT = Object.freeze({
   networkAuthorized: true,
 });
 
-const activatedAuthority = () => resolveEffectiveAcquisitionAuthorityR1({
+function testExecutionGrant(acquisitionRoot, extra = {}) {
+  return {
+    ...TEST_EXECUTION_GRANT,
+    acquisitionRoot,
+    ...extra,
+  };
+}
+
+const activatedAuthority = (acquisitionRoot) => resolveEffectiveAcquisitionAuthorityR1({
   root: REPOSITORY_ROOT,
-  executionGrant: TEST_EXECUTION_GRANT,
+  gitRoot: REPOSITORY_ROOT,
+  acquisitionRoot,
+  executionGrant: testExecutionGrant(acquisitionRoot),
 });
 
 const EMPTY_JOURNAL = Object.freeze({ readEntry: () => null });
@@ -125,7 +135,7 @@ function makeAcquirer(t, overrides = {}) {
   const acquisitionRoot = overrides.acquisitionRoot ?? temporaryAcquisitionRoot(t);
   const { acquisitionRoot: _ignored, ...rest } = overrides;
   return createJarviseYahooFetchOnceAcquirerR1({
-    authority: activatedAuthority(),
+    authority: activatedAuthority(acquisitionRoot),
     acquisitionRoot,
     gitRoot: REPOSITORY_ROOT,
     permittedAcquisitionKeys: permittedKeys(),
@@ -151,10 +161,11 @@ const grant = {
   preparedAuthoritySha256: ${JSON.stringify(preparedSha256)},
   executionAuthorized: true,
   networkAuthorized: true,
+  acquisitionRoot,
 };
 const plan = buildJarviseAcquisitionPlanR1({ root });
 const entry = plan.entries[${entryIndex}];
-const authority = resolveEffectiveAcquisitionAuthorityR1({ root, executionGrant: grant });
+const authority = resolveEffectiveAcquisitionAuthorityR1({ root, gitRoot: root, acquisitionRoot, executionGrant: grant });
 
 writeFileSync(markerDir + '/READY_' + process.pid, String(process.pid));
 if (goPath) {
@@ -264,6 +275,13 @@ test('P3-F1 the published authority is prepared, not executable, and constructs 
   assert.equal(preparedAuthority.executionAuthorization.optionalDurableOwnerRecord, 'PROJECT_OWNER_TEMPORARY_SINGLE_USE_AUTHORIZATION');
   assert.equal(preparedAuthority.executionAuthorization.grantDocumentPresent, false);
   assert.equal(preparedAuthority.executionAuthorization.selfAuthorization, 'FORBIDDEN');
+  assert.equal(preparedAuthority.executionAuthorization.activatingGrantMustBindAcquisitionRoot, true);
+  assert.equal(preparedAuthority.executionAuthorization.resumePolicy, 'ONE_LOGICAL_MISSION_MULTI_RESUME_SAME_BOUND_ROOT');
+  assert.equal(preparedAuthority.executionAuthorization.yahooFetchAuthorizedRole, 'DECLARATIVE_NON_RUNTIME_METADATA');
+  assert.deepEqual(preparedAuthority.executionAuthorization.effectiveRuntimeGates, ['executionAuthorized', 'networkAuthorized']);
+  assert.equal(preparedAuthority.yahooFetchAuthorized, false);
+  assert.equal(preparedAuthority.executionAuthorization.effectOnGrant.includes('exactly one run'), false);
+  assert.match(preparedAuthority.executionAuthorization.effectOnGrant, /one logical Owner mission/);
   assert.equal(preparedAuthority.acquisitionRootPolicy, 'OUTSIDE_GOVERNED_REPOSITORY');
   assert.equal(preparedAuthority.repositoryDynamicAcquisitionWrites, 'FORBIDDEN');
   assert.equal(preparedAuthority.authorityPredecessor, null);
@@ -399,12 +417,14 @@ test('P3-F7 a fourth attempt on the same key fails closed without contacting the
 });
 
 test('P3-F8 the global invocation ceiling is enforced and counts failures', async (t) => {
+  const acquisitionRoot = temporaryAcquisitionRoot(t);
   const authority = {
-    ...activatedAuthority(),
+    ...activatedAuthority(acquisitionRoot),
     grant: { ...preparedAuthority.preparedGrant, maxAttemptsPerEmptyKey: 3, maxProviderInvocationCount: 4 },
   };
   let calls = 0;
   const acquirer = makeAcquirer(t, {
+    acquisitionRoot,
     authority,
     createProviderClient: () => ({
       chart: async () => {
@@ -466,7 +486,7 @@ test('P3-F10 the retry taxonomy matches the ratified decision exactly', () => {
 test('P3-F11 a key that is already RAW_PINNED is never acquired again', async (t) => {
   const store = temporaryStore(t);
   const journal = createJarviseSnapshotMemoryJournalR1();
-  const authority = activatedAuthority();
+  const authority = activatedAuthority(temporaryAcquisitionRoot(t));
   const entry = planEntry();
   const bytes = canonicalProviderResultBytesR1(chartFor(entry.acquisitionRequestIdentity.providerSymbol));
 
@@ -690,7 +710,7 @@ test('P3-R4 durable structural 2406 ceiling survives restart', async (t) => {
 test('P3-R5 RAW_PINNED key does not construct a provider, contact it, or burn a reservation', async (t) => {
   const store = temporaryStore(t);
   const journal = createJarviseSnapshotMemoryJournalR1();
-  const authority = activatedAuthority();
+  const authority = activatedAuthority(temporaryAcquisitionRoot(t));
   const entry = planEntry();
   const bytes = canonicalProviderResultBytesR1(chartFor(entry.acquisitionRequestIdentity.providerSymbol));
   const persistence = createJarviseSnapshotPersistenceR1({ store, journal, acquisitionAuthority: authority });
@@ -838,7 +858,7 @@ test('P3-R8a acquisition root equal or inside the repository fails closed', asyn
   );
   assert.throws(
     () => createJarviseYahooFetchOnceAcquirerR1({
-      authority: activatedAuthority(),
+      authority: activatedAuthority(temporaryAcquisitionRoot(t)),
       acquisitionRoot: REPOSITORY_ROOT,
       gitRoot: REPOSITORY_ROOT,
       permittedAcquisitionKeys: permittedKeys(),
@@ -906,7 +926,7 @@ test('P3-S1b-P1 existing junction into fake gitRoot is refused', (t) => {
 });
 
 test('P3-S1b-P2/P4 nonexistent child through junction is refused before mkdir', (t) => {
-  const { fakeGit, junction } = fakeGitScratch(t);
+  const { fakeGit, junction, outside } = fakeGitScratch(t);
   const candidate = join(junction, 'YahooData');
   assert.equal(existsSync(candidate), false);
   assert.throws(
@@ -916,7 +936,7 @@ test('P3-S1b-P2/P4 nonexistent child through junction is refused before mkdir', 
   assert.equal(existsSync(join(fakeGit, 'YahooData')), false, 'validator must not mkdir');
   assert.throws(
     () => createJarviseYahooFetchOnceAcquirerR1({
-      authority: activatedAuthority(),
+      authority: activatedAuthority(outside),
       acquisitionRoot: candidate,
       gitRoot: fakeGit,
       permittedAcquisitionKeys: [],
@@ -937,7 +957,7 @@ test('P3-S1b-P3 normal external real path is accepted against a fake gitRoot', (
   assert.equal(resolve(accepted), resolve(external));
   assert.equal(existsSync(join(fakeGit, 'YahooData')), false);
   const acquirer = createJarviseYahooFetchOnceAcquirerR1({
-    authority: activatedAuthority(),
+    authority: activatedAuthority(external),
     acquisitionRoot: external,
     gitRoot: fakeGit,
     permittedAcquisitionKeys: permittedKeys(),
@@ -1003,11 +1023,11 @@ test('P3E-T2 no grant means zero provider-factory creation', async (t) => {
   assert.equal(countDurableAttemptReservationsR1(acquisitionRoot), 0);
 });
 
-test('P3E-T3 unsafe acquisition root means zero provider-factory creation', async () => {
+test('P3E-T3 unsafe acquisition root means zero provider-factory creation', async (t) => {
   let factoryCalls = 0;
   assert.throws(
     () => createJarviseYahooFetchOnceAcquirerR1({
-      authority: activatedAuthority(),
+      authority: activatedAuthority(temporaryAcquisitionRoot(t)),
       acquisitionRoot: REPOSITORY_ROOT,
       gitRoot: REPOSITORY_ROOT,
       permittedAcquisitionKeys: permittedKeys(),
@@ -1334,7 +1354,7 @@ test('P3E-T13 empty provider result remains terminal / fail-closed', async (t) =
 test('P3E-T14 RAW_PINNED prevents provider factory and chart refetch', async (t) => {
   const store = temporaryStore(t);
   const journal = createJarviseSnapshotMemoryJournalR1();
-  const authority = activatedAuthority();
+  const authority = activatedAuthority(temporaryAcquisitionRoot(t));
   const entry = planEntry();
   const bytes = canonicalProviderResultBytesR1(chartFor(entry.acquisitionRequestIdentity.providerSymbol));
   const persistence = createJarviseSnapshotPersistenceR1({ store, journal, acquisitionAuthority: authority });
@@ -1372,10 +1392,411 @@ test('P3E programmatic runner still fail-closes when createProviderClient is omi
     root: REPOSITORY_ROOT,
     gitRoot: REPOSITORY_ROOT,
     acquisitionRoot,
-    executionGrant: TEST_EXECUTION_GRANT,
+    executionGrant: testExecutionGrant(acquisitionRoot),
     limit: 1,
   });
   assert.equal(summary.failed, 1);
   assert.equal(summary.acquired, 0);
   assert.equal(summary.results[0].error.code === 'ACQUIRER_FAIL_CLOSED' || summary.results[0].error.code === 'ACQUIRER_PROVIDER_UNAVAILABLE', true);
+});
+
+function fakeChartFactory(events) {
+  return () => {
+    events.factoryCalls += 1;
+    return {
+      chart: async (symbol) => {
+        events.chartCalls += 1;
+        return chartFor(symbol);
+      },
+    };
+  };
+}
+
+function windowsEquivalentSpellings(absPath) {
+  const trimmed = absPath.replace(/[\\/]+$/, '');
+  const slash = trimmed.replaceAll('\\', '/');
+  const backslash = trimmed.replaceAll('/', '\\');
+  const match = trimmed.match(/^([A-Za-z]):(.*)$/);
+  const driveUpper = match ? `${match[1].toUpperCase()}:${match[2]}` : trimmed;
+  const driveLower = match ? `${match[1].toLowerCase()}:${match[2]}` : trimmed;
+  return [
+    trimmed,
+    `${trimmed}${sep}`,
+    slash,
+    `${slash}/`,
+    backslash,
+    `${backslash}\\`,
+    driveUpper,
+    driveLower,
+  ];
+}
+
+test('P3F-T1 correct bound root activates', (t) => {
+  const acquisitionRoot = temporaryAcquisitionRoot(t);
+  const authority = resolveEffectiveAcquisitionAuthorityR1({
+    root: REPOSITORY_ROOT,
+    gitRoot: REPOSITORY_ROOT,
+    acquisitionRoot,
+    executionGrant: testExecutionGrant(acquisitionRoot),
+  });
+  assert.equal(authority.activated, true);
+  assert.equal(authority.executionAuthorized, true);
+  assert.equal(authority.networkAuthorized, true);
+  assert.equal(authority.reasonCode, null);
+  assert.ok(typeof authority.boundAcquisitionRoot === 'string');
+});
+
+test('P3F-T2 missing grant acquisitionRoot is EXECUTION_GRANT_ACQUISITION_ROOT_REQUIRED', (t) => {
+  const acquisitionRoot = temporaryAcquisitionRoot(t);
+  assert.throws(
+    () => resolveEffectiveAcquisitionAuthorityR1({
+      root: REPOSITORY_ROOT,
+      gitRoot: REPOSITORY_ROOT,
+      acquisitionRoot,
+      executionGrant: { ...TEST_EXECUTION_GRANT },
+    }),
+    (error) => error.code === 'EXECUTION_GRANT_ACQUISITION_ROOT_REQUIRED',
+  );
+});
+
+test('P3F-T3 wrong root is EXECUTION_GRANT_ACQUISITION_ROOT_MISMATCH', (t) => {
+  const boundRoot = temporaryAcquisitionRoot(t);
+  const otherRoot = temporaryAcquisitionRoot(t);
+  assert.throws(
+    () => resolveEffectiveAcquisitionAuthorityR1({
+      root: REPOSITORY_ROOT,
+      gitRoot: REPOSITORY_ROOT,
+      acquisitionRoot: otherRoot,
+      executionGrant: testExecutionGrant(boundRoot),
+    }),
+    (error) => error.code === 'EXECUTION_GRANT_ACQUISITION_ROOT_MISMATCH',
+  );
+});
+
+test('P3F-T4/T5/T6 wrong root fails before mkdir, reservation, and provider factory', async (t) => {
+  const boundRoot = temporaryAcquisitionRoot(t);
+  const parent = mkdtempSync(join(tmpdir(), 'p3f-wrong-root-parent-'));
+  t.after(() => rmSync(parent, { recursive: true, force: true }));
+  const missingTarget = join(parent, 'missing-target-root');
+  let factoryCalls = 0;
+  assert.equal(existsSync(missingTarget), false);
+  await assert.rejects(
+    () => runJarviseHistoricalFetchOnceR1({
+      root: REPOSITORY_ROOT,
+      gitRoot: REPOSITORY_ROOT,
+      acquisitionRoot: missingTarget,
+      executionGrant: testExecutionGrant(boundRoot),
+      createProviderClient: () => {
+        factoryCalls += 1;
+        assert.fail('wrong root must not reach the provider factory');
+      },
+    }),
+    (error) => error.code === 'EXECUTION_GRANT_ACQUISITION_ROOT_MISMATCH',
+  );
+  assert.equal(existsSync(missingTarget), false, 'P3F-T4: target root must not be created');
+  assert.equal(existsSync(join(missingTarget, 'reservations')), false, 'P3F-T5: no reservation directory');
+  assert.equal(countDurableAttemptReservationsR1(missingTarget), 0);
+  assert.equal(factoryCalls, 0, 'P3F-T6: provider factory must not run');
+});
+
+test('P3F-T7 equivalent Windows spellings of the same physical destination activate', (t) => {
+  const acquisitionRoot = temporaryAcquisitionRoot(t);
+  const grant = testExecutionGrant(acquisitionRoot);
+  const spellings = windowsEquivalentSpellings(acquisitionRoot);
+  for (const spelling of spellings) {
+    const authority = resolveEffectiveAcquisitionAuthorityR1({
+      root: REPOSITORY_ROOT,
+      gitRoot: REPOSITORY_ROOT,
+      acquisitionRoot: spelling,
+      executionGrant: grant,
+    });
+    assert.equal(authority.activated, true, `equivalent spelling must activate: ${spelling}`);
+  }
+});
+
+test('P3F-T8 distinct physical destination is refused', (t) => {
+  const boundRoot = temporaryAcquisitionRoot(t);
+  const otherRoot = temporaryAcquisitionRoot(t);
+  assert.notEqual(resolve(boundRoot).toLowerCase(), resolve(otherRoot).toLowerCase());
+  assert.throws(
+    () => resolveEffectiveAcquisitionAuthorityR1({
+      root: REPOSITORY_ROOT,
+      gitRoot: REPOSITORY_ROOT,
+      acquisitionRoot: otherRoot,
+      executionGrant: testExecutionGrant(boundRoot),
+    }),
+    (error) => error.code === 'EXECUTION_GRANT_ACQUISITION_ROOT_MISMATCH',
+  );
+});
+
+test('P3F-T9/T10/T11 same grant and bound root may resume, reuse partial state, and continue reservation count', async (t) => {
+  const acquisitionRoot = temporaryAcquisitionRoot(t);
+  const grant = testExecutionGrant(acquisitionRoot);
+  const events = { factoryCalls: 0, chartCalls: 0 };
+  const first = await runJarviseHistoricalFetchOnceR1({
+    root: REPOSITORY_ROOT,
+    gitRoot: REPOSITORY_ROOT,
+    acquisitionRoot,
+    executionGrant: grant,
+    createProviderClient: fakeChartFactory(events),
+    limit: 1,
+  });
+  assert.equal(first.cohortStatus, 'PARTIAL_RESUMABLE');
+  assert.equal(first.acquired, 1);
+  assert.equal(first.reused, 0);
+  assert.equal(first.providerInvocations, 1);
+  assert.equal(events.factoryCalls, 1);
+  assert.equal(events.chartCalls, 1);
+  const second = await runJarviseHistoricalFetchOnceR1({
+    root: REPOSITORY_ROOT,
+    gitRoot: REPOSITORY_ROOT,
+    acquisitionRoot,
+    executionGrant: grant,
+    createProviderClient: fakeChartFactory(events),
+    limit: 1,
+  });
+  assert.equal(second.cohortStatus, 'PARTIAL_RESUMABLE');
+  assert.equal(second.acquired, 0);
+  assert.equal(second.reused, 1);
+  assert.equal(second.providerInvocations, 1, 'durable reservation count continues across resume');
+  assert.equal(events.factoryCalls, 1, 'RAW_PINNED resume must not construct a second factory');
+  assert.equal(events.chartCalls, 1, 'RAW_PINNED resume must not refetch');
+});
+
+test('P3F-T12 another root cannot reset budget because mismatch occurs before reservation', async (t) => {
+  const boundRoot = temporaryAcquisitionRoot(t);
+  const events = { factoryCalls: 0, chartCalls: 0 };
+  const first = await runJarviseHistoricalFetchOnceR1({
+    root: REPOSITORY_ROOT,
+    gitRoot: REPOSITORY_ROOT,
+    acquisitionRoot: boundRoot,
+    executionGrant: testExecutionGrant(boundRoot),
+    createProviderClient: fakeChartFactory(events),
+    limit: 1,
+  });
+  assert.equal(first.providerInvocations, 1);
+  const otherParent = mkdtempSync(join(tmpdir(), 'p3f-other-root-parent-'));
+  t.after(() => rmSync(otherParent, { recursive: true, force: true }));
+  const otherRoot = join(otherParent, 'unbound-mission-root');
+  let otherFactoryCalls = 0;
+  await assert.rejects(
+    () => runJarviseHistoricalFetchOnceR1({
+      root: REPOSITORY_ROOT,
+      gitRoot: REPOSITORY_ROOT,
+      acquisitionRoot: otherRoot,
+      executionGrant: testExecutionGrant(boundRoot),
+      createProviderClient: () => {
+        otherFactoryCalls += 1;
+        assert.fail('mismatched root must not reach the provider factory');
+      },
+    }),
+    (error) => error.code === 'EXECUTION_GRANT_ACQUISITION_ROOT_MISMATCH',
+  );
+  assert.equal(existsSync(otherRoot), false);
+  assert.equal(countDurableAttemptReservationsR1(otherRoot), 0);
+  assert.equal(otherFactoryCalls, 0);
+  assert.equal(countDurableAttemptReservationsR1(boundRoot), 1);
+});
+
+test('P3F-T13 wrong preparedAuthoritySha256 retains EXECUTION_GRANT_BINDING_MISMATCH precedence', (t) => {
+  const boundRoot = temporaryAcquisitionRoot(t);
+  const otherRoot = temporaryAcquisitionRoot(t);
+  assert.throws(
+    () => resolveEffectiveAcquisitionAuthorityR1({
+      root: REPOSITORY_ROOT,
+      gitRoot: REPOSITORY_ROOT,
+      acquisitionRoot: otherRoot,
+      executionGrant: {
+        ...TEST_EXECUTION_GRANT,
+        preparedAuthoritySha256: 'a'.repeat(64),
+        acquisitionRoot: boundRoot,
+      },
+    }),
+    (error) => error.code === 'EXECUTION_GRANT_BINDING_MISMATCH',
+  );
+  assert.throws(
+    () => resolveEffectiveAcquisitionAuthorityR1({
+      root: REPOSITORY_ROOT,
+      gitRoot: REPOSITORY_ROOT,
+      executionGrant: { ...TEST_EXECUTION_GRANT, preparedAuthoritySha256: 'b'.repeat(64) },
+    }),
+    (error) => error.code === 'EXECUTION_GRANT_BINDING_MISMATCH',
+  );
+});
+
+test('P3F-T14 false authorization booleans retain EXECUTION_GRANT_INVALID precedence', (t) => {
+  const boundRoot = temporaryAcquisitionRoot(t);
+  const otherRoot = temporaryAcquisitionRoot(t);
+  assert.throws(
+    () => resolveEffectiveAcquisitionAuthorityR1({
+      root: REPOSITORY_ROOT,
+      gitRoot: REPOSITORY_ROOT,
+      acquisitionRoot: otherRoot,
+      executionGrant: testExecutionGrant(boundRoot, { executionAuthorized: false }),
+    }),
+    (error) => error.code === 'EXECUTION_GRANT_INVALID',
+  );
+  assert.throws(
+    () => resolveEffectiveAcquisitionAuthorityR1({
+      root: REPOSITORY_ROOT,
+      gitRoot: REPOSITORY_ROOT,
+      acquisitionRoot: otherRoot,
+      executionGrant: testExecutionGrant(boundRoot, { networkAuthorized: false }),
+    }),
+    (error) => error.code === 'EXECUTION_GRANT_INVALID',
+  );
+  assert.throws(
+    () => resolveEffectiveAcquisitionAuthorityR1({
+      root: REPOSITORY_ROOT,
+      gitRoot: REPOSITORY_ROOT,
+      executionGrant: { ...TEST_EXECUTION_GRANT, executionAuthorized: false },
+    }),
+    (error) => error.code === 'EXECUTION_GRANT_INVALID',
+  );
+});
+
+test('P3F-T15 current retry ceiling remains 3', async (t) => {
+  let chartCalls = 0;
+  const acquirer = makeAcquirer(t, {
+    createProviderClient: () => ({
+      chart: async () => {
+        chartCalls += 1;
+        throw providerError('ETIMEDOUT');
+      },
+    }),
+  });
+  await assert.rejects(
+    () => acquirer.acquireRawBytesFor(planEntry()),
+    (error) => error.code === 'ACQUIRER_RETRY_BUDGET_EXHAUSTED',
+  );
+  assert.equal(STRUCTURAL_MAX_ATTEMPTS_PER_EMPTY_KEY, 3);
+  assert.equal(preparedAuthority.preparedGrant.maxAttemptsPerEmptyKey, 3);
+  assert.equal(chartCalls, 3);
+  assert.equal(acquirer.providerInvocations(), 3);
+});
+
+test('P3F-T16 current provider invocation ceiling remains 2406', async (t) => {
+  assert.equal(STRUCTURAL_MAX_PROVIDER_INVOCATION_COUNT, 2406);
+  assert.equal(preparedAuthority.preparedGrant.maxProviderInvocationCount, 2406);
+  const acquisitionRoot = temporaryAcquisitionRoot(t);
+  const reservationsRoot = join(acquisitionRoot, 'reservations');
+  mkdirSync(reservationsRoot, { recursive: true });
+  for (let index = 0; index < STRUCTURAL_MAX_PROVIDER_INVOCATION_COUNT; index += 1) {
+    const hex = createHash('sha256').update(`p3f-t16-seed-${index}`, 'utf8').digest('hex');
+    mkdirSync(join(reservationsRoot, hex), { recursive: true });
+    writeFileSync(join(reservationsRoot, hex, '1.json'), `${JSON.stringify({ schemaVersion: 'JarviseYahooFetchOnceAttemptReservation/1', seed: index })}\n`, { flag: 'wx' });
+  }
+  let factoryCalls = 0;
+  const acquirer = makeAcquirer(t, {
+    acquisitionRoot,
+    createProviderClient: () => {
+      factoryCalls += 1;
+      assert.fail('ceiling must refuse before factory');
+    },
+  });
+  await assert.rejects(
+    () => acquirer.acquireRawBytesFor(planEntry()),
+    (error) => error.code === 'ACQUIRER_INVOCATION_CEILING_REACHED',
+  );
+  assert.equal(factoryCalls, 0);
+  assert.equal(countDurableAttemptReservationsR1(acquisitionRoot), 2406);
+});
+
+test('P3F-T17 RAW_PINNED no-refetch remains enforced', async (t) => {
+  const store = temporaryStore(t);
+  const journal = createJarviseSnapshotMemoryJournalR1();
+  const acquisitionRoot = temporaryAcquisitionRoot(t);
+  const authority = activatedAuthority(acquisitionRoot);
+  const entry = planEntry();
+  const bytes = canonicalProviderResultBytesR1(chartFor(entry.acquisitionRequestIdentity.providerSymbol));
+  const persistence = createJarviseSnapshotPersistenceR1({ store, journal, acquisitionAuthority: authority });
+  persistence.pinRawOnce({
+    acquisitionKey: entry.acquisitionKey,
+    acquisition: {
+      sourceAcquiredAt: '2026-09-05T12:00:00.000Z',
+      ingestedIntoLabAt: '2026-09-05T12:00:01.000Z',
+      acquisitionMethod: ACQUISITION_METHOD,
+      acquisitionToolVersion: 'runJarviseHistoricalFetchOnceR1/1',
+      acquisitionRequestIdentity: entry.acquisitionRequestIdentity,
+      acquisitionEvidenceIds: [],
+    },
+    acquireRawBytes: () => bytes,
+  });
+  let factoryCalls = 0;
+  const acquirer = makeAcquirer(t, {
+    acquisitionRoot,
+    authority,
+    journal,
+    createProviderClient: () => {
+      factoryCalls += 1;
+      assert.fail('RAW_PINNED must not construct a provider client');
+    },
+  });
+  await assert.rejects(
+    () => acquirer.acquireRawBytesFor(entry),
+    (error) => error.code === 'ACQUIRER_REFETCH_FORBIDDEN',
+  );
+  assert.equal(factoryCalls, 0);
+  assert.equal(countDurableAttemptReservationsR1(acquisitionRoot), 0);
+});
+
+test('P3F-T18 same-key concurrent provider contact remains max 1', async (t) => {
+  const acquisitionRoot = temporaryAcquisitionRoot(t);
+  const markerA = temporaryAcquisitionRoot(t);
+  const markerB = temporaryAcquisitionRoot(t);
+  const releasePath = join(markerA, 'RELEASE');
+  writeFileSync(join(markerA, 'child-a.mjs'), childScript({
+    mode: 'hold-in-flight', acquisitionRoot, markerDir: markerA, releasePath,
+  }));
+  writeFileSync(join(markerB, 'child-b.mjs'), childScript({
+    mode: 'success', acquisitionRoot, markerDir: markerB,
+  }));
+  const childA = spawnChild(join(markerA, 'child-a.mjs'));
+  t.after(() => {
+    childA.kill();
+  });
+  const readyDeadline = Date.now() + 60_000;
+  while (Date.now() < readyDeadline && !existsSync(join(markerA, `IN_FLIGHT_${childA.pid}`))) {
+    await delay(50);
+  }
+  assert.equal(existsSync(join(markerA, `PROVIDER_CONTACTED_${childA.pid}`)), true);
+  const childB = spawnChild(join(markerB, 'child-b.mjs'));
+  t.after(() => {
+    childB.kill();
+  });
+  const statusB = await new Promise((resolveStatus) => childB.on('exit', (code) => resolveStatus(code)));
+  assert.notEqual(statusB, 0);
+  assert.equal(existsSync(join(markerB, `PROVIDER_CONTACTED_${childB.pid}`)), false);
+  writeFileSync(releasePath, '1');
+  await new Promise((resolveStatus) => childA.on('exit', (code) => resolveStatus(code)));
+});
+
+test('P3F-T19 failed provider-client construction memoization remains safe', async (t) => {
+  let factoryCalls = 0;
+  const acquirer = makeAcquirer(t, {
+    createProviderClient: async () => {
+      factoryCalls += 1;
+      throw new Error('injected factory construction failure');
+    },
+  });
+  await assert.rejects(
+    () => acquirer.acquireRawBytesFor(planEntry(0)),
+    (error) => error.code === 'ACQUIRER_FAIL_CLOSED',
+  );
+  await assert.rejects(
+    () => acquirer.acquireRawBytesFor(planEntry(1)),
+    (error) => error.code === 'ACQUIRER_FAIL_CLOSED',
+  );
+  assert.equal(factoryCalls, 2, 'a failed construction must not be sticky across later reservations');
+  assert.equal(acquirer.providerClientConstructed(), false);
+});
+
+test('P3F-T20 no Yahoo or network is required by these tests', () => {
+  const acquirerSource = readFileSync(ACQUIRER_MODULE_PATH, 'utf8');
+  const testSource = readFileSync(fileURLToPath(import.meta.url), 'utf8');
+  assert.equal(/^\s*import\s+['\"]yahoo-finance2['\"]/m.test(acquirerSource), false);
+  assert.equal(/^\s*import\s+['\"]yahoo-finance2['\"]/m.test(testSource), false);
+  assert.equal(/\bfetch\s*\(/.test(testSource), false);
+  assert.equal(preparedAuthority.networkAuthorized, false);
+  assert.equal(preparedAuthority.executionAuthorized, false);
 });

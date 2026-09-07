@@ -161,19 +161,24 @@ export async function runJarviseHistoricalFetchOnceR1(options = {}) {
   }
   const acquisitionRoot = assertExternalAcquisitionRootR1(options.acquisitionRoot, gitRoot);
 
-  const provenance = readJarviseSnapshotPersistenceProvenanceR1({ root });
-  if (provenance.vintageClaim !== 'NONE') fail('RUN_PROVENANCE_INVALID', 'persistence root must claim no vintage');
-
   const executionGrant = options.executionGrant !== undefined
     ? options.executionGrant
     : loadOwnerExecutionGrantR1({ grantPath: options.executionGrantPath ?? null });
-  const authority = resolveEffectiveAcquisitionAuthorityR1({ root, executionGrant });
+  const authority = resolveEffectiveAcquisitionAuthorityR1({
+    root,
+    gitRoot,
+    acquisitionRoot,
+    executionGrant,
+  });
   if (!authority.activated) {
     fail('RUN_NOT_AUTHORIZED', 'no Owner EXPLICIT_MISSION_GRANT is present; the prepared authority grants no network', {
       reasonCode: authority.reasonCode,
       preparedAuthoritySha256: authority.preparedSha256,
     });
   }
+
+  const provenance = readJarviseSnapshotPersistenceProvenanceR1({ root });
+  if (provenance.vintageClaim !== 'NONE') fail('RUN_PROVENANCE_INVALID', 'persistence root must claim no vintage');
 
   const plan = buildJarviseAcquisitionPlanR1({ root });
   if (plan.acquisitionKeyCount !== authority.grant.logicalAcquisitionKeyCount) {

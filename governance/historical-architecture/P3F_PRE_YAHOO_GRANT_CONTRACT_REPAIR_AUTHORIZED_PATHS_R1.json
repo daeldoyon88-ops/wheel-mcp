@@ -1,0 +1,66 @@
+{
+  "documentKind": "POST_FREEZE_MAINTENANCE_AUTHORIZED_PATH_MANIFEST",
+  "schemaVersion": 2,
+  "manifestId": "P3F_PRE_YAHOO_GRANT_CONTRACT_REPAIR_AUTHORIZED_PATHS_R1",
+  "programId": "P3F_PRE_YAHOO_GRANT_CONTRACT_REPAIR_R1",
+  "paths": [
+    {
+      "path": "app/jarvise/jarviseFetchOnceExecutionAuthorityR1.json",
+      "operation": "MODIFY",
+      "phase": "MAINTENANCE",
+      "reason": "Repair prepared-authority text so PROJECT_OWNER_TEMPORARY_SINGLE_USE_AUTHORIZATION means one logical Owner mission with multiple resumes against the same bound acquisitionRoot; yahooFetchAuthorized remains declarative metadata. Candidate poststate sha256=4c997ff500ce51864f68530a3add3b005677dc14c6ff62450aa03e02c8398cae byteLength=4762.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "PRESENT",
+        "sha256": "85d692679bde92ee64e05f470c826dd4aafff5c7530259c9ce1ea9d06555e90e",
+        "byteLength": 3652
+      }
+    },
+    {
+      "path": "app/jarvise/jarviseYahooFetchOnceAcquirerR1.mjs",
+      "operation": "MODIFY",
+      "phase": "MAINTENANCE",
+      "reason": "Activating grant must bind acquisitionRoot after prepared SHA and authorization booleans; acquirer defense-in-depth refuses a mismatched bound root before mkdir/reservation. Candidate poststate sha256=e29f6e9b65bc52ee0b5e38d4e322ff5fea5570111d049d11494c0703fdc0431d byteLength=42885.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "PRESENT",
+        "sha256": "0c1c0aa6794805c5d64e1b35bd8a7a04b49858ee1be731f319f35cfb52041400",
+        "byteLength": 38984
+      }
+    },
+    {
+      "path": "scripts/runJarviseHistoricalFetchOnceR1.mjs",
+      "operation": "MODIFY",
+      "phase": "MAINTENANCE",
+      "reason": "Resolve activating grant with CLI acquisitionRoot before mkdir, reservation, persistence, acquirer or provider factory. Candidate poststate sha256=d6b87deff957bf49634e52c2e7e9e48537485b554fdfd1f365410f67605e8b14 byteLength=12679.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "PRESENT",
+        "sha256": "a7fdfb8a294dee9c0b043e0fd67f9ca9c06b5c420a2d113cdbda0957613717d8",
+        "byteLength": 12634
+      }
+    },
+    {
+      "path": "app/jarvise/jarviseYahooFetchOnceAcquirerR1.test.mjs",
+      "operation": "MODIFY",
+      "phase": "MAINTENANCE",
+      "reason": "P3F offline fake-provider coverage for root binding, resume, budget continuity, precedence, Windows equivalence and P3E invariances. Candidate poststate sha256=97402485312f112894e0e8f8d05e0df7dcd22ea49474bd2587c6fd50ae0ed964 byteLength=74251.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "PRESENT",
+        "sha256": "3b841ddceb7a2254abb222cc127e1544dac4a2a0d27dae8c5f0c610243d11420",
+        "byteLength": 57326
+      }
+    },
+    {
+      "path": "governance/historical-architecture/P3F_PRE_YAHOO_GRANT_CONTRACT_REPAIR_CONSUMPTION_R1.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "Single-use P3F pre-Yahoo grant contract repair authority consumption receipt. Authorized by this manifest; created by the canonical publisher; not supplied as a candidate.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    }
+  ]
+}

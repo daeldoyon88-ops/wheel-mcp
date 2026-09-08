@@ -1,0 +1,42 @@
+{
+  "documentKind": "POST_FREEZE_MAINTENANCE_AUTHORIZED_PATH_MANIFEST",
+  "schemaVersion": 2,
+  "manifestId": "P3H_NEXT_ELIGIBLE_KEY_SAFE_BATCHING_REPAIR_AUTHORIZED_PATHS_R1",
+  "programId": "P3H_NEXT_ELIGIBLE_KEY_SAFE_BATCHING_REPAIR_R1",
+  "paths": [
+    {
+      "path": "scripts/runJarviseHistoricalFetchOnceR1.mjs",
+      "operation": "MODIFY",
+      "phase": "MAINTENANCE",
+      "reason": "P3H next-eligible-key repair: skip existing FAILED_TERMINAL/nonretryable keys so they do not consume --max-new-provider-keys, and count newProviderKeysUsed only when durable reservation cardinality increases. No Yahoo fetch and no execution-grant mutation.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "PRESENT",
+        "sha256": "3c803a0e789e6a8972a09e6496a9bd9aa0d391fa1e61cf3931a387197ba4c292",
+        "byteLength": 20495
+      }
+    },
+    {
+      "path": "app/jarvise/jarviseYahooFetchOnceAcquirerR1.test.mjs",
+      "operation": "MODIFY",
+      "phase": "MAINTENANCE",
+      "reason": "P3H offline fake-provider coverage for nonretryable-terminal skip, A-to-AA analog, exact limit 1/2, local RAW_PINNED/NORMALIZED/VERSION_CACHED quota, 429 circuit breaker, provider concurrency <= 1, and one-key advance. Zero Yahoo/network contact.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "PRESENT",
+        "sha256": "4cc781e24e9ac3dfd0b673d36c67f244a8f8df05f48f01a61ae9d04ad505105f",
+        "byteLength": 129298
+      }
+    },
+    {
+      "path": "governance/historical-architecture/P3H_NEXT_ELIGIBLE_KEY_SAFE_BATCHING_REPAIR_CONSUMPTION_R1.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "Single-use P3H next-eligible-key safe-batching repair authority consumption receipt. Authorized by this manifest; created by the canonical publisher; not supplied as a candidate.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    }
+  ]
+}

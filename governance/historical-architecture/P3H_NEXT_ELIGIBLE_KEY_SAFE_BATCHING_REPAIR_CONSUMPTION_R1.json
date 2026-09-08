@@ -1,0 +1,40 @@
+{
+  "documentKind": "POST_FREEZE_MAINTENANCE_AUTHORITY_CONSUMPTION",
+  "schemaVersion": 2,
+  "authorityId": "P3H_NEXT_ELIGIBLE_KEY_SAFE_BATCHING_REPAIR_LOCAL_AUTHORITY_R1",
+  "programId": "P3H_NEXT_ELIGIBLE_KEY_SAFE_BATCHING_REPAIR_R1",
+  "manifestSha256": "66bca6387066bf25a9f800dcb23e53c21df0cb81b3145097346994125a74a2d5",
+  "baseHead": "5a9bafae0ebbd672a87ba54d756486a158ec548c",
+  "consumedUse": 1,
+  "transactionId": "P3H_NEXT_ELIGIBLE_KEY_SAFE_BATCHING_REPAIR_R1_TRANSACTION",
+  "recordedAt": "2026-09-08T17:26:52.447Z",
+  "commitMessage": "jarvise: P3H next-eligible-key safe-batching repair (no network, no execution grant)",
+  "publicationAdmission": {
+    "admissionId": "P3H_NEXT_ELIGIBLE_KEY_SAFE_BATCHING_REPAIR_PUBLICATION_ADMISSION_R1",
+    "admissionPath": "governance/authority/publication-admissions/GATE24/P3H_NEXT_ELIGIBLE_KEY_SAFE_BATCHING_REPAIR_PUBLICATION_ADMISSION_R1.json",
+    "admissionSha256": "4786b58edbda457e44b5d5faadc587b8fee2b1d26c10ba7551fd2610da18453a"
+  },
+  "cohortSelfExclusion": {
+    "path": "governance/historical-architecture/P3H_NEXT_ELIGIBLE_KEY_SAFE_BATCHING_REPAIR_CONSUMPTION_R1.json",
+    "reason": "The consumption record cannot hash its own final bytes; its identity is bound by the authority and manifest instead."
+  },
+  "cohortPathCount": 3,
+  "cohort": [
+    {
+      "path": "scripts/runJarviseHistoricalFetchOnceR1.mjs",
+      "sha256": "1ad03ac326b41f4a047e382407663a63bb7d9ce740c129415ae4b6e094959ec1",
+      "byteLength": 22868,
+      "operation": "MODIFY",
+      "reason": "P3H next-eligible-key repair: skip existing FAILED_TERMINAL/nonretryable keys so they do not consume --max-new-provider-keys, and count newProviderKeysUsed only when durable reservation cardinality increases. No Yahoo fetch and no execution-grant mutation.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "app/jarvise/jarviseYahooFetchOnceAcquirerR1.test.mjs",
+      "sha256": "85c9c23e9b54811648ad9770d860cf3723b956ab085c412f0dbbf2b343b0542a",
+      "byteLength": 144090,
+      "operation": "MODIFY",
+      "reason": "P3H offline fake-provider coverage for nonretryable-terminal skip, A-to-AA analog, exact limit 1/2, local RAW_PINNED/NORMALIZED/VERSION_CACHED quota, 429 circuit breaker, provider concurrency <= 1, and one-key advance. Zero Yahoo/network contact.",
+      "artifactClass": "MAINTENANCE"
+    }
+  ]
+}

@@ -36,9 +36,16 @@ import {
   normalizeJarviseYahooChartR1,
 } from '../app/jarvise/jarviseYahooChartAdapterR1.mjs';
 import {
+  ATTEMPT_STATE_ABANDONED,
+  ATTEMPT_STATE_FAILED_RETRYABLE,
+  ATTEMPT_STATE_FAILED_TERMINAL,
+  STRUCTURAL_MAX_ATTEMPTS_PER_EMPTY_KEY,
   assertExternalAcquisitionRootR1,
   countDurableAttemptReservationsR1,
+  countDurableAttemptsForKeyR1,
   createJarviseYahooFetchOnceAcquirerR1,
+  jarviseAttemptReservationPathR1,
+  jarviseAttemptTerminalPathR1,
   resolveEffectiveAcquisitionAuthorityR1,
 } from '../app/jarvise/jarviseYahooFetchOnceAcquirerR1.mjs';
 import { createJarviseYahooFinance2ChartClientR1 } from '../app/jarvise/jarviseYahooFinance2ChartClientFactoryR1.mjs';
@@ -218,6 +225,44 @@ export function buildSnapshotCoreFieldsR1(input) {
 }
 
 /**
+ * Traversal skip: durable state already proves that this key cannot legally
+ * enter a NEW provider acquisition in this invocation.
+ *
+ * Counts --max-new-provider-keys only after a reservation cardinality increase.
+ * Retryable / abandoned terminals are not skipped.
+ *
+ * @param {string} acquisitionRoot
+ * @param {string} acquisitionKey
+ */
+function existingNonretryableTerminalBlocksNewProviderAcquisitionR1(acquisitionRoot, acquisitionKey) {
+  if (countDurableAttemptsForKeyR1(acquisitionRoot, acquisitionKey) >= STRUCTURAL_MAX_ATTEMPTS_PER_EMPTY_KEY) {
+    return true;
+  }
+  for (const attemptOrdinal of [3, 2, 1]) {
+    if (!existsSync(jarviseAttemptReservationPathR1(acquisitionRoot, acquisitionKey, attemptOrdinal))) {
+      continue;
+    }
+    const terminalPath = jarviseAttemptTerminalPathR1(acquisitionRoot, acquisitionKey, attemptOrdinal);
+    if (!existsSync(terminalPath)) return false;
+    let terminal;
+    try {
+      terminal = JSON.parse(readFileSync(terminalPath, 'utf8'));
+    } catch {
+      return false;
+    }
+    if (terminal === null || typeof terminal !== 'object' || Array.isArray(terminal)) return false;
+    if (terminal.attemptState === ATTEMPT_STATE_FAILED_RETRYABLE) return false;
+    if (terminal.attemptState === ATTEMPT_STATE_ABANDONED) return false;
+    if (terminal.attemptState === ATTEMPT_STATE_FAILED_TERMINAL && terminal.retryEligible === false) {
+      if (attemptOrdinal >= 2) return true;
+      return terminal.condition !== 'MALFORMED_PROVIDER_RESULT';
+    }
+    return false;
+  }
+  return false;
+}
+
+/**
  * Execute the FETCH_ONCE pass.
  * @param {{
  *   acquisitionRoot: string,
@@ -376,6 +421,9 @@ export async function runJarviseHistoricalFetchOnceR1(options = {}) {
       providerTraversalStopped = true;
       continue;
     }
+    if (!localOnly && existingNonretryableTerminalBlocksNewProviderAcquisitionR1(acquisitionRoot, acquisitionKey)) {
+      continue;
+    }
     try {
       let rawBytes = null;
       if (localOnly) {
@@ -387,19 +435,26 @@ export async function runJarviseHistoricalFetchOnceR1(options = {}) {
           await interKeySleep(interKeyDelayMs);
         }
         pendingInterKeyDelay = false;
+        const reservationsBefore = countDurableAttemptReservationsR1(acquisitionRoot);
         try {
           rawBytes = await requireAcquirerForEmptyKey().acquireRawBytesFor(entry);
-          newProviderKeysUsed += 1;
-          pendingInterKeyDelay = true;
-          if (maxNewProviderKeys !== null && newProviderKeysUsed >= maxNewProviderKeys) {
-            providerTraversalStopped = true;
+          if (countDurableAttemptReservationsR1(acquisitionRoot) > reservationsBefore) {
+            newProviderKeysUsed += 1;
+            pendingInterKeyDelay = true;
+            if (maxNewProviderKeys !== null && newProviderKeysUsed >= maxNewProviderKeys) {
+              providerTraversalStopped = true;
+            }
           }
         } catch (error) {
           if (/** @type {any} */ (error)?.code === 'RUN_NOT_AUTHORIZED') throw error;
+          const enteredNewProviderAcquisition =
+            countDurableAttemptReservationsR1(acquisitionRoot) > reservationsBefore;
           if (/** @type {any} */ (error)?.code === 'ACQUIRER_REFETCH_FORBIDDEN') {
             rawBytes = null;
           } else if (/** @type {any} */ (error)?.code === 'ACQUIRER_PROVIDER_RATE_LIMITED') {
-            newProviderKeysUsed += 1;
+            if (enteredNewProviderAcquisition) newProviderKeysUsed += 1;
+            throw error;
+          } else if (!enteredNewProviderAcquisition) {
             throw error;
           } else {
             newProviderKeysUsed += 1;

@@ -3033,3 +3033,290 @@ test('P3H-SB-429 first PROVIDER_RATE_LIMITED stops the invocation without ordina
   assert.equal(802 * 3, 2406);
 });
 
+function seedNonretryableFailedTerminals(acquisitionRoot, entry, highestOrdinal) {
+  for (let ordinal = 1; ordinal <= highestOrdinal; ordinal += 1) {
+    const reservationPath = jarviseAttemptReservationPathR1(acquisitionRoot, entry.acquisitionKey, ordinal);
+    const terminalPath = jarviseAttemptTerminalPathR1(acquisitionRoot, entry.acquisitionKey, ordinal);
+    mkdirSync(dirname(reservationPath), { recursive: true });
+    writeFileSync(reservationPath, `${JSON.stringify({
+      schemaVersion: ordinal === 2 ? ATTEMPT_RESERVATION_SCHEMA_VERSION_V2 : 'JarviseYahooFetchOnceAttemptReservation/1',
+      acquisitionKey: entry.acquisitionKey,
+      attemptOrdinal: ordinal,
+      attemptState: 'IN_FLIGHT',
+      ownerPid: process.pid,
+      createdAt: '2026-09-05T12:00:00.000Z',
+      acquisitionRequestIdentityHash: 'sha256:deadbeef',
+      authorityId: preparedAuthority.authorityId,
+      preparedAuthoritySha256: preparedSha256,
+    }, null, 2)}\n`);
+    writeFileSync(terminalPath, `${JSON.stringify({
+      schemaVersion: 'JarviseYahooFetchOnceAttemptTerminal/1',
+      acquisitionKey: entry.acquisitionKey,
+      attemptOrdinal: ordinal,
+      attemptState: ATTEMPT_STATE_FAILED_TERMINAL,
+      condition: 'MALFORMED_PROVIDER_RESULT',
+      retryEligible: false,
+      ownerPid: process.pid,
+    }, null, 2)}\n`);
+  }
+}
+
+function seedRetryableTimeoutTerminal(acquisitionRoot, entry) {
+  const reservationPath = jarviseAttemptReservationPathR1(acquisitionRoot, entry.acquisitionKey, 1);
+  const terminalPath = jarviseAttemptTerminalPathR1(acquisitionRoot, entry.acquisitionKey, 1);
+  mkdirSync(dirname(reservationPath), { recursive: true });
+  writeFileSync(reservationPath, `${JSON.stringify({
+    schemaVersion: 'JarviseYahooFetchOnceAttemptReservation/1',
+    acquisitionKey: entry.acquisitionKey,
+    attemptOrdinal: 1,
+    attemptState: 'IN_FLIGHT',
+    ownerPid: process.pid,
+    createdAt: '2026-09-05T12:00:00.000Z',
+    acquisitionRequestIdentityHash: 'sha256:deadbeef',
+    authorityId: preparedAuthority.authorityId,
+    preparedAuthoritySha256: preparedSha256,
+  }, null, 2)}\n`);
+  writeFileSync(terminalPath, `${JSON.stringify({
+    schemaVersion: 'JarviseYahooFetchOnceAttemptTerminal/1',
+    acquisitionKey: entry.acquisitionKey,
+    attemptOrdinal: 1,
+    attemptState: ATTEMPT_STATE_FAILED_RETRYABLE,
+    condition: 'TIMEOUT',
+    retryEligible: true,
+    ownerPid: process.pid,
+  }, null, 2)}\n`);
+}
+
+test('P3H-SB-SKIP-A existing FAILED_TERMINAL nonretryable is skipped and does not consume new-provider quota', async (t) => {
+  const acquisitionRoot = temporaryAcquisitionRoot(t);
+  const blocked = planEntry(0);
+  const eligible = planEntry(1);
+  seedNonretryableFailedTerminals(acquisitionRoot, blocked, 2);
+  const reservationsBefore = countDurableAttemptReservationsR1(acquisitionRoot);
+  const events = { factoryCalls: 0, chartCalls: 0, currentInFlight: 0, maxInFlight: 0, symbols: [] };
+  const summary = await runJarviseHistoricalFetchOnceR1({
+    acquisitionRoot,
+    executionGrant: testExecutionGrant(acquisitionRoot),
+    createProviderClient: instrumentedChartFactory(events),
+    maxNewProviderKeys: 1,
+    interKeySleep: async () => assert.fail('skip must not pace a next provider call'),
+  });
+  assert.equal(summary.newProviderKeysUsed, 1);
+  assert.equal(events.chartCalls, 1);
+  assert.equal(events.factoryCalls, 1);
+  assert.equal(events.maxInFlight, 1);
+  assert.deepEqual(events.symbols, [eligible.acquisitionRequestIdentity.providerSymbol]);
+  assert.equal(summary.results[0].acquisitionKey, eligible.acquisitionKey);
+  assert.equal(summary.results.some((result) => result.acquisitionKey === blocked.acquisitionKey), false);
+  assert.equal(existsSync(jarviseAttemptReservationPathR1(acquisitionRoot, blocked.acquisitionKey, 3)), false);
+  assert.equal(countDurableAttemptsForKeyR1(acquisitionRoot, blocked.acquisitionKey), 2);
+  assert.equal(countDurableAttemptReservationsR1(acquisitionRoot), reservationsBefore + 1);
+  assert.equal(existsSync(jarviseAttemptReservationPathR1(acquisitionRoot, planEntry(2).acquisitionKey, 1)), false);
+});
+
+test('P3H-SB-SKIP-B A ordinal2 FAILED_TERMINAL analog advances to AA without ordinal3', async (t) => {
+  const acquisitionRoot = temporaryAcquisitionRoot(t);
+  const blocked = planEntry(0);
+  const eligible = planEntry(1);
+  assert.equal(blocked.acquisitionRequestIdentity.providerSymbol, 'A');
+  assert.equal(eligible.acquisitionRequestIdentity.providerSymbol, 'AA');
+  seedNonretryableFailedTerminals(acquisitionRoot, blocked, 2);
+  const events = { factoryCalls: 0, chartCalls: 0, currentInFlight: 0, maxInFlight: 0, symbols: [] };
+  const summary = await runJarviseHistoricalFetchOnceR1({
+    acquisitionRoot,
+    executionGrant: testExecutionGrant(acquisitionRoot),
+    createProviderClient: instrumentedChartFactory(events),
+    maxNewProviderKeys: 1,
+    interKeySleep: async () => {},
+  });
+  assert.equal(summary.newProviderKeysUsed, 1);
+  assert.deepEqual(events.symbols, ['AA']);
+  assert.equal(summary.results[0].acquisitionKey, eligible.acquisitionKey);
+  assert.equal(existsSync(jarviseAttemptReservationPathR1(acquisitionRoot, blocked.acquisitionKey, 3)), false);
+  assert.equal(countDurableAttemptsForKeyR1(acquisitionRoot, blocked.acquisitionKey), 2);
+  const terminal2 = JSON.parse(readFileSync(jarviseAttemptTerminalPathR1(acquisitionRoot, blocked.acquisitionKey, 2), 'utf8'));
+  assert.equal(terminal2.attemptState, ATTEMPT_STATE_FAILED_TERMINAL);
+  assert.equal(terminal2.retryEligible, false);
+});
+
+test('P3H-SB-SKIP-C limit 1 and 2 remain exact after skipping a nonretryable terminal', async (t) => {
+  const root1 = temporaryAcquisitionRoot(t);
+  seedNonretryableFailedTerminals(root1, planEntry(0), 2);
+  const events1 = { factoryCalls: 0, chartCalls: 0, currentInFlight: 0, maxInFlight: 0, symbols: [] };
+  const limit1 = await runJarviseHistoricalFetchOnceR1({
+    acquisitionRoot: root1,
+    executionGrant: testExecutionGrant(root1),
+    createProviderClient: instrumentedChartFactory(events1),
+    maxNewProviderKeys: 1,
+    interKeySleep: async () => {},
+  });
+  assert.equal(limit1.newProviderKeysUsed, 1);
+  assert.equal(events1.chartCalls, 1);
+  assert.equal(events1.maxInFlight, 1);
+  assert.deepEqual(events1.symbols, [planEntry(1).acquisitionRequestIdentity.providerSymbol]);
+  assert.equal(existsSync(jarviseAttemptReservationPathR1(root1, planEntry(2).acquisitionKey, 1)), false);
+
+  const root2 = temporaryAcquisitionRoot(t);
+  seedNonretryableFailedTerminals(root2, planEntry(0), 2);
+  const events2 = { factoryCalls: 0, chartCalls: 0, currentInFlight: 0, maxInFlight: 0, symbols: [] };
+  const limit2 = await runJarviseHistoricalFetchOnceR1({
+    acquisitionRoot: root2,
+    executionGrant: testExecutionGrant(root2),
+    createProviderClient: instrumentedChartFactory(events2),
+    maxNewProviderKeys: 2,
+    interKeyDelayMs: 0,
+    interKeySleep: async () => {},
+  });
+  assert.equal(limit2.newProviderKeysUsed, 2);
+  assert.equal(events2.chartCalls, 2);
+  assert.equal(events2.maxInFlight, 1);
+  assert.deepEqual(events2.symbols, [
+    planEntry(1).acquisitionRequestIdentity.providerSymbol,
+    planEntry(2).acquisitionRequestIdentity.providerSymbol,
+  ]);
+  assert.equal(existsSync(jarviseAttemptReservationPathR1(root2, planEntry(3).acquisitionKey, 1)), false);
+});
+
+test('P3H-SB-SKIP-D RAW_PINNED / NORMALIZED / VERSION_CACHED do not consume new-provider quota', async (t) => {
+  const acquisitionRoot = temporaryAcquisitionRoot(t);
+  const persistenceRoot = resolve(acquisitionRoot, 'observation-snapshots');
+  mkdirSync(persistenceRoot, { recursive: true });
+  const persistence = createJarviseSnapshotPersistenceR1({
+    store: createContentAddressedStore({ root: persistenceRoot }),
+    journal: createJarviseSnapshotDirectoryJournalR1({ root: persistenceRoot }),
+    acquisitionAuthority: resolveEffectiveAcquisitionAuthorityR1({ root: REPOSITORY_ROOT, executionGrant: null }),
+  });
+  const pinned = planEntry(0);
+  persistence.pinRawOnce({
+    acquisitionKey: pinned.acquisitionKey,
+    acquisition: {
+      sourceAcquiredAt: '2026-09-05T12:00:00.000Z',
+      ingestedIntoLabAt: '2026-09-05T12:00:01.000Z',
+      acquisitionMethod: ACQUISITION_METHOD,
+      acquisitionToolVersion: 'runJarviseHistoricalFetchOnceR1/1',
+      acquisitionRequestIdentity: pinned.acquisitionRequestIdentity,
+      acquisitionEvidenceIds: [],
+    },
+    rawBytes: canonicalProviderResultBytesR1(chartFor(pinned.acquisitionRequestIdentity.providerSymbol)),
+  });
+  seedNonretryableFailedTerminals(acquisitionRoot, planEntry(1), 2);
+  const events = { factoryCalls: 0, chartCalls: 0, currentInFlight: 0, maxInFlight: 0, symbols: [] };
+  const summary = await runJarviseHistoricalFetchOnceR1({
+    acquisitionRoot,
+    executionGrant: testExecutionGrant(acquisitionRoot),
+    createProviderClient: instrumentedChartFactory(events),
+    maxNewProviderKeys: 1,
+    interKeySleep: async () => assert.fail('local-then-skip-then-single-provider must not delay'),
+  });
+  assert.equal(summary.newProviderKeysUsed, 1);
+  assert.equal(summary.reused, 1);
+  assert.equal(summary.acquired, 1);
+  assert.equal(events.chartCalls, 1);
+  assert.equal(events.maxInFlight, 1);
+  assert.deepEqual(events.symbols, [planEntry(2).acquisitionRequestIdentity.providerSymbol]);
+  assert.equal(summary.results[0].acquisitionKey, pinned.acquisitionKey);
+  assert.equal(summary.results[0].stage, 'VERSION_CACHED');
+  assert.equal(summary.results[1].acquisitionKey, planEntry(2).acquisitionKey);
+  assert.equal(existsSync(jarviseAttemptReservationPathR1(acquisitionRoot, planEntry(1).acquisitionKey, 3)), false);
+  assert.equal(existsSync(jarviseAttemptReservationPathR1(acquisitionRoot, planEntry(3).acquisitionKey, 1)), false);
+});
+
+test('P3H-SB-SKIP-E 429 circuit breaker still stops after the first entered acquisition', async (t) => {
+  const acquisitionRoot = temporaryAcquisitionRoot(t);
+  seedNonretryableFailedTerminals(acquisitionRoot, planEntry(0), 2);
+  let chartCalls = 0;
+  let currentInFlight = 0;
+  let maxInFlight = 0;
+  const rateLimitedKey = planEntry(1).acquisitionKey;
+  const nextEligibleKey = planEntry(2).acquisitionKey;
+  const summary = await runJarviseHistoricalFetchOnceR1({
+    acquisitionRoot,
+    executionGrant: testExecutionGrant(acquisitionRoot),
+    createProviderClient: () => ({
+      chart: async (symbol) => {
+        currentInFlight += 1;
+        maxInFlight = Math.max(maxInFlight, currentInFlight);
+        chartCalls += 1;
+        try {
+          if (chartCalls === 1) throw providerError(undefined, 429);
+          assert.fail(`next-key provider call is forbidden after 429: ${symbol}`);
+        } finally {
+          currentInFlight -= 1;
+        }
+      },
+    }),
+    maxNewProviderKeys: 2,
+    interKeySleep: async () => assert.fail('circuit breaker must not pace a next provider call'),
+  });
+  assert.equal(summary.failed, 1);
+  assert.equal(summary.newProviderKeysUsed, 1);
+  assert.equal(chartCalls, 1);
+  assert.equal(maxInFlight, 1);
+  assert.equal(summary.results.length, 1);
+  assert.equal(summary.results[0].acquisitionKey, rateLimitedKey);
+  assert.equal(summary.results[0].error.code, 'ACQUIRER_PROVIDER_RATE_LIMITED');
+  const terminal1 = JSON.parse(readFileSync(jarviseAttemptTerminalPathR1(acquisitionRoot, rateLimitedKey, 1), 'utf8'));
+  assert.equal(terminal1.attemptState, ATTEMPT_STATE_FAILED_RETRYABLE);
+  assert.equal(terminal1.condition, 'PROVIDER_RATE_LIMITED');
+  assert.equal(terminal1.retryEligible, true);
+  assert.equal(existsSync(jarviseAttemptReservationPathR1(acquisitionRoot, rateLimitedKey, 2)), false);
+  assert.equal(existsSync(jarviseAttemptReservationPathR1(acquisitionRoot, rateLimitedKey, 3)), false);
+  assert.equal(existsSync(jarviseAttemptReservationPathR1(acquisitionRoot, planEntry(0).acquisitionKey, 3)), false);
+  assert.equal(existsSync(jarviseAttemptReservationPathR1(acquisitionRoot, nextEligibleKey, 1)), false);
+});
+
+test('P3H-SB-SKIP-F provider concurrency remains <= 1 while skipping a nonretryable terminal', async (t) => {
+  const acquisitionRoot = temporaryAcquisitionRoot(t);
+  seedNonretryableFailedTerminals(acquisitionRoot, planEntry(0), 2);
+  const events = { factoryCalls: 0, chartCalls: 0, currentInFlight: 0, maxInFlight: 0, symbols: [] };
+  const summary = await runJarviseHistoricalFetchOnceR1({
+    acquisitionRoot,
+    executionGrant: testExecutionGrant(acquisitionRoot),
+    createProviderClient: instrumentedChartFactory(events),
+    maxNewProviderKeys: 2,
+    interKeySleep: async () => {},
+  });
+  assert.equal(summary.newProviderKeysUsed, 2);
+  assert.equal(events.chartCalls, 2);
+  assert.equal(events.maxInFlight, 1);
+  assert.ok(events.maxInFlight <= 1);
+});
+
+test('P3H-SB-SKIP-H one-key advance after nonretryable terminal produces one provider attempt', async (t) => {
+  const acquisitionRoot = temporaryAcquisitionRoot(t);
+  seedNonretryableFailedTerminals(acquisitionRoot, planEntry(0), 2);
+  const events = { factoryCalls: 0, chartCalls: 0, currentInFlight: 0, maxInFlight: 0, symbols: [] };
+  const summary = await runJarviseHistoricalFetchOnceR1({
+    acquisitionRoot,
+    executionGrant: testExecutionGrant(acquisitionRoot),
+    createProviderClient: instrumentedChartFactory(events),
+    maxNewProviderKeys: 1,
+    interKeySleep: async () => {},
+  });
+  assert.equal(summary.newProviderKeysUsed, 1);
+  assert.equal(events.chartCalls, 1);
+  assert.notEqual(events.chartCalls, 0);
+  assert.equal(events.symbols[0], planEntry(1).acquisitionRequestIdentity.providerSymbol);
+  assert.equal(existsSync(jarviseAttemptReservationPathR1(acquisitionRoot, planEntry(1).acquisitionKey, 1)), true);
+  assert.equal(existsSync(jarviseAttemptReservationPathR1(acquisitionRoot, planEntry(0).acquisitionKey, 3)), false);
+});
+
+test('P3H-SB-SKIP-RETRYABLE existing retryable terminal still enters a new provider acquisition', async (t) => {
+  const acquisitionRoot = temporaryAcquisitionRoot(t);
+  seedRetryableTimeoutTerminal(acquisitionRoot, planEntry(0));
+  const events = { factoryCalls: 0, chartCalls: 0, currentInFlight: 0, maxInFlight: 0, symbols: [] };
+  const summary = await runJarviseHistoricalFetchOnceR1({
+    acquisitionRoot,
+    executionGrant: testExecutionGrant(acquisitionRoot),
+    createProviderClient: instrumentedChartFactory(events),
+    maxNewProviderKeys: 1,
+    interKeySleep: async () => {},
+  });
+  assert.equal(summary.newProviderKeysUsed, 1);
+  assert.equal(events.chartCalls, 1);
+  assert.equal(events.maxInFlight, 1);
+  assert.deepEqual(events.symbols, [planEntry(0).acquisitionRequestIdentity.providerSymbol]);
+  assert.equal(existsSync(jarviseAttemptReservationPathR1(acquisitionRoot, planEntry(0).acquisitionKey, 2)), true);
+  assert.equal(existsSync(jarviseAttemptReservationPathR1(acquisitionRoot, planEntry(1).acquisitionKey, 1)), false);
+});
+

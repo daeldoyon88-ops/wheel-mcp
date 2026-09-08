@@ -1,0 +1,25 @@
+{
+  "document": "MAINTENANCE_PUBLICATION_ADMISSION_OWNER_AUTHORIZATION",
+  "schemaVersion": 1,
+  "authorityId": "P3H_NEXT_ELIGIBLE_KEY_SAFE_BATCHING_REPAIR_PUBLICATION_OWNER_AUTHORIZATION_R1",
+  "authorityClass": "PROJECT_OWNER_MAINTENANCE_PUBLICATION_ADMISSION_AUTHORITY",
+  "authorityMode": "LOCAL_EXPLICIT_AUTHORITY",
+  "issuedBy": "PROJECT_OWNER",
+  "issuedAtUtc": "2026-09-08T00:00:00.000Z",
+  "decisionId": "P3H_NEXT_ELIGIBLE_KEY_SAFE_BATCHING_REPAIR_OWNER_DECISION_R1",
+  "purpose": "MAINTENANCE_PUBLICATION_ADMISSION",
+  "reexecutionAuthorized": false,
+  "grantsFutureBytePermission": false,
+  "genericV1Admission": false,
+  "admittedPublications": [
+    {
+      "admissionId": "P3H_NEXT_ELIGIBLE_KEY_SAFE_BATCHING_REPAIR_PUBLICATION_ADMISSION_R1",
+      "projectId": "WHEEL",
+      "gateId": "GATE24",
+      "programId": "P3H_NEXT_ELIGIBLE_KEY_SAFE_BATCHING_REPAIR_R1",
+      "admissionPath": "governance/authority/publication-admissions/GATE24/P3H_NEXT_ELIGIBLE_KEY_SAFE_BATCHING_REPAIR_PUBLICATION_ADMISSION_R1.json",
+      "admissionDigest": "71504fa06e0cf14fe147184c3455a7f3486bb0e1c883e2e3827fa31862e67c25"
+    }
+  ],
+  "registryDigest": "20c1c8412ce299c3eda09b8113902ae216ba9a305dace46503d34e37fa633434"
+}

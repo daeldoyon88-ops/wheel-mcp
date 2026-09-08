@@ -20,6 +20,7 @@
 
 import { existsSync, mkdirSync, readFileSync } from 'node:fs';
 import { dirname, isAbsolute, resolve } from 'node:path';
+import { setTimeout as delay } from 'node:timers/promises';
 import { fileURLToPath } from 'node:url';
 
 import {
@@ -52,6 +53,17 @@ import { NORMALIZE_DAILY_BARS_VERSION } from '../research/directional-lab/src/da
 import { createContentAddressedStore } from '../research/directional-lab/src/storage/contentAddressedStoreV1.mjs';
 
 export const RUN_JARVISE_HISTORICAL_FETCH_ONCE_VERSION = 'runJarviseHistoricalFetchOnceR1/1';
+export const CLI_MAX_NEW_PROVIDER_KEYS_OPTION = '--max-new-provider-keys';
+export const CLI_INTER_KEY_DELAY_MS_OPTION = '--inter-key-delay-ms';
+export const INTER_KEY_DELAY_MS_MAX_R1 = 600000;
+
+const KNOWN_CLI_OPTIONS = Object.freeze([
+  '--acquisition-root',
+  '--execution-grant',
+  '--recovery-grant',
+  CLI_MAX_NEW_PROVIDER_KEYS_OPTION,
+  CLI_INTER_KEY_DELAY_MS_OPTION,
+]);
 
 const REPOSITORY_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -70,28 +82,86 @@ function fail(code, message, details = {}) {
   throw new JarviseFetchOnceRunError(code, message, details);
 }
 
+function isKnownCliOption(token) {
+  return KNOWN_CLI_OPTIONS.includes(token);
+}
+
+function readCliOptionValue(argv, index, optionName) {
+  const value = argv[index + 1];
+  if (value === undefined || isKnownCliOption(value)) {
+    fail('RUN_CLI_OPTION_VALUE_MISSING', `${optionName} requires a value`);
+  }
+  return value;
+}
+
+function parseStrictPositiveIntegerToken(optionName, token) {
+  if (typeof token !== 'string' || !/^[1-9][0-9]*$/.test(token)) {
+    fail('RUN_CLI_OPTION_VALUE_INVALID', `${optionName} must be a strict positive integer`, { value: token });
+  }
+  const parsed = Number(token);
+  if (!Number.isSafeInteger(parsed) || parsed < 1) {
+    fail('RUN_CLI_OPTION_VALUE_INVALID', `${optionName} must be a strict positive integer`, { value: token });
+  }
+  return parsed;
+}
+
+function parseNonNegativeIntegerToken(optionName, token) {
+  if (typeof token !== 'string' || !/^(0|[1-9][0-9]*)$/.test(token)) {
+    fail('RUN_CLI_OPTION_VALUE_INVALID', `${optionName} must be a non-negative integer`, { value: token });
+  }
+  const parsed = Number(token);
+  if (!Number.isSafeInteger(parsed) || parsed < 0) {
+    fail('RUN_CLI_OPTION_VALUE_INVALID', `${optionName} must be a non-negative integer`, { value: token });
+  }
+  if (optionName === CLI_INTER_KEY_DELAY_MS_OPTION && parsed > INTER_KEY_DELAY_MS_MAX_R1) {
+    fail('RUN_CLI_OPTION_VALUE_INVALID', `${optionName} must be <= ${INTER_KEY_DELAY_MS_MAX_R1}`, { value: token });
+  }
+  return parsed;
+}
+
 /**
- * Parse runner CLI arguments. --acquisition-root is mandatory and must be
- * absolute; there is no in-repo default.
+ * Parse runner CLI arguments. Unknown arguments fail closed. --acquisition-root
+ * is mandatory at run time and must be absolute; there is no in-repo default.
  * @param {string[]} argv
  */
 export function parseJarviseHistoricalFetchOnceArgsR1(argv) {
-  const parsed = { acquisitionRoot: null, executionGrantPath: null, recoveryGrantPath: null };
+  const parsed = {
+    acquisitionRoot: null,
+    executionGrantPath: null,
+    recoveryGrantPath: null,
+    maxNewProviderKeys: null,
+    interKeyDelayMs: null,
+  };
+  const seen = new Set();
   for (let index = 0; index < argv.length; index += 1) {
     const token = argv[index];
+    if (!isKnownCliOption(token)) {
+      fail('RUN_CLI_ARGUMENT_UNKNOWN', `unknown CLI argument: ${token}`, { argument: token });
+    }
+    if (seen.has(token)) {
+      fail('RUN_CLI_OPTION_DUPLICATE', `duplicate CLI option is forbidden: ${token}`, { option: token });
+    }
+    seen.add(token);
+    const value = readCliOptionValue(argv, index, token);
+    index += 1;
     if (token === '--acquisition-root') {
-      parsed.acquisitionRoot = argv[index + 1];
-      index += 1;
+      parsed.acquisitionRoot = value;
       continue;
     }
     if (token === '--execution-grant') {
-      parsed.executionGrantPath = argv[index + 1];
-      index += 1;
+      parsed.executionGrantPath = value;
       continue;
     }
     if (token === '--recovery-grant') {
-      parsed.recoveryGrantPath = argv[index + 1];
-      index += 1;
+      parsed.recoveryGrantPath = value;
+      continue;
+    }
+    if (token === CLI_MAX_NEW_PROVIDER_KEYS_OPTION) {
+      parsed.maxNewProviderKeys = parseStrictPositiveIntegerToken(token, value);
+      continue;
+    }
+    if (token === CLI_INTER_KEY_DELAY_MS_OPTION) {
+      parsed.interKeyDelayMs = parseNonNegativeIntegerToken(token, value);
     }
   }
   return parsed;
@@ -157,6 +227,9 @@ export function buildSnapshotCoreFieldsR1(input) {
  *   createProviderClient?: () => {chart: Function},
  *   now?: () => string,
  *   limit?: number,
+ *   maxNewProviderKeys?: number|null,
+ *   interKeyDelayMs?: number|null,
+ *   interKeySleep?: (ms: number) => Promise<unknown>,
  * }} options
  */
 export async function runJarviseHistoricalFetchOnceR1(options = {}) {
@@ -267,27 +340,75 @@ export async function runJarviseHistoricalFetchOnceR1(options = {}) {
 
   const now = options.now ?? (() => new Date().toISOString());
   const entries = options.limit === undefined ? plan.entries : plan.entries.slice(0, options.limit);
+  const maxNewProviderKeys = options.maxNewProviderKeys === undefined || options.maxNewProviderKeys === null
+    ? null
+    : options.maxNewProviderKeys;
+  if (maxNewProviderKeys !== null && (!Number.isSafeInteger(maxNewProviderKeys) || maxNewProviderKeys < 1)) {
+    fail('RUN_MAX_NEW_PROVIDER_KEYS_INVALID', '--max-new-provider-keys must be a strict positive integer', {
+      maxNewProviderKeys,
+    });
+  }
+  const interKeyDelayMs = options.interKeyDelayMs === undefined || options.interKeyDelayMs === null
+    ? 0
+    : options.interKeyDelayMs;
+  if (!Number.isSafeInteger(interKeyDelayMs) || interKeyDelayMs < 0 || interKeyDelayMs > INTER_KEY_DELAY_MS_MAX_R1) {
+    fail('RUN_INTER_KEY_DELAY_MS_INVALID', `--inter-key-delay-ms must be an integer in [0, ${INTER_KEY_DELAY_MS_MAX_R1}]`, {
+      interKeyDelayMs,
+    });
+  }
+  const interKeySleep = typeof options.interKeySleep === 'function' ? options.interKeySleep : delay;
   const results = [];
   let acquired = 0;
   let reused = 0;
   let failed = 0;
+  let newProviderKeysUsed = 0;
+  let providerTraversalStopped = false;
+  let pendingInterKeyDelay = false;
 
   for (const entry of entries) {
     const acquisitionKey = entry.acquisitionKey;
+    const durableStage = persistence.stageOf(acquisitionKey);
+    const localOnly = PINNED_OR_LATER.has(durableStage);
+    if (!localOnly && providerTraversalStopped) {
+      continue;
+    }
+    if (!localOnly && maxNewProviderKeys !== null && newProviderKeysUsed >= maxNewProviderKeys) {
+      providerTraversalStopped = true;
+      continue;
+    }
     try {
       let rawBytes = null;
-      const durableStage = persistence.stageOf(acquisitionKey);
-      if (PINNED_OR_LATER.has(durableStage)) {
+      if (localOnly) {
         rawBytes = null;
       } else if (durableStage !== 'EMPTY') {
         fail('RUN_STAGE_INVALID', `unknown durable stage ${durableStage}`, { acquisitionKey, stage: durableStage });
       } else {
+        if (pendingInterKeyDelay && interKeyDelayMs > 0) {
+          await interKeySleep(interKeyDelayMs);
+        }
+        pendingInterKeyDelay = false;
         try {
           rawBytes = await requireAcquirerForEmptyKey().acquireRawBytesFor(entry);
+          newProviderKeysUsed += 1;
+          pendingInterKeyDelay = true;
+          if (maxNewProviderKeys !== null && newProviderKeysUsed >= maxNewProviderKeys) {
+            providerTraversalStopped = true;
+          }
         } catch (error) {
           if (/** @type {any} */ (error)?.code === 'RUN_NOT_AUTHORIZED') throw error;
-          if (/** @type {any} */ (error)?.code !== 'ACQUIRER_REFETCH_FORBIDDEN') throw error;
-          rawBytes = null;
+          if (/** @type {any} */ (error)?.code === 'ACQUIRER_REFETCH_FORBIDDEN') {
+            rawBytes = null;
+          } else if (/** @type {any} */ (error)?.code === 'ACQUIRER_PROVIDER_RATE_LIMITED') {
+            newProviderKeysUsed += 1;
+            throw error;
+          } else {
+            newProviderKeysUsed += 1;
+            pendingInterKeyDelay = true;
+            if (maxNewProviderKeys !== null && newProviderKeysUsed >= maxNewProviderKeys) {
+              providerTraversalStopped = true;
+            }
+            throw error;
+          }
         }
       }
 
@@ -345,6 +466,10 @@ export async function runJarviseHistoricalFetchOnceR1(options = {}) {
         stage: persistence.stageOf(acquisitionKey),
         error: { code: /** @type {any} */ (error)?.code ?? null, message: /** @type {Error} */ (error)?.message ?? null },
       });
+      if (/** @type {any} */ (error)?.code === 'ACQUIRER_PROVIDER_RATE_LIMITED') {
+        providerTraversalStopped = true;
+        pendingInterKeyDelay = false;
+      }
     }
   }
 
@@ -355,11 +480,12 @@ export async function runJarviseHistoricalFetchOnceR1(options = {}) {
     authorityId: authority.authorityId,
     terminalStage: 'VERSION_CACHED',
     expectedKeyCount: plan.acquisitionKeyCount,
-    attemptedKeyCount: entries.length,
+    attemptedKeyCount: results.length,
     acquired,
     reused,
     failed,
     completed,
+    newProviderKeysUsed,
     providerInvocations: acquirer === null
       ? countDurableAttemptReservationsR1(acquisitionRoot)
       : acquirer.providerInvocations(),
@@ -380,6 +506,8 @@ if (invokedDirectly) {
     acquisitionRoot: parsed.acquisitionRoot,
     executionGrantPath: parsed.executionGrantPath,
     recoveryGrantPath: parsed.recoveryGrantPath,
+    maxNewProviderKeys: parsed.maxNewProviderKeys,
+    interKeyDelayMs: parsed.interKeyDelayMs,
     createProviderClient: createJarviseYahooFinance2ChartClientR1,
   })
     .then((summary) => {

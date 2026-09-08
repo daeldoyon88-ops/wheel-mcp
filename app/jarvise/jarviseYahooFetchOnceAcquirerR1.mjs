@@ -1217,6 +1217,14 @@ export function createJarviseYahooFetchOnceAcquirerR1(options) {
           condition: classified.condition,
           retryEligible: classified.retryEligible,
         });
+        if (classified.condition === 'PROVIDER_RATE_LIMITED') {
+          fail('ACQUIRER_PROVIDER_RATE_LIMITED', 'HTTP 429 rate-limit circuit breaker stops this invocation after the persisted retryable terminal', {
+            acquisitionKey,
+            attemptOrdinal,
+            condition: classified.condition,
+            retryEligible: true,
+          });
+        }
         if (!classified.retryEligible) {
           fail('ACQUIRER_FAIL_CLOSED', `non-retryable provider failure: ${classified.condition}`, {
             acquisitionKey, condition: classified.condition, cause: lastFailure.message,

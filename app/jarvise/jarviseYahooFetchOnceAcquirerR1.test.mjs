@@ -453,7 +453,7 @@ test('P3-F8 the global invocation ceiling is enforced and counts failures', asyn
     createProviderClient: () => ({
       chart: async () => {
         calls += 1;
-        throw providerError(undefined, 429);
+        throw providerError(undefined, 503);
       },
     }),
   });
@@ -907,7 +907,13 @@ test('P3-R8a acquisition root equal or inside the repository fails closed', asyn
   );
   assert.deepEqual(
     parseJarviseHistoricalFetchOnceArgsR1(['--acquisition-root', 'C:\\outside\\acq']),
-    { acquisitionRoot: 'C:\\outside\\acq', executionGrantPath: null, recoveryGrantPath: null },
+    {
+      acquisitionRoot: 'C:\\outside\\acq',
+      executionGrantPath: null,
+      recoveryGrantPath: null,
+      maxNewProviderKeys: null,
+      interKeyDelayMs: null,
+    },
   );
 });
 
@@ -1276,9 +1282,11 @@ test('P3E-T9 timeout conditions remain retryable TIMEOUT through the factory wra
   assert.equal(classified.retryEligible, true);
 });
 
-test('P3E-T10 HTTPError 429 is classified PROVIDER_RATE_LIMITED / retryable', async (t) => {
+test('P3E-T10 HTTPError 429 is classified PROVIDER_RATE_LIMITED / retryable and trips the invocation circuit breaker', async (t) => {
+  const acquisitionRoot = temporaryAcquisitionRoot(t);
   let chartCalls = 0;
   const acquirer = makeAcquirer(t, {
+    acquisitionRoot,
     createProviderClient: () => createJarviseYahooFinance2ChartClientR1({
       loadYahooFinance2: async () => ({
         default: class {
@@ -1290,11 +1298,20 @@ test('P3E-T10 HTTPError 429 is classified PROVIDER_RATE_LIMITED / retryable', as
       }),
     }),
   });
+  const entry = planEntry();
   await assert.rejects(
-    () => acquirer.acquireRawBytesFor(planEntry()),
-    (error) => error.code === 'ACQUIRER_RETRY_BUDGET_EXHAUSTED',
+    () => acquirer.acquireRawBytesFor(entry),
+    (error) => error.code === 'ACQUIRER_PROVIDER_RATE_LIMITED'
+      && error.details.condition === 'PROVIDER_RATE_LIMITED'
+      && error.details.retryEligible === true,
   );
-  assert.equal(chartCalls, 3);
+  assert.equal(chartCalls, 1, 'circuit breaker must not consume the next ordinal in this invocation');
+  const terminal1 = JSON.parse(readFileSync(jarviseAttemptTerminalPathR1(acquisitionRoot, entry.acquisitionKey, 1), 'utf8'));
+  assert.equal(terminal1.attemptState, ATTEMPT_STATE_FAILED_RETRYABLE);
+  assert.equal(terminal1.condition, 'PROVIDER_RATE_LIMITED');
+  assert.equal(terminal1.retryEligible, true);
+  assert.equal(existsSync(jarviseAttemptReservationPathR1(acquisitionRoot, entry.acquisitionKey, 2)), false);
+  assert.equal(existsSync(jarviseAttemptReservationPathR1(acquisitionRoot, entry.acquisitionKey, 3)), false);
   const classified = classifyAcquisitionFailureR1(projectYahooFinance2HttpErrorR1(p3eHttpError(429)));
   assert.equal(classified.condition, 'PROVIDER_RATE_LIMITED');
   assert.equal(classified.retryEligible, true);
@@ -2813,5 +2830,206 @@ test('P3H-R4A-G production runner rejects foreign gitRoot/root injection before 
   assert.equal(factoryCalls, 0);
   assert.equal(existsSync(join(acquisitionRoot, 'reservations')), false);
   assert.equal(countDurableAttemptReservationsR1(acquisitionRoot), 0);
+});
+
+function instrumentedChartFactory(events) {
+  return () => {
+    events.factoryCalls += 1;
+    return {
+      chart: async (symbol) => {
+        events.currentInFlight += 1;
+        events.maxInFlight = Math.max(events.maxInFlight, events.currentInFlight);
+        events.chartCalls += 1;
+        events.symbols.push(symbol);
+        try {
+          await Promise.resolve();
+          return chartFor(symbol);
+        } finally {
+          events.currentInFlight -= 1;
+        }
+      },
+    };
+  };
+}
+
+test('P3H-SB-N1 max-new-provider-keys 1 processes exactly one new provider-eligible key', async (t) => {
+  const acquisitionRoot = temporaryAcquisitionRoot(t);
+  const events = { factoryCalls: 0, chartCalls: 0, currentInFlight: 0, maxInFlight: 0, symbols: [] };
+  const summary = await runJarviseHistoricalFetchOnceR1({
+    acquisitionRoot,
+    executionGrant: testExecutionGrant(acquisitionRoot),
+    createProviderClient: instrumentedChartFactory(events),
+    maxNewProviderKeys: 1,
+    interKeySleep: async () => assert.fail('N=1 must not request inter-key delay'),
+  });
+  assert.equal(summary.cohortStatus, 'PARTIAL_RESUMABLE');
+  assert.equal(summary.newProviderKeysUsed, 1);
+  assert.equal(summary.acquired, 1);
+  assert.equal(events.chartCalls, 1);
+  assert.equal(events.maxInFlight, 1);
+  assert.equal(summary.results.length, 1);
+  assert.equal(summary.results[0].acquisitionKey, planEntry(0).acquisitionKey);
+  assert.equal(existsSync(jarviseAttemptReservationPathR1(acquisitionRoot, planEntry(1).acquisitionKey, 1)), false);
+  assert.equal(countDurableAttemptReservationsR1(acquisitionRoot), 1);
+});
+
+test('P3H-SB-N2 max-new-provider-keys 2 processes exactly two new provider-eligible keys', async (t) => {
+  const acquisitionRoot = temporaryAcquisitionRoot(t);
+  const events = { factoryCalls: 0, chartCalls: 0, currentInFlight: 0, maxInFlight: 0, symbols: [] };
+  const summary = await runJarviseHistoricalFetchOnceR1({
+    acquisitionRoot,
+    executionGrant: testExecutionGrant(acquisitionRoot),
+    createProviderClient: instrumentedChartFactory(events),
+    maxNewProviderKeys: 2,
+    interKeyDelayMs: 0,
+    interKeySleep: async () => assert.fail('zero delay must not sleep'),
+  });
+  assert.equal(summary.cohortStatus, 'PARTIAL_RESUMABLE');
+  assert.equal(summary.newProviderKeysUsed, 2);
+  assert.equal(summary.acquired, 2);
+  assert.equal(events.chartCalls, 2);
+  assert.equal(events.maxInFlight, 1);
+  assert.deepEqual(events.symbols, [
+    planEntry(0).acquisitionRequestIdentity.providerSymbol,
+    planEntry(1).acquisitionRequestIdentity.providerSymbol,
+  ]);
+  assert.equal(existsSync(jarviseAttemptReservationPathR1(acquisitionRoot, planEntry(2).acquisitionKey, 1)), false);
+});
+
+test('P3H-SB-RESUME second invocation advances past the original provider-eligible prefix', async (t) => {
+  const acquisitionRoot = temporaryAcquisitionRoot(t);
+  const grant = testExecutionGrant(acquisitionRoot);
+  const firstEvents = { factoryCalls: 0, chartCalls: 0, currentInFlight: 0, maxInFlight: 0, symbols: [] };
+  const first = await runJarviseHistoricalFetchOnceR1({
+    acquisitionRoot,
+    executionGrant: grant,
+    createProviderClient: instrumentedChartFactory(firstEvents),
+    maxNewProviderKeys: 2,
+    interKeySleep: async () => {},
+  });
+  assert.equal(first.newProviderKeysUsed, 2);
+  const secondEvents = { factoryCalls: 0, chartCalls: 0, currentInFlight: 0, maxInFlight: 0, symbols: [] };
+  const second = await runJarviseHistoricalFetchOnceR1({
+    acquisitionRoot,
+    executionGrant: grant,
+    createProviderClient: instrumentedChartFactory(secondEvents),
+    maxNewProviderKeys: 2,
+    interKeySleep: async () => {},
+  });
+  assert.equal(second.cohortStatus, 'PARTIAL_RESUMABLE');
+  assert.equal(second.newProviderKeysUsed, 2);
+  assert.equal(second.acquired, 2);
+  assert.equal(second.reused, 2);
+  assert.deepEqual(secondEvents.symbols, [
+    planEntry(2).acquisitionRequestIdentity.providerSymbol,
+    planEntry(3).acquisitionRequestIdentity.providerSymbol,
+  ]);
+  assert.equal(secondEvents.maxInFlight, 1);
+  assert.equal(countDurableAttemptReservationsR1(acquisitionRoot), 4);
+});
+
+test('P3H-SB-LOCAL pinned or later keys do not consume new-provider allowance', async (t) => {
+  const acquisitionRoot = temporaryAcquisitionRoot(t);
+  const persistenceRoot = resolve(acquisitionRoot, 'observation-snapshots');
+  mkdirSync(persistenceRoot, { recursive: true });
+  const persistence = createJarviseSnapshotPersistenceR1({
+    store: createContentAddressedStore({ root: persistenceRoot }),
+    journal: createJarviseSnapshotDirectoryJournalR1({ root: persistenceRoot }),
+    acquisitionAuthority: resolveEffectiveAcquisitionAuthorityR1({ root: REPOSITORY_ROOT, executionGrant: null }),
+  });
+  const pinned = planEntry(0);
+  persistence.pinRawOnce({
+    acquisitionKey: pinned.acquisitionKey,
+    acquisition: {
+      sourceAcquiredAt: '2026-09-05T12:00:00.000Z',
+      ingestedIntoLabAt: '2026-09-05T12:00:01.000Z',
+      acquisitionMethod: ACQUISITION_METHOD,
+      acquisitionToolVersion: 'runJarviseHistoricalFetchOnceR1/1',
+      acquisitionRequestIdentity: pinned.acquisitionRequestIdentity,
+      acquisitionEvidenceIds: [],
+    },
+    rawBytes: canonicalProviderResultBytesR1(chartFor(pinned.acquisitionRequestIdentity.providerSymbol)),
+  });
+  const events = { factoryCalls: 0, chartCalls: 0, currentInFlight: 0, maxInFlight: 0, symbols: [] };
+  const summary = await runJarviseHistoricalFetchOnceR1({
+    acquisitionRoot,
+    executionGrant: testExecutionGrant(acquisitionRoot),
+    createProviderClient: instrumentedChartFactory(events),
+    maxNewProviderKeys: 1,
+    interKeySleep: async () => assert.fail('local-then-single-provider must not delay'),
+  });
+  assert.equal(summary.newProviderKeysUsed, 1);
+  assert.equal(summary.reused, 1);
+  assert.equal(summary.acquired, 1);
+  assert.equal(events.chartCalls, 1);
+  assert.deepEqual(events.symbols, [planEntry(1).acquisitionRequestIdentity.providerSymbol]);
+  assert.equal(summary.results[0].acquisitionKey, pinned.acquisitionKey);
+  assert.equal(summary.results[1].acquisitionKey, planEntry(1).acquisitionKey);
+  assert.equal(existsSync(jarviseAttemptReservationPathR1(acquisitionRoot, planEntry(2).acquisitionKey, 1)), false);
+});
+
+test('P3H-SB-PACING fake sleep is requested only between settled provider keys', async (t) => {
+  const acquisitionRoot = temporaryAcquisitionRoot(t);
+  const sleeps = [];
+  const events = { factoryCalls: 0, chartCalls: 0, currentInFlight: 0, maxInFlight: 0, symbols: [] };
+  const summary = await runJarviseHistoricalFetchOnceR1({
+    acquisitionRoot,
+    executionGrant: testExecutionGrant(acquisitionRoot),
+    createProviderClient: instrumentedChartFactory(events),
+    maxNewProviderKeys: 2,
+    interKeyDelayMs: 17,
+    interKeySleep: async (ms) => {
+      sleeps.push(ms);
+    },
+  });
+  assert.equal(summary.newProviderKeysUsed, 2);
+  assert.deepEqual(sleeps, [17]);
+  assert.equal(events.chartCalls, 2);
+});
+
+test('P3H-SB-429 first PROVIDER_RATE_LIMITED stops the invocation without ordinal3 or next-key provider', async (t) => {
+  const acquisitionRoot = temporaryAcquisitionRoot(t);
+  let chartCalls = 0;
+  let currentInFlight = 0;
+  let maxInFlight = 0;
+  const firstKey = planEntry(0).acquisitionKey;
+  const secondKey = planEntry(1).acquisitionKey;
+  const summary = await runJarviseHistoricalFetchOnceR1({
+    acquisitionRoot,
+    executionGrant: testExecutionGrant(acquisitionRoot),
+    createProviderClient: () => ({
+      chart: async (symbol) => {
+        currentInFlight += 1;
+        maxInFlight = Math.max(maxInFlight, currentInFlight);
+        chartCalls += 1;
+        try {
+          if (chartCalls === 1) throw providerError(undefined, 429);
+          assert.fail(`next-key provider call is forbidden after 429: ${symbol}`);
+        } finally {
+          currentInFlight -= 1;
+        }
+      },
+    }),
+    maxNewProviderKeys: 2,
+    interKeySleep: async () => assert.fail('circuit breaker must not pace a next provider call'),
+  });
+  assert.equal(summary.cohortStatus, 'PARTIAL_RESUMABLE');
+  assert.equal(summary.failed, 1);
+  assert.equal(summary.newProviderKeysUsed, 1);
+  assert.equal(chartCalls, 1);
+  assert.equal(maxInFlight, 1);
+  assert.equal(summary.results.length, 1);
+  assert.equal(summary.results[0].error.code, 'ACQUIRER_PROVIDER_RATE_LIMITED');
+  const terminal1 = JSON.parse(readFileSync(jarviseAttemptTerminalPathR1(acquisitionRoot, firstKey, 1), 'utf8'));
+  assert.equal(terminal1.attemptState, ATTEMPT_STATE_FAILED_RETRYABLE);
+  assert.equal(terminal1.condition, 'PROVIDER_RATE_LIMITED');
+  assert.equal(terminal1.retryEligible, true);
+  assert.equal(existsSync(jarviseAttemptReservationPathR1(acquisitionRoot, firstKey, 2)), false);
+  assert.equal(existsSync(jarviseAttemptReservationPathR1(acquisitionRoot, firstKey, 3)), false);
+  assert.equal(existsSync(jarviseAttemptReservationPathR1(acquisitionRoot, secondKey, 1)), false);
+  assert.equal(countDurableAttemptReservationsR1(acquisitionRoot), 1);
+  assert.equal(STRUCTURAL_MAX_ATTEMPTS_PER_EMPTY_KEY, 3);
+  assert.equal(STRUCTURAL_MAX_PROVIDER_INVOCATION_COUNT, 2406);
+  assert.equal(802 * 3, 2406);
 });
 

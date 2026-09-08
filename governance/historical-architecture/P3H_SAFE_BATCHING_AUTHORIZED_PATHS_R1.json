@@ -1,0 +1,64 @@
+{
+  "documentKind": "POST_FREEZE_MAINTENANCE_AUTHORIZED_PATH_MANIFEST",
+  "schemaVersion": 2,
+  "manifestId": "P3H_SAFE_BATCHING_AUTHORIZED_PATHS_R1",
+  "programId": "P3H_SAFE_BATCHING_R1",
+  "paths": [
+    {
+      "path": "app/jarvise/jarviseYahooFetchOnceAcquirerR1.mjs",
+      "operation": "MODIFY",
+      "phase": "MAINTENANCE",
+      "reason": "P3H safe batching: add HTTP 429 rate-limit circuit breaker on the existing acquirer without mutating the P3G execution grant, incident root, or network authorization. Preserve P3F acquisitionRoot binding and P3E factory-after-reservation order.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "PRESENT",
+        "sha256": "af78087e567d108a3dfd290d516f7cd5680310dd34039991eb8fa6b27ae1c1db",
+        "byteLength": 56333
+      }
+    },
+    {
+      "path": "app/jarvise/jarviseYahooFetchOnceAcquirerR1.test.mjs",
+      "operation": "MODIFY",
+      "phase": "MAINTENANCE",
+      "reason": "P3H offline fake-provider coverage for 429 circuit breaker, ordinal burn, batch N counting, resume advancement, pinned local allowance and provider concurrency <= 1. Zero Yahoo/network contact.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "PRESENT",
+        "sha256": "7a09f315455139a38656313fd76fb04add15b978f6aac0e8fd3517ad9fe62134",
+        "byteLength": 119221
+      }
+    },
+    {
+      "path": "scripts/runJarviseHistoricalFetchOnceR1.mjs",
+      "operation": "MODIFY",
+      "phase": "MAINTENANCE",
+      "reason": "P3H safe batching: parse --max-new-provider-keys and --inter-key-delay-ms, fail-closed on unknown args, and stop after N new provider keys. No Yahoo fetch and no execution-grant mutation.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "PRESENT",
+        "sha256": "f077ba541da608d74ae46087b902fa44b9ff6944948609d400d723cb5b9b6424",
+        "byteLength": 15331
+      }
+    },
+    {
+      "path": "scripts/runJarviseHistoricalFetchOnceR1.test.mjs",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "P3H offline CLI/runner coverage for --max-new-provider-keys, --inter-key-delay-ms, unknown-arg fail-closed, batch N, resume advancement and pacing. Zero Yahoo/network contact.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "governance/historical-architecture/P3H_SAFE_BATCHING_CONSUMPTION_R1.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "Single-use P3H safe batching authority consumption receipt. Authorized by this manifest; created by the canonical publisher; not supplied as a candidate.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    }
+  ]
+}

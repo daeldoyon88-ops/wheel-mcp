@@ -1,0 +1,56 @@
+{
+  "documentKind": "POST_FREEZE_MAINTENANCE_AUTHORITY_CONSUMPTION",
+  "schemaVersion": 2,
+  "authorityId": "P3H_SAFE_BATCHING_LOCAL_AUTHORITY_R1",
+  "programId": "P3H_SAFE_BATCHING_R1",
+  "manifestSha256": "ad0b98d474e94b5cb04370e3542e375a33122352215543df9891575926264863",
+  "baseHead": "b009a9e6e0bf95dd6329cb912bc9e3d6bf42d7a7",
+  "consumedUse": 1,
+  "transactionId": "P3H_SAFE_BATCHING_R1_TRANSACTION",
+  "recordedAt": "2026-09-08T11:22:54.907Z",
+  "commitMessage": "jarvise: P3H safe batching and rate-limit circuit breaker (no network, no execution grant)",
+  "publicationAdmission": {
+    "admissionId": "P3H_SAFE_BATCHING_PUBLICATION_ADMISSION_R1",
+    "admissionPath": "governance/authority/publication-admissions/GATE24/P3H_SAFE_BATCHING_PUBLICATION_ADMISSION_R1.json",
+    "admissionSha256": "c9989e93a83fe23a6db2ba13ec8e122f31b73ef19e2c1bb569b8defe16328dee"
+  },
+  "cohortSelfExclusion": {
+    "path": "governance/historical-architecture/P3H_SAFE_BATCHING_CONSUMPTION_R1.json",
+    "reason": "The consumption record cannot hash its own final bytes; its identity is bound by the authority and manifest instead."
+  },
+  "cohortPathCount": 5,
+  "cohort": [
+    {
+      "path": "app/jarvise/jarviseYahooFetchOnceAcquirerR1.mjs",
+      "sha256": "d912e548d8ab7eaf75d5316dfef8f9e8d96c2f7c50eccf2849be37a30f905dba",
+      "byteLength": 56706,
+      "operation": "MODIFY",
+      "reason": "P3H safe batching: add HTTP 429 rate-limit circuit breaker on the existing acquirer without mutating the P3G execution grant, incident root, or network authorization. Preserve P3F acquisitionRoot binding and P3E factory-after-reservation order.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "app/jarvise/jarviseYahooFetchOnceAcquirerR1.test.mjs",
+      "sha256": "4cc781e24e9ac3dfd0b673d36c67f244a8f8df05f48f01a61ae9d04ad505105f",
+      "byteLength": 129298,
+      "operation": "MODIFY",
+      "reason": "P3H offline fake-provider coverage for 429 circuit breaker, ordinal burn, batch N counting, resume advancement, pinned local allowance and provider concurrency <= 1. Zero Yahoo/network contact.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "scripts/runJarviseHistoricalFetchOnceR1.mjs",
+      "sha256": "3c803a0e789e6a8972a09e6496a9bd9aa0d391fa1e61cf3931a387197ba4c292",
+      "byteLength": 20495,
+      "operation": "MODIFY",
+      "reason": "P3H safe batching: parse --max-new-provider-keys and --inter-key-delay-ms, fail-closed on unknown args, and stop after N new provider keys. No Yahoo fetch and no execution-grant mutation.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "scripts/runJarviseHistoricalFetchOnceR1.test.mjs",
+      "sha256": "7a38a2e7062d26b6bc8ac2186318bcdc593edf7454102296f2dccf159c309bd1",
+      "byteLength": 2904,
+      "operation": "CREATE",
+      "reason": "P3H offline CLI/runner coverage for --max-new-provider-keys, --inter-key-delay-ms, unknown-arg fail-closed, batch N, resume advancement and pacing. Zero Yahoo/network contact.",
+      "artifactClass": "MAINTENANCE"
+    }
+  ]
+}

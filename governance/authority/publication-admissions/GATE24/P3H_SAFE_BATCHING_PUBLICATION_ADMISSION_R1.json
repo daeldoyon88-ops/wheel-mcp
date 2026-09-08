@@ -1,0 +1,72 @@
+{
+  "documentKind": "MAINTENANCE_PUBLICATION_ADMISSION",
+  "schemaVersion": 1,
+  "authorityMode": "LOCAL_EXPLICIT_AUTHORITY",
+  "issuedBy": "PROJECT_OWNER",
+  "admissionId": "P3H_SAFE_BATCHING_PUBLICATION_ADMISSION_R1",
+  "decisionId": "P3H_SAFE_BATCHING_OWNER_DECISION_R1",
+  "issuedAtUtc": "2026-09-08T00:00:00.000Z",
+  "expiresAtUtc": null,
+  "projectId": "WHEEL",
+  "repositoryId": "WHEEL_MCP_CANONICAL",
+  "gateId": "GATE24",
+  "programId": "P3H_SAFE_BATCHING_R1",
+  "purpose": "MAINTENANCE_PUBLICATION_ADMISSION",
+  "publicationClass": "PATH_PRESTATE_PROGRAM_PUBLISHER",
+  "authorityPurpose": "NORMAL_MAINTENANCE",
+  "maxUse": 1,
+  "admissionStatement": "One exact Owner admission for the bounded P3H safe batching and rate-limit circuit breaker repair program. It publishes three MODIFY work artifacts, one CREATE work artifact, and one publisher-generated consumption receipt. It does not mutate GATE25, appends no ledger event, does not switch ACTIVE_GATE, performs no network acquisition, no Yahoo fetch, no HTTP call, no IBKR access and no macro ingestion. It does not create a recovery grant, does not mutate the P3G execution grant, and does not mutate the incident root. Creating these candidate bytes does not itself constitute Owner approval or activation. Final publication of this admission requires a later explicit Owner ratification of the Owner-authorization candidate.",
+  "admittedAuthority": {
+    "path": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_P3H_SAFE_BATCHING_R1.json",
+    "sha256": "40c7d8a032f841a4e5126dfb6dfd61e69aa500c6699ec165801a23a6b6a13bfa",
+    "byteLength": 2063,
+    "schemaVersion": 2,
+    "documentId": "P3H_SAFE_BATCHING_LOCAL_AUTHORITY_R1"
+  },
+  "admittedManifest": {
+    "path": "governance/historical-architecture/P3H_SAFE_BATCHING_AUTHORIZED_PATHS_R1.json",
+    "sha256": "ad0b98d474e94b5cb04370e3542e375a33122352215543df9891575926264863",
+    "byteLength": 2781,
+    "schemaVersion": 2,
+    "documentId": "P3H_SAFE_BATCHING_AUTHORIZED_PATHS_R1"
+  },
+  "admittedPrestate": {
+    "baseHead": "b009a9e6e0bf95dd6329cb912bc9e3d6bf42d7a7",
+    "ledgerEventCount": 104,
+    "ledgerPrefixSha256": "2def19c84b7581da0ab54d2d1ba9d68f5bc2ce40e108443cfbd086835a0116da",
+    "gateId": "GATE24",
+    "gateStatus": "COMPLETE_CONFIRMED",
+    "stateRevision": "R0005",
+    "contractRevision": "R0002",
+    "activeGate": "GATE13",
+    "R8ExpectedAbsent": true
+  },
+  "admittedOperationClasses": [
+    "MAINTENANCE"
+  ],
+  "grantsFutureBytePermission": false,
+  "grantsGateAuthorizationPermission": false,
+  "grantsStartPermission": false,
+  "grantsStatusTransitionPermission": false,
+  "grantsHistoricalAdmissionWidening": false,
+  "genericV1Admission": false,
+  "derivedFromGitDelta": false,
+  "derivedFromFinalGateIntegrityFindings": false,
+  "prohibitedOperations": [
+    "START",
+    "SECOND_START",
+    "GATE_AUTHORIZATION",
+    "STATUS_TRANSITION",
+    "ACTIVE_GATE_SWITCH",
+    "GEE_R8",
+    "GIT_PUSH",
+    "HISTORY_REWRITE",
+    "GENERIC_V1_ADMISSION",
+    "HISTORICAL_ADMISSION_WIDENING",
+    "SELF_ADMISSION"
+  ],
+  "successorRequirement": "A later publication requires a new exact Owner admission over a new exact pre-state. This candidate Owner-authorization is prepared for later explicit Owner ratification and is not itself an issued ratification.",
+  "ownerAuthorizationPath": "governance/sources/MAINTENANCE_PUBLICATION_ADMISSION_OWNER_AUTHORIZATION_P3H_SAFE_BATCHING_R1.json",
+  "admissionDigest": "aa993f2e01663f75613021e4a5e6c283368d6ddc1073ea01a11c8125465b0db0",
+  "ownerAuthorizationSha256": "f3223ee0fd7ac9d22a18fb21571f64dc5aec19d9e722d5c0f9597063ded7d231"
+}

@@ -1,0 +1,25 @@
+{
+  "document": "MAINTENANCE_PUBLICATION_ADMISSION_OWNER_AUTHORIZATION",
+  "schemaVersion": 1,
+  "authorityId": "P3H_SAFE_BATCHING_PUBLICATION_OWNER_AUTHORIZATION_R1",
+  "authorityClass": "PROJECT_OWNER_MAINTENANCE_PUBLICATION_ADMISSION_AUTHORITY",
+  "authorityMode": "LOCAL_EXPLICIT_AUTHORITY",
+  "issuedBy": "PROJECT_OWNER",
+  "issuedAtUtc": "2026-09-08T00:00:00.000Z",
+  "decisionId": "P3H_SAFE_BATCHING_OWNER_DECISION_R1",
+  "purpose": "MAINTENANCE_PUBLICATION_ADMISSION",
+  "reexecutionAuthorized": false,
+  "grantsFutureBytePermission": false,
+  "genericV1Admission": false,
+  "admittedPublications": [
+    {
+      "admissionId": "P3H_SAFE_BATCHING_PUBLICATION_ADMISSION_R1",
+      "projectId": "WHEEL",
+      "gateId": "GATE24",
+      "programId": "P3H_SAFE_BATCHING_R1",
+      "admissionPath": "governance/authority/publication-admissions/GATE24/P3H_SAFE_BATCHING_PUBLICATION_ADMISSION_R1.json",
+      "admissionDigest": "aa993f2e01663f75613021e4a5e6c283368d6ddc1073ea01a11c8125465b0db0"
+    }
+  ],
+  "registryDigest": "677099e033ba5796f7a86f155e77706e89ab1db34b130f1952c79140e999c464"
+}

@@ -92,17 +92,18 @@ function rewindToGenesisOf(root, gateId) {
  */
 function buildFixture() {
   const root = fs.mkdtempSync(path.join(fs.realpathSync(os.tmpdir()), 'bootstrap-chain-'));
-  fs.cpSync(path.join(REPO_ROOT, 'governance'), path.join(root, 'governance'), { recursive: true });
+  const cloned = git(REPO_ROOT, ['-c', 'core.longpaths=true', 'clone', '--local', '--quiet', REPO_ROOT, root]);
+  assert.equal(cloned.status, 0, cloned.stdout + cloned.stderr);
+  git(root, ['config', 'core.longpaths', 'true']);
 
   for (const gate of rewindToGenesisOf(root, GATE)) {
     for (const directory of [`governance/gates/${gate}`, `governance/authority/authorizations/${gate}`, `governance/authority/precontract/${gate}`]) {
       fs.rmSync(path.join(root, ...directory.split('/')), { recursive: true, force: true });
     }
   }
-  const snapshot = spawnSync(process.execPath, [path.join(root, 'governance/tools/generate-status-snapshot.mjs'), '--root', root], { cwd: root, encoding: 'utf8' });
+  const snapshot = spawnSync(process.execPath, [path.join(root, 'governance/tools/generate-status-snapshot.mjs'), '--root', root, '--lifecycle-staging-only'], { cwd: root, encoding: 'utf8' });
   assert.equal(snapshot.status, 0, snapshot.stdout + snapshot.stderr);
 
-  git(root, ['init', '-q']);
   git(root, ['config', 'user.email', 'fixture@local']);
   git(root, ['config', 'user.name', 'fixture']);
   git(root, ['add', '-A']);

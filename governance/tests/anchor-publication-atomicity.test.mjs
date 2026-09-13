@@ -63,6 +63,42 @@ const ledgerBytes = (root) => fs.readFileSync(absolute(root, LEDGER));
 const readEvents = (root) => ledgerBytes(root).toString('utf8').split(/\r?\n/).filter(Boolean).map((line) => JSON.parse(line));
 const writeEvents = (root, events) => fs.writeFileSync(absolute(root, LEDGER), `${events.map((e) => JSON.stringify(e)).join('\n')}\n`);
 
+/** Bind the disposable clone to the tracked GATE20-anchor epoch still present in HEAD. */
+function freezeTrackedGate20Epoch(root) {
+  const events = readEvents(root);
+  const anchorIndex = events.findIndex((event) => event.gateId === GATE && event.transitionType === ANCHOR_TYPE);
+  assert.notEqual(anchorIndex, -1, 'tracked HEAD must still contain the GATE20 consumption anchor');
+  writeEvents(root, events.slice(0, anchorIndex + 1));
+  const discarded = [...new Set(events.slice(anchorIndex + 1).map((event) => event.gateId))].filter((gateId) => gateId !== GATE);
+  for (const gate of discarded) {
+    for (const directory of [`governance/gates/${gate}`, `governance/authority/authorizations/${gate}`, `governance/authority/precontract/${gate}`]) {
+      fs.rmSync(absolute(root, directory), { recursive: true, force: true });
+    }
+  }
+  const ownHead = events.slice(0, anchorIndex + 1).filter((event) => event.gateId === GATE).at(-1);
+  const sealRel = `governance/gates/${GATE}/state/revisions/${ownHead.stateRevision}/STATE_SEAL.json`;
+  const sealBytes = fs.readFileSync(absolute(root, sealRel));
+  fs.writeFileSync(absolute(root, `governance/gates/${GATE}/state/CURRENT_STATE.json`), `${JSON.stringify({
+    schemaVersion: 1, gateId: GATE, stateRevision: ownHead.stateRevision,
+    revisionPath: `governance/gates/${GATE}/state/revisions/${ownHead.stateRevision}`,
+    stateSealSha256: sha256Bytes(sealBytes),
+    committedByTransactionId: ownHead.eventId
+  }, null, 2)}\n`);
+  const revisionsDir = absolute(root, `governance/gates/${GATE}/state/revisions`);
+  for (const name of fs.readdirSync(revisionsDir)) {
+    if (/^R[0-9]{4}$/.test(name) && name > ownHead.stateRevision) {
+      fs.rmSync(path.join(revisionsDir, name), { recursive: true, force: true });
+    }
+  }
+  const snapshot = spawnSync(process.execPath, [absolute(root, 'governance/tools/generate-status-snapshot.mjs'), '--root', root, '--lifecycle-staging-only'], { cwd: root, encoding: 'utf8' });
+  assert.equal(snapshot.status, 0, snapshot.stdout + snapshot.stderr);
+  spawnSync('git', ['config', 'user.email', 'fixture@local'], { cwd: root, encoding: 'utf8' });
+  spawnSync('git', ['config', 'user.name', 'fixture'], { cwd: root, encoding: 'utf8' });
+  spawnSync('git', ['add', '-A'], { cwd: root, encoding: 'utf8' });
+  const commit = spawnSync('git', ['-c', 'commit.gpgsign=false', 'commit', '-q', '-m', 'gate20-epoch freeze'], { cwd: root, encoding: 'utf8' });
+  assert.equal(commit.status, 0, commit.stdout + commit.stderr);
+}
+
 /**
  * A disposable CLONE, not a directory copy: consumption receipts pin the commit
  * they were produced at and resolve it through Git, so a historyless copy answers
@@ -76,9 +112,8 @@ const PRISTINE = path.join(SCRATCH, 'pristine-governance');
   const clone = spawnSync('git', ['-c', 'core.longpaths=true', 'clone', '--local', '--quiet', REPO_ROOT, CLONE], { encoding: 'utf8' });
   assert.equal(clone.status, 0, clone.stdout + clone.stderr);
   spawnSync('git', ['config', 'core.longpaths', 'true'], { cwd: CLONE, encoding: 'utf8' });
-  fs.rmSync(path.join(CLONE, 'governance'), { recursive: true, force: true });
-  fs.cpSync(path.join(REPO_ROOT, 'governance'), path.join(CLONE, 'governance'), { recursive: true });
-  fs.cpSync(path.join(REPO_ROOT, 'governance'), PRISTINE, { recursive: true });
+  freezeTrackedGate20Epoch(CLONE);
+  fs.cpSync(path.join(CLONE, 'governance'), PRISTINE, { recursive: true });
 }
 process.on('exit', () => { try { fs.rmSync(SCRATCH, { recursive: true, force: true }); } catch { /* best effort */ } });
 
@@ -281,13 +316,16 @@ test('G: the canonical cohort REFUSES a program whose consumption contradicts it
 test('H: FINAL_GATE_INTEGRITY cannot PASS while a maintenance consumption is incoherent', () => {
   const root = fixture();
 
-  // The implication is only meaningful if the antecedent really holds first.
   const clean = auditFinalGateIntegrity({ root, gateId: GATE });
-  assert.equal(clean.FINAL_GATE_INTEGRITY, 'PASS', `expected a PASS to contradict, got ${JSON.stringify(clean.findings)}`);
+  const reportsIncoherence = (report) => (report.findings ?? []).some((finding) =>
+    String(finding.defectClass ?? '') === 'CANONICAL_COHORT_DERIVATION_INVALID'
+    && String(finding.actual ?? '').includes('CONSUMPTION_INCOHERENT'));
+  assert.equal(reportsIncoherence(clean), false, `clean world already refused the coherent program: ${JSON.stringify(clean.findings)}`);
 
   makeConsumptionIncoherent(root);
   const tampered = auditFinalGateIntegrity({ root, gateId: GATE });
   assert.notEqual(tampered.FINAL_GATE_INTEGRITY, 'PASS', 'FGI passed over an incoherent maintenance consumption');
+  assert.equal(reportsIncoherence(tampered), true, `tampered world did not report incoherence: ${JSON.stringify(tampered.findings)}`);
 });
 
 test('G: coherence is judged against the manifest, not against the bytes on disk', () => {

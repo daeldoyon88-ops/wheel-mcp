@@ -1,0 +1,308 @@
+{
+  "gateId": "GATE25",
+  "contractRevision": "R0002",
+  "strategicRegistryReference": {
+    "registryPath": "governance/GATE_REGISTRY_00_40.json",
+    "registrySha256": "76d5f9ff0a21f8c1eadaf9ccd9e48c9087d12655fac6a5c9215584053652a56b",
+    "gateId": "GATE25",
+    "canonicalObjectiveSha256": "fee3eda4020defc918200ee93c43b13f72d29d66be087068f5c6538641f1f588"
+  },
+  "canonicalRequirements": [
+    {
+      "requirementId": "G25-PRESTART-01",
+      "statement": "Bind the Owner-ratified GATE25 canonical mandate instrument by its exact SHA-256 0aefedc757e2ba749ebd25a2cd40dc2070fafb04f3ac8f7b194c08d2b513c618 (88712 bytes). The in-place Owner-ratified source bytes remain 42f1cc146e413fa450a50e8f26a9be7a59d30e66062bdc3538c93e1812e25341 / 75816. Owner decision OWNER_RATIFY_GATE25_CANONICAL_MANDATE_R0_R1. The mandate freezes HISTORICAL ANALOGUE ENGINE design scope only and confers no execution, START, BUILD, observation-admission, ledger, commit or push authority.",
+      "normativeSource": "governance/sources/GATE25_CANONICAL_MANDATE_R0.json"
+    },
+    {
+      "requirementId": "G25-PRESTART-02",
+      "statement": "This revision remains PRESTART ONLY. startAuthorized=false. ratificationIsNotStart=true. GATE25 remains NOT_STARTED. It authorizes no START, no BUILD, no analogue computation and no lifecycle transition. DatasetId_observation admission is authorized only for the exact bounded GATE25 historical scope in G25-PRESTART-05; every broader admission remains forbidden.",
+      "normativeSource": "governance/sources/GATE25_CANONICAL_MANDATE_R0.json"
+    },
+    {
+      "requirementId": "G25-PRESTART-03",
+      "statement": "Reuse the GATE24 terminal dependency proof COMPLETE_CONFIRMED, bound by exact SHA-256. GATE24 is not re-audited and not reopened by this candidate.",
+      "normativeSource": "governance/sources/GATE24_INDEPENDENT_EXTERNAL_CONFIRMATION_R2_EXTERNAL_REINSPECTION_REPORT.json"
+    },
+    {
+      "requirementId": "G25-PRESTART-04",
+      "statement": "OD-1, OD-2, OD-3, OD-4 and OD-5 remain CLOSED and unchanged. This revision does not reopen them and does not rewrite their substance.",
+      "normativeSource": "governance/sources/GATE25_CANONICAL_MANDATE_R0.json"
+    },
+    {
+      "requirementId": "G25-PRESTART-05",
+      "statement": "OD-4 remains the unchanged P3H pinset of 793 VERSION_CACHED SnapshotDatasetManifestV1 keys plus 9 documented exclusions. observationAdmissionAuthorized=true only for DatasetId_observation under the exact bounded GATE25 historical scope: datasetIdentity sha256:cc7bb76f37a97a5673a32c5a8f357088ee94230fefcbef1c19ad16227476488e, admittedKeyDigest 9fdc19bff5de2769c32cdb7fde866e83adb120ec16736c8cabc1b1851f98ef85, exclusionDigest 7eca4720595e05aaeaf3d8e35f40ada3efb41ab4d7a58147670119304c0c2e7d, and historical observation window 2018-01-02 through 2026-09-04 inclusive. Global identity policy is unchanged: earliestAdmissibleSession=2026-05-04, aliasBackdating=FORBIDDEN, retroactive2026IdentityApplication=FORBIDDEN, identityResolutionRule=RESOLVE_AT_EACH_HISTORICAL_SESSION_DATE. Pre-2026-05-04 observations are admitted only through this bounded GATE25 historical scope.",
+      "normativeSource": "governance/sources/GATE25_CANONICAL_MANDATE_R0.json",
+      "observationAdmissionAuthorized": true,
+      "ownerAuthorizationIds": [
+        "OWNER_AUTHORIZE_GATE25_P3H_DATASETID_OBSERVATION_ADMISSION_UNDER_SEPARATE_HISTORICAL_SCOPE_R1",
+        "OWNER_AUTHORIZE_GATE25_OBSERVATION_ADMISSION_CONTRACT_SUCCESSION_R1",
+        "OWNER_AUTHORIZE_BIND_GATE25_HISTORICAL_OBSERVATION_ADMISSION_IN_SUCCESSOR_CONTRACT_R1"
+      ],
+      "observationAdmissionScope": {
+        "datasetIdentity": "sha256:cc7bb76f37a97a5673a32c5a8f357088ee94230fefcbef1c19ad16227476488e",
+        "admittedKeyDigest": "9fdc19bff5de2769c32cdb7fde866e83adb120ec16736c8cabc1b1851f98ef85",
+        "exclusionDigest": "7eca4720595e05aaeaf3d8e35f40ada3efb41ab4d7a58147670119304c0c2e7d",
+        "cohort": {
+          "status": "VERSION_CACHED",
+          "admittedCount": 793,
+          "exclusionCount": 9
+        },
+        "historicalObservationWindow": {
+          "startSessionInclusive": "2018-01-02",
+          "endSessionInclusive": "2026-09-04"
+        },
+        "restriction": "GATE25_HISTORICAL_SCOPE_ONLY"
+      },
+      "identityPolicy": {
+        "earliestAdmissibleSession": "2026-05-04",
+        "aliasBackdating": "FORBIDDEN",
+        "retroactive2026IdentityApplication": "FORBIDDEN",
+        "identityResolutionRule": "RESOLVE_AT_EACH_HISTORICAL_SESSION_DATE",
+        "preEarliestAdmissibleSessionRule": "ADMITTED_ONLY_THROUGH_BOUNDED_GATE25_HISTORICAL_SCOPE"
+      }
+    },
+    {
+      "requirementId": "G25-PRESTART-06",
+      "statement": "The eight mandate deferredToContract items remain deliberately unbound in this revision. A separately authorized later GATE25 contract succession is required to bind them before BUILD; R0002 binds none of them. GATE21, GATE22, GATE23 and GATE24 surfaces, P3H, P3G, the status ledger, ACTIVE_GATE, and the ratified mandate stay unmodified by this succession.",
+      "normativeSource": "governance/sources/GATE25_CANONICAL_MANDATE_R0.json"
+    }
+  ],
+  "requiredInputs": [
+    {
+      "path": "governance/sources/GATE25_CANONICAL_MANDATE_R0.json",
+      "sha256": "0aefedc757e2ba749ebd25a2cd40dc2070fafb04f3ac8f7b194c08d2b513c618",
+      "role": "OWNER_RATIFIED_DESIGN_SCOPE_ONLY_MANDATE"
+    },
+    {
+      "path": "governance/GATE_REGISTRY_00_40.json",
+      "sha256": "76d5f9ff0a21f8c1eadaf9ccd9e48c9087d12655fac6a5c9215584053652a56b",
+      "role": "CANONICAL_STRATEGIC_REGISTRY"
+    },
+    {
+      "path": "governance/sources/GATE24_INDEPENDENT_EXTERNAL_CONFIRMATION_R2_EXTERNAL_REINSPECTION_REPORT.json",
+      "sha256": "54cea8f4226ba06c0f2c86215f317855652227023a2321884ddd86810f67e5d9",
+      "role": "GATE24_TERMINAL_DEPENDENCY_PROOF"
+    },
+    {
+      "path": "governance/gates/GATE24/state/CURRENT_STATE.json",
+      "sha256": "e7719b557b2377243cacb6f4c3764d954c8606822ac2625735117163344d0050",
+      "role": "GATE24_TERMINAL_STATE_R0005"
+    },
+    {
+      "path": "governance/gates/GATE25/contracts/EXECUTION_CONTRACT_R0001.json",
+      "sha256": "cf1be745b245b0bd0bdd3bee759bc7f1136dcd8cce86d9f31d855f1f90d2720e",
+      "role": "IMMUTABLE_PREDECESSOR_CONTRACT"
+    }
+  ],
+  "requiredOutputs": [
+    {
+      "ordinal": 1,
+      "path": "governance/gates/GATE25/contracts/EXECUTION_CONTRACT_R0002.json",
+      "role": "Versioned prestart contract with bounded historical observation admission"
+    },
+    {
+      "ordinal": 2,
+      "path": "governance/gates/GATE25/contracts/CURRENT_CONTRACT.json",
+      "role": "Pointer to the exact R0002 successor contract"
+    },
+    {
+      "ordinal": 3,
+      "path": "governance/authority/authorizations/GATE25/GATE_CONTRACT_SUCCESSION_LOCAL_AUTHORITY.json",
+      "role": "Finite single-use LOCAL_EXPLICIT_AUTHORITY for CURRENT_CONTRACT_SWITCH"
+    },
+    {
+      "ordinal": 4,
+      "path": "governance/authority/authorizations/GATE25/GATE_CONTRACT_SUCCESSION_RECORD.json",
+      "role": "Succession record and single-use replay evidence"
+    }
+  ],
+  "validators": [
+    "node governance/tools/validate-gate-contract.mjs --contract governance/gates/GATE25/contracts/EXECUTION_CONTRACT_R0002.json --pointer governance/gates/GATE25/contracts/CURRENT_CONTRACT.json",
+    "node governance/tools/validate-precontract-authority.mjs --gate GATE25 --authority governance/authority/precontract/GATE25/PROJECT_OWNER_LOCAL_PRECONTRACT_AUTHORITY.json",
+    "node governance/tools/validate-status-ledger.mjs"
+  ],
+  "positiveTests": [
+    {
+      "testId": "G25-PRE-POS-01",
+      "case": "the candidate contract and pointer bytes validate against the canonical contract schema",
+      "expected": "AUTHORIZED"
+    },
+    {
+      "testId": "G25-PRE-POS-02",
+      "case": "every requiredInput binds its verified SHA-256 exactly, mandate instrument included",
+      "expected": "AUTHORIZED"
+    },
+    {
+      "testId": "G25-PRE-POS-03",
+      "case": "GATE25 remains NOT_STARTED and GATE24 remains COMPLETE_CONFIRMED; observationAdmissionAuthorized=true only for the exact bounded P3H historical scope and global identity policy remains unchanged",
+      "expected": "AUTHORIZED"
+    }
+  ],
+  "negativeTests": [
+    {
+      "testId": "G25-PRE-NEG-01",
+      "case": "START, BUILD, analogue computation or DatasetId_observation admission outside the exact bounded GATE25 historical scope under this successor",
+      "expected": "BLOCKED"
+    },
+    {
+      "testId": "G25-PRE-NEG-02",
+      "case": "any write to a GATE21, GATE22, GATE23 or GATE24 surface, to P3H, or to the ratified mandate",
+      "expected": "BLOCKED"
+    },
+    {
+      "testId": "G25-PRE-NEG-03",
+      "case": "any write outside the four exact authorized succession paths",
+      "expected": "BLOCKED"
+    },
+    {
+      "testId": "G25-PRE-NEG-04",
+      "case": "any binding in this revision of a deferredToContract item reserved to a later succession",
+      "expected": "BLOCKED"
+    },
+    {
+      "testId": "G25-PRE-NEG-05",
+      "case": "any DatasetId_observation admission outside the exact bounded GATE25 historical scope, any P3H pinset drift, or any global identity-policy backdating",
+      "expected": "BLOCKED"
+    }
+  ],
+  "countertests": [
+    {
+      "testId": "G25-PRE-CTR-01",
+      "case": "this candidate presented as PROJECT_OWNER_GATE_START_AUTHORITY or GATE_START_RECORD",
+      "expected": "BLOCKED"
+    },
+    {
+      "testId": "G25-PRE-CTR-02",
+      "case": "this candidate presented as a consumed Owner START authority",
+      "expected": "BLOCKED"
+    },
+    {
+      "testId": "G25-PRE-CTR-03",
+      "case": "mandate bytes changed after this binding",
+      "expected": "BLOCKED"
+    },
+    {
+      "testId": "G25-PRE-CTR-04",
+      "case": "this candidate presented as authority to reopen OD-1 through OD-5 or to mutate the P3H 793/9 pinset",
+      "expected": "BLOCKED"
+    }
+  ],
+  "reuseRules": [
+    "Reuse the repaired GATE_CONTRACT_SUCCESSION_LOCAL_AUTHORITY CURRENT_CONTRACT_SWITCH primitive; do not invent a new primitive, transition or START route.",
+    "Reuse the verified mandate and dependency SHA-256 values; do not reserialize or republish them.",
+    "Reuse GATE24 COMPLETE_CONFIRMED as the sole predecessor terminal proof."
+  ],
+  "invalidationRules": [
+    "Any drift of a hash-pinned required input blocks this candidate.",
+    "Any loss of GATE24 COMPLETE_CONFIRMED blocks this candidate.",
+    "Any change of GATE25 away from NOT_STARTED blocks this candidate.",
+    "Any GATE21, GATE22, GATE23 or GATE24 mutation blocks this candidate.",
+    "Any observationAdmissionAuthorized value other than true within the exact bounded GATE25 historical scope, or any admission outside that scope, blocks this successor.",
+    "Any binding of a deferredToContract item into this revision blocks this candidate."
+  ],
+  "forbiddenReplays": [
+    "GATE25 START",
+    "GATE25 BUILD",
+    "PROJECT_OWNER_GATE_START_AUTHORITY",
+    "GATE_START_RECORD",
+    "DatasetId_observation admission outside the exact bounded GATE25 historical scope",
+    "analogue build",
+    "analogue computation",
+    "global identity alias backdating or retroactive 2026 identity application",
+    "OD-1 through OD-5 reopen",
+    "P3H mutation",
+    "GATE24 mutation",
+    "GATE23 mutation",
+    "GATE22 mutation",
+    "GATE21 mutation",
+    "AGENT_CLOSURE",
+    "EXTERNAL_CONFIRMATION",
+    "ledger mutation",
+    "ACTIVE_GATE mutation",
+    "git commit",
+    "git push"
+  ],
+  "closureConditions": [
+    "This revision is PRESTART observation-admission only. Publication of these bytes at the GATE25 successor contract paths is authorized solely by OWNER_AUTHORIZE_GATE25_CURRENT_CONTRACT_SWITCH_NONKEY_ROUTING_REPAIR_THEN_BOUNDED_R0002_SUCCESSION_R1 under LOCAL_EXPLICIT_AUTHORITY.",
+    "This successor is not closure, not confirmation, not START, not BUILD and not analogue computation; it grants only the exact bounded historical observation admission in G25-PRESTART-05.",
+    "observationAdmissionAuthorized=true only for the exact bounded P3H historical scope. This admission does not authorize START, BUILD, ledger mutation or ACTIVE_GATE mutation.",
+    "A later separately authorized lifecycle is required before START. This document creates no PROJECT_OWNER_GATE_START_AUTHORITY and no GATE_START_RECORD."
+  ],
+  "nextGateAuthorizationConditions": [
+    "No next-Gate authorization is created by this candidate.",
+    "No START authorization is created by this successor. The bounded historical observation-admission decision is bound, while every other START prerequisite remains subject to a later separately authorized lifecycle."
+  ],
+  "performanceBudget": {
+    "targetMinutes": 5,
+    "expectedMaximumMinutes": 20,
+    "closeoutStartMinutes": 10,
+    "absoluteMaximumMinutes": 60
+  },
+  "checkpointPolicy": {
+    "resume": "GATE25 R0002 bounded historical observation admission bound under LOCAL_EXPLICIT_AUTHORITY; GATE25 NOT_STARTED; startAuthorized=false",
+    "reuse": "GATE24 precontract cohort format and GEE precontract primitives",
+    "independentConfirmation": "required separately before START is executed",
+    "deferred": "Eight GATE25 deferredToContract items remain unbound; only the exact bounded historical observation admission is granted; START remains unauthorized"
+  },
+  "authorizedPaths": [
+    "governance/gates/GATE25/contracts/EXECUTION_CONTRACT_R0002.json",
+    "governance/gates/GATE25/contracts/CURRENT_CONTRACT.json",
+    "governance/authority/authorizations/GATE25/GATE_CONTRACT_SUCCESSION_LOCAL_AUTHORITY.json",
+    "governance/authority/authorizations/GATE25/GATE_CONTRACT_SUCCESSION_RECORD.json"
+  ],
+  "requiredPolicyIds": [
+    "AUTHORIZED_PATHS_ONLY",
+    "NO_HARDCODED_PASS",
+    "NO_CIRCULAR_VALIDATION",
+    "DETERMINISTIC_OPERATIONS_LOCAL",
+    "NO_FUTURE_LEAKAGE",
+    "NO_GATE_MANDATE_REDEFINITION",
+    "GIT_WRITES_FORBIDDEN_BY_DEFAULT"
+  ],
+  "sourceReferences": [
+    {
+      "sourcePath": "governance/GATE_REGISTRY_00_40.json",
+      "sourceSha256": "76d5f9ff0a21f8c1eadaf9ccd9e48c9087d12655fac6a5c9215584053652a56b",
+      "sourceLocation": "/gates/GATE25",
+      "field": "canonicalObjective"
+    },
+    {
+      "sourcePath": "governance/sources/GATE25_CANONICAL_MANDATE_R0.json",
+      "sourceSha256": "0aefedc757e2ba749ebd25a2cd40dc2070fafb04f3ac8f7b194c08d2b513c618",
+      "sourceLocation": "/",
+      "field": "canonicalIdentity, closedOwnerDecisions, historyPolicy.pinSet, ownerRatification"
+    },
+    {
+      "sourcePath": "governance/gee-v1/core/gate-contract-succession-authority.mjs",
+      "sourceSha256": "737a97bd14bdc8294237aeebbddeb1e879d0b9c1c2b5cce5e95d9179286b1372",
+      "sourceLocation": "/",
+      "field": "CURRENT_CONTRACT_SWITCH_ROUTING_PRESTATE"
+    },
+    {
+      "sourcePath": "governance/tests/gate-contract-succession-authority-primitive.test.mjs",
+      "sourceSha256": "b8798e60037e514d14baf090e7e4f76709522fb4b39c433417eebf6dec3d56ea",
+      "sourceLocation": "/",
+      "field": "CURRENT_CONTRACT_SWITCH_ROUTING_PRESTATE"
+    },
+    {
+      "sourcePath": "governance/gee-v1/adapters/wheel/gate-contract-succession-authority-source.mjs",
+      "sourceSha256": "bc7fe19d874ecb6431f694eca491c4b0538994288787c432742a3f822f7c6518",
+      "sourceLocation": "/",
+      "field": "CURRENT_CONTRACT_SWITCH_ROUTING_PRESTATE"
+    },
+    {
+      "sourcePath": "governance/tools/validate-gate-contract-succession-authority.mjs",
+      "sourceSha256": "90f630fb55b42ef5543d7115de7baccdea0951dc115e9c4f8a38a38a395b2c6e",
+      "sourceLocation": "/",
+      "field": "CURRENT_CONTRACT_SWITCH_ROUTING_PRESTATE"
+    },
+    {
+      "sourcePath": "governance/schemas/gate-contract-succession-local-authority.schema.json",
+      "sourceSha256": "cee75323327393e9c2870d514bd1d238f9fbdcdfdb904643cd3d7bb85d47013f",
+      "sourceLocation": "/",
+      "field": "CURRENT_CONTRACT_SWITCH_ROUTING_PRESTATE"
+    }
+  ],
+  "previousContractPath": "governance/gates/GATE25/contracts/EXECUTION_CONTRACT_R0001.json",
+  "previousContractSha256": "cf1be745b245b0bd0bdd3bee759bc7f1136dcd8cce86d9f31d855f1f90d2720e"
+}

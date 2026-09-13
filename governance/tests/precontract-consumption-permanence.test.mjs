@@ -129,17 +129,18 @@ function rewindToGenesisOf(root, gateId) {
  */
 function buildFixture() {
   const root = fs.mkdtempSync(path.join(fs.realpathSync(os.tmpdir()), 'consumption-permanence-'));
-  fs.cpSync(path.join(REPO_ROOT, 'governance'), path.join(root, 'governance'), { recursive: true });
+  const cloned = git(REPO_ROOT, ['-c', 'core.longpaths=true', 'clone', '--local', '--quiet', REPO_ROOT, root]);
+  assert.equal(cloned.status, 0, cloned.stdout + cloned.stderr);
+  git(root, ['config', 'core.longpaths', 'true']);
 
   for (const gate of rewindToGenesisOf(root, GATE)) {
     for (const directory of [`governance/gates/${gate}`, `governance/authority/authorizations/${gate}`, `governance/authority/precontract/${gate}`]) {
       fs.rmSync(absolute(root, directory), { recursive: true, force: true });
     }
   }
-  const snapshot = spawnSync(process.execPath, [absolute(root, 'governance/tools/generate-status-snapshot.mjs'), '--root', root], { cwd: root, encoding: 'utf8' });
+  const snapshot = spawnSync(process.execPath, [absolute(root, 'governance/tools/generate-status-snapshot.mjs'), '--root', root, '--lifecycle-staging-only'], { cwd: root, encoding: 'utf8' });
   assert.equal(snapshot.status, 0, snapshot.stdout + snapshot.stderr);
 
-  git(root, ['init', '-q']);
   git(root, ['config', 'user.email', 'fixture@local']);
   git(root, ['config', 'user.name', 'fixture']);
   git(root, ['add', '-A']);
@@ -289,9 +290,9 @@ test('C3b the Gate has genuinely left the bootstrap pre-state by now', () => {
  */
 function buildLiveMirror() {
   const root = fs.mkdtempSync(path.join(fs.realpathSync(os.tmpdir()), 'consumption-live-'));
-  const cloned = git(REPO_ROOT, ['clone', '--shared', '--no-checkout', '--quiet', REPO_ROOT, root]);
+  const cloned = git(REPO_ROOT, ['-c', 'core.longpaths=true', 'clone', '--local', '--quiet', REPO_ROOT, root]);
   assert.equal(cloned.status, 0, cloned.stdout + cloned.stderr);
-  fs.cpSync(path.join(REPO_ROOT, 'governance'), path.join(root, 'governance'), { recursive: true });
+  git(root, ['config', 'core.longpaths', 'true']);
   return root;
 }
 

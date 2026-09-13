@@ -110,6 +110,121 @@
       ]
     },
     {
+      "suitePath": "governance/tests/deferred-capability-closure-enforcement-hostile-battery.test.mjs",
+      "tests": [
+        "S2-H01 legacy GATE17/GATE23 without declaration is NOT_APPLICABLE / BELOW_EFFECTIVE_FROM_GATE",
+        "S2-H02 prospective closed gate missing declaration => DECLARATION_MISSING",
+        "S2-H03 prospective declaration [] => PASS",
+        "S2-H04 new durable registry id resolves => PASS",
+        "S2-H05 existing id resolves => PASS",
+        "S2-H06 nonexistent id => REFERENCE_UNRESOLVED",
+        "S2-H07 malformed JSON/schema/pattern/duplicate => DECLARATION_MALFORMED",
+        "S2-H08 invalid canonical registry => REGISTRY_INVALID",
+        "S2-H09 prose contains deferred + declaration [] => PASS",
+        "S2-H10 prose contains no deferred + declaration absent => DECLARATION_MISSING",
+        "S2-H11 generated index tampered => canonical registry wins",
+        "S2-H12 generated index missing => enforcement still works",
+        "S2-H13a GATE24 ids absent from registry => REFERENCE_UNRESOLVED",
+        "S2-H13b same ids imported in fixture => PASS",
+        "S2-H14 KEEP_DEFERRED remains OPEN and declaration PASS",
+        "S2-H15 PROMOTED/RETIRED/SUPERSEDED declared as OPEN deferral => NOT_DURABLY_REGISTERED",
+        "S2-H16 duplicate declaration id => DECLARATION_MALFORMED",
+        "S2-H17 registry bytes unchanged before/after evaluator + FGI",
+        "S2-H18 ledger bytes unchanged before/after evaluator + FGI"
+      ]
+    },
+    {
+      "suitePath": "governance/tests/deferred-capability-hostile-battery.test.mjs",
+      "tests": [
+        "H01 a second REGISTER for a live identity is refused",
+        "H02 append and replay are deterministic across repeated runs",
+        "H03 a tampered previousEventSha256 breaks the chain at the exact ordinal",
+        "H04 any event after a terminal disposition is refused",
+        "H05 RESTATE can never set ACTIVE — activation is not a side effect",
+        "H06 a promotion requirement with no mapped evidence is unproven",
+        "H07 ownerPromotionRequired refuses a non-Owner promotion",
+        "H08 missing, empty and \"later\" reasons are all refused",
+        "H09 an off-vocabulary reason is refused, including a plausible paraphrase",
+        "H10 an entry with neither revisit trigger is refused",
+        "H11 readiness resurfaces an undecided commitment targeting the gate",
+        "H12 KEEP_DEFERRED satisfies readiness and leaves the entry OPEN",
+        "H13 supersession closes the old entry and points at the successor",
+        "H14 supersession by an unknown or self identity is refused",
+        "H15 retirement with a rationale closes the entry",
+        "H16 retirement without a rationale is refused",
+        "H17 provenance that does not resolve is refused",
+        "H18 absolute, traversing and mixed-separator provenance paths are refused",
+        "H19 identities from different gates never collide",
+        "H19b an identity whose prefix disagrees with sourceGate is refused",
+        "H20 a hand-edited generated index is reported as drift",
+        "H21 a deleted index is reported and regenerates to identical bytes",
+        "H22 canonical truth survives a tampered index: the registry is the trust root",
+        "H23 a declared evidence cohort digest that does not recompute is refused",
+        "H24 an event citing the registry itself as its authority is refused",
+        "H25 a REGISTER declaring ACTIVE without PROMOTED is refused",
+        "H26 a terminal disposition cannot be reopened by any event type",
+        "H27 an entry pinned to an unknown vocabulary version is refused",
+        "H28 a promotion claiming retroactive mutation is refused",
+        "H28b promotion never rewrites earlier event bytes",
+        "H29 readiness on the live repository is unchanged by an empty registry",
+        "H30 the gate status ledger is untouched by the whole battery",
+        "H30b the registry is not a lifecycle ledger: no event can carry a gate status"
+      ]
+    },
+    {
+      "suitePath": "governance/tests/deferred-capability-registry.test.mjs",
+      "tests": [
+        "N01 an empty registry is valid: zero events, zero entries, no findings",
+        "N02 the live published registry validates against its own validator",
+        "N03 canonical replay folds a REGISTER into exactly one entry",
+        "N04 the fold is deterministic: replaying identical bytes twice gives identical state",
+        "N05 event hashing excludes the chain link and covers the payload",
+        "N06 reason vocabulary V1 is exactly the ratified GATE24 token set, in order",
+        "N07 status and disposition are separate vocabularies and do not overlap",
+        "N08 RESTATE moves status among open states and leaves disposition OPEN",
+        "N09 a fully evidenced PROMOTE reaches ACTIVE and PROMOTED together",
+        "N10 the generated index projects lookup, grouping and target-gate commitments",
+        "N11 an event-based revisit trigger naming a gate also targets that gate",
+        "N12 generation is deterministic and provenance pins the registry it read",
+        "N13 write-then-check round-trips as CONSISTENT",
+        "N14 the live generated index is consistent with the live canonical registry",
+        "N15 governed-path discipline accepts repo-relative and rejects escapes",
+        "N16 the evidence cohort digest is order-independent and content-sensitive",
+        "N17 serialization is stable across key insertion order"
+      ]
+    },
+    {
+      "suitePath": "governance/tests/deferred-capability-step3-gate24-binding-hostile-battery.test.mjs",
+      "tests": [
+        "S3-H10 IMPORT_BINDING preserves GATE24-DC-01 through GATE24-DC-12 in mandate order",
+        "S3-H11 reason, status and OPEN disposition are preserved from the mandate",
+        "S3-H12 altered mandate bytes cause the binder to reject",
+        "S3-H13 a mandate not resolvable from HEAD is rejected",
+        "S3-H18 readiness surfaces imported GATE24 target commitments from the index",
+        "S3-H20 GATE24 lifecycle and ACTIVE_GATE remain unchanged by binding"
+      ]
+    },
+    {
+      "suitePath": "governance/tests/deferred-capability-step3-historical-hostile-battery.test.mjs",
+      "tests": [
+        "S3-H01 same reconciliation twice yields zero events on the second run",
+        "S3-H02 the same commitment through two allowed source classes receives one identity",
+        "S3-H03 vague prose does not REGISTER",
+        "S3-H04 structured DEFER with a valid V1 reason REGISTERs",
+        "S3-H05 structured FUTURE with a valid V1 reason REGISTERs",
+        "S3-H06 OPTIONAL registers only when explicitly capability-planned",
+        "S3-H07 shuffled source traversal yields identical IDs and event order",
+        "S3-H08 a source SHA mismatch is rejected",
+        "S3-H09 a required source pointer that is absent or malformed is rejected",
+        "S3-H14 a duplicate registry identity is rejected",
+        "S3-H15 a tampered registry chain is rejected",
+        "S3-H16 a valid completion receipt prevents rediscovery",
+        "S3-H17 generated index bytes are deterministic",
+        "S3-H19 the gate status ledger is unchanged by historical reconciliation",
+        "live frozen catalog SHA pins remain the published CLASS 1-3 bytes"
+      ]
+    },
+    {
       "suitePath": "governance/tests/evidence-suite-identity-guard.test.mjs",
       "tests": [
         "G1 a healthy suite yields its identities, and results are separated from registration",
@@ -290,7 +405,57 @@
         "CS22 closure borrowing blocks fail-closed",
         "CS23 external confirmation borrowing blocks fail-closed",
         "CS24 arbitrary governance path blocks fail-closed",
-        "CS25 GEE R8 creation blocks fail-closed"
+        "CS25 GEE R8 creation blocks fail-closed",
+        "L01 local mode authorizes CURRENT_CONTRACT_SWITCH at NOT_STARTED and grants nothing else",
+        "L02 local mode requires no private key, no signature and no owner key material",
+        "L03 local mode rejects forbidden signature field ownerKeyId",
+        "L03 local mode rejects forbidden signature field signatureAlgorithm",
+        "L03 local mode rejects forbidden signature field signature",
+        "L03 local mode rejects forbidden signature field privateKeyPath",
+        "L03 local mode rejects forbidden signature field externalSigner",
+        "L03 local mode rejects forbidden signature field ownerKeyHistory",
+        "L03 local mode rejects forbidden signature field recoveryRoot",
+        "L03 local mode rejects forbidden signature field keyRotation",
+        "L04 a mode that is neither of the two, and an unnamed local shape, both block",
+        "L05 local mode refuses a borrowed purpose or a borrowed operation",
+        "L06 predecessor contract SHA mismatch blocks fail-closed",
+        "L07 predecessor CURRENT_CONTRACT pointer SHA mismatch blocks fail-closed",
+        "L08 predecessor lineage not carried by the successor bytes blocks fail-closed",
+        "L09 successor revision lineage gap blocks fail-closed",
+        "L10 successor path mismatch blocks fail-closed",
+        "L11 successor SHA mismatch blocks fail-closed",
+        "L12 successor pointer binding mismatch blocks fail-closed",
+        "L13 authorizedPaths widened beyond the exact switch scope blocks fail-closed",
+        "L14 ledger path smuggled via statePaths and authorizedPaths blocks fail-closed",
+        "L15 ACTIVE_GATE path smuggled via statePaths and authorizedPaths blocks fail-closed",
+        "L16 GEE path claimed as an authorized path blocks fail-closed",
+        "L17 successor delta outside the authorized delta blocks fail-closed",
+        "L18 authorized delta digest does not describe the authorized delta blocks fail-closed",
+        "L19 base commit prestate mismatch blocks fail-closed",
+        "L20 ledger bytes prestate mismatch blocks fail-closed",
+        "L21 ledger head event prestate mismatch blocks fail-closed",
+        "L22 observed status is not the status the authority was issued against blocks fail-closed",
+        "L23 maxUse above one blocks fail-closed",
+        "L24 replay of a consumed authority blocks fail-closed",
+        "L25 competing succession authorities blocks fail-closed",
+        "L26 candidate ledger bytes moved blocks fail-closed",
+        "L27 START dropped from the prohibition set blocks fail-closed",
+        "L28 ACTIVE_GATE_SWITCH dropped from the prohibition set blocks fail-closed",
+        "L29 LEDGER_REWRITE dropped from the prohibition set blocks fail-closed",
+        "L30 push claimed blocks fail-closed",
+        "L31 self-binding digest does not describe the authority blocks fail-closed",
+        "L32 record disagrees with the authority blocks fail-closed",
+        "L33 record digest not reproduced by the record bytes blocks fail-closed",
+        "L34 binding digest does not commit to the successor bytes blocks fail-closed",
+        "L35 expired local authority blocks fail-closed",
+        "L36 cross-Gate borrowing blocks fail-closed",
+        "L37 predecessor mutation attempt blocks fail-closed",
+        "L38 a local authority may not also present an external request blocks fail-closed",
+        "L39 a legacy record may not be paired with a local authority blocks fail-closed",
+        "L40 a record naming the wrong mode blocks fail-closed",
+        "L41 neither mode grants START, execution or closure, in either decision",
+        "L42 the CONTRACT_SUCCESSION ledger transition class is untouched by this repair",
+        "L43 the signed route is unchanged: explicit legacy mode, and absence, both verify"
       ]
     },
     {
@@ -522,6 +687,13 @@
       ]
     },
     {
+      "suitePath": "governance/tests/gate20-repair-b-positive-publication-authority.test.mjs",
+      "tests": [
+        "GATE20 Repair-B authority is bounded while publication remains closed without Owner admission",
+        "Repair-B preserves non-publishing historical reservation and rejects generic legacy publication"
+      ]
+    },
+    {
       "suitePath": "governance/tests/historical-identity-reservation.test.mjs",
       "tests": [
         "B05-01 the exact Owner-ratified historical triple is admitted through its bridge",
@@ -629,6 +801,39 @@
         "9. the I4 contract authorizes no GATE13 path",
         "10. GATE13 is neither executable nor authorized by this mission",
         "11. the canonical map and the external authority stay read-only; the ledger stays append-only"
+      ]
+    },
+    {
+      "suitePath": "governance/tests/maintenance-publication-admission.test.mjs",
+      "tests": [
+        "POSITIVE an Owner registry, an exact admission record and a valid prestate publish through the real consumer",
+        "revision-aware Owner authorization uses only the admission-selected R2 path and fails closed",
+        "N01 admission absent — publication is refused, never defaulted open",
+        "N02 wrong authority SHA in the admission — the bound bytes are the identity",
+        "N03 wrong manifest SHA in the admission — refused before the authority pin is consulted",
+        "N04 wrong Gate — an admission for one Gate can never authorize a program on another",
+        "N05 wrong purpose — a document that is not an admission admits nothing",
+        "N06 wrong prestate — every facet is compared, and the mismatch names the facet",
+        "N07 stale replay — an admission pinned to a superseded base HEAD is spent, not reusable",
+        "N08 authority mutated after admission — the admission stays valid and still refuses",
+        "N09 substituted authority at the admitted path — a matching digest claim is not enough",
+        "N10 no Git-derived admission — the field is denied, and the resolver cannot reach Git at all",
+        "N11 no FGI-derived admission — the audit never supplies the authority it audits",
+        "N12 a reserved historical identity cannot publish, and an admission is not a second route",
+        "N13 arbitrary legacy V1 remains refused, and is refused WITHOUT reference to any admission",
+        "N14 duplicate and conflicting admissions refuse both, never first-wins",
+        "N15 CONTROL 15 — no governing document may be declared as something this publication creates",
+        "N16 a damaged resolver input can never fail open",
+        "BR1 MODE_ADMISSION is untouched: the cohort never asks for an admission",
+        "BR2 a historical receipt carrying no admission citation stays coherent",
+        "BR3 the real GATE20 Repair-B admission resolves, but a reserved historical identity cannot publish",
+        "BR4 every denial an admission must carry is inside its own seal"
+      ]
+    },
+    {
+      "suitePath": "governance/tests/owner-present-byte-bootstrap.test.mjs",
+      "tests": [
+        "owner-present byte-bootstrap retains the proven canonical target and successor bindings"
       ]
     },
     {

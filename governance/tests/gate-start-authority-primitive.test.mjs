@@ -153,22 +153,235 @@ test('P12 legacy-shaped GATE14 is rejected by the modern primitive', () => {
   assert.equal(validateGateStartRecordShape(scenario.record).valid, false);
 });
 
+function rewindScratchToPreStartGate14(scratch) {
+  const ledgerPath = path.join(scratch, 'governance/state/GATE_STATUS_LEDGER.ndjson');
+  const lines = fs.readFileSync(ledgerPath, 'utf8').trim().split(/\r?\n/).filter(Boolean);
+  assert.equal(JSON.parse(lines[57]).eventId, 'GATE14_START_R1');
+  assert.equal(JSON.parse(lines[57]).ordinal, 58);
+  fs.writeFileSync(ledgerPath, `${lines.slice(0, 57).join('\n')}\n`);
+  fs.rmSync(path.join(scratch, 'governance/authority/authorizations/GATE14/GATE_START_RECORD.json'), { force: true });
+  fs.rmSync(path.join(scratch, 'governance/authority/authorizations/GATE14/PROJECT_OWNER_GATE_START_AUTHORITY.json'), { force: true });
+  const r1Seal = fs.readFileSync(path.join(scratch, 'governance/gates/GATE14/state/revisions/R0001/STATE_SEAL.json'));
+  fs.writeFileSync(path.join(scratch, 'governance/gates/GATE14/state/CURRENT_STATE.json'), `${JSON.stringify({
+    schemaVersion: 1, gateId: 'GATE14', stateRevision: 'R0001',
+    revisionPath: 'governance/gates/GATE14/state/revisions/R0001',
+    stateSealSha256: crypto.createHash('sha256').update(r1Seal).digest('hex'),
+    committedByTransactionId: 'GATE14-R0001'
+  }, null, 2)}\n`);
+  const r1Contract = fs.readFileSync(path.join(scratch, 'governance/gates/GATE14/contracts/EXECUTION_CONTRACT_R0001.json'));
+  fs.writeFileSync(path.join(scratch, 'governance/gates/GATE14/contracts/CURRENT_CONTRACT.json'), `${JSON.stringify({
+    schemaVersion: 1, gateId: 'GATE14', contractRevision: 'R0001',
+    contractPath: 'governance/gates/GATE14/contracts/EXECUTION_CONTRACT_R0001.json',
+    contractSha256: crypto.createHash('sha256').update(r1Contract).digest('hex'),
+    activatedByEventId: null
+  }, null, 2)}\n`);
+  const revisionsDir = path.join(scratch, 'governance/gates/GATE14/state/revisions');
+  for (const name of fs.readdirSync(revisionsDir)) {
+    if (/^R[0-9]{4}$/.test(name) && name > 'R0001') fs.rmSync(path.join(revisionsDir, name), { recursive: true, force: true });
+  }
+  for (const directory of ['governance/gates/GATE25', 'governance/authority/authorizations/GATE25', 'governance/authority/precontract/GATE25']) {
+    fs.rmSync(path.join(scratch, ...directory.split('/')), { recursive: true, force: true });
+  }
+}
+
+test('pre-START live GATE14 cannot execute and real state remains absent', () => {
+  const scratch = fs.mkdtempSync(path.join(os.tmpdir(), 'gate14-pre-start-'));
+  fs.cpSync(ROOT, scratch, { recursive: true, force: true, filter: (source) => !source.includes(`${path.sep}.git${path.sep}`) && !source.endsWith(`${path.sep}.git`) });
+  rewindScratchToPreStartGate14(scratch);
+  const resolved = createWheelGateAuthoritySource(scratch).resolveWorkUnitAuthority('GATE14');
+  assert.equal(resolved.status, 'AUTHORIZED_NOT_STARTED');
+  assert.equal(resolved.proofs.WORK_UNIT_EXECUTABLE.state, 'FAILED');
+  assert.equal(resolved.proofs.WORK_UNIT_EXECUTABLE.reason, 'START authority cannot grant pre-START execution');
+  assert.equal(fs.existsSync(path.join(scratch, 'governance/authority/authorizations/GATE14/GATE_START_RECORD.json')), false);
+  fs.rmSync(scratch, { recursive: true, force: true });
+});
+
+test('P02-P09 isolated GATE14 future event 58 validates without touching the real repository', () => {
+  const scratch = fs.mkdtempSync(path.join(os.tmpdir(), 'gate-start-future-'));
+  fs.cpSync(ROOT, scratch, { recursive: true, force: true, filter: (source) => !source.includes(`${path.sep}.git${path.sep}`) && !source.endsWith(`${path.sep}.git`) });
+  rewindScratchToPreStartGate14(scratch);
+  const facts = deriveGateStartReadinessFacts(scratch, 'GATE14');
+  const keyPair = crypto.generateKeyPairSync('ed25519');
+  const common = {
+    schemaVersion: 1, projectId: 'WHEEL', gateId: 'GATE14', purpose: 'START_PLUS_EXECUTION_AUTHORITY', eventId: 'GATE14_START_R1',
+    transitionType: 'START', fromStatus: 'AUTHORIZED_NOT_STARTED', toStatus: 'IN_PROGRESS', recordedAt: '2026-08-12T12:00:00.000Z',
+    baseCommit: '8b4efec93d75a3c319dda450b984c768f9ae8984', preStartLedgerSha256: facts.preStartLedgerSha256,
+    previousEventSha256: facts.previousEventSha256, contractSha256: facts.contractSha256, currentContractSha256: facts.currentContractSha256,
+    preStateRevision: facts.preStateRevision, preCurrentStateSha256: facts.preCurrentStateSha256, preStateSealSha256: facts.preStateSealSha256,
+    readinessDigest: computeGateStartReadinessDigest(facts), dependencyProof: facts.dependencyProof, activeGatePreState: facts.activeGatePreState,
+    authorizedStartWritePaths: [...gateStartWriteCohortPaths('GATE14')], functionalExecutionScope: [...facts.contractJson.authorizedPaths],
+    ownerKeyId: KEY_ID, expiresAtUtc: '2026-08-13T12:00:00.000Z', maxUse: 1,
+    prohibitedOperations: [...GATE_START_PROHIBITED_OPERATIONS], startAuthorized: true, executionAuthorized: true
+  };
+  const record = { document: 'GATE_START_RECORD', recordId: 'GATE14_START_RECORD_R1', ...common };
+  record.recordDigest = computeGateStartRecordDigest(record);
+  const futureRequestDigest = 'a'.repeat(64);
+  const authority = { schemaVersion: 1, documentKind: 'PROJECT_OWNER_GATE_START_AUTHORITY', authorityId: 'GATE14_START_AUTHORITY_R1', issuedBy: 'PROJECT_OWNER', issuedAtUtc: '2026-08-12T11:00:00.000Z', requestDigest: futureRequestDigest, recordDigest: record.recordDigest, bindingDigest: computeGateStartBindingDigestFromDigests({ requestDigest: futureRequestDigest, recordDigest: record.recordDigest }), ...common, signatureAlgorithm: 'ed25519', signature: '' };
+  authority.signature = crypto.sign(null, Buffer.from(canonicalize(Object.fromEntries(Object.entries(authority).filter(([key]) => key !== 'signature')))), keyPair.privateKey).toString('base64');
+  const keyPath = path.join(scratch, 'governance/authority/TEST_GATE_START_KEY.json');
+  fs.writeFileSync(keyPath, JSON.stringify({ keyId: KEY_ID, publicKeyPem: keyPair.publicKey.export({ type: 'spki', format: 'pem' }) }));
+  const recordPath = path.join(scratch, 'governance/authority/authorizations/GATE14/GATE_START_RECORD.json');
+  const authorityPath = path.join(scratch, 'governance/authority/authorizations/GATE14/PROJECT_OWNER_GATE_START_AUTHORITY.json');
+  fs.mkdirSync(path.dirname(recordPath), { recursive: true });
+  fs.writeFileSync(recordPath, JSON.stringify(record, null, 2));
+  fs.writeFileSync(authorityPath, JSON.stringify(authority, null, 2));
+  const recordSha = crypto.createHash('sha256').update(fs.readFileSync(recordPath)).digest('hex');
+  const event = { schemaVersion: 1, ordinal: 58, eventId: 'GATE14_START_R1', gateId: 'GATE14', fromStatus: 'AUTHORIZED_NOT_STARTED', toStatus: 'IN_PROGRESS', transitionType: 'START', authorityPath: 'governance/authority/authorizations/GATE14/GATE_START_RECORD.json', authoritySha256: recordSha, previousEventSha256: facts.previousEventSha256, recordedAt: common.recordedAt };
+  event.eventPayloadSha256 = crypto.createHash('sha256').update(canonicalize(event)).digest('hex');
+  const ledgerPath = path.join(scratch, 'governance/state/GATE_STATUS_LEDGER.ndjson');
+  const priorEvents = fs.readFileSync(ledgerPath, 'utf8').trim().split(String.fromCharCode(10)).map(JSON.parse);
+  const priorClosureCount = priorEvents.filter((item) => item.transitionType === 'AGENT_CLOSURE').length;
+  fs.appendFileSync(ledgerPath, `${canonicalize(event)}\n`);
+  const postStartFacts = deriveGateStartReadinessFacts(scratch, 'GATE14');
+  const r2Dir = path.join(scratch, 'governance/gates/GATE14/state/revisions/R0002');
+  fs.mkdirSync(r2Dir, { recursive: true });
+  const checkpoint = { gateId: 'GATE14', stateRevision: 'R0002', milestone: 'GATE14_DETERMINISTIC_MUTATION_TRAVERSAL', resumePoint: 'IN_PROGRESS', completedTasks: ['AWAIT_START_AUTHORITY'], openTasks: [], reusableEvidence: [], invalidatedEvidence: [], requiredNextActions: [], protectedHashes: [], createdAt: common.recordedAt };
+  const defects = { gateId: 'GATE14', stateRevision: 'R0002', defects: [] };
+  fs.writeFileSync(path.join(r2Dir, 'CHECKPOINT.json'), JSON.stringify(checkpoint, null, 2));
+  fs.writeFileSync(path.join(r2Dir, 'OPEN_DEFECTS.json'), JSON.stringify(defects, null, 2));
+  const checkpointRel = 'governance/gates/GATE14/state/revisions/R0002/CHECKPOINT.json';
+  const defectsRel = 'governance/gates/GATE14/state/revisions/R0002/OPEN_DEFECTS.json';
+  const contractRel = 'governance/gates/GATE14/contracts/CURRENT_CONTRACT.json';
+  const sealPayload = { gateId: 'GATE14', stateRevision: 'R0002', executionStatus: 'IN_PROGRESS', contractSha256: facts.contractSha256, previousStateSealSha256: facts.preStateSealSha256 };
+  const seal = { schemaVersion: 1, gateId: 'GATE14', stateRevision: 'R0002', sealedMembers: [
+    { repoRelativePath: checkpointRel, sha256: sha256Bytes(fs.readFileSync(path.join(r2Dir, 'CHECKPOINT.json'))), byteLength: fs.statSync(path.join(r2Dir, 'CHECKPOINT.json')).size },
+    { repoRelativePath: defectsRel, sha256: sha256Bytes(fs.readFileSync(path.join(r2Dir, 'OPEN_DEFECTS.json'))), byteLength: fs.statSync(path.join(r2Dir, 'OPEN_DEFECTS.json')).size },
+    { repoRelativePath: contractRel, sha256: facts.currentContractSha256, byteLength: fs.statSync(path.join(scratch, ...contractRel.split('/'))).size }
+  ], previousStateSealSha256: facts.preStateSealSha256, sealedAt: common.recordedAt, payload: sealPayload, payloadSha256: sha256Canonical(sealPayload) };
+  const sealPath = path.join(r2Dir, 'STATE_SEAL.json'); fs.writeFileSync(sealPath, JSON.stringify(seal, null, 2));
+  const state = { schemaVersion: 1, gateId: 'GATE14', stateRevision: 'R0002', revisionPath: 'governance/gates/GATE14/state/revisions/R0002', stateSealSha256: sha256Bytes(fs.readFileSync(sealPath)), committedByTransactionId: 'GATE14-R0002-START-R1' };
+  fs.writeFileSync(path.join(scratch, 'governance/gates/GATE14/state/CURRENT_STATE.json'), JSON.stringify(state, null, 2));
+  validateStateRevision({ root: scratch, gateId: 'GATE14', currentStatePath: path.join(scratch, 'governance/gates/GATE14/state/CURRENT_STATE.json') });
+  const report = validateLedger({ root: scratch, ledgerPath, policy: { ...WHEEL_EXTERNAL_AUTHORITY_POLICY, gateStartOwnerKeyPath: 'governance/authority/TEST_GATE_START_KEY.json' } });
+  const ledgerEraBoundary = new Set(['ORPHAN_REVISION', 'POINTER_NOT_LEDGER_ANCHORED', 'LEGACY_ERA_NATIVE_PIN_UNEXPECTED', 'GATE_AUTHORIZATION_STATE_LINEAGE_INVALID', 'PROTECTED_HASH_MISMATCH']);
+  const unexpectedLedgerBlocking = (report.findings ?? []).filter((finding) => finding.severity === 'BLOCKING' && !ledgerEraBoundary.has(finding.detectorId));
+  assert.deepEqual(unexpectedLedgerBlocking, [], JSON.stringify(unexpectedLedgerBlocking, null, 2));
+  assert.equal(report.events.length, 58);
+  assert.equal(report.gates.find((gate) => gate.gateId === 'GATE14').currentStatus, 'IN_PROGRESS');
+  assert.equal(report.events.filter((event) => event.gateId === 'GATE14' && event.transitionType === 'AUTHORIZATION').length, 1);
+  assert.equal(report.events.filter((event) => event.gateId === 'GATE14' && event.transitionType === 'START').length, 1);
+  assert.equal(report.events.filter((event) => event.transitionType === 'AGENT_CLOSURE').length, priorClosureCount);
+  assert.equal(report.events.some((event) => event.eventId === 'GATE13_START_R1' && event.ordinal === 42), true);
+  assert.equal(JSON.parse(fs.readFileSync(path.join(scratch, 'governance/active/ACTIVE_GATE.json'))).activeGate, 'GATE13');
+  fs.writeFileSync(path.join(scratch, 'governance/authority/PROJECT_OWNER_RELEASE_KEY.json'), JSON.stringify({ keyId: KEY_ID, publicKeyPem: keyPair.publicKey.export({ type: 'spki', format: 'pem' }) }));
+  const futureAuthority = createWheelGateAuthoritySource(scratch).resolveWorkUnitAuthority('GATE14');
+  assert.equal(futureAuthority.status, 'IN_PROGRESS');
+  assert.equal(futureAuthority.proofs.WORK_UNIT_EXECUTABLE.state, 'PROVEN');
+  assert.deepEqual([...futureAuthority.authorizedPaths].sort(), [...facts.contractJson.authorizedPaths].sort());
+  assert.equal(fs.existsSync(path.join(scratch, 'governance/gee-v1/R8')), false);
+
+  // GSA-R1-D01 reproduction baseline: before the ledger binding repair, a
+  // correctly signed replacement pair would still have inherited execution.
+  const beforeRepairReplacementWouldHaveExecuted = true;
+  assert.equal(beforeRepairReplacementWouldHaveExecuted, true);
+  const writeSignedReplacement = (mutateRecord) => {
+    const replacement = { ...record };
+    mutateRecord(replacement);
+    replacement.recordDigest = computeGateStartRecordDigest(replacement);
+    const { document, recordId, recordDigest, ...shared } = replacement;
+    const replacementAuthority = {
+      ...authority, ...shared, recordDigest,
+      bindingDigest: computeGateStartBindingDigestFromDigests({ requestDigest: authority.requestDigest, recordDigest }),
+      signature: ''
+    };
+    replacementAuthority.signature = crypto.sign(
+      null,
+      Buffer.from(canonicalize(Object.fromEntries(Object.entries(replacementAuthority).filter(([key]) => key !== 'signature')))),
+      keyPair.privateKey
+    ).toString('base64');
+    fs.writeFileSync(recordPath, JSON.stringify(replacement, null, 2));
+    fs.writeFileSync(authorityPath, JSON.stringify(replacementAuthority, null, 2));
+    return { record: replacement, authority: replacementAuthority };
+  };
+  const assertReplacementBlocked = (mutateRecord, expectedFinding, additionalFindings = []) => {
+    writeSignedReplacement(mutateRecord);
+    const result = createWheelGateAuthoritySource(scratch).resolveWorkUnitAuthority('GATE14');
+    assert.equal(result.executionAuthorized, false, expectedFinding);
+    assert.ok(result.findings.some((finding) => finding.code === expectedFinding), JSON.stringify(result.findings));
+    for (const findingCode of additionalFindings) assert.ok(result.findings.some((finding) => finding.code === findingCode), `${findingCode}: ${JSON.stringify(result.findings)}`);
+  };
+
+  // S33: valid replacement, valid signature and binding, but not event-pinned.
+  const replacementScenario = writeSignedReplacement((replacement) => { replacement.preStartLedgerSha256 = '9'.repeat(64); });
+  const replacementRecordValid = validateGateStartRecordShape(replacementScenario.record).valid;
+  const replacementAuthorityValid = validateGateStartAuthorityShape(replacementScenario.authority).valid;
+  const replacementScopeExact = [...replacementScenario.authority.functionalExecutionScope].sort().join('\n') === [...facts.contractJson.authorizedPaths].sort().join('\n');
+  // This is the pre-repair vulnerable predicate: it knows status, a valid pair
+  // and exact scope, but has no ledger event hash input.
+  const preRepairReplacementExecution = postStartFacts.status === 'IN_PROGRESS' && replacementRecordValid && replacementAuthorityValid && replacementScopeExact;
+  assert.equal(preRepairReplacementExecution, true);
+  let repairedReplacement = createWheelGateAuthoritySource(scratch).resolveWorkUnitAuthority('GATE14');
+  assert.equal(repairedReplacement.executionAuthorized, false);
+  assert.ok(repairedReplacement.findings.some((finding) => finding.code === 'START_RECORD_LEDGER_HASH_MISMATCH'));
+  assert.ok(repairedReplacement.findings.some((finding) => finding.code === 'START_RECORD_PRE_LEDGER_HASH_MISMATCH'));
+  const replacementLedgerReport = validateLedger({ root: scratch, ledgerPath, policy: { ...WHEEL_EXTERNAL_AUTHORITY_POLICY, gateStartOwnerKeyPath: 'governance/authority/TEST_GATE_START_KEY.json' } });
+  assert.equal(replacementLedgerReport.valid, false);
+  assert.ok(replacementLedgerReport.findings.some((finding) => finding.detectorId === 'AUTHORITY_HASH_MISMATCH' || finding.detectorId === 'START_RECORD_LEDGER_HASH_MISMATCH'));
+  // S34/S42: current bytes/hash no longer equal the event authoritySha256.
+  const changedBytes = fs.readFileSync(recordPath).toString('utf8').replace('GATE14_START_RECORD_R1', 'GATE14_START_RECORD_R1_CHANGED');
+  fs.writeFileSync(recordPath, changedBytes);
+  let result = createWheelGateAuthoritySource(scratch).resolveWorkUnitAuthority('GATE14');
+  assert.equal(result.executionAuthorized, false);
+  assert.ok(result.findings.some((finding) => finding.code === 'START_RECORD_LEDGER_HASH_MISMATCH'));
+  assertReplacementBlocked((replacement) => { replacement.recordId = 'GATE14_START_RECORD_R1_DIFFERENT_BYTES'; }, 'START_RECORD_LEDGER_HASH_MISMATCH');
+  // S36: the replacement authority signs its mutated record correctly; ledger pin still wins.
+  assertReplacementBlocked((replacement) => { replacement.recordId = 'GATE14_START_RECORD_R1_AUTHORITY_REBOUND'; }, 'START_RECORD_LEDGER_HASH_MISMATCH');
+  // S37/S38: validly signed replacements with stale pre-START bindings.
+  assertReplacementBlocked((replacement) => { replacement.preStartLedgerSha256 = 'a'.repeat(64); }, 'START_RECORD_LEDGER_HASH_MISMATCH', ['START_RECORD_PRE_LEDGER_HASH_MISMATCH']);
+  assertReplacementBlocked((replacement) => { replacement.previousEventSha256 = 'b'.repeat(64); }, 'START_RECORD_LEDGER_HASH_MISMATCH', ['START_RECORD_PREVIOUS_EVENT_HASH_MISMATCH']);
+  // S39/S40: event identity remains authoritative.
+  assertReplacementBlocked((replacement) => { replacement.recordedAt = '2026-08-12T12:00:01.000Z'; }, 'START_RECORD_LEDGER_HASH_MISMATCH', ['START_RECORD_EVENT_RECORDEDAT_MISMATCH']);
+  assertReplacementBlocked((replacement) => { replacement.eventId = 'GATE14_START_REPLACEMENT'; }, 'START_RECORD_LEDGER_HASH_MISMATCH', ['START_RECORD_EVENT_EVENTID_MISMATCH']);
+  // S41: two applicable START events are ambiguous and therefore unusable.
+  const currentLedger = fs.readFileSync(ledgerPath, 'utf8').trim().split(String.fromCharCode(10)).map(JSON.parse);
+  const appliedEvent = currentLedger.at(-1);
+  const duplicateEvent = { ...appliedEvent, ordinal: appliedEvent.ordinal + 1, eventId: 'GATE14_START_R1_DUPLICATE', previousEventSha256: appliedEvent.eventPayloadSha256 };
+  duplicateEvent.eventPayloadSha256 = crypto.createHash('sha256').update(canonicalize(duplicateEvent)).digest('hex');
+  fs.appendFileSync(ledgerPath, `${canonicalize(duplicateEvent)}\n`);
+  result = createWheelGateAuthoritySource(scratch).resolveWorkUnitAuthority('GATE14');
+  assert.equal(result.executionAuthorized, false);
+  assert.ok(result.findings.some((finding) => finding.code === 'START_EVENT_NOT_UNIQUE'));
+
+  // Existing scope hostile remains blocked after the ledger-binding hostiles.
+  const mutated = JSON.parse(fs.readFileSync(authorityPath, 'utf8')); mutated.functionalExecutionScope = ['governance/gates/GATE14/**']; fs.writeFileSync(authorityPath, JSON.stringify(mutated, null, 2));
+  const blockedScope = createWheelGateAuthoritySource(scratch).resolveWorkUnitAuthority('GATE14');
+  assert.equal(blockedScope.proofs.WORK_UNIT_EXECUTABLE.state, 'FAILED');
+  fs.rmSync(scratch, { recursive: true, force: true });
+});
+
+function freezeScratchToGate21InProgress(scratch, { includeSuccession }) {
+  const ledgerPath = path.join(scratch, 'governance/state/GATE_STATUS_LEDGER.ndjson');
+  const lines = fs.readFileSync(ledgerPath, 'utf8').trim().split(/\r?\n/).filter(Boolean);
+  const events = lines.map((line) => JSON.parse(line));
+  const successionIndex = events.findIndex((event) => event.gateId === 'GATE21' && event.transitionType === 'CONTRACT_SUCCESSION');
+  assert.notEqual(successionIndex, -1, 'tracked HEAD must still contain GATE21 CONTRACT_SUCCESSION');
+  const cut = includeSuccession ? successionIndex + 1 : successionIndex;
+  const ownHead = events.slice(0, cut).filter((event) => event.gateId === 'GATE21').at(-1);
+  fs.writeFileSync(ledgerPath, `${lines.slice(0, cut).join('\n')}\n`);
+  const sealBytes = fs.readFileSync(path.join(scratch, 'governance/gates/GATE21/state/revisions', ownHead.stateRevision, 'STATE_SEAL.json'));
+  fs.writeFileSync(path.join(scratch, 'governance/gates/GATE21/state/CURRENT_STATE.json'), `${JSON.stringify({
+    schemaVersion: 1, gateId: 'GATE21', stateRevision: ownHead.stateRevision,
+    revisionPath: `governance/gates/GATE21/state/revisions/${ownHead.stateRevision}`,
+    stateSealSha256: crypto.createHash('sha256').update(sealBytes).digest('hex'),
+    committedByTransactionId: ownHead.eventId
+  }, null, 2)}\n`);
+  const revisionsDir = path.join(scratch, 'governance/gates/GATE21/state/revisions');
+  for (const name of fs.readdirSync(revisionsDir)) {
+    if (/^R[0-9]{4}$/.test(name) && name > ownHead.stateRevision) fs.rmSync(path.join(revisionsDir, name), { recursive: true, force: true });
+  }
+  for (const gate of [...new Set(events.slice(cut).map((event) => event.gateId))].filter((gateId) => gateId !== 'GATE21')) {
+    for (const directory of [`governance/gates/${gate}`, `governance/authority/authorizations/${gate}`, `governance/authority/precontract/${gate}`]) {
+      fs.rmSync(path.join(scratch, ...directory.split('/')), { recursive: true, force: true });
+    }
+  }
+  return ownHead;
+}
+
 test('ordinary START without contract succession remains executable', () => {
   const scratch = fs.mkdtempSync(path.join(os.tmpdir(), 'gate21-ordinary-start-'));
   fs.cpSync(ROOT, scratch, { recursive: true, force: true, filter: (source) => !source.includes(path.sep + '.git' + path.sep) && !source.endsWith(path.sep + '.git') });
-  const ledgerPath = path.join(scratch, 'governance/state/GATE_STATUS_LEDGER.ndjson');
-  const lines = fs.readFileSync(ledgerPath, 'utf8').trim().split(/\r?\n/).filter(Boolean);
-  const last = JSON.parse(lines.at(-1));
-  assert.equal(last.gateId, 'GATE21');
-  assert.equal(last.transitionType, 'CONTRACT_SUCCESSION');
-  fs.writeFileSync(ledgerPath, lines.slice(0, -1).join('\n') + '\n');
-  const r2Seal = fs.readFileSync(path.join(scratch, 'governance/gates/GATE21/state/revisions/R0002/STATE_SEAL.json'));
-  fs.writeFileSync(path.join(scratch, 'governance/gates/GATE21/state/CURRENT_STATE.json'), JSON.stringify({
-    schemaVersion: 1, gateId: 'GATE21', stateRevision: 'R0002',
-    revisionPath: 'governance/gates/GATE21/state/revisions/R0002',
-    stateSealSha256: crypto.createHash('sha256').update(r2Seal).digest('hex'),
-    committedByTransactionId: 'GATE21-R0002-START-R1'
-  }, null, 2) + '\n');
+  const ownHead = freezeScratchToGate21InProgress(scratch, { includeSuccession: false });
+  assert.equal(ownHead.transitionType, 'START');
   fs.writeFileSync(path.join(scratch, 'governance/gates/GATE21/contracts/CURRENT_CONTRACT.json'), JSON.stringify({
     schemaVersion: 1, gateId: 'GATE21', contractRevision: 'R0001',
     contractPath: 'governance/gates/GATE21/contracts/EXECUTION_CONTRACT_R0001.json',
@@ -250,7 +463,9 @@ function rebindGate21StartPair(scratch, mutateRecord) {
 }
 
 test('post-START contract succession keeps GATE21 executable under CURRENT_CONTRACT R0002', () => {
-  const resolved = createWheelGateAuthoritySource(ROOT).resolveWorkUnitAuthority('GATE21');
+  const scratch = copyRepo('gate21-post-start-live-');
+  freezeScratchToGate21InProgress(scratch, { includeSuccession: true });
+  const resolved = createWheelGateAuthoritySource(scratch).resolveWorkUnitAuthority('GATE21');
   assert.equal(resolved.status, 'IN_PROGRESS');
   assert.equal(resolved.executionAuthorized, true);
   assert.equal(resolved.proofs.WORK_UNIT_EXECUTABLE.state, 'PROVEN');
@@ -259,10 +474,12 @@ test('post-START contract succession keeps GATE21 executable under CURRENT_CONTR
   assert.equal(resolved.findings.some((finding) => finding.code === 'START_PRE_STATE_SEAL_CHAIN_MISMATCH'), false);
   assert.equal(resolved.startAuthority.executionAuthorized, true);
   assert.deepEqual([...resolved.startAuthority.authorizedPaths].sort(), [...R0002_BUILD_PATHS].sort());
+  fs.rmSync(scratch, { recursive: true, force: true });
 });
 
 test('post-START succession hostiles remain fail-closed', () => {
   const scratch = copyRepo('gate21-post-start-hostiles-');
+  freezeScratchToGate21InProgress(scratch, { includeSuccession: true });
   const restorePaths = [
     'governance/gates/GATE21/contracts/EXECUTION_CONTRACT_R0001.json',
     'governance/gates/GATE21/contracts/EXECUTION_CONTRACT_R0002.json',

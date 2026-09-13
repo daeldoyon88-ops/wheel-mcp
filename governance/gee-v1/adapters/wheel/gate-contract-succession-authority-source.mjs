@@ -9,7 +9,8 @@ import { loadOwnerReleaseKey } from '../../core/release-authorization-source.mjs
 import {
   evaluateGateContractSuccessionAuthority,
   gateContractSuccessionRecordPath,
-  gateContractSuccessionAuthorityPath
+  gateContractSuccessionAuthorityPath,
+  gateContractSuccessionLocalAuthorityPath
 } from '../../core/gate-contract-succession-authority.mjs';
 
 export const GATE_CONTRACT_SUCCESSION_WORK_UNIT_TYPE = 'GATE_CONTRACT_SUCCESSION';
@@ -88,7 +89,8 @@ function observe(baseRoot, candidateRoot, request) {
 
 export function createWheelGateContractSuccessionAuthoritySource(repoRoot, {
   candidateRoot = repoRoot, authorityPath = null, requestPath = null,
-  recordPath = null, authorityPaths = null, requestPaths = null, ownerKeyPath = null, env = process.env, now = new Date()
+  recordPath = null, authorityPaths = null, requestPaths = null, ownerKeyPath = null,
+  localAuthorityPath = null, env = process.env, now = new Date()
 } = {}) {
   const root = path.resolve(repoRoot);
   const futureRoot = path.resolve(candidateRoot);
@@ -96,8 +98,55 @@ export function createWheelGateContractSuccessionAuthoritySource(repoRoot, {
   const requests = sourcePaths(requestPaths || requestPath, env, GATE_CONTRACT_SUCCESSION_REQUEST_ENV_VAR);
   const keyPath = ownerKeyPath || env?.[OWNER_GATE_CONTRACT_SUCCESSION_KEY_ENV_VAR] || path.join(root, ...OWNER_KEY_PATH.split('/'));
 
+  function localAuthorityFile(workUnitId) {
+    return localAuthorityPath
+      ? path.resolve(root, localAuthorityPath)
+      : path.join(root, ...gateContractSuccessionLocalAuthorityPath(workUnitId).split('/'));
+  }
+
+  /**
+   * The non-key route. A LOCAL_EXPLICIT_AUTHORITY holds no secret, so unlike the
+   * signed authority it is IN-repo and content-addressed like any other governed
+   * artifact, and there is no request document and no public key to load. Every
+   * binding is still re-observed live and handed to the same primitive.
+   */
+  function resolveLocalGateContractSuccessionAuthority(workUnitId, file) {
+    const findings = [];
+    let authority = null;
+    try { authority = readJson(file); } catch { findings.push({ code: 'SUCCESSION_LOCAL_AUTHORITY_UNREADABLE' }); }
+    let record = null;
+    try { record = readJson(recordPath || path.join(root, ...gateContractSuccessionRecordPath(workUnitId).split('/'))); }
+    catch { findings.push({ code: 'SUCCESSION_RECORD_UNREADABLE' }); }
+    if (authority?.gateId !== workUnitId || record?.gateId !== workUnitId) findings.push({ code: 'CROSS_GATE_AUTHORITY_BORROWING' });
+    if (!authority || !record) return { decision: 'BLOCKED', successionAuthorized: false, authorizedPaths: [], findings };
+    const observed = observe(root, futureRoot, authority);
+    const result = evaluateGateContractSuccessionAuthority({
+      request: null, record, authority, ownerKey: null,
+      predecessorContract: observed.predecessorContract,
+      successorContract: observed.successorContract,
+      predecessorCurrentContract: observed.predecessorCurrentContract,
+      successorCurrentContract: observed.successorCurrentContract,
+      observed, now
+    });
+    return {
+      ...result, findings: [...findings, ...result.findings], workUnitId,
+      workUnitType: GATE_CONTRACT_SUCCESSION_WORK_UNIT_TYPE,
+      recordPath: gateContractSuccessionRecordPath(workUnitId),
+      authorityPath: gateContractSuccessionLocalAuthorityPath(workUnitId)
+    };
+  }
+
   function resolveGateContractSuccessionAuthority(workUnitId) {
     const findings = [];
+    // Route by which authority actually exists, and never by preference: a Gate
+    // presenting both a local and an external authority has two competing
+    // authorities, which is exactly the condition this primitive blocks on.
+    const localFile = localAuthorityFile(workUnitId);
+    const localPresent = fs.existsSync(localFile) && fs.statSync(localFile).isFile();
+    if (localPresent && (authorities.length > 0 || requests.length > 0)) {
+      return { decision: 'BLOCKED', successionAuthorized: false, authorizedPaths: [], findings: [{ code: 'COMPETING_SUCCESSION_AUTHORITIES' }] };
+    }
+    if (localPresent) return resolveLocalGateContractSuccessionAuthority(workUnitId, localFile);
     if (authorities.length > 1 || requests.length > 1) return { decision: 'BLOCKED', successionAuthorized: false, authorizedPaths: [], findings: [{ code: 'COMPETING_SUCCESSION_AUTHORITIES' }] };
     if (authorities.length !== 1 || requests.length !== 1) return { decision: 'BLOCKED', successionAuthorized: false, authorizedPaths: [], findings: [{ code: 'SUCCESSION_AUTHORITY_SOURCE_UNCONFIGURED' }] };
     const requestLoad = loadExternal(requests[0], root);

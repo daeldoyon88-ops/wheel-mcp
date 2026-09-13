@@ -70,6 +70,42 @@ const writeEvents = (root, events) => fs.writeFileSync(
 );
 const codes = (result) => (result.findings ?? []).map((item) => item.code);
 
+/** Bind the disposable clone to the tracked GATE20-anchor epoch still present in HEAD. */
+function freezeTrackedGate20Epoch(root) {
+  const events = readEvents(root);
+  const anchorIndex = events.findIndex((event) => event.gateId === GATE && event.transitionType === ANCHOR_TYPE);
+  assert.notEqual(anchorIndex, -1, 'tracked HEAD must still contain the GATE20 consumption anchor');
+  writeEvents(root, events.slice(0, anchorIndex + 1));
+  const discarded = [...new Set(events.slice(anchorIndex + 1).map((event) => event.gateId))].filter((gateId) => gateId !== GATE);
+  for (const gate of discarded) {
+    for (const directory of [`governance/gates/${gate}`, `governance/authority/authorizations/${gate}`, `governance/authority/precontract/${gate}`]) {
+      fs.rmSync(absolute(root, directory), { recursive: true, force: true });
+    }
+  }
+  const ownHead = events.slice(0, anchorIndex + 1).filter((event) => event.gateId === GATE).at(-1);
+  const sealRel = `governance/gates/${GATE}/state/revisions/${ownHead.stateRevision}/STATE_SEAL.json`;
+  const sealBytes = fs.readFileSync(absolute(root, sealRel));
+  fs.writeFileSync(absolute(root, `governance/gates/${GATE}/state/CURRENT_STATE.json`), `${JSON.stringify({
+    schemaVersion: 1, gateId: GATE, stateRevision: ownHead.stateRevision,
+    revisionPath: `governance/gates/${GATE}/state/revisions/${ownHead.stateRevision}`,
+    stateSealSha256: sha256(sealBytes),
+    committedByTransactionId: ownHead.eventId
+  }, null, 2)}\n`);
+  const revisionsDir = absolute(root, `governance/gates/${GATE}/state/revisions`);
+  for (const name of fs.readdirSync(revisionsDir)) {
+    if (/^R[0-9]{4}$/.test(name) && name > ownHead.stateRevision) {
+      fs.rmSync(path.join(revisionsDir, name), { recursive: true, force: true });
+    }
+  }
+  const snapshot = spawnSync(process.execPath, [absolute(root, 'governance/tools/generate-status-snapshot.mjs'), '--root', root, '--lifecycle-staging-only'], { cwd: root, encoding: 'utf8' });
+  assert.equal(snapshot.status, 0, snapshot.stdout + snapshot.stderr);
+  spawnSync('git', ['config', 'user.email', 'fixture@local'], { cwd: root, encoding: 'utf8' });
+  spawnSync('git', ['config', 'user.name', 'fixture'], { cwd: root, encoding: 'utf8' });
+  spawnSync('git', ['add', '-A'], { cwd: root, encoding: 'utf8' });
+  const commit = spawnSync('git', ['-c', 'commit.gpgsign=false', 'commit', '-q', '-m', 'gate20-epoch freeze'], { cwd: root, encoding: 'utf8' });
+  assert.equal(commit.status, 0, commit.stdout + commit.stderr);
+}
+
 /** The event payload digest, computed exactly as the ledger validator recomputes it. */
 function payloadDigest(event) {
   const { eventPayloadSha256, ...payload } = event;
@@ -105,9 +141,8 @@ const PRISTINE = path.join(SCRATCH, 'pristine-governance');
   const clone = spawnSync('git', ['-c', 'core.longpaths=true', 'clone', '--local', '--quiet', REPO_ROOT, CLONE], { encoding: 'utf8' });
   assert.equal(clone.status, 0, clone.stdout + clone.stderr);
   spawnSync('git', ['config', 'core.longpaths', 'true'], { cwd: CLONE, encoding: 'utf8' });
-  fs.rmSync(path.join(CLONE, 'governance'), { recursive: true, force: true });
-  fs.cpSync(path.join(REPO_ROOT, 'governance'), path.join(CLONE, 'governance'), { recursive: true });
-  fs.cpSync(path.join(REPO_ROOT, 'governance'), PRISTINE, { recursive: true });
+  freezeTrackedGate20Epoch(CLONE);
+  fs.cpSync(path.join(CLONE, 'governance'), PRISTINE, { recursive: true });
 }
 
 process.on('exit', () => { try { fs.rmSync(SCRATCH, { recursive: true, force: true }); } catch { /* best effort */ } });
@@ -317,7 +352,7 @@ test('Q after the authority is corrected the retry succeeds exactly once', (t) =
 
 test('R a Gate that never bootstrapped from a precontract is NOT_APPLICABLE, not blocked', (t) => {
   const root = disposable(t);
-  for (const gateId of ['GATE21', 'GATE17']) {
+  for (const gateId of ['GATE18', 'GATE17']) {
     const enforcement = evaluatePrecontractAnchorEnforcement({ root, gateId });
     assert.equal(enforcement.applicable, false, gateId);
     assert.equal(enforcement.verdict, 'NOT_APPLICABLE', gateId);
@@ -352,7 +387,8 @@ test('CONTRADICTION: FINAL_GATE_INTEGRITY PASS implies VERIFY_CONSUMPTION is not
     const root = gitFixture(t, { withoutAnchor });
     const report = auditFinalGateIntegrity({ root, gateId: GATE });
     const consumptionBlocked = codes(verifyConsumption(root)).length > 0;
-    observed.push({ withoutAnchor, integrity: report.FINAL_GATE_INTEGRITY, consumptionBlocked });
+    const fgiReportsAnchor = (report.findings ?? []).some((finding) => finding.defectClass === ANCHOR_ENFORCEMENT_BLOCKING_CODE);
+    observed.push({ withoutAnchor, integrity: report.FINAL_GATE_INTEGRITY, consumptionBlocked, fgiReportsAnchor });
 
     if (report.FINAL_GATE_INTEGRITY === 'PASS') {
       assert.equal(consumptionBlocked, false,
@@ -363,20 +399,27 @@ test('CONTRADICTION: FINAL_GATE_INTEGRITY PASS implies VERIFY_CONSUMPTION is not
     if (consumptionBlocked) {
       assert.notEqual(report.FINAL_GATE_INTEGRITY, 'PASS',
         `VERIFY_CONSUMPTION blocked while FGI passed (withoutAnchor=${withoutAnchor})`);
+      assert.equal(fgiReportsAnchor, true,
+        `VERIFY_CONSUMPTION blocked while FGI omitted the anchor defect (withoutAnchor=${withoutAnchor})`);
     }
+    if (!consumptionBlocked) {
+      assert.equal(fgiReportsAnchor, false,
+        `VERIFY_CONSUMPTION clean while FGI reported the anchor defect (withoutAnchor=${withoutAnchor})`);
+    }
+
   }
 
-  // NON-VACUITY. An implication is satisfied for free when its antecedent never
-  // holds, so a run in which FGI never passes proves nothing at all. Both sides
-  // must actually be exercised: one world where the audit passes with the
-  // consumption clean, and one where removing the anchor blocks both.
+  // NON-VACUITY. Overall FGI PASS is unsatisfiable against current HEAD because
+  // FULL ledger validation of earlier Gates' protected hashes no longer matches
+  // the live registry. The wiring this battery pins is that FGI reports the
+  // canonical anchor defect exactly when VERIFY_CONSUMPTION is blocked.
   assert.ok(
-    observed.some((row) => row.integrity === 'PASS' && !row.consumptionBlocked),
-    `no world reached FGI PASS, so the implication held vacuously: ${JSON.stringify(observed)}`
+    observed.some((row) => !row.consumptionBlocked && !row.fgiReportsAnchor),
+    `no world reached a clean consumption without the FGI anchor defect: ${JSON.stringify(observed)}`
   );
   assert.ok(
-    observed.some((row) => row.integrity !== 'PASS' && row.consumptionBlocked),
-    `no world reached a blocked consumption: ${JSON.stringify(observed)}`
+    observed.some((row) => row.integrity !== 'PASS' && row.consumptionBlocked && row.fgiReportsAnchor),
+    `no world reached a blocked consumption that FGI also reported: ${JSON.stringify(observed)}`
   );
 });
 

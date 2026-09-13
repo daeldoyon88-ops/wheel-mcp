@@ -10,8 +10,10 @@ const gateId = option('--gate-id', null);
 const requestPath = option('--request', null);
 const recordPath = option('--record', null);
 const authorityPath = option('--authority', null);
-const report = gateId && requestPath && authorityPath
-  ? createWheelGateContractSuccessionAuthoritySource(root, { candidateRoot, requestPath, recordPath, authorityPath }).resolveWorkUnitAuthority(gateId)
+const localAuthorityPath = option('--local-authority', null);
+const localMode = Boolean(gateId) && !requestPath && !authorityPath;
+const report = gateId && ((requestPath && authorityPath) || localMode)
+  ? createWheelGateContractSuccessionAuthoritySource(root, { candidateRoot, requestPath, recordPath, authorityPath, localAuthorityPath }).resolveWorkUnitAuthority(gateId)
   : { decision: 'BLOCKED', successionAuthorized: false, authorizedPaths: [], findings: [{ code: 'REQUIRED_OPTIONS_MISSING' }] };
 process.stdout.write(JSON.stringify({ GATE_CONTRACT_SUCCESSION_VERDICT: report.successionAuthorized ? 'AUTHORIZED' : 'BLOCKED', ...report }, null, 2) + '\n');
 process.exitCode = report.successionAuthorized ? 0 : 2;

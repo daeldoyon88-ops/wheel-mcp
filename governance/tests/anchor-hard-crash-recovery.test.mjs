@@ -70,6 +70,42 @@ const readEvents = (root) => ledgerBytes(root).toString('utf8').split(/\r?\n/).f
 const writeEvents = (root, events) => fs.writeFileSync(absolute(root, LEDGER), `${events.map((event) => JSON.stringify(event)).join('\n')}\n`);
 const anchorsOf = (root) => readEvents(root).filter((event) => event.gateId === GATE && event.transitionType === ANCHOR_TYPE);
 
+/** Bind the disposable clone to the tracked GATE20-anchor epoch still present in HEAD. */
+function freezeTrackedGate20Epoch(root) {
+  const events = readEvents(root);
+  const anchorIndex = events.findIndex((event) => event.gateId === GATE && event.transitionType === ANCHOR_TYPE);
+  assert.notEqual(anchorIndex, -1, 'tracked HEAD must still contain the GATE20 consumption anchor');
+  writeEvents(root, events.slice(0, anchorIndex + 1));
+  const discarded = [...new Set(events.slice(anchorIndex + 1).map((event) => event.gateId))].filter((gateId) => gateId !== GATE);
+  for (const gate of discarded) {
+    for (const directory of [`governance/gates/${gate}`, `governance/authority/authorizations/${gate}`, `governance/authority/precontract/${gate}`]) {
+      fs.rmSync(absolute(root, directory), { recursive: true, force: true });
+    }
+  }
+  const ownHead = events.slice(0, anchorIndex + 1).filter((event) => event.gateId === GATE).at(-1);
+  const sealRel = `governance/gates/${GATE}/state/revisions/${ownHead.stateRevision}/STATE_SEAL.json`;
+  const sealBytes = fs.readFileSync(absolute(root, sealRel));
+  fs.writeFileSync(absolute(root, `governance/gates/${GATE}/state/CURRENT_STATE.json`), `${JSON.stringify({
+    schemaVersion: 1, gateId: GATE, stateRevision: ownHead.stateRevision,
+    revisionPath: `governance/gates/${GATE}/state/revisions/${ownHead.stateRevision}`,
+    stateSealSha256: sha256Bytes(sealBytes),
+    committedByTransactionId: ownHead.eventId
+  }, null, 2)}\n`);
+  const revisionsDir = absolute(root, `governance/gates/${GATE}/state/revisions`);
+  for (const name of fs.readdirSync(revisionsDir)) {
+    if (/^R[0-9]{4}$/.test(name) && name > ownHead.stateRevision) {
+      fs.rmSync(path.join(revisionsDir, name), { recursive: true, force: true });
+    }
+  }
+  const snapshot = spawnSync(process.execPath, [absolute(root, 'governance/tools/generate-status-snapshot.mjs'), '--root', root, '--lifecycle-staging-only'], { cwd: root, encoding: 'utf8' });
+  assert.equal(snapshot.status, 0, snapshot.stdout + snapshot.stderr);
+  spawnSync('git', ['config', 'user.email', 'fixture@local'], { cwd: root, encoding: 'utf8' });
+  spawnSync('git', ['config', 'user.name', 'fixture'], { cwd: root, encoding: 'utf8' });
+  spawnSync('git', ['add', '-A'], { cwd: root, encoding: 'utf8' });
+  const commit = spawnSync('git', ['-c', 'commit.gpgsign=false', 'commit', '-q', '-m', 'gate20-epoch freeze'], { cwd: root, encoding: 'utf8' });
+  assert.equal(commit.status, 0, commit.stdout + commit.stderr);
+}
+
 /**
  * A disposable CLONE, not a directory copy: consumption receipts pin the commit
  * they were produced at and resolve it through Git, and the maintenance
@@ -84,8 +120,8 @@ const CLONE_SEED = path.join(SCRATCH, 'seed');
   const clone = spawnSync('git', ['-c', 'core.longpaths=true', 'clone', '--local', '--quiet', REPO_ROOT, CLONE_SEED], { encoding: 'utf8' });
   assert.equal(clone.status, 0, clone.stdout + clone.stderr);
   spawnSync('git', ['config', 'core.longpaths', 'true'], { cwd: CLONE_SEED, encoding: 'utf8' });
-  fs.rmSync(path.join(CLONE_SEED, 'governance'), { recursive: true, force: true });
-  fs.cpSync(path.join(REPO_ROOT, 'governance'), PRISTINE, { recursive: true });
+  freezeTrackedGate20Epoch(CLONE_SEED);
+  fs.cpSync(path.join(CLONE_SEED, 'governance'), PRISTINE, { recursive: true });
 }
 process.on('exit', () => { try { fs.rmSync(SCRATCH, { recursive: true, force: true }); } catch { /* best effort */ } });
 

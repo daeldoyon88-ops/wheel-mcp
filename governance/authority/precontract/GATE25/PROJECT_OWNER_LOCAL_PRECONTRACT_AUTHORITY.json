@@ -1,0 +1,58 @@
+{
+  "schemaVersion": 1,
+  "documentKind": "ACTIVE_PRECONTRACT_AUTHORITY",
+  "authorityMode": "LOCAL_EXPLICIT_AUTHORITY",
+  "authorityId": "PRECONTRACT_BOOTSTRAP_GATE25_LOCAL_R1",
+  "issuedBy": "PROJECT_OWNER",
+  "issuedAtUtc": "2026-09-09T00:24:09.905Z",
+  "localRequestDigestAlgorithm": "SHA256_CANONICAL_JSON_PRECONTRACT_LOCAL_REQUEST_V1",
+  "approvedRequestDigest": "0f061feca0dce5bfafd8770e23681dda211ad196db8760476599a25acfc88107",
+  "projectId": "WHEEL",
+  "gateId": "GATE25",
+  "purpose": "BOOTSTRAP_CONTRACT_CANONICALIZATION",
+  "operation": "BOOTSTRAP_CONTRACT_CANONICALIZATION",
+  "preState": {
+    "baseCommit": "8b4efec93d75a3c319dda450b984c768f9ae8984",
+    "baseTree": "10bfea4660b0fe924ed1aa408c11608db4abe6a6",
+    "ledgerSha256": "2def19c84b7581da0ab54d2d1ba9d68f5bc2ce40e108443cfbd086835a0116da",
+    "ledgerEventCount": 104,
+    "currentStatus": "NOT_STARTED",
+    "currentContractPresent": false
+  },
+  "dependencyProof": {
+    "gateId": "GATE24",
+    "status": "COMPLETE_CONFIRMED",
+    "authorityPath": "governance/sources/GATE24_INDEPENDENT_EXTERNAL_CONFIRMATION_R2_EXTERNAL_REINSPECTION_REPORT.json",
+    "authoritySha256": "54cea8f4226ba06c0f2c86215f317855652227023a2321884ddd86810f67e5d9"
+  },
+  "authorizedPaths": [
+    "governance/gates/GATE25/contracts/EXECUTION_CONTRACT_R0001.json",
+    "governance/gates/GATE25/contracts/CURRENT_CONTRACT.json",
+    "governance/gates/GATE25/contracts/PRECONTRACT_AUTHORITY_CONSUMPTION_R1.json"
+  ],
+  "artifactBindings": [
+    {
+      "path": "governance/gates/GATE25/contracts/EXECUTION_CONTRACT_R0001.json",
+      "sha256": "cf1be745b245b0bd0bdd3bee759bc7f1136dcd8cce86d9f31d855f1f90d2720e"
+    },
+    {
+      "path": "governance/gates/GATE25/contracts/CURRENT_CONTRACT.json",
+      "sha256": "550610c642add94a2b137c45743c2d94166fd81d2fce76551441fd9a154bdbba"
+    }
+  ],
+  "consumptionRecordPath": "governance/gates/GATE25/contracts/PRECONTRACT_AUTHORITY_CONSUMPTION_R1.json",
+  "prohibitedOperations": [
+    "START",
+    "AGENT_CLOSURE",
+    "EXTERNAL_CONFIRMATION",
+    "COMPLETE_CONFIRMED",
+    "ARBITRARY_LEDGER_TRANSITION",
+    "GIT_PUSH",
+    "ARBITRARY_GOVERNANCE_WRITE",
+    "OTHER_GATE",
+    "GEE_REVISION_CREATION",
+    "FUNCTIONAL_GATE_EXECUTION"
+  ],
+  "expiresAtUtc": "2026-12-31T23:59:59.000Z",
+  "maxUse": 1
+}

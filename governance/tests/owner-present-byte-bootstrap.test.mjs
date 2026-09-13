@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import test from 'node:test';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -33,12 +34,13 @@ function expectSuccessorRefuse(label, fixtureRoot, code) {
   assert.ok((result.refused || []).some((entry) => entry.code === code), `${label} missing ${code}: ${JSON.stringify(result.refused)}`);
 }
 
+let provenOwnerPresentBootstrapState;
 const root = fs.mkdtempSync(path.join(os.tmpdir(), 'gate20-owner-bootstrap-r5-'));
 try {
   [A, B, C].forEach((p) => copy(root, p));
   const a = fs.readFileSync(full(root, A)), b = fs.readFileSync(full(root, B)), source = fs.readFileSync(full(iso, 'governance/tests/fixtures/owner-present-byte-bootstrap-c-source.mjs')), target = fs.readFileSync(full(root, C));
   assert.equal(h(source), '957686fdc25e65f81decf363630a12b358fc5ca15bafd44535ae8dceceebbf63'); assert.equal(source.length, 16423);
-  assert.equal(h(target), '3ed9b545bcca0b85dde05b41cb85e08fe079a5d6c2113eb9fd90c1a887848c9b'); assert.equal(target.length, 17088);
+  assert.equal(h(target), '7061bb25e4b642d78f180699657fe5ecf3709b4fb9d3da31ad011cd77a451edb'); assert.equal(target.length, 18779);
   const presentPaths = [{ path: A, sha256: h(a), byteLength: a.length }, { path: B, sha256: h(b), byteLength: b.length }];
   const transition = { path: C, sourceSha256: h(source), sourceByteLength: source.length, targetSha256: h(target), targetByteLength: target.length };
   const observedByte = { path: C, sha256: h(source), byteLength: source.length };
@@ -173,5 +175,14 @@ try {
   expectFinding('N26 rehash previousCanonical owner unchanged', evaluateOwnerPresentByteBootstrapAuthority({ root, authority: stale.authorityFromDisk }), 'OWNER_RATIFICATION_BINDING_MISMATCH');
   restoreCanonicalChain();
 
+  provenOwnerPresentBootstrapState = { targetSha256: h(target), targetByteLength: target.length, successorBindingCount: successor.bindings.length };
   console.log('P1 P2 P3 P4 P5 P6 P7 N1 N2 N3 N4 N5 N6 N7 N8 N9 N10 N11 N12 N13 N14 N15 N16 N17 N18 N19 N20 N21 N22 N23 N24 N25 N26: PASS');
 } finally { fs.rmSync(root, { recursive: true, force: true }); }
+
+test('owner-present byte-bootstrap retains the proven canonical target and successor bindings', () => {
+  assert.deepEqual(provenOwnerPresentBootstrapState, {
+    targetSha256: '7061bb25e4b642d78f180699657fe5ecf3709b4fb9d3da31ad011cd77a451edb',
+    targetByteLength: 18779,
+    successorBindingCount: 2
+  });
+});

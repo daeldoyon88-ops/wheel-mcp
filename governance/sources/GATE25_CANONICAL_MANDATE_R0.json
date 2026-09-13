@@ -1,0 +1,1524 @@
+{
+  "document": "GATE25_CANONICAL_MANDATE_R0",
+  "schemaVersion": 1,
+  "documentKind": "CANONICAL_GATE_MANDATE",
+  "projectId": "WHEEL",
+  "gateId": "GATE25",
+  "officialName": "HISTORICAL ANALOGUE ENGINE",
+  "canonicalObjective": "Comparer la situation actuelle a des configurations historiques similaires.",
+  "dependencies": [
+    "GATE24"
+  ],
+  "authorityId": "GATE25_CANONICAL_MANDATE_RATIFICATION_R0",
+  "issuedBy": "PROJECT_OWNER",
+  "draftStatus": "RATIFIED",
+  "ratified": true,
+  "revision": "R0_OWNER_RATIFICATION",
+  "temporary": false,
+  "canonical": true,
+  "canonicalityNote": "This document is a canonical source file in governance/sources. Canonical placement plus this Owner ratification freeze the mandate design scope for later precontract derivation. draftStatus is RATIFIED. The document still confers no execution, START, BUILD, contract, precontract, status-transition, ledger-append, observation-admission, commit or push authority. A mandate ratification is not a START.",
+  "ratificationOnly": true,
+  "executionAuthorized": false,
+  "startAuthorized": false,
+  "statusTransitionAuthorized": false,
+  "functionalImplementationAuthorized": false,
+  "precontractAuthorized": false,
+  "contractAuthorized": false,
+  "buildAuthorized": false,
+  "commitAuthorized": false,
+  "pushAuthorized": false,
+  "ledgerAppendAuthorized": false,
+  "activeGateModificationAuthorized": false,
+  "impliedAuthority": "NONE",
+  "ratificationStatusLegend": {
+    "INHERITED_FROM_CANONICAL_PRIOR_AUTHORITY": "Bound byte-for-byte or semantically unchanged from an existing canonical artifact; this mandate restates, it does not create.",
+    "OWNER_DIRECTED_IN_R0_DRAFT_INSTRUCTION": "Explicitly directed by the Owner GATE25 canonical mandate R0 draft instruction. Records that architectural direction only; it does not ratify the mandate.",
+    "PROPOSED_PENDING_OWNER_RATIFICATION": "Drafted by the agent as an architectural proposal; carries no Owner ratification and may not be treated as a settled decision.",
+    "DEFERRED_TO_CONTRACT": "Intentionally left unfrozen here; the exact value or materialization is fixed later by a versioned execution contract or parameter set.",
+    "OWNER_DECISION_REQUIRED": "Blocked. No admissible value exists in canonical prior authority and none may be invented.",
+    "OWNER_RATIFIED_IN_R0_OWNER_RATIFICATION": "Ratified by the PROJECT_OWNER GATE25_CANONICAL_MANDATE_R0_OWNER_RATIFICATION act under decision OWNER_RATIFY_GATE25_CANONICAL_MANDATE_R0_R1. Unlike OWNER_DIRECTED_IN_R0_DRAFT_INSTRUCTION, this token records ratification of the mandate as a whole. It freezes the design scope for precontract derivation and confers no execution, START, BUILD, contract, precontract, status-transition, ledger, observation-admission, commit or push authority."
+  },
+  "canonicalIdentity": {
+    "gateId": "GATE25",
+    "canonicalName": "HISTORICAL ANALOGUE ENGINE",
+    "architecturalTerm": "ANALOGUE ENGINE",
+    "canonicalObjective": "Comparer la situation actuelle a des configurations historiques similaires.",
+    "canonicalObjectiveBinding": {
+      "sourcePath": "governance/GATE_REGISTRY_00_40.json",
+      "sourcePointer": "/gates/25/canonicalObjective",
+      "sha256": "8e2593978004f99011362aee3c584bf3e0d3e987ed9279e0e8d9e96c087c1048",
+      "lengthChars": 75,
+      "lengthBytes": 75,
+      "encoding": "ASCII_ONLY",
+      "normalizationApplied": false,
+      "rule": "byte-identical to the registry; no normalization, no translation, no re-accentuation"
+    },
+    "canonicalObjectiveOwnerRenderingNote": "The Owner mandate text may render this objective with French diacritics. The canonical stored value is the byte-identical ASCII registry string. Diacritic rendering is display-only, creates no second authority and performs no redefinition.",
+    "officialNameBinding": {
+      "sourcePath": "governance/GATE_REGISTRY_00_40.json",
+      "sourcePointer": "/gates/25/officialName",
+      "value": "HISTORICAL ANALOGUE ENGINE",
+      "sha256": "ae2025a436b9999e1363d0b9a6fd7f89d14eae8f4e857a067e166da73b156917"
+    },
+    "strategicPurpose": "Produce traceable historical analogues with similarity, differences, outcomes, horizons, sample size and regime-dependent uncertainty.",
+    "strategicPurposeBinding": {
+      "sourcePath": "governance/GATE_REGISTRY_00_40.json",
+      "sourcePointer": "/gates/25/strategicPurpose",
+      "rule": "byte-identical registry reuse"
+    }
+  },
+  "lifecycleState": {
+    "ratificationStatus": "INHERITED_FROM_CANONICAL_PRIOR_AUTHORITY",
+    "gate24Status": "COMPLETE_CONFIRMED",
+    "gate25Status": "NOT_STARTED",
+    "lifecycleMutatedByThisDocument": false,
+    "activeGatePointerMutatedByThisDocument": false,
+    "ledgerAppendedByThisDocument": false,
+    "rule": "A mandate ratification is not a START. GATE25 remains NOT_STARTED after this document is drafted and after it is ratified."
+  },
+  "missionBoundary": {
+    "ratificationStatus": "OWNER_DIRECTED_IN_R0_DRAFT_INSTRUCTION",
+    "produces": {
+      "transform": "bound GATE23 FeatureRecord(T) plus bound GATE24 RegimeRecord(T) plus eligible historical identities from GATE21, to a deterministic analogue selection at T; then, only after selectionComplete, an attached GATE22 Outcome distribution over the already-frozen analogue set",
+      "carries": [
+        "identity",
+        "knowledge cutoff",
+        "similarity dimension binding",
+        "distance metric binding",
+        "eligible history binding",
+        "selection policy version",
+        "analogue set with a reproducible per-analogue distance",
+        "common factors and differences",
+        "sample size",
+        "uncertainty state",
+        "outcome horizon binding",
+        "post-selection outcome distribution binding",
+        "provenance",
+        "missingness state"
+      ]
+    },
+    "doesNotProduce": [
+      "Outcome",
+      "label",
+      "prediction",
+      "forecast",
+      "recommendation",
+      "Wheel decision",
+      "position sizing",
+      "strategy",
+      "backtest result",
+      "order",
+      "trade",
+      "invented confidence",
+      "a new history source",
+      "a new calendar",
+      "a new regime taxonomy",
+      "a new feature definition",
+      "GATE31 explanation",
+      "GATE35 alert",
+      "Jarvise UX"
+    ]
+  },
+  "selectionBoundary": {
+    "ratificationStatus": "INHERITED_FROM_CANONICAL_PRIOR_AUTHORITY",
+    "inheritedFrom": {
+      "sourcePath": "governance/gates/GATE22/contracts/GATE22_CONSUMPTION_BOUNDARY_V1.json",
+      "sourcePointer": "/mandateProjection/boundaries/GATE25",
+      "sourceValue": "Outcome attached after selection",
+      "note": "GATE22 canonical prior authority already fixes the GATE25 ordering rule. This mandate restates and hardens it; it does not create it."
+    },
+    "statement": "Analogue selection is a strictly two-phase transformation. Phase 1 selects. Phase 2 attaches. GATE22 Outcome may never participate in phase 1, in any form.",
+    "phases": [
+      {
+        "phase": 1,
+        "name": "SELECTION",
+        "admissibleInputs": [
+          "bound GATE23 FeatureRecord(T), referenced through a FeatureVectorBindingId",
+          "bound GATE24 RegimeRecord(T), referenced through its RegimeRecordId with an explicitly bound RegimeHorizonSpecId",
+          "eligible historical identities from GATE21, within the ratified eligible-history pin set"
+        ],
+        "admissibilityRule": "Every phase 1 input must carry its own proof that availableAt <= the applicable cutoff.",
+        "completionMarker": "selectionComplete",
+        "completionMeaning": "The analogue set and every per-analogue distance are computed, content-addressed and frozen."
+      },
+      {
+        "phase": 2,
+        "name": "OUTCOME_ATTACHMENT",
+        "precondition": "selectionComplete is true and the analogue set identity is frozen",
+        "permitted": [
+          "attachment of GATE22 Outcome to already-selected analogues",
+          "reporting an outcome distribution over the frozen analogue set with an explicit outcome horizon binding"
+        ],
+        "forbidden": [
+          "re-selection",
+          "re-ranking",
+          "re-weighting",
+          "filtering",
+          "truncation",
+          "exclusion",
+          "expansion",
+          "any other change to the analogue set once an Outcome is visible"
+        ]
+      }
+    ],
+    "outcomeProhibitionInSelection": {
+      "forbiddenAsSelectionInput": "GATE22 Outcome, OutcomeId, OutcomeStatus, OutcomeMissingReason, OutcomeWindowCause, DatasetId_outcome and any label derived from them",
+      "forms": [
+        "direct",
+        "lagged",
+        "renamed",
+        "type-laundered",
+        "aggregated into a statistic",
+        "embedded in a threshold, weight or ranking rule",
+        "derived from a future outcome"
+      ],
+      "rule": "An outcome-conditioned change to the analogue set is a leakage defect, not a refinement."
+    },
+    "bypassProhibition": "No raw historical access that bypasses the declared input boundaries is admissible, and no phase 2 artifact may feed back into phase 1."
+  },
+  "dependencyBinding": {
+    "ratificationStatus": "INHERITED_FROM_CANONICAL_PRIOR_AUTHORITY",
+    "dependsOn": "GATE24",
+    "gate24Status": "COMPLETE_CONFIRMED",
+    "gate24StateRevision": "R0005",
+    "gate24StateSealPath": "governance/gates/GATE24/state/revisions/R0005/STATE_SEAL.json",
+    "gate24StateSealSha256": "ebcbfca74ddfd1dae0b9814ac284438951b9aace2c7c70c9ba9f6f0e4527fe9f",
+    "gate24CurrentStatePath": "governance/gates/GATE24/state/CURRENT_STATE.json",
+    "gate24CurrentStateSha256": "e7719b557b2377243cacb6f4c3764d954c8606822ac2625735117163344d0050",
+    "gate24TerminalLedgerOrdinal": 104,
+    "gate24TerminalLedgerEventId": "GATE24_EXTERNAL_CONFIRMATION_R1",
+    "gate24TerminalLedgerAuthorityPath": "governance/sources/GATE24_INDEPENDENT_EXTERNAL_CONFIRMATION_R2_EXTERNAL_REINSPECTION_REPORT.json",
+    "gate24TerminalTransition": "COMPLETE_AGENT -> COMPLETE_CONFIRMED",
+    "gate24MandatePath": "governance/sources/GATE24_CANONICAL_MANDATE_R0.json",
+    "gate24MandateSha256": "67bd631a77c87785d623ccbf1051c33b5b5bc9d57855167a8763d8586a55115f",
+    "observedAtHead": "d618fb59",
+    "rule": "GATE25 consumes GATE24 RegimeRecords as an upstream producer only. GATE25 does not reopen, reinterpret, extend or modify any GATE24 artifact, identity, invariant or Owner decision.",
+    "gate23Relation": {
+      "rule": "GATE25 consumes GATE23 FeatureRecords read-only through a FeatureVectorBindingId. GATE25 defines no feature, no window and no formula.",
+      "evidencePath": "governance/gates/GATE23/contracts/GATE23_FEATURE_IDENTITY_V1.json",
+      "evidenceSha256": "05cd98166d7c10d18d65778c9c79ce222a177b863c634538e0a3f85bb5e4d6ac",
+      "evidenceValue": "FeatureRecordId is a sealed 11-member EXACT_ONLY identity"
+    },
+    "gate22Relation": {
+      "rule": "GATE25 consumes GATE22 Outcome read-only and only after selectionComplete. GATE25 produces no Outcome and defines no horizon, formula, taxonomy or price basis.",
+      "evidencePath": "governance/gates/GATE22/contracts/GATE22_CONSUMPTION_BOUNDARY_V1.json",
+      "evidenceSha256": "3e33b498ee24139e04b654c269c3a9fb2ba9b08421b641876d69fce56e05cd60",
+      "evidencePointer": "/mandateProjection/boundaries/GATE25",
+      "evidenceValue": "Outcome attached after selection",
+      "horizonAuthorityPath": "governance/gates/GATE22/contracts/GATE22_TEMPORAL_HORIZON_V1.json",
+      "horizonAuthoritySha256": "c53ec179919f90593efdaad625187bc56218a4615bd7d0cecb415a27d4b55783",
+      "horizonAuthorityRule": "The Outcome window (T, T+H] and the admissible H values are owned by GATE22 and are consumed, never redefined."
+    },
+    "gate21Relation": {
+      "rule": "GATE25 consumes GATE21 v1 historical identities read-only for eligible history, and consumes GATE21 transitively through GATE23 and GATE24. GATE25 does not reopen GATE21 and performs no history-source expansion.",
+      "evidencePath": "governance/gates/GATE21/contracts/GATE21_BINDING_V1.json",
+      "evidenceSha256": "c8982c5c857759dd4204670e514c6b447b573140552d188012b9c9dedc5e9607",
+      "evidencePointer": "/outOfScope",
+      "evidenceValue": "G25 analogs are declared out of scope for GATE21; GATE21 supplies historical identities and never analogue semantics",
+      "evolvabilityRule": "GATE21 evolvability is ADDITIVE_VERSIONED with deprecation BY_VERSION_ID_NEVER_SILENT_REWRITE; GATE25 consumption must respect it."
+    },
+    "closedPerimeterRule": "GATE25 reopens no closed perimeter. GEE V1 post-freeze maintenance, the P1 historical calendar V2 product, the snapshot namespace count 132 successor maintenance and the legacy GEE LA-C10 regression coverage are all closed and are neither reopened, re-litigated nor re-derived by GATE25."
+  },
+  "entryConditions": [
+    {
+      "id": "EC-1",
+      "condition": "GATE24 regime identity is available.",
+      "disposition": "SATISFIED",
+      "evidence": "GATE24 is COMPLETE_CONFIRMED at state revision R0005 with terminal ledger ordinal 104. RegimeRecordId is a sealed 11-member EXACT_ONLY identity carrying RegimeHorizonSpecId.",
+      "evidenceIsDerivedFrom": "governance/gates/GATE24/state/CURRENT_STATE.json, governance/gates/GATE24/contracts/GATE24_REGIME_IDENTITY_V1.json and governance/state/GATE_STATUS_LEDGER.ndjson ordinal 104",
+      "blocking": false
+    },
+    {
+      "id": "EC-2",
+      "condition": "Similarity dimensions, horizons and eligible history are declared.",
+      "disposition": "SATISFIED",
+      "evidence": "OD-1, OD-2, OD-3 and OD-5 are recorded CLOSED from previously accepted Owner reviews without change of substance. OD-4 is resolved to the P3H pinset of 793 VERSION_CACHED keys and 9 documented exclusions under datasetIdentity sha256:cc7bb76f37a97a5673a32c5a8f357088ee94230fefcbef1c19ad16227476488e. Similarity dimensions, distance family, analogue identity members, eligible-history pin set and sample-size sufficiency rule are therefore declared. observationAdmissionAuthorized remains false. DatasetId_observation admission is not granted.",
+      "openOwnerDecisions": [],
+      "blocking": false,
+      "residual": "EC-2 no longer blocks on open Owner decisions. The mandate is Owner-ratified. GATE25 remains NOT_STARTED. Observation admission remains a separate Owner decision. Mandate ratification is not a START."
+    },
+    {
+      "id": "EC-3",
+      "condition": "Future outcomes are separated from selection features.",
+      "disposition": "FIXED_BY_INHERITANCE",
+      "evidence": "The two-phase selectionBoundary restates the GATE22 canonical rule that GATE25 attaches Outcome only after selection, and hardens it with an explicit frozen-set rule and a closed list of leakage forms.",
+      "evidenceIsDerivedFrom": "governance/gates/GATE22/contracts/GATE22_CONSUMPTION_BOUNDARY_V1.json /mandateProjection/boundaries/GATE25",
+      "blocking": false
+    }
+  ],
+  "entryConditionsSource": "governance/GATE_REGISTRY_00_40.json /gates/25/entryConditions, with dispositions declared in this mandate.",
+  "knowledgeCutoffPolicy": {
+    "ratificationStatus": "INHERITED_FROM_CANONICAL_PRIOR_AUTHORITY",
+    "formula": "K(T) = PinnedCanonicalSession(T).closeUtc",
+    "inheritedFrom": "GATE23 OD-5, restated unchanged by GATE24",
+    "redefinedByGate25": false,
+    "sessionPredicate": "sessionDate == T and sessionKind in allowedSessionKinds",
+    "halfDaySession": "uses its own canonical closeUtc",
+    "regularSession": "uses its own canonical closeUtc",
+    "forbiddenPrimitive": "marketSession.mjs::sessionCloseUtc",
+    "forbiddenWallClockConstants": [
+      "16:00",
+      "09:30",
+      "20:00",
+      "21:00"
+    ],
+    "perInputProofRequired": true,
+    "historicalCandidateRule": "A historical candidate at T_hist is admissible only through its own K(T_hist). Selection at T reads each historical candidate as it was knowable at its own cutoff, never as later restated.",
+    "noLatestReconstruction": "Reconstructing a historical state from the latest available data is forbidden. The vintage available at the historical cutoff is the only admissible reading."
+  },
+  "inheritedConstraints": [
+    {
+      "id": "IC-1",
+      "constraint": "K(T) causal cutoff",
+      "rule": "K(T) = PinnedCanonicalSession(T).closeUtc is inherited and is not redefined, overridden or relaxed by GATE25.",
+      "inheritedFrom": "GATE23 OD-5 via GATE24 /knowledgeCutoffPolicy"
+    },
+    {
+      "id": "IC-2",
+      "constraint": "availableAt <= K(T)",
+      "rule": "Every input, current or historical, market or macro, carries its own proof that availableAt <= the applicable cutoff. Unknown release availability is rejected fail-closed.",
+      "inheritedFrom": "GATE24 I-PER-INPUT-AVAILABLE-AT and GATE21_BINDING_V1 /eventTimeVsAvailableAt"
+    },
+    {
+      "id": "IC-3",
+      "constraint": "no latest reconstruction",
+      "rule": "No historical configuration may be rebuilt from later data, later vintages or later restatements.",
+      "inheritedFrom": "GATE24 V-2 VINTAGE LEAKAGE HOSTILE"
+    },
+    {
+      "id": "IC-4",
+      "constraint": "FREE data default",
+      "rule": "The required V1 cost class is FREE. Where no reliable free source exists the item is UNAVAILABLE or OPTIONAL_FUTURE. A mandatory paid source is forbidden.",
+      "inheritedFrom": "governance/gates/GATE21/contracts/GATE21_BINDING_V1.json /freeData"
+    },
+    {
+      "id": "IC-5",
+      "constraint": "OFF_SCAN",
+      "rule": "All GATE25 historical and analogue work is off-scan.",
+      "inheritedFrom": "GATE21_BINDING_V1 /performance and GATE24 I-LIVE-SCAN-UNCHANGED"
+    },
+    {
+      "id": "IC-6",
+      "constraint": "live Wheel critical path MUST_NOT_LENGTHEN",
+      "rule": "GATE25 must not lengthen the Wheel live scan critical path.",
+      "inheritedFrom": "GATE21_BINDING_V1 /performance/liveScanCriticalPath"
+    },
+    {
+      "id": "IC-7",
+      "constraint": "latencyTargetDelta ZERO",
+      "rule": "The measured live scan latency delta with GATE25 present is zero. No numeric SLA is invented by this mandate.",
+      "inheritedFrom": "GATE24 V-16 LIVE SCAN PERFORMANCE NON-REGRESSION"
+    },
+    {
+      "id": "IC-8",
+      "constraint": "precompute, cache and reuse allowed",
+      "rule": "FETCH_ONCE, NORMALIZE, VERSION_CACHE, PRECOMPUTE and REUSE remain the admissible architecture for off-scan work.",
+      "inheritedFrom": "GATE21_BINDING_V1 /performance/architecture and GATE24 /macroArchitecture"
+    },
+    {
+      "id": "IC-9",
+      "constraint": "no network during analogue computation",
+      "rule": "Analogue computation performs no network access of any kind.",
+      "inheritedFrom": "GATE24 I-MACRO-PREPARED-ONLY and PROJECT_CONSTITUTION NETWORK_FORBIDDEN_BY_DEFAULT"
+    },
+    {
+      "id": "IC-10",
+      "constraint": "no per-ticker live recomputation",
+      "rule": "An analogue computation is performed once against prepared inputs and reused across N tickers. Per-ticker live recomputation and per-ticker index rebuild are forbidden.",
+      "inheritedFrom": "GATE24 I-MACRO-SNAPSHOT-ONCE"
+    },
+    {
+      "id": "IC-11",
+      "constraint": "calendar reuse via existing calendarWindowBindingId",
+      "rule": "calendarWindowBindingId is resolved BY_REFERENCE_FROM_BOUND_GATE23_FEATURE_SET and fails closed if it is not single-valued. GATE25 constructs no CalendarWindowBinding and creates no calendar concept.",
+      "inheritedFrom": "governance/gates/GATE24/contracts/GATE24_BINDING_V1.json /calendarWindowBinding"
+    },
+    {
+      "id": "IC-12",
+      "constraint": "GATE24 CORE_V1 active dimensions only",
+      "rule": "Only the six CORE_V1 active dimensions primaryMarketRegime, volatilityState, inflationState, ratesState, yieldCurveShape and yieldCurveDirection are available to GATE25. The five REGISTERED_NOT_ACTIVE_IN_CORE_V1 dimensions carry only fail-closed members and never participate in selection.",
+      "inheritedFrom": "GATE24 /regimeVectorV1/dimensions"
+    },
+    {
+      "id": "IC-13",
+      "constraint": "deferred GATE24 capabilities remain deferred",
+      "rule": "GATE25 promotes no GATE24 deferred capability. GATE24-DC-01 through GATE24-DC-12 keep their declared class and status; a GATE25 need is not a promotion authority.",
+      "inheritedFrom": "GATE24 /gate24DeferredCapabilities and GATE24 I-NO-SILENT-PROMOTION"
+    },
+    {
+      "id": "IC-14",
+      "constraint": "no mutation of GATE21 through GATE24",
+      "rule": "GATE21, GATE22, GATE23 and GATE24 artifacts, identities, invariants and Owner decisions are consumed strictly read-only.",
+      "inheritedFrom": "GATE24 I-UPSTREAM-READ-ONLY and GATE24_CONSUMPTION_BOUNDARY_V1 /upstreamBoundary"
+    },
+    {
+      "id": "IC-15",
+      "constraint": "no GEE, P1, Snapshot132 or LA-C10 reopening",
+      "rule": "The GEE V1 post-freeze maintenance perimeter, the P1 historical calendar V2 product, the snapshot namespace count 132 successor maintenance and the legacy GEE LA-C10 regression coverage are closed and are not reopened by GATE25.",
+      "inheritedFrom": "the corresponding GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY sources under governance/sources"
+    }
+  ],
+  "inputBoundaries": {
+    "ratificationStatus": "OWNER_RATIFIED_IN_R0_OWNER_RATIFICATION",
+    "boundaries": [
+      {
+        "name": "FEATURE_BOUNDARY",
+        "carries": "GATE23 FeatureRecord(T)",
+        "boundBy": "FeatureVectorBindingId",
+        "phase": 1,
+        "reopensUpstream": false
+      },
+      {
+        "name": "REGIME_BOUNDARY",
+        "carries": "GATE24 RegimeRecord(T) with an explicitly bound RegimeHorizonSpecId",
+        "boundBy": "RegimeRecordId",
+        "phase": 1,
+        "consumerObligationsSource": "governance/gates/GATE24/contracts/GATE24_CONSUMPTION_BOUNDARY_V1.json /consumerObligations",
+        "reopensUpstream": false
+      },
+      {
+        "name": "ELIGIBLE_HISTORY_BOUNDARY",
+        "carries": "eligible historical identities from GATE21",
+        "boundBy": "P3H_HISTORICAL_DATASET_FINALIZATION_R1 datasetIdentity sha256:cc7bb76f37a97a5673a32c5a8f357088ee94230fefcbef1c19ad16227476488e",
+        "phase": 1,
+        "pinSetStatus": "BOUND",
+        "pinSetDecision": "OD-4",
+        "reopensUpstream": false,
+        "admittedKeyCount": 793,
+        "exclusionCount": 9,
+        "terminalStage": "VERSION_CACHED",
+        "datasetIdentity": "sha256:cc7bb76f37a97a5673a32c5a8f357088ee94230fefcbef1c19ad16227476488e",
+        "admittedKeyDigest": "9fdc19bff5de2769c32cdb7fde866e83adb120ec16736c8cabc1b1851f98ef85",
+        "exclusionDigest": "7eca4720595e05aaeaf3d8e35f40ada3efb41ab4d7a58147670119304c0c2e7d",
+        "observationAdmissionAuthorized": false,
+        "snapshotDatasetPinningIsNotObservationAdmission": true
+      },
+      {
+        "name": "POST_SELECTION_OUTCOME_BOUNDARY",
+        "carries": "GATE22 Outcome",
+        "boundBy": "OutcomeId with an explicit HorizonId",
+        "phase": 2,
+        "precondition": "selectionComplete",
+        "reopensUpstream": false
+      }
+    ],
+    "bypassProhibition": "No raw observation, raw bar, raw macro or raw outcome access that bypasses these boundaries is admissible."
+  },
+  "regimeConsumptionPolicy": {
+    "ratificationStatus": "OWNER_DIRECTED_IN_R0_DRAFT_INSTRUCTION",
+    "activeDimensionsAvailable": [
+      "primaryMarketRegime",
+      "volatilityState",
+      "inflationState",
+      "ratesState",
+      "yieldCurveShape",
+      "yieldCurveDirection"
+    ],
+    "registeredNotActiveDimensions": [
+      "growthState",
+      "laborState",
+      "creditState",
+      "liquidityState",
+      "fedPolicyState"
+    ],
+    "registeredNotActiveRule": "Registered-inactive dimensions carry only UNKNOWN and INSUFFICIENT_DATA and never participate in similarity, distance, ranking or eligibility.",
+    "compositeLabelMatchingForbidden": true,
+    "compositeLabelRule": "Matching on a composite or concatenated regime label alone is forbidden. A selection policy must bind the explicit regime dimensions it uses, and each bound dimension must be independently readable in the provenance.",
+    "horizonBinding": "A consumer binds RegimeHorizonSpecId explicitly even while only one horizon is active. Implicit fallback to the first available, the most recent or a global regime is forbidden.",
+    "crossHorizonComparison": "FORBIDDEN, inherited unchanged from GATE24_CONSUMPTION_BOUNDARY_V1 /transitionSemantics/crossHorizonComparison",
+    "classificationQualityUse": "classificationQuality is read as the declared GATE24 state and is never reinterpreted, rescaled or converted into an analogue confidence."
+  },
+  "calendarPolicy": {
+    "ratificationStatus": "INHERITED_FROM_CANONICAL_PRIOR_AUTHORITY",
+    "createsNewCalendarConcept": false,
+    "constructsCalendarWindowBinding": false,
+    "resolution": "BY_REFERENCE_FROM_BOUND_GATE23_FEATURE_SET",
+    "singleValuedness": "FAIL_CLOSED_IF_NOT_SINGLE_VALUED",
+    "fixturePromotion": "FORBIDDEN",
+    "inheritedFrom": "governance/gates/GATE24/contracts/GATE24_BINDING_V1.json /calendarWindowBinding",
+    "sessionCountingUnit": "CANONICAL_DAILY_TRADING_SESSION, inherited from GATE22 C1 and GATE23; both REGULAR_SESSION and HALF_DAY_SESSION count as 1"
+  },
+  "historyPolicy": {
+    "ratificationStatus": "OWNER_RATIFIED_IN_R0_OWNER_RATIFICATION",
+    "declaredIntentToken": "MAXIMUM_RELIABLE_HISTORY_AVAILABLE",
+    "tokenIsCanonical": true,
+    "tokenExistsInPriorAuthority": false,
+    "tokenSearchEvidence": "No occurrence of the token MAXIMUM_RELIABLE_HISTORY_AVAILABLE exists anywhere in the repository at HEAD d618fb59b7132090e3c8c59a39d5505febc0c07b. It is introduced here as durable Owner intent, not as an inherited canonical value.",
+    "meaning": "Durable Owner intent that GATE25 should draw on the maximum span of already-existing reliable history rather than a convenience subset.",
+    "ratificationRequirement": "OD-4 binds the explicit P3H pinset below. The intent token is now canonical by this GATE25 mandate ratification act. Observation admission remains a separate Owner decision and is not granted by this pinset. Mandate ratification is not a START.",
+    "ownership": {
+      "gate25Owns": "consumption of already-existing history",
+      "gate25DoesNotOwn": [
+        "history source research",
+        "history source expansion",
+        "new provider onboarding",
+        "paid data acquisition",
+        "calendar creation",
+        "scanner rewrite"
+      ]
+    },
+    "costClass": "FREE",
+    "costClassSource": "governance/gates/GATE21/contracts/GATE21_BINDING_V1.json /freeData",
+    "reliabilityRule": "Reliable means already admitted under an existing GATE21 v1 identity with its declared coverage and missingness semantics. Reliability is not asserted by GATE25 and is never inferred from length of history.",
+    "candidateAuthoritySurfaces": [
+      "governance/gates/GATE21/contracts/GATE21_BINDING_V1.json /promotedLabPins/DatasetManifestV1",
+      "governance/gates/GATE21/contracts/GATE21_BINDING_V1.json /promotedLabPins/SnapshotDatasetManifestV1",
+      "governance/gates/GATE21/contracts/GATE21_BINDING_V1.json /promotedLabPins/MacroDatasetSnapshotManifest",
+      "governance/gates/GATE21/contracts/GATE21_BINDING_V1.json /promotedLabPins/MacroVintageSetManifest",
+      "governance/gates/GATE21/contracts/GATE21_BINDING_V1.json /promotedLabPins/coverage"
+    ],
+    "candidateSurfaceRule": "The eligible-history pin set is now selected. It is the P3H 793 VERSION_CACHED / 9 documented-exclusion cohort. Naming additional GATE21 schema surfaces does not enlarge this pin set.",
+    "shortHistoryRule": "Where the eligible history is short, that shortness is reported as sample-size insufficiency under OC-5 and is never compensated by relaxing eligibility, widening the metric or asserting confidence.",
+    "observationAdmissionAuthorized": false,
+    "snapshotDatasetPinningIsNotObservationAdmission": true,
+    "pinSet": {
+      "schemaVersion": "JarviseYahooFetchOnceCohortFinalization/1",
+      "programId": "P3_HISTORICAL_YAHOO_FETCH_ONCE_R1",
+      "ownerAuthorizationId": "OWNER_AUTHORIZE_GATE25_MANDATE_NARROW_AMENDMENT_TO_BIND_P3H_OD4_PINSET_R1",
+      "ownerDecisionId": "OWNER_RESOLVE_GATE25_OD4_TO_P3H_793_VERSION_CACHED_WITH_9_DOCUMENTED_EXCLUSIONS_R1",
+      "artifactPath": "C:\\Users\\melan\\JarviseDurable\\P3_HISTORICAL_YAHOO_FETCH_ONCE_R1\\P3H_HISTORICAL_DATASET_FINALIZATION_R1.json",
+      "datasetIdentity": "sha256:cc7bb76f37a97a5673a32c5a8f357088ee94230fefcbef1c19ad16227476488e",
+      "admittedKeyDigest": "9fdc19bff5de2769c32cdb7fde866e83adb120ec16736c8cabc1b1851f98ef85",
+      "exclusionDigest": "7eca4720595e05aaeaf3d8e35f40ada3efb41ab4d7a58147670119304c0c2e7d",
+      "admittedKeyCount": 793,
+      "exclusionCount": 9,
+      "terminalStage": "VERSION_CACHED",
+      "observationAdmissionAuthorized": false,
+      "snapshotDatasetPinningIsNotObservationAdmission": true,
+      "observationAdmissionNote": "P3H snapshot/dataset pinning != DatasetId_observation admission. observationAdmissionAuthorized remains false. No historical backdating is authorized here."
+    }
+  },
+  "aiBoundary": {
+    "ratificationStatus": "OWNER_DIRECTED_IN_R0_DRAFT_INSTRUCTION",
+    "state": "AI_OUT_OF_SCOPE",
+    "statement": "GATE25 contains no AI. Analogue selection is a deterministic, pure, local computation reproducible from bound inputs and declared versions.",
+    "forbidden": [
+      "AI conversational UX",
+      "local LLM",
+      "Ollama or any equivalent local model runtime",
+      "model-generated similarity judgement",
+      "model-generated ranking, weighting or distance",
+      "LLM-authored analogue narrative presented as evidence",
+      "prompt-based or heuristic-language selection"
+    ],
+    "rule": "No model inference participates in selection, ranking, distance, sample-size assessment or uncertainty. An explanation surface, if one ever exists, belongs to GATE31 and is out of scope here."
+  },
+  "performanceBoundary": {
+    "ratificationStatus": "INHERITED_FROM_CANONICAL_PRIOR_AUTHORITY",
+    "computationPlacement": "OFF_SCAN",
+    "liveScanCriticalPath": "MUST_NOT_LENGTHEN",
+    "latencyTargetDelta": "ZERO",
+    "numericSlaDeclared": false,
+    "numericSlaRule": "No numeric latency SLA, budget or threshold is invented by this mandate. Any numeric budget is a later contract concern.",
+    "permitted": [
+      "PRECOMPUTE",
+      "CACHE",
+      "VERSION_CACHE",
+      "REUSE",
+      "FETCH_ONCE upstream"
+    ],
+    "forbidden": [
+      "network access during analogue computation",
+      "per-ticker live recomputation",
+      "per-ticker analogue index rebuild",
+      "live substitution into historical",
+      "any coupling to the Wheel scanner critical path"
+    ],
+    "inheritedFrom": "governance/gates/GATE21/contracts/GATE21_BINDING_V1.json /performance and /historicalVsLiveBoundary"
+  },
+  "scope": {
+    "included": [
+      "analogue selection policy declaration and versioning",
+      "analogue identity declaration under an EXACT_ONLY closure rule",
+      "deterministic distance computation over an explicitly bound similarity dimension set",
+      "eligible-history binding and explicit exclusion accounting",
+      "analogue index and append-only analogue store",
+      "analogue comparison reporting with common factors and differences",
+      "sample-size and uncertainty reporting",
+      "post-selection outcome distribution over a frozen analogue set",
+      "consumption boundary for downstream gates",
+      "performance boundary evidence",
+      "replay and provenance evidence"
+    ],
+    "excluded": [
+      "invention of similarity dimensions, distance metrics, weights, thresholds, neighbour counts, sample-size numbers or confidence values",
+      "any machine learning model and any LLM",
+      "any modification of GATE21, GATE22, GATE23 or GATE24 artifacts, identities, invariants or Owner decisions",
+      "history-source research, expansion or provider onboarding",
+      "calendar creation or calendar redefinition",
+      "regime taxonomy creation or extension",
+      "feature definition creation or extension",
+      "outcome horizon creation or redefinition",
+      "prediction, forecasting and probability estimation",
+      "strategy conditioning, sizing, entry or exit logic",
+      "backtesting, performance attribution and PnL",
+      "any Wheel decision surface",
+      "any change to the Wheel live scan path",
+      "scanner rewrite",
+      "Jarvise UX and GATE31 explanation surfaces"
+    ]
+  },
+  "nonGoals": [
+    "GATE25 does not predict what happens next.",
+    "GATE25 does not assert that an analogue is favorable or unfavorable.",
+    "GATE25 does not produce Outcome; it attaches an existing one after selection.",
+    "GATE25 does not emit an invented confidence, probability or score.",
+    "GATE25 does not match on a composite regime label alone.",
+    "GATE25 does not repair, extend or reinterpret upstream gates.",
+    "GATE25 does not introduce a second knowledge-cutoff authority.",
+    "GATE25 does not expand, acquire or research history sources.",
+    "GATE25 does not create or modify a calendar.",
+    "GATE25 does not promote any GATE24 deferred capability.",
+    "GATE25 does not contain AI of any kind.",
+    "GATE25 does not touch broker, order or execution surfaces."
+  ],
+  "doNotOverSpecify": {
+    "ratificationStatus": "OWNER_DIRECTED_IN_R0_DRAFT_INSTRUCTION",
+    "forbiddenInThisMandate": [
+      "the similarity dimension subset",
+      "the distance metric family or formula",
+      "numeric distance thresholds",
+      "weights and coefficients",
+      "a neighbour count",
+      "a minimum sample size",
+      "a numeric latency SLA",
+      "the analogue identity ordered member list",
+      "the eligible-history pin set",
+      "confidence or probability values"
+    ],
+    "disposition": "Items marked OWNER_DECISION_REQUIRED are blocked pending an Owner act. Items marked DEFERRED_TO_CONTRACT remain versioned and are fixed later by contract when actually needed. Neither may be invented here."
+  },
+  "requiredOutputClasses": {
+    "pathsFrozenByThisDocument": false,
+    "buildWorksetFrozen": false,
+    "implementedByThisMandate": false,
+    "note": "Logical artifact kinds only. No implementation path is frozen, authorized or created by this mandate; paths are fixed by a future GATE25 execution contract that this document does not create.",
+    "registryRequiredOutputs": [
+      "analogue selection policy",
+      "analogue index",
+      "analogue comparison report",
+      "uncertainty and sample-size report"
+    ],
+    "registryRequiredArtifacts": [
+      "similarity and distance definitions",
+      "common factors and differences",
+      "future outcome distributions"
+    ],
+    "registryEvidenceRequirements": [
+      "selected historical snapshot hashes",
+      "distance calculations",
+      "eligible universe and exclusions",
+      "outcome horizon bindings",
+      "uncertainty measurements"
+    ],
+    "classes": [
+      {
+        "id": "OC-1",
+        "kind": "analogue selection policy",
+        "expectation": "A versioned, deterministic policy declaring the bound similarity dimensions, the distance metric, the eligibility rule and the selection rule, under an explicit selection policy version identity.",
+        "blockedBy": [
+          "OD-1",
+          "OD-2"
+        ]
+      },
+      {
+        "id": "OC-2",
+        "kind": "analogue identity",
+        "expectation": "A content-addressed analogue identity under an EXACT_ONLY closure rule, identifying the question asked and never the answer, with resolved distances, rankings, outcomes and uncertainty states excluded from the digest.",
+        "blockedBy": [
+          "OD-3"
+        ]
+      },
+      {
+        "id": "OC-3",
+        "kind": "analogue index and store",
+        "expectation": "An append-only store keyed by the analogue identity, idempotent on identical replay, refusing divergent replay under the same key, and never rewritten by a later vintage or restatement.",
+        "blockedBy": [
+          "OD-3",
+          "OD-4"
+        ]
+      },
+      {
+        "id": "OC-4",
+        "kind": "analogue comparison report",
+        "expectation": "Per analogue, the reproducible distance, the common factors and the differences, attributable to the explicitly bound dimensions that produced them.",
+        "blockedBy": [
+          "OD-1",
+          "OD-2"
+        ]
+      },
+      {
+        "id": "OC-5",
+        "kind": "uncertainty and sample-size report",
+        "expectation": "Explicit sample size, eligible universe, exclusions with reasons, and a declared uncertainty state. Insufficient support is reported as insufficiency and never promoted into confidence.",
+        "blockedBy": [
+          "OD-5"
+        ]
+      },
+      {
+        "id": "OC-6",
+        "kind": "post-selection outcome distribution",
+        "expectation": "A distribution over GATE22 Outcomes attached to the already-frozen analogue set, carrying an explicit outcome horizon binding and proof that attachment followed selectionComplete.",
+        "blockedBy": null
+      },
+      {
+        "id": "OC-7",
+        "kind": "consumption boundary",
+        "expectation": "A downstream consumption boundary declaring what GATE25 produces, what a consumer must bind explicitly, and that a GATE25 PASS is not a GATE26 authorization.",
+        "blockedBy": null
+      },
+      {
+        "id": "OC-8",
+        "kind": "performance boundary",
+        "expectation": "Evidence that analogue computation is off-scan, performs no network access, is not recomputed per ticker, and measures a zero live scan latency delta.",
+        "blockedBy": null
+      },
+      {
+        "id": "OC-9",
+        "kind": "replay and provenance evidence",
+        "expectation": "Complete provenance per analogue including selected historical snapshot hashes, distance calculations, eligible universe and exclusions, plus an independent replay reproducing an identical analogue set.",
+        "blockedBy": null
+      }
+    ]
+  },
+  "validationExpectations": [
+    {
+      "id": "V-1",
+      "name": "CAUSAL SELECTION",
+      "validationClass": "causal selection",
+      "expectation": "Every selection input at T carries a proof that availableAt <= K(T), and every historical candidate is read at its own cutoff."
+    },
+    {
+      "id": "V-2",
+      "name": "OUTCOME LEAKAGE HOSTILE",
+      "validationClass": "leakage rejection",
+      "expectation": "An Outcome offered to phase 1 is rejected in every declared form: direct, lagged, renamed, type-laundered, aggregated into a statistic, embedded in a threshold or rule, or derived from a future outcome."
+    },
+    {
+      "id": "V-3",
+      "name": "POST-SELECTION ATTACHMENT ORDER",
+      "validationClass": "leakage rejection",
+      "expectation": "Attachment is admissible only after selectionComplete, and any change to the analogue set after an Outcome becomes visible is refused."
+    },
+    {
+      "id": "V-4",
+      "name": "DISTANCE REPRODUCIBILITY",
+      "validationClass": "distance reproducibility",
+      "expectation": "Every per-analogue distance recomputes to the identical value from the bound inputs and the declared policy version."
+    },
+    {
+      "id": "V-5",
+      "name": "EXACT REPLAY",
+      "validationClass": "distance reproducibility",
+      "expectation": "Identical bytes and versions reproduce an identical analogue set in identical order, including identical identities."
+    },
+    {
+      "id": "V-6",
+      "name": "SAMPLE SIZE EXPLICIT",
+      "validationClass": "sample-size sufficiency",
+      "expectation": "Sample size, eligible universe and exclusions with reasons are present and arithmetically consistent for every emitted analogue set."
+    },
+    {
+      "id": "V-7",
+      "name": "INSUFFICIENT SUPPORT NOT PROMOTED",
+      "validationClass": "sample-size sufficiency",
+      "expectation": "An analogue set below the ratified sufficiency rule is emitted as insufficient and is never converted into a confidence, a score or a silently narrower comparison."
+    },
+    {
+      "id": "V-8",
+      "name": "HORIZON BINDING EXPLICIT",
+      "validationClass": "horizon binding",
+      "expectation": "The regime horizon and the outcome horizon are both bound explicitly, and no implicit fallback to a default, the first available or the most recent is admissible."
+    },
+    {
+      "id": "V-9",
+      "name": "REGIME DEPENDENCE EXPLICIT",
+      "validationClass": "regime dependence",
+      "expectation": "The regime dimensions that conditioned a selection are individually recorded and independently readable in the provenance."
+    },
+    {
+      "id": "V-10",
+      "name": "NO COMPOSITE LABEL MATCHING",
+      "validationClass": "regime dependence",
+      "expectation": "A selection driven only by a composite or concatenated regime label is refused; explicit dimension binding is required."
+    },
+    {
+      "id": "V-11",
+      "name": "ELIGIBLE UNIVERSE COMPLETENESS",
+      "validationClass": "sample-size sufficiency",
+      "expectation": "The eligible universe accounts for every candidate considered, with each exclusion carrying an explicit reason and no unexplained gap."
+    },
+    {
+      "id": "V-12",
+      "name": "VINTAGE LEAKAGE HOSTILE",
+      "validationClass": "leakage rejection",
+      "expectation": "A later revision cannot contaminate an older historical candidate; replay uses the vintage available at that candidate's own cutoff."
+    },
+    {
+      "id": "V-13",
+      "name": "NO SILENT FALLBACK",
+      "validationClass": "leakage rejection",
+      "expectation": "A missing, ambiguous or non-single-valued binding fails closed with an explicit reason and never falls back to a default, a neighbouring value or a wider universe."
+    },
+    {
+      "id": "V-14",
+      "name": "NETWORK OFF DURING COMPUTATION",
+      "validationClass": "causal selection",
+      "expectation": "Analogue computation performs no network access, and no request occurs on the Wheel live scan path or per ticker."
+    },
+    {
+      "id": "V-15",
+      "name": "LIVE SCAN PERFORMANCE NON-REGRESSION",
+      "validationClass": "causal selection",
+      "expectation": "The Wheel live scan critical path measures a zero latency delta with GATE25 present."
+    },
+    {
+      "id": "V-16",
+      "name": "PROVENANCE COMPLETENESS",
+      "validationClass": "distance reproducibility",
+      "expectation": "Every analogue traces to its selected historical snapshot hashes, its distance calculation and its bound identities; no opaque analogue is emitted."
+    },
+    {
+      "id": "V-17",
+      "name": "POLICY VERSION MUTATION",
+      "validationClass": "distance reproducibility",
+      "expectation": "Any change to the similarity dimension set, the metric, the eligibility rule or the sufficiency rule produces a new version and a new identity; historical analogue records are never rewritten."
+    },
+    {
+      "id": "V-18",
+      "name": "DEFERRED CAPABILITY NON-PARTICIPATION",
+      "validationClass": "regime dependence",
+      "expectation": "No GATE24 registered-inactive dimension and no GATE24 deferred capability participates in selection, and none is silently promoted by a GATE25 need."
+    },
+    {
+      "id": "V-19",
+      "name": "CALENDAR REUSE",
+      "validationClass": "horizon binding",
+      "expectation": "calendarWindowBindingId is resolved by reference from the bound GATE23 FeatureSet, fails closed when not single-valued, and no CalendarWindowBinding is constructed by GATE25."
+    },
+    {
+      "id": "V-20",
+      "name": "UPSTREAM NON-MUTATION",
+      "validationClass": "causal selection",
+      "expectation": "A GATE25 run leaves every GATE21, GATE22, GATE23, GATE24, GEE and Directional Lab artifact byte-identical."
+    }
+  ],
+  "validationExpectationsSource": "governance/sources/GATE16_40_OWNER_RATIFICATION_R2.json /gates[gateId=GATE25]/validationClasses, expanded into testable expectations without adding a validation class.",
+  "immutableInvariants": [
+    {
+      "id": "I-OUTCOME-FORBIDDEN-IN-SELECTION",
+      "rule": "GATE22 Outcome and any label derived from it are forbidden as selection inputs, direct, lagged, renamed, type-laundered, aggregated or derived from a future outcome."
+    },
+    {
+      "id": "I-SELECTION-BEFORE-ATTACHMENT",
+      "rule": "Outcome attachment happens only after selectionComplete. The ordering is a boundary, not a convention."
+    },
+    {
+      "id": "I-ANALOGUE-SET-FROZEN-AT-SELECTION-COMPLETE",
+      "rule": "The analogue set and its distances are content-addressed and frozen at selectionComplete; an outcome-conditioned change to the set is a leakage defect."
+    },
+    {
+      "id": "I-NO-FUTURE-INPUT",
+      "rule": "Selection, distance, eligibility and uncertainty read only contemporaneous or prior inputs."
+    },
+    {
+      "id": "I-PER-INPUT-AVAILABLE-AT",
+      "rule": "Every input carries its own proof that availableAt <= the applicable cutoff; unknown availability is rejected fail-closed."
+    },
+    {
+      "id": "I-CUTOFF-INHERITED-NOT-REDEFINED",
+      "rule": "K(T) = PinnedCanonicalSession(T).closeUtc is inherited and is not redefined, overridden or relaxed by GATE25."
+    },
+    {
+      "id": "I-NO-LATEST-RECONSTRUCTION",
+      "rule": "A historical configuration is read as it was knowable at its own cutoff, never reconstructed from the latest data."
+    },
+    {
+      "id": "I-DETERMINISTIC-REPLAY",
+      "rule": "Identical bound inputs and versions reproduce an identical analogue set, identical distances and identical identities."
+    },
+    {
+      "id": "I-POINT-IN-TIME-IMMUTABLE",
+      "rule": "A later policy, metric, vintage or upstream restatement never rewrites an emitted analogue record."
+    },
+    {
+      "id": "I-EXPLICIT-REGIME-DIMENSIONS",
+      "rule": "Selection binds explicit GATE24 regime dimensions; matching on a composite regime label alone is forbidden."
+    },
+    {
+      "id": "I-HORIZON-EXPLICIT",
+      "rule": "The regime horizon and the outcome horizon are bound explicitly and provably; implicit fallback is forbidden."
+    },
+    {
+      "id": "I-SAMPLE-SIZE-EXPLICIT",
+      "rule": "Sample size, eligible universe and exclusions are always explicit; a silent universe is a defect."
+    },
+    {
+      "id": "I-NO-INVENTED-CONFIDENCE",
+      "rule": "No probability, confidence percentage or uncalibrated score is emitted; insufficiency is reported as insufficiency."
+    },
+    {
+      "id": "I-NO-SILENT-FALLBACK",
+      "rule": "Missing, ambiguous or non-single-valued bindings fail closed with an explicit reason and never degrade silently."
+    },
+    {
+      "id": "I-UPSTREAM-READ-ONLY",
+      "rule": "GATE21, GATE22, GATE23, GATE24, the GEE perimeter and the Directional Lab producers are consumed read-only and modified by nothing in GATE25."
+    },
+    {
+      "id": "I-CALENDAR-REUSE-ONLY",
+      "rule": "GATE25 resolves calendarWindowBindingId by reference and creates no calendar concept and no CalendarWindowBinding."
+    },
+    {
+      "id": "I-HISTORY-CONSUMED-NOT-EXPANDED",
+      "rule": "GATE25 consumes history; it does not own, expand, acquire or research history sources."
+    },
+    {
+      "id": "I-FREE-DATA-DEFAULT",
+      "rule": "The required V1 cost class is FREE; a mandatory paid source is forbidden."
+    },
+    {
+      "id": "I-OFF-SCAN",
+      "rule": "All analogue work is off-scan and performs no network access."
+    },
+    {
+      "id": "I-LIVE-SCAN-UNCHANGED",
+      "rule": "GATE25 must not lengthen the Wheel live scan critical path; the latency delta is zero."
+    },
+    {
+      "id": "I-NO-PER-TICKER-RECOMPUTE",
+      "rule": "Analogue computation is performed once against prepared inputs and reused across N tickers."
+    },
+    {
+      "id": "I-DEFERRED-STAYS-DEFERRED",
+      "rule": "GATE24 deferred capabilities and registered-inactive dimensions remain deferred; a GATE25 need is not a promotion authority."
+    },
+    {
+      "id": "I-AI-OUT-OF-SCOPE",
+      "rule": "No AI, LLM or model inference participates in any part of GATE25."
+    },
+    {
+      "id": "I-PROVENANCE-COMPLETE",
+      "rule": "No analogue is emitted without complete, causal, reproducible provenance."
+    },
+    {
+      "id": "I-NO-SILENT-GAP",
+      "rule": "Omitting a candidate or a session in scope without an explicit exclusion reason is fail-closed and is a defect."
+    }
+  ],
+  "exitConditions": [
+    "Every analogue has reproducible selection inputs and distance.",
+    "Outcomes are attached only after the selection boundary.",
+    "Sample size, horizon and regime dependence are explicit.",
+    "Insufficient analogue support is not promoted to confidence.",
+    "Independent replay returns the same analogue set."
+  ],
+  "exitConditionsSource": "governance/GATE_REGISTRY_00_40.json /gates/25/exitConditions, byte-identical.",
+  "prohibitedOperations": [
+    "no execution authority of any kind",
+    "no GATE25 authority document",
+    "no GATE25 gate directory",
+    "no PRECONTRACT",
+    "no EXECUTION_CONTRACT and no CURRENT_CONTRACT",
+    "no START and no GATE_START_RECORD",
+    "no BUILD and no frozen build workset",
+    "no ledger append and no ledger mutation",
+    "no ACTIVE_GATE modification",
+    "no lifecycle or status transition",
+    "no state revision, checkpoint, seal or evidence artifact",
+    "no GATE21, GATE22, GATE23 or GATE24 modification of any kind",
+    "no GEE, P1 historical calendar V2, snapshot namespace count 132 or LA-C10 reopening",
+    "no Directional Lab artifact modification",
+    "no deferred capability registry mutation",
+    "no commit",
+    "no push",
+    "no staging",
+    "no network operation",
+    "no subagent delegation",
+    "no implementation code",
+    "no invented similarity dimension, distance metric, weight, threshold, neighbour count, sample-size number or confidence value",
+    "no invented eligible-history pin set",
+    "no invented analogue identity member list",
+    "no machine learning model and no LLM",
+    "no future-dated input and no input with availableAt after the applicable cutoff",
+    "no Outcome as a selection input",
+    "no post-selection modification of the analogue set",
+    "no wall-clock cutoff constant",
+    "no use of marketSession.mjs::sessionCloseUtc",
+    "no calendar creation and no CalendarWindowBinding construction",
+    "no history-source expansion",
+    "no silent fallback",
+    "no lengthening of the Wheel live scan critical path"
+  ],
+  "forbiddenScope": {
+    "ratificationStatus": "OWNER_DIRECTED_IN_R0_DRAFT_INSTRUCTION",
+    "registryForbiddenScope": [
+      "future outcomes in similarity features",
+      "invented confidence",
+      "untraceable analogue lists"
+    ],
+    "registryForbiddenScopeSource": "governance/sources/GATE16_40_OWNER_RATIFICATION_R2.json /gates[gateId=GATE25]/forbiddenScope, quoted verbatim.",
+    "ownerDeclaredForbiddenScope": [
+      "autonomous trading",
+      "broker writes",
+      "order submit, modify or cancel",
+      "IBKR write-capable access",
+      "credentials",
+      "live decision automation",
+      "paper trading",
+      "controlled execution",
+      "AI conversational UX",
+      "local LLM or Ollama",
+      "final Jarvise UX",
+      "GATE31 explanation",
+      "GATE35 alerts",
+      "GATE36 through GATE38",
+      "portfolio execution",
+      "history-source expansion",
+      "scanner rewrite",
+      "future Outcome leakage",
+      "silent fallback",
+      "invented confidence",
+      "composite-regime-label-only matching"
+    ],
+    "rule": "Every item above is out of scope for GATE25 in full. None of them may be entered partially, experimentally, behind a flag, in a fixture or as a stub."
+  },
+  "startBoundary": {
+    "does": [],
+    "doesNot": [
+      "creates no GATE25 start artifact",
+      "creates no GATE25 gate directory",
+      "creates no mandate binding",
+      "creates no precontract authority",
+      "creates no execution contract",
+      "creates no analogue record, index or store",
+      "creates no selection policy artifact",
+      "creates no ledger event",
+      "modifies no implementation path",
+      "modifies no ACTIVE_GATE pointer",
+      "modifies no lifecycle status"
+    ],
+    "startIsNotBuild": true,
+    "ratificationIsNotStart": true,
+    "notAuthorizedByThisDocument": true
+  },
+  "domainContracts": {
+    "contractCount": 0,
+    "contracts": [],
+    "note": "No execution contract is created or authorized by this ratification-only mandate."
+  },
+  "deferredCapabilityPolicy": {
+    "ratificationStatus": "INHERITED_FROM_CANONICAL_PRIOR_AUTHORITY",
+    "newlyDeferredCapabilities": [],
+    "meaning": "This mandate introduces no newly-deferred GATE25 capability. The empty declaration is declared, not omitted.",
+    "obligationRule": "The DEFERRED_CAPABILITY_DECLARATION obligation under PROJECT_CONSTITUTION DEFERRED_CAPABILITY_MUST_BE_DURABLY_REGISTERED attaches at GATE25 closure, not at mandate drafting or ratification. Any capability deferred later must resolve in the canonical registry as an OPEN deferral owned by GATE25, with a reason from the pinned vocabulary version.",
+    "registryPath": "governance/master-matrix/DEFERRED_CAPABILITY_REGISTRY.ndjson",
+    "vocabularyPath": "governance/master-matrix/DEFERRED_CAPABILITY_REASON_VOCABULARY_V1.json",
+    "registryMutatedByThisDocument": false,
+    "gate24DeferralsUnchanged": true,
+    "gate24DeferralIds": [
+      "GATE24-DC-01",
+      "GATE24-DC-02",
+      "GATE24-DC-03",
+      "GATE24-DC-04",
+      "GATE24-DC-05",
+      "GATE24-DC-06",
+      "GATE24-DC-07",
+      "GATE24-DC-08",
+      "GATE24-DC-09",
+      "GATE24-DC-10",
+      "GATE24-DC-11",
+      "GATE24-DC-12"
+    ]
+  },
+  "downstreamGuarantees": {
+    "GATE21": "Consumed read-only through frozen v1 pins and historical identities; no GATE21 artifact is modified or reopened, and no history source is expanded.",
+    "GATE22": "Consumed read-only and only after selectionComplete; no Outcome, horizon, formula, taxonomy or price basis is created or modified.",
+    "GATE23": "Consumed read-only through a FeatureVectorBindingId; no feature, window, formula or calendar binding is created or modified.",
+    "GATE24": "Consumed read-only through the GATE24 consumption boundary; no regime, taxonomy, classifier, parameter set or deferred capability is modified or promoted.",
+    "GATE25": "Declares the analogue mission boundary only; no execution scope is authorized. The mandate is Owner-ratified. Mandate ratification is not a START.",
+    "GATE26": "GATE26 may use analogue evidence only with explicit uncertainty and provenance. No GATE26 scope is authorized by this mandate."
+  },
+  "downstreamGuaranteesSource": "governance/sources/GATE16_40_OWNER_RATIFICATION_R2.json /gates[gateId=GATE25]/downstreamGuarantees for the GATE26 clause, quoted verbatim.",
+  "nextGate": "GATE26",
+  "openOwnerDecisions": [],
+  "openOwnerDecisionsNote": "No Owner decision remains open. OD-1, OD-2, OD-3, OD-4 and OD-5 are CLOSED and Owner-ratified as a whole by OWNER_RATIFY_GATE25_CANONICAL_MANDATE_R0_R1. GATE25 remains NOT_STARTED. Mandate ratification is not a START.",
+  "closedOwnerDecisions": [
+    {
+      "id": "OD-1",
+      "wasOpenAs": "OD-1",
+      "subject": "similarity dimension subset",
+      "question": "Which subset of the available bound inputs constitutes the similarity dimensions used for selection, and how are feature dimensions and GATE24 CORE_V1 regime dimensions combined?",
+      "closureStatus": "CLOSED",
+      "closedBy": "OWNER_AUTHORIZE_GATE25_MANDATE_NARROW_AMENDMENT_TO_BIND_P3H_OD4_PINSET_R1",
+      "preservedFrom": "Prior Owner acceptance after GATE25 OD-1 volatilityState repair. Substance unchanged by this amendment.",
+      "resolution": "GATE25 V1 regime eligibility is exact-match of the six CORE_V1 dimensions: primaryMarketRegime, volatilityState, inflationState, ratesState, yieldCurveShape, yieldCurveDirection. volatilityState is read only as a sealed RegimeVector member. GATE25 does not recompute volatility and does not consume F2_REALIZED_VOLATILITY. A fail-closed volatilityState is handled by the already-accepted missing-data rule, not by removing the dimension. Numeric similarity remains F1_SIMPLE_RETURN@W5 and F1_SIMPLE_RETURN@W21 only, same InstrumentIdentityId, RegimeHorizonSpecId sessionCount=21. Inactive GATE24 dimensions, F2/F3/F4, non-core F1 windows, cross-section, Outcome and composite-regime-label matching remain excluded.",
+      "candidateSurfaces": [
+        "governance/sources/GATE24_CANONICAL_MANDATE_R0.json /regimeVectorV1/dimensions, ACTIVE_IN_CORE_V1 members only",
+        "governance/gates/GATE23/contracts/GATE23_FEATURE_IDENTITY_V1.json /orderedMembers"
+      ],
+      "blocksOutputClasses": [
+        "OC-1",
+        "OC-4"
+      ],
+      "blocksContractFreeze": false
+    },
+    {
+      "id": "OD-2",
+      "wasOpenAs": "OD-2",
+      "subject": "distance metric family",
+      "question": "Which distance metric family governs analogue comparison, and how are heterogeneous dimensions made commensurable without inventing weights?",
+      "closureStatus": "CLOSED",
+      "closedBy": "OWNER_AUTHORIZE_GATE25_MANDATE_NARROW_AMENDMENT_TO_BIND_P3H_OD4_PINSET_R1",
+      "preservedFrom": "Prior Owner acceptance of the GATE25 Owner-decision closure review. Substance unchanged by this amendment.",
+      "resolution": "V1 distance family is Manhattan L1 on (F1@W5, F1@W21) after deterministic per-dimension min-max normalization over the frozen eligible universe at T, after exact regime eligibility. Cosine, Mahalanobis and Gower-on-regime-labels are rejected. No k-NN. No Outcome-tuned distance threshold. The analogue set is the complete eligible universe after filters. Tie-break and missing-data rules previously accepted remain unchanged.",
+      "candidateSurfaces": [],
+      "blocksOutputClasses": [
+        "OC-1",
+        "OC-4"
+      ],
+      "blocksContractFreeze": false
+    },
+    {
+      "id": "OD-3",
+      "wasOpenAs": "OD-3",
+      "subject": "analogue identity ordered members",
+      "question": "What is the exact ordered member list of the analogue identity under EXACT_ONLY closure?",
+      "closureStatus": "CLOSED",
+      "closedBy": "OWNER_AUTHORIZE_GATE25_MANDATE_NARROW_AMENDMENT_TO_BIND_P3H_OD4_PINSET_R1",
+      "preservedFrom": "Prior Owner acceptance of the GATE25 Owner-decision closure review. Substance unchanged by this amendment.",
+      "resolution": "Analogue identity is EXACT_ONLY with eleven ordered members identifying the question asked, never the answer: (1) InstrumentIdentityId, (2) SessionDate, (3) KnowledgeCutoff, (4) FeatureVectorBindingId, (5) RegimeRecordId, (6) RegimeHorizonSpecId, (7) MacroContextBindingId, (8) SelectionPolicyVersionId, (9) EligibleHistoryPinSetId, (10) PriceBasisId SPLIT_ADJUSTED only, (11) MissingnessStateId. Forbidden in the digest: ticker/symbol/alias, Outcome*, distances, rankings, analogue set, classificationQuality, regimeVector values, outcome HorizonId. calendarWindowBindingId is not a twelfth member; it is already inside FeatureVectorBindingId and fails closed if not single-valued.",
+      "candidateSurfaces": [
+        "governance/gates/GATE24/contracts/GATE24_REGIME_IDENTITY_V1.json /orderedMembers",
+        "governance/gates/GATE23/contracts/GATE23_FEATURE_IDENTITY_V1.json /orderedMembers",
+        "governance/gates/GATE22/contracts/GATE22_IDENTITY_MODEL_V1.json /identityDigestRules"
+      ],
+      "inheritedPatternConstraints": [
+        "EXACT_ONLY closure: no optional member, no interpretable member, no implicit extension, no at-minimum reading",
+        "the identity identifies the question asked, never the answer: resolved distances, rankings, outcomes and uncertainty states are excluded by construction",
+        "ticker, symbol and any alias field are forbidden in the digest"
+      ],
+      "blocksOutputClasses": [
+        "OC-2",
+        "OC-3"
+      ],
+      "blocksContractFreeze": false
+    },
+    {
+      "id": "OD-4",
+      "wasOpenAs": "OD-4",
+      "subject": "eligible-history snapshot and dataset pin set",
+      "question": "Which exact GATE21 snapshot and dataset pins constitute the eligible history, and what span does the MAXIMUM_RELIABLE_HISTORY_AVAILABLE intent resolve to against them?",
+      "closureStatus": "CLOSED",
+      "closedBy": "OWNER_AUTHORIZE_GATE25_MANDATE_NARROW_AMENDMENT_TO_BIND_P3H_OD4_PINSET_R1",
+      "closedDecisionId": "OWNER_RESOLVE_GATE25_OD4_TO_P3H_793_VERSION_CACHED_WITH_9_DOCUMENTED_EXCLUSIONS_R1",
+      "relatedField": "/historyPolicy",
+      "resolution": "MAXIMUM_RELIABLE_HISTORY_AVAILABLE resolves to the closed P3H historical Yahoo FETCH_ONCE cohort pinset of 793 VERSION_CACHED SnapshotDatasetManifestV1 keys plus 9 documented exclusions. This is snapshot/dataset pinning, not DatasetId_observation admission.",
+      "pinSet": {
+        "schemaVersion": "JarviseYahooFetchOnceCohortFinalization/1",
+        "programId": "P3_HISTORICAL_YAHOO_FETCH_ONCE_R1",
+        "artifactPath": "C:\\Users\\melan\\JarviseDurable\\P3_HISTORICAL_YAHOO_FETCH_ONCE_R1\\P3H_HISTORICAL_DATASET_FINALIZATION_R1.json",
+        "datasetIdentity": "sha256:cc7bb76f37a97a5673a32c5a8f357088ee94230fefcbef1c19ad16227476488e",
+        "admittedKeyDigest": "9fdc19bff5de2769c32cdb7fde866e83adb120ec16736c8cabc1b1851f98ef85",
+        "exclusionDigest": "7eca4720595e05aaeaf3d8e35f40ada3efb41ab4d7a58147670119304c0c2e7d",
+        "admittedKeyCount": 793,
+        "exclusionCount": 9,
+        "terminalStage": "VERSION_CACHED",
+        "observationAdmissionAuthorized": false,
+        "snapshotDatasetPinningIsNotObservationAdmission": true,
+        "observationAdmissionNote": "P3H VERSION_CACHED SnapshotDatasetManifestV1 pinning is not DatasetId_observation admission. Admission of any bar into DatasetId_observation remains a separate Owner decision governed by app/jarvise/jarviseHistoricalIdentityPolicyR1.json and is not granted here. No historical backdating is authorized here."
+      },
+      "candidateSurfaces": [
+        "governance/gates/GATE21/contracts/GATE21_BINDING_V1.json /promotedLabPins"
+      ],
+      "blocksOutputClasses": [
+        "OC-3"
+      ],
+      "blocksContractFreeze": false
+    },
+    {
+      "id": "OD-5",
+      "wasOpenAs": "OD-5",
+      "subject": "sample-size sufficiency rule",
+      "question": "What rule decides that an analogue set has sufficient support, and what is emitted when it does not?",
+      "closureStatus": "CLOSED",
+      "closedBy": "OWNER_AUTHORIZE_GATE25_MANDATE_NARROW_AMENDMENT_TO_BIND_P3H_OD4_PINSET_R1",
+      "preservedFrom": "Prior Owner acceptance of the GATE25 Owner-decision closure review. Substance unchanged by this amendment.",
+      "resolution": "Support is the combination of exact regime/horizon eligibility, complete F1@W5 and F1@W21 on query and each analogue, and eligibleCount as a reporting state only. ESS and invented confidence are forbidden. ABSTAIN if the query is not comparable. INSUFFICIENT_SUPPORT if selection completed and eligibleCount < 2; the frozen set is still emitted with exclusion reasons. SUFFICIENT_SUPPORT if eligibleCount >= 2 and the structural gates pass. Sufficiency never truncates, re-ranks or silently narrows the analogue set. Outcome horizons remain phase-2 only.",
+      "constraintOnAnyAnswer": "Whatever rule is ratified, insufficiency must be emitted as an explicit declared state and must never be converted into a confidence, a score or a silently widened comparison.",
+      "candidateSurfaces": [],
+      "blocksOutputClasses": [
+        "OC-5"
+      ],
+      "blocksContractFreeze": false
+    }
+  ],
+  "deferredToContract": [
+    "the exact canonicalization and digest rules applied over the ratified analogue identity member list",
+    "the exact schema of the analogue comparison report and of the common factors and differences fields",
+    "the exact schema of the uncertainty and sample-size report",
+    "the exact storage layout, key ordering and pagination of the analogue index",
+    "the exact provenance manifest schema and its required field list",
+    "the numeric parameters of the ratified distance metric, held in a versioned parameter set",
+    "the exact exclusion reason vocabulary for the eligible universe accounting",
+    "the exact shape of the post-selection outcome distribution artifact"
+  ],
+  "sourceReferences": [
+    {
+      "sourceId": "WHEEL_GATE_REGISTRY_00_40",
+      "sourcePath": "governance/GATE_REGISTRY_00_40.json",
+      "sourceSha256": "76d5f9ff0a21f8c1eadaf9ccd9e48c9087d12655fac6a5c9215584053652a56b",
+      "sourceLocation": "/gates/25",
+      "field": "officialName, canonicalObjective, strategicPurpose, dependencies, entryConditions, expectedOutputs, exitConditions, nextGate",
+      "evidence": "Canonical registry projection; byte-identical reuse without redefinition."
+    },
+    {
+      "sourceId": "GATE16_40_OWNER_RATIFICATION_R2",
+      "sourcePath": "governance/sources/GATE16_40_OWNER_RATIFICATION_R2.json",
+      "sourceSha256": "bf7859ef8d0992c2ea0169af48d7762c11ee5f5a8490922588026150a92031cc",
+      "sourceLocation": "/gates[gateId=GATE25]",
+      "field": "requiredOutputs, requiredArtifacts, validationClasses, evidenceRequirements, closureConditions, forbiddenScope, downstreamGuarantees",
+      "evidence": "Owner-ratified GATE25 requirement statement; quoted verbatim and unaltered."
+    },
+    {
+      "sourceId": "OWNER_PROVIDED_WHEEL_JARVISE_MASTER_ROADMAP_00_40",
+      "sourcePath": "governance/sources/WHEEL_JARVISE_MASTER_ROADMAP_00_40.txt",
+      "sourceSha256": "c59c9f243581104e0486f075311da4163b27f778ea5ba176c8f86f3b74d6647d",
+      "sourceLocation": "GATE25 - HISTORICAL ANALOGUE ENGINE",
+      "field": "canonicalObjective",
+      "evidence": "Owner-provided roadmap statement of the GATE25 objective."
+    },
+    {
+      "sourceId": "GATE24_CANONICAL_MANDATE_R0",
+      "sourcePath": "governance/sources/GATE24_CANONICAL_MANDATE_R0.json",
+      "sourceSha256": "67bd631a77c87785d623ccbf1051c33b5b5bc9d57855167a8763d8586a55115f",
+      "sourceLocation": "/regimeVectorV1, /knowledgeCutoffPolicy, /gate24DeferredCapabilities, /immutableInvariants",
+      "field": "CORE_V1 active dimensions, inherited cutoff, deferred capability set, inherited invariants",
+      "evidence": "Upstream Owner-ratified mandate; consumed read-only and restated, never altered."
+    },
+    {
+      "sourceId": "GATE24_TERMINAL_STATE",
+      "sourcePath": "governance/gates/GATE24/state/CURRENT_STATE.json",
+      "sourceSha256": "e7719b557b2377243cacb6f4c3764d954c8606822ac2625735117163344d0050",
+      "sourceLocation": "/stateRevision",
+      "field": "dependency satisfaction",
+      "evidence": "GATE24 sealed at R0005; terminal ledger ordinal 104 records COMPLETE_AGENT to COMPLETE_CONFIRMED."
+    },
+    {
+      "sourceId": "GATE24_BINDING_V1",
+      "sourcePath": "governance/gates/GATE24/contracts/GATE24_BINDING_V1.json",
+      "sourceSha256": "7c041d3bbb91ceeafd1029e5c10a2403207c9de5223e318017da5cb62f360650",
+      "sourceLocation": "/calendarWindowBinding, /coreV1HorizonPolicy",
+      "field": "calendar reuse by reference, single active horizon, explicit consumer binding",
+      "evidence": "Frozen GATE24 binding authority; consumed read-only."
+    },
+    {
+      "sourceId": "GATE24_CONSUMPTION_BOUNDARY_V1",
+      "sourcePath": "governance/gates/GATE24/contracts/GATE24_CONSUMPTION_BOUNDARY_V1.json",
+      "sourceSha256": "781b5cba2123a5b65166bd3db742525b57eac9c38b9093b9bb10e4cdeeca29bf",
+      "sourceLocation": "/downstreamBoundary, /consumerObligations, /nextGateAuthorization",
+      "field": "GATE25 consumption obligations and the explicit statement that a GATE24 BUILD PASS is not a GATE25 authorization",
+      "evidence": "Frozen GATE24 consumption boundary; restated, never relaxed."
+    },
+    {
+      "sourceId": "GATE24_REGIME_IDENTITY_V1",
+      "sourcePath": "governance/gates/GATE24/contracts/GATE24_REGIME_IDENTITY_V1.json",
+      "sourceSha256": "9a5fb945f4aa98618ab81d65bbd82ce29f15f04b1f7c5c3ba8428c3fd9ff47ec",
+      "sourceLocation": "/orderedMembers, /readingPrinciple",
+      "field": "regime identity availability and the inherited identity pattern",
+      "evidence": "Sealed 11-member EXACT_ONLY identity satisfying entry condition EC-1."
+    },
+    {
+      "sourceId": "GATE23_FEATURE_IDENTITY_V1",
+      "sourcePath": "governance/gates/GATE23/contracts/GATE23_FEATURE_IDENTITY_V1.json",
+      "sourceSha256": "05cd98166d7c10d18d65778c9c79ce222a177b863c634538e0a3f85bb5e4d6ac",
+      "sourceLocation": "/orderedMembers",
+      "field": "feature identity and CalendarWindowBindingId membership",
+      "evidence": "Sealed 11-member EXACT_ONLY identity; the calendar binding GATE25 resolves by reference."
+    },
+    {
+      "sourceId": "GATE22_CONSUMPTION_BOUNDARY_V1",
+      "sourcePath": "governance/gates/GATE22/contracts/GATE22_CONSUMPTION_BOUNDARY_V1.json",
+      "sourceSha256": "3e33b498ee24139e04b654c269c3a9fb2ba9b08421b641876d69fce56e05cd60",
+      "sourceLocation": "/mandateProjection/boundaries/GATE25",
+      "field": "selection boundary ordering",
+      "evidence": "Canonical prior authority already fixes that GATE25 attaches Outcome only after selection."
+    },
+    {
+      "sourceId": "GATE22_TEMPORAL_HORIZON_V1",
+      "sourcePath": "governance/gates/GATE22/contracts/GATE22_TEMPORAL_HORIZON_V1.json",
+      "sourceSha256": "c53ec179919f90593efdaad625187bc56218a4615bd7d0cecb415a27d4b55783",
+      "sourceLocation": "/temporalRules, /sessionCountingRules",
+      "field": "outcome window and horizon vocabulary",
+      "evidence": "Outcome horizons are owned by GATE22 and consumed unchanged by GATE25."
+    },
+    {
+      "sourceId": "GATE22_IDENTITY_MODEL_V1",
+      "sourcePath": "governance/gates/GATE22/contracts/GATE22_IDENTITY_MODEL_V1.json",
+      "sourceSha256": "4f754354b8c6b93f0b8a7dea2ffb295a79c63502f641acc60f4ae6008a0fa796",
+      "sourceLocation": "/identityDigestRules",
+      "field": "EXACT_ONLY closure and the reading principle",
+      "evidence": "The inherited identity pattern GATE25 must remain consistent with under OD-3."
+    },
+    {
+      "sourceId": "GATE21_BINDING_V1",
+      "sourcePath": "governance/gates/GATE21/contracts/GATE21_BINDING_V1.json",
+      "sourceSha256": "c8982c5c857759dd4204670e514c6b447b573140552d188012b9c9dedc5e9607",
+      "sourceLocation": "/promotedLabPins, /eventTimeVsAvailableAt, /freeData, /performance, /historicalVsLiveBoundary, /evolvability, /outOfScope",
+      "field": "historical identity surfaces, availableAt invariant, FREE data class, live scan boundary",
+      "evidence": "Frozen GATE21 v1 authority; consumed read-only and restated, never altered."
+    },
+    {
+      "sourceId": "PROJECT_CONSTITUTION_R4",
+      "sourcePath": "governance/PROJECT_CONSTITUTION.json",
+      "sourceLocation": "/rules",
+      "field": "NO_FUTURE_LEAKAGE, NO_GATE_MANDATE_REDEFINITION, NETWORK_FORBIDDEN_BY_DEFAULT, DEFERRED_CAPABILITY_MUST_BE_DURABLY_REGISTERED, NO_HARDCODED_PASS",
+      "evidence": "Governing constitution; this mandate declares no verdict, redefines no canonical objective and registers no deferred capability."
+    },
+    {
+      "sourceId": "OWNER_GATE25_MANDATE_R0_DRAFT_INSTRUCTION",
+      "sourcePath": null,
+      "field": "official name, mission boundary, inherited constraints, forbidden scope, required output classes, Owner decision list, history policy intent, AI boundary, performance boundary",
+      "evidence": "Owner instruction of record for the GATE25 R0 draft; no external file binding. Directs these architectural statements only and does not ratify the mandate."
+    }
+  ],
+  "preservedDecisions": [
+    "ratificationOnly=true",
+    "draftStatus=NOT_RATIFIED",
+    "all execution authorization flags=false",
+    "GATE24 dependency",
+    "GATE24 lifecycle COMPLETE_CONFIRMED and GATE25 lifecycle NOT_STARTED, unchanged",
+    "K(T)=PinnedCanonicalSession(T).closeUtc, inherited and not redefined",
+    "availableAt <= K(T) per input",
+    "no latest reconstruction",
+    "Outcome forbidden in selection and attached only after selectionComplete",
+    "fail closed",
+    "point-in-time immutability",
+    "deterministic identity and deterministic replay",
+    "FREE data default",
+    "OFF_SCAN, live critical path MUST_NOT_LENGTHEN, latencyTargetDelta ZERO",
+    "precompute, cache and reuse allowed",
+    "no network during analogue computation",
+    "no per-ticker live recomputation",
+    "calendar reuse by reference, no calendar creation",
+    "GATE24 CORE_V1 active dimensions only",
+    "GATE24 deferred capabilities remain deferred",
+    "no mutation of GATE21 through GATE24",
+    "no GEE, P1, Snapshot132 or LA-C10 reopening",
+    "AI_OUT_OF_SCOPE",
+    "no implementation paths or workset frozen",
+    "no invented similarity dimensions, metric, identity members, pin set or sufficiency rule"
+  ],
+  "revisionHistory": [
+    {
+      "revision": "R0_DRAFT",
+      "act": "GATE25_CANONICAL_MANDATE_R0_DRAFT",
+      "performedBy": "AGENT",
+      "authority": "Owner GATE25 canonical mandate R0 draft instruction, ratification-only",
+      "observedAtHead": "d618fb59b7132090e3c8c59a39d5505febc0c07b",
+      "branch": "ui-lab-r2",
+      "summary": "First draft of the GATE25 canonical mandate. Declares the HISTORICAL ANALOGUE ENGINE mission boundary, the two-phase selection boundary that keeps GATE22 Outcome out of selection, the inherited causal, data, calendar and performance constraints, the AI boundary, the nine required output classes and the five blocking Owner decisions. Creates no gate directory, no contract, no START authority, no ledger entry and no implementation.",
+      "artifactsCreated": [
+        "governance/sources/GATE25_CANONICAL_MANDATE_R0.json"
+      ],
+      "artifactsModified": [],
+      "lifecycleMutations": [],
+      "ledgerEvents": [],
+      "status": "DESIGN_RATIFIED_BY_R0_OWNER_RATIFICATION"
+    },
+    {
+      "revision": "R0_OWNER_RATIFICATION",
+      "act": "GATE25_CANONICAL_MANDATE_R0_OWNER_RATIFICATION",
+      "ownerDecisionId": "OWNER_RATIFY_GATE25_CANONICAL_MANDATE_R0_R1",
+      "performedBy": "PROJECT_OWNER",
+      "authority": "Owner GATE25 canonical mandate R0 ratification, ratification-only, not a START",
+      "observedAtHead": "8b4efec93d75a3c319dda450b984c768f9ae8984",
+      "observedAtTree": "10bfea4660b0fe924ed1aa408c11608db4abe6a6",
+      "branch": "ui-lab-r2",
+      "summary": "PROJECT_OWNER ratification of the GATE25 canonical mandate. The mandate becomes Owner-ratified and the design scope is frozen for precontract derivation. No architectural change, no observation admission, no analogue START and no execution authority.",
+      "prestateVerified": {
+        "head": "8b4efec93d75a3c319dda450b984c768f9ae8984",
+        "tree": "10bfea4660b0fe924ed1aa408c11608db4abe6a6",
+        "targetSha256Before": "42f1cc146e413fa450a50e8f26a9be7a59d30e66062bdc3538c93e1812e25341",
+        "targetBytesBefore": 75816,
+        "ledgerOrdinal": 104,
+        "gate24": "COMPLETE_CONFIRMED",
+        "gate25": "NOT_STARTED",
+        "activeGate": "GATE13 COMPLETE_CONFIRMED unchanged",
+        "openOwnerDecisions": 0,
+        "mandateReadiness": "DRAFT_PENDING_OWNER_RATIFICATION",
+        "ratified": false,
+        "workingTree": "target file untracked, no other change"
+      },
+      "changes": [
+        "draftStatus NOT_RATIFIED to RATIFIED; ratified false to true.",
+        "revision label R0_DRAFT to R0_OWNER_RATIFICATION; the ratified design revision remains R0_DRAFT and is recorded in ownerRatification.ratifiedDesignRevision together with the exact prestate SHA/bytes.",
+        "mandateReadiness state DRAFT_PENDING_OWNER_RATIFICATION to OWNER_RATIFIED; ratificationPerformedBy records this act.",
+        "ownerDisposition.status DRAFT_MANDATE_ONLY_AWAITING_OWNER_RATIFICATION to OWNER_RATIFIED_MANDATE_ONLY; every per-authority disposition remains NOT_AUTHORIZED_BY_THIS_DOCUMENT.",
+        "designState gate25Design OWNER_DECISIONS_CLOSED_MANDATE_UNRATIFIED to FROZEN_BY_OWNER, readiness to OWNER_RATIFIED, designScope FROZEN_FOR_PRECONTRACT_DERIVATION.",
+        "ratificationStatusLegend gains OWNER_RATIFIED_IN_R0_OWNER_RATIFICATION; all existing legend tokens are unchanged.",
+        "historyPolicy intent token MAXIMUM_RELIABLE_HISTORY_AVAILABLE becomes canonical by this ratification; the P3H 793/9 pinset is unchanged; observationAdmissionAuthorized remains false.",
+        "ownerRatification added: the ratification record, the GATE24 in-place mechanism and its GATE21-GATE24 and GATE16_40 precedent, the verified prestate binding the exact Owner-ratified bytes, what is ratified, what is not authorized, and the next canonical step."
+      ],
+      "unchanged": [
+        "ratificationOnly, canonical, impliedAuthority and every authorization flag remain false, including startAuthorized, executionAuthorized, precontractAuthorized, contractAuthorized, buildAuthorized, ledgerAppendAuthorized, activeGateModificationAuthorized, commitAuthorized and pushAuthorized",
+        "startBoundary.ratificationIsNotStart remains true; GATE25 lifecycle remains NOT_STARTED",
+        "openOwnerDecisions remains empty; OD-1 through OD-5 remain CLOSED with previously accepted substance",
+        "P3H dataset identity, admittedKeyDigest, exclusionDigest, 793 VERSION_CACHED and 9 exclusions remain exact",
+        "observationAdmissionAuthorized remains false; snapshot dataset pinning remains distinct from DatasetId_observation admission",
+        "no PROJECT_OWNER_GATE_START_AUTHORITY, no GATE_START_RECORD, no analogue build, no analogue computation, no historical backdating"
+      ],
+      "artifactsCreated": [],
+      "artifactsModified": [
+        "governance/sources/GATE25_CANONICAL_MANDATE_R0.json"
+      ],
+      "lifecycleMutations": [],
+      "ledgerEvents": [],
+      "status": "CURRENT_RATIFIED"
+    }
+  ],
+  "designState": {
+    "gate25Design": "FROZEN_BY_OWNER",
+    "readiness": "OWNER_RATIFIED",
+    "ownerDecisionStatus": "OD-1, OD-2, OD-3, OD-4 and OD-5 are CLOSED and are now Owner-ratified as a whole by OWNER_RATIFY_GATE25_CANONICAL_MANDATE_R0_R1. Mandate ratification is not a START. GATE25 remains NOT_STARTED.",
+    "remainingFindings": "NONE_BLOCKING; OBSERVATION_ADMISSION_NOT_GRANTED remains a later START/admission boundary and is not granted here.",
+    "materializationStatus": "MANDATE_ONLY",
+    "designScope": "FROZEN_FOR_PRECONTRACT_DERIVATION"
+  },
+  "mandateReadiness": {
+    "state": "OWNER_RATIFIED",
+    "ratified": true,
+    "draftStatus": "RATIFIED",
+    "meaning": "OD-1 through OD-5 are CLOSED. OD-4 binds the P3H 793 VERSION_CACHED / 9 documented-exclusion pinset. observationAdmissionAuthorized remains false. The PROJECT_OWNER has ratified the mandate. The design scope is frozen for precontract derivation. This act creates no execution, START, BUILD, contract, precontract, status-transition, ledger-append, commit or observation-admission authority.",
+    "isNotAnAuthority": "OWNER_RATIFIED is a design-scope state, not an execution authorization. It creates no execution, START, BUILD, contract, precontract, status-transition, ledger-append, observation-admission or commit authority. Those remain separate Owner acts. A mandate ratification is not a START.",
+    "impliedAuthority": "NONE",
+    "blockingItems": [],
+    "verdictRule": "This document declares no validation verdict. Any verdict must be recomputed by a validator under PROJECT_CONSTITUTION NO_HARDCODED_PASS and is never read from a field written here.",
+    "ratificationPerformedBy": "The PROJECT_OWNER GATE25_CANONICAL_MANDATE_R0_OWNER_RATIFICATION act under decision OWNER_RATIFY_GATE25_CANONICAL_MANDATE_R0_R1, materialized in place in this document as revision R0_OWNER_RATIFICATION over the ratified design revision R0_DRAFT whose exact bytes are bound in ownerRatification.boundMandateIdentity."
+  },
+  "ownerDisposition": {
+    "status": "OWNER_RATIFIED_MANDATE_ONLY",
+    "execution": "NOT_AUTHORIZED_BY_THIS_DOCUMENT",
+    "start": "NOT_AUTHORIZED_BY_THIS_DOCUMENT",
+    "build": "NOT_AUTHORIZED_BY_THIS_DOCUMENT",
+    "contract": "NOT_AUTHORIZED_BY_THIS_DOCUMENT",
+    "precontract": "NOT_AUTHORIZED_BY_THIS_DOCUMENT",
+    "statusTransition": "NOT_AUTHORIZED_BY_THIS_DOCUMENT",
+    "ledgerAppend": "NOT_AUTHORIZED_BY_THIS_DOCUMENT",
+    "activeGateChange": "NOT_AUTHORIZED_BY_THIS_DOCUMENT",
+    "commit": "NOT_AUTHORIZED_BY_THIS_DOCUMENT",
+    "push": "NOT_AUTHORIZED_BY_THIS_DOCUMENT",
+    "observationAdmission": "NOT_AUTHORIZED_BY_THIS_DOCUMENT",
+    "notes": "This document is the GATE25 canonical mandate, Owner-ratified by the GATE25_CANONICAL_MANDATE_R0_OWNER_RATIFICATION act under decision OWNER_RATIFY_GATE25_CANONICAL_MANDATE_R0_R1. Ratification freezes the design scope for precontract derivation and closes the mandate to further architectural revision without a new Owner act. It remains ratification-only: it creates no gate artifact, no ledger entry, no state transition and no evidence, and it confers no execution, START, BUILD, contract, precontract, status-transition, ledger-append, ACTIVE_GATE, observation-admission, commit or push authority. GATE25 lifecycle status is unchanged at NOT_STARTED, and GATE24 remains COMPLETE_CONFIRMED. A mandate ratification is not a START."
+  },
+  "ownerRatification": {
+    "ratificationId": "GATE25_CANONICAL_MANDATE_R0_OWNER_RATIFICATION",
+    "ownerDecisionId": "OWNER_RATIFY_GATE25_CANONICAL_MANDATE_R0_R1",
+    "authorityId": "GATE25_CANONICAL_MANDATE_RATIFICATION_R0",
+    "issuedBy": "PROJECT_OWNER",
+    "ratified": true,
+    "scope": "GATE25_CANONICAL_MANDATE_ONLY",
+    "ratifiedDocument": "GATE25_CANONICAL_MANDATE_R0",
+    "ratifiedDesignRevision": "R0_DRAFT",
+    "boundMandateIdentity": {
+      "path": "governance/sources/GATE25_CANONICAL_MANDATE_R0.json",
+      "sha256": "42f1cc146e413fa450a50e8f26a9be7a59d30e66062bdc3538c93e1812e25341",
+      "bytes": 75816,
+      "note": "Exact Owner-ratified design bytes immediately before this in-place ratification materialization. This act does not rewrite OD-1 through OD-5 substance, the P3H pinset, or observationAdmissionAuthorized."
+    },
+    "mechanism": "IN_PLACE_OWNER_RATIFICATION_OF_THE_CANONICAL_MANDATE_ARTIFACT",
+    "mechanismRationale": "The canonical mandate artifact is itself the Owner ratification instrument for a gate mandate in this project. GATE21, GATE22, GATE23 and GATE24 each carry their Owner ratification inside governance/sources/GATE2x_CANONICAL_MANDATE_R0.json under authorityId GATE2x_CANONICAL_MANDATE_RATIFICATION_R0, issuedBy PROJECT_OWNER, canonical true and ratificationOnly true. No separate ratification artifact, no authorizations record and no ledger event exists for any of those mandate ratifications. GATE25 follows the GATE24 path: drafted first in an explicit NOT_RATIFIED state with a mandateReadiness block, then ratified in place. The Owner-ratified design bytes are bound by SHA256/bytes rather than rewritten.",
+    "mechanismPrecedent": [
+      {
+        "path": "governance/sources/GATE24_CANONICAL_MANDATE_R0.json",
+        "authorityId": "GATE24_CANONICAL_MANDATE_RATIFICATION_R0",
+        "evidence": "mechanism IN_PLACE_OWNER_RATIFICATION_OF_THE_CANONICAL_MANDATE_ARTIFACT; draftStatus RATIFIED; designState.gate24Design FROZEN_BY_OWNER; no separate ratification artifact and no ledger event."
+      },
+      {
+        "path": "governance/sources/GATE23_CANONICAL_MANDATE_R0.json",
+        "authorityId": "GATE23_CANONICAL_MANDATE_RATIFICATION_R0",
+        "evidence": "designState.gate23Design = FROZEN_BY_OWNER; ownerDisposition.status = RATIFICATION_ONLY; no separate ratification artifact and no ledger event."
+      },
+      {
+        "path": "governance/sources/GATE22_CANONICAL_MANDATE_R0.json",
+        "authorityId": "GATE22_CANONICAL_MANDATE_RATIFICATION_R0",
+        "evidence": "issuedBy PROJECT_OWNER, canonical true, ratificationOnly true, ownerDisposition.status = RATIFICATION_ONLY; no separate ratification artifact and no ledger event."
+      },
+      {
+        "path": "governance/sources/GATE21_CANONICAL_MANDATE_R0.json",
+        "authorityId": "GATE21_CANONICAL_MANDATE_RATIFICATION_R0",
+        "evidence": "issuedBy PROJECT_OWNER, canonical true, ratificationOnly true, ownerDisposition.status = RATIFICATION_ONLY; no separate ratification artifact and no ledger event."
+      },
+      {
+        "path": "governance/sources/GATE16_40_OWNER_RATIFICATION_R2.json",
+        "authorityId": "GATE16_40_OWNER_RATIFICATION_AND_CANONICALIZATION_R2",
+        "evidence": "Strategic-level Owner ratification of the GATE16 to GATE40 mandates, including the GATE25 strategic mandate. It ratifies the strategic mandate layer only and is unchanged by this act; it neither performs nor blocks the gate-level GATE25 canonical mandate ratification."
+      }
+    ],
+    "noNewPrimitiveRequired": {
+      "newAuthorityPrimitive": false,
+      "newSchema": false,
+      "newLifecycleCeremony": false,
+      "circularSelfAuthorization": false,
+      "notes": "The authority is the external PROJECT_OWNER ratification act, not this document asserting its own validity. The authority primitive, the document kind CANONICAL_GATE_MANDATE and the ratificationOnly boundary already exist and are already carried by this file. Mandate ratification is not a lifecycle transition in this project, so no ledger event, no authorizations record and no state revision is created. governance/sources holds no JSON schema for CANONICAL_GATE_MANDATE, so no schema is added or changed."
+    },
+    "prestateVerified": {
+      "head": "8b4efec93d75a3c319dda450b984c768f9ae8984",
+      "tree": "10bfea4660b0fe924ed1aa408c11608db4abe6a6",
+      "targetSha256Before": "42f1cc146e413fa450a50e8f26a9be7a59d30e66062bdc3538c93e1812e25341",
+      "targetBytesBefore": 75816,
+      "ledgerOrdinal": 104,
+      "gate24": "COMPLETE_CONFIRMED",
+      "gate25": "NOT_STARTED",
+      "activeGate": "GATE13 COMPLETE_CONFIRMED unchanged",
+      "openOwnerDecisions": 0,
+      "mandateReadinessBefore": "DRAFT_PENDING_OWNER_RATIFICATION",
+      "ratifiedBefore": false,
+      "ratificationOnly": true,
+      "startAuthorized": false,
+      "observationAdmissionAuthorized": false,
+      "workingTree": "target file untracked, no other change"
+    },
+    "ratifies": [
+      "The GATE25 canonical mandate as a whole, identified by the exact prestate SHA256/bytes bound in boundMandateIdentity.",
+      "OD-1 CLOSED: CORE_V1 exact-match of the six dimensions including volatilityState; numeric distance features F1_SIMPLE_RETURN@W5 and F1_SIMPLE_RETURN@W21 only.",
+      "OD-2 CLOSED: Manhattan L1 after deterministic per-dimension min-max on F1@W5 / F1@W21.",
+      "OD-3 CLOSED: analogue identity EXACT_ONLY with eleven ordered members.",
+      "OD-4 CLOSED: MAXIMUM_RELIABLE_HISTORY_AVAILABLE resolves to the P3H pinset of 793 VERSION_CACHED SnapshotDatasetManifestV1 keys plus 9 documented exclusions under datasetIdentity sha256:cc7bb76f37a97a5673a32c5a8f357088ee94230fefcbef1c19ad16227476488e, admittedKeyDigest 9fdc19bff5de2769c32cdb7fde866e83adb120ec16736c8cabc1b1851f98ef85, exclusionDigest 7eca4720595e05aaeaf3d8e35f40ada3efb41ab4d7a58147670119304c0c2e7d. This is snapshot/dataset pinning, not DatasetId_observation admission.",
+      "OD-5 CLOSED: ABSTAIN / INSUFFICIENT_SUPPORT (eligibleCount < 2) / SUFFICIENT_SUPPORT.",
+      "observationAdmissionAuthorized remains false. Snapshot/dataset pinning is not DatasetId_observation admission. No historical backdating is authorized."
+    ],
+    "doesNotAuthorize": [
+      "PRECONTRACT execution",
+      "execution contract creation",
+      "START",
+      "BUILD",
+      "lifecycle or status transition",
+      "functional implementation",
+      "ledger append",
+      "ACTIVE_GATE mutation",
+      "PROJECT_OWNER_GATE_START_AUTHORITY",
+      "GATE_START_RECORD",
+      "analogue build",
+      "analogue computation",
+      "DatasetId_observation admission",
+      "historical backdating",
+      "commit",
+      "push"
+    ],
+    "effects": {
+      "mandateOwnerRatified": true,
+      "designScopeFrozenForPrecontractDerivation": true,
+      "openOwnerDecisions": 0,
+      "executionAuthorityCreated": "NONE",
+      "impliedAuthority": "NONE",
+      "gate25LifecycleStatus": "NOT_STARTED",
+      "ledgerEventsAppended": 0,
+      "observationAdmissionAuthorized": false,
+      "startAuthorized": false,
+      "ratificationIsNotStart": true,
+      "aMandateRatificationIsNotAStart": true
+    },
+    "nextCanonicalStep": "A separate bounded Owner act that derives the GATE25 precontract from this frozen mandate. It is not authorized by this document. Observation admission, analogue START, analogue build and DatasetId_observation admission remain separate Owner acts and are not granted here."
+  }
+}

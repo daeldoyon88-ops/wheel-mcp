@@ -1,0 +1,13 @@
+{
+  "gateId": "GATE25",
+  "stateRevision": "R0001",
+  "milestone": "GATE25_AUTHORIZATION",
+  "resumePoint": "AUTHORIZED_NOT_STARTED",
+  "completedTasks": [],
+  "openTasks": [],
+  "reusableEvidence": [],
+  "invalidatedEvidence": [],
+  "requiredNextActions": [],
+  "protectedHashes": [],
+  "createdAt": "2026-09-13T12:00:00.000Z"
+}

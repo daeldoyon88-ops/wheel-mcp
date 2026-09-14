@@ -1,0 +1,8 @@
+{
+  "schemaVersion": 1,
+  "gateId": "GATE25",
+  "stateRevision": "R0002",
+  "revisionPath": "governance/gates/GATE25/state/revisions/R0002",
+  "stateSealSha256": "b3c47514ffcf616b50e500bc674cc34796f11ddb14835fc85634a8f78c3f304a",
+  "committedByTransactionId": "GATE25_START_R1_TRANSACTION"
+}

@@ -39,7 +39,10 @@ import {
   gateAuthorizationDerivedCohortPaths,
   GATE_AUTHORIZATION_AUTHORITY_KIND,
   GATE_AUTHORIZATION_BINDING_DIGEST_ALGORITHM,
-  GATE_AUTHORIZATION_REQUIRED_PROHIBITIONS
+  GATE_AUTHORIZATION_REQUIRED_PROHIBITIONS,
+  GATE_AUTHORIZATION_TRANSITION_TYPE,
+  GATE_AUTHORIZATION_FROM_STATUS,
+  GATE_AUTHORIZATION_TO_STATUS
 } from '../gee-v1/core/gate-authorization-authority.mjs';
 import {
   computeGateStartRecordDigest,
@@ -49,7 +52,8 @@ import {
   gateStartRecordPath,
   gateStartAuthorityPath,
   gateStartWriteCohortPaths,
-  GATE_START_PROHIBITED_OPERATIONS
+  GATE_START_PROHIBITED_OPERATIONS,
+  GATE_START_FROM_STATUS
 } from '../gee-v1/core/gate-start-authority.mjs';
 import { deriveGateStartReadinessFacts } from '../gee-v1/adapters/wheel/gate-start-authority-source.mjs';
 import { resolveGateDependencyProof } from '../gee-v1/adapters/wheel/gate-dependency-resolution.mjs';
@@ -81,6 +85,200 @@ function registryDependency(root, gateId) {
   const entry = (registry?.gates || []).find((gate) => gate.gateId === gateId);
   const dependencies = Array.isArray(entry?.dependencies) ? entry.dependencies : [];
   return dependencies.at(-1) ?? null;
+}
+
+const SHA256_RE = /^[a-f0-9]{64}$/;
+const EXECUTION_CONTRACT_REQUIRED_FIELDS = Object.freeze([
+  'gateId', 'contractRevision', 'strategicRegistryReference', 'canonicalRequirements',
+  'requiredOutputs', 'validators', 'closureConditions', 'nextGateAuthorizationConditions',
+  'performanceBudget', 'checkpointPolicy', 'authorizedPaths', 'requiredPolicyIds',
+  'sourceReferences'
+]);
+
+function gateContractsNamespace(gateId) {
+  return `governance/gates/${gateId}/contracts`;
+}
+
+function isSafeGovernedRelative(value) {
+  if (typeof value !== 'string' || value.length === 0 || value.includes('\\')) return false;
+  if (path.posix.isAbsolute(value) || /^[A-Za-z]:/.test(value)) return false;
+  const segments = value.split('/');
+  return segments.length > 0 && !segments.some((segment) => !segment || segment === '.' || segment === '..');
+}
+
+function pathInGateContractsNamespace(relativePath, gateId) {
+  const prefix = `${gateContractsNamespace(gateId)}/`;
+  return isSafeGovernedRelative(relativePath) && relativePath.startsWith(prefix)
+    && relativePath.slice(prefix.length).length > 0
+    && !relativePath.slice(prefix.length).includes('/');
+}
+
+function isExecutionContractDocument(json, gateId) {
+  if (!json || typeof json !== 'object' || Array.isArray(json)) return false;
+  if (json.gateId !== gateId) return false;
+  if (typeof json.contractRevision !== 'string' || !/^R[0-9]{4}$/.test(json.contractRevision)) return false;
+  if (!Array.isArray(json.authorizedPaths)) return false;
+  for (const field of EXECUTION_CONTRACT_REQUIRED_FIELDS) {
+    if (!Object.prototype.hasOwnProperty.call(json, field)) return false;
+  }
+  return true;
+}
+
+function listGateContractFiles(root, gateId) {
+  const relativeDir = gateContractsNamespace(gateId);
+  const absolute = path.resolve(root, ...relativeDir.split('/'));
+  if (!fs.existsSync(absolute) || !fs.statSync(absolute).isDirectory()) return [];
+  return fs.readdirSync(absolute, { withFileTypes: true })
+    .filter((entry) => entry.isFile() && entry.name.endsWith('.json') && entry.name !== 'CURRENT_CONTRACT.json')
+    .map((entry) => `${relativeDir}/${entry.name}`);
+}
+
+function resolveStartBoundContract({ root, gateId, status }) {
+  const findings = [];
+  if (status !== GATE_START_FROM_STATUS) {
+    findings.push({ code: 'START_PRESTATE_NOT_AUTHORIZED_NOT_STARTED', detail: status });
+    return { findings };
+  }
+
+  const recordPath = gateAuthorizationRecordPath(gateId);
+  const authorizationRecord = repoJson(root, recordPath);
+  if (!authorizationRecord) {
+    findings.push({ code: 'GATE_AUTHORIZATION_RECORD_ABSENT', detail: recordPath });
+    return { findings };
+  }
+  if (authorizationRecord.gateId !== gateId) findings.push({ code: 'GATE_AUTHORIZATION_RECORD_GATE_MISMATCH', detail: authorizationRecord.gateId });
+  if (authorizationRecord.transitionType !== GATE_AUTHORIZATION_TRANSITION_TYPE) {
+    findings.push({ code: 'GATE_AUTHORIZATION_RECORD_TRANSITION_INVALID', detail: authorizationRecord.transitionType });
+  }
+  if (authorizationRecord.fromStatus !== GATE_AUTHORIZATION_FROM_STATUS
+    || authorizationRecord.toStatus !== GATE_AUTHORIZATION_TO_STATUS) {
+    findings.push({
+      code: 'GATE_AUTHORIZATION_RECORD_TRANSITION_INVALID',
+      detail: `${authorizationRecord.fromStatus}>${authorizationRecord.toStatus}`
+    });
+  }
+  if (typeof authorizationRecord.contractSha256 !== 'string' || !SHA256_RE.test(authorizationRecord.contractSha256)) {
+    findings.push({ code: 'GATE_AUTHORIZATION_RECORD_CONTRACT_SHA_INVALID', detail: authorizationRecord.contractSha256 });
+  }
+  if (findings.length) return { findings };
+
+  const boundSha = authorizationRecord.contractSha256;
+  const matches = [];
+  for (const relativePath of listGateContractFiles(root, gateId)) {
+    const bytes = repoBytes(root, relativePath);
+    if (!bytes) continue;
+    let json;
+    try { json = JSON.parse(bytes.toString('utf8')); } catch { continue; }
+    if (!isExecutionContractDocument(json, gateId)) continue;
+    if (sha256Bytes(bytes) !== boundSha) continue;
+    matches.push({ relativePath, bytes, json, sha256: boundSha });
+  }
+  if (matches.length === 0) {
+    findings.push({ code: 'START_BOUND_CONTRACT_NOT_FOUND', detail: boundSha });
+    return { findings };
+  }
+  if (matches.length > 1) {
+    findings.push({
+      code: 'START_BOUND_CONTRACT_AMBIGUOUS',
+      detail: matches.map((item) => item.relativePath)
+    });
+    return { findings };
+  }
+  const bound = matches[0];
+
+  const pointerPath = `governance/gates/${gateId}/contracts/CURRENT_CONTRACT.json`;
+  const pointerBytes = repoBytes(root, pointerPath);
+  if (!pointerBytes) {
+    findings.push({ code: 'CURRENT_CONTRACT_MALFORMED', detail: pointerPath });
+    return { findings };
+  }
+  let pointerJson;
+  try { pointerJson = JSON.parse(pointerBytes.toString('utf8')); } catch {
+    findings.push({ code: 'CURRENT_CONTRACT_MALFORMED', detail: pointerPath });
+    return { findings };
+  }
+  if (!pointerJson || pointerJson.gateId !== gateId || !pathInGateContractsNamespace(pointerJson.contractPath, gateId)) {
+    findings.push({ code: 'CURRENT_CONTRACT_MALFORMED', detail: pointerJson?.contractPath });
+    return { findings };
+  }
+
+  const namespace = `${gateContractsNamespace(gateId)}/`;
+  const seen = new Set();
+  let cursorPath = pointerJson.contractPath;
+  let reachedBound = false;
+  while (cursorPath) {
+    if (seen.has(cursorPath)) {
+      findings.push({ code: 'START_CONTRACT_LINEAGE_CYCLE', detail: cursorPath });
+      return { findings };
+    }
+    seen.add(cursorPath);
+    if (!pathInGateContractsNamespace(cursorPath, gateId)) {
+      findings.push({ code: 'START_CONTRACT_LINEAGE_PATH_INVALID', detail: cursorPath });
+      return { findings };
+    }
+    const cursorBytes = repoBytes(root, cursorPath);
+    if (!cursorBytes) {
+      findings.push({ code: 'START_CONTRACT_LINEAGE_PREDECESSOR_ABSENT', detail: cursorPath });
+      return { findings };
+    }
+    let cursorJson;
+    try { cursorJson = JSON.parse(cursorBytes.toString('utf8')); } catch {
+      findings.push({ code: 'START_CONTRACT_LINEAGE_MALFORMED', detail: cursorPath });
+      return { findings };
+    }
+    if (!isExecutionContractDocument(cursorJson, gateId)) {
+      findings.push({ code: 'START_CONTRACT_LINEAGE_NOT_EXECUTION_CONTRACT', detail: cursorPath });
+      return { findings };
+    }
+    const cursorSha = sha256Bytes(cursorBytes);
+    if (cursorSha === boundSha) {
+      reachedBound = true;
+      break;
+    }
+    if (typeof cursorJson.previousContractPath !== 'string' || typeof cursorJson.previousContractSha256 !== 'string') {
+      findings.push({ code: 'START_CONTRACT_LINEAGE_DOES_NOT_DESCEND', detail: cursorPath });
+      return { findings };
+    }
+    if (!SHA256_RE.test(cursorJson.previousContractSha256)) {
+      findings.push({ code: 'START_CONTRACT_LINEAGE_MALFORMED', detail: cursorJson.previousContractSha256 });
+      return { findings };
+    }
+    if (!isSafeGovernedRelative(cursorJson.previousContractPath) || !cursorJson.previousContractPath.startsWith(namespace)) {
+      findings.push({ code: 'START_CONTRACT_LINEAGE_PATH_INVALID', detail: cursorJson.previousContractPath });
+      return { findings };
+    }
+    const predecessorBytes = repoBytes(root, cursorJson.previousContractPath);
+    if (!predecessorBytes) {
+      findings.push({ code: 'START_CONTRACT_LINEAGE_PREDECESSOR_ABSENT', detail: cursorJson.previousContractPath });
+      return { findings };
+    }
+    if (sha256Bytes(predecessorBytes) !== cursorJson.previousContractSha256) {
+      findings.push({
+        code: 'START_CONTRACT_LINEAGE_PREDECESSOR_SHA_MISMATCH',
+        detail: { path: cursorJson.previousContractPath, declared: cursorJson.previousContractSha256 }
+      });
+      return { findings };
+    }
+    cursorPath = cursorJson.previousContractPath;
+  }
+  if (!reachedBound) {
+    findings.push({ code: 'START_CONTRACT_LINEAGE_DOES_NOT_DESCEND', detail: pointerJson.contractPath });
+    return { findings };
+  }
+
+  const scope = bound.json.authorizedPaths;
+  if (!Array.isArray(scope) || scope.length === 0 || scope.some((entry) => typeof entry !== 'string' || !entry)) {
+    findings.push({ code: 'START_BOUND_SCOPE_UNAVAILABLE', detail: bound.relativePath });
+    return { findings };
+  }
+
+  return {
+    findings,
+    boundSha,
+    boundJson: bound.json,
+    functionalExecutionScope: [...scope],
+    currentContractSha256: sha256Bytes(pointerBytes)
+  };
 }
 
 /** Byte facts for the exact candidate the orchestrator would apply. */
@@ -235,6 +433,8 @@ export function buildGateStartDocuments({ root, gateId, eventId, recordedAt, exp
   if (!facts.activeGatePreState) findings.push({ code: 'ACTIVE_GATE_ABSENT' });
   const head = execGitHead(root);
   if (!head) findings.push({ code: 'HEAD_UNRESOLVABLE' });
+  const bound = resolveStartBoundContract({ root, gateId, status: facts.status });
+  findings.push(...bound.findings);
   if (findings.length) return { document: LIFECYCLE_RECORD_BUILDER_DOCUMENT, verdict: 'BLOCKED', findings };
 
   const record = {
@@ -243,20 +443,20 @@ export function buildGateStartDocuments({ root, gateId, eventId, recordedAt, exp
     purpose: 'START_PLUS_EXECUTION_AUTHORITY', eventId, transitionType: 'START',
     fromStatus: 'AUTHORIZED_NOT_STARTED', toStatus: 'IN_PROGRESS', recordedAt,
     baseCommit: head, preStartLedgerSha256: facts.preStartLedgerSha256,
-    previousEventSha256: facts.previousEventSha256, contractSha256: facts.contractSha256,
-    currentContractSha256: facts.currentContractSha256, preStateRevision: facts.preStateRevision,
+    previousEventSha256: facts.previousEventSha256, contractSha256: bound.boundSha,
+    currentContractSha256: bound.currentContractSha256, preStateRevision: facts.preStateRevision,
     preCurrentStateSha256: facts.preCurrentStateSha256, preStateSealSha256: facts.preStateSealSha256,
     readinessDigest: computeGateStartReadinessDigest({
       projectId: facts.projectId, gateId, status: 'AUTHORIZED_NOT_STARTED',
       preStartLedgerSha256: facts.preStartLedgerSha256, previousEventSha256: facts.previousEventSha256,
       preStateRevision: facts.preStateRevision, preCurrentStateSha256: facts.preCurrentStateSha256,
       preStateSealSha256: facts.preStateSealSha256, openDefectsKnowledge: facts.openDefectsKnowledge,
-      contractSha256: facts.contractSha256, currentContractSha256: facts.currentContractSha256,
+      contractSha256: bound.boundSha, currentContractSha256: bound.currentContractSha256,
       dependencyProof: facts.dependencyProof, readinessVerdict: 'READY'
     }),
     dependencyProof: facts.dependencyProof, activeGatePreState: facts.activeGatePreState,
     authorizedStartWritePaths: [...gateStartWriteCohortPaths(gateId)],
-    functionalExecutionScope: [...facts.contractJson.authorizedPaths],
+    functionalExecutionScope: [...bound.functionalExecutionScope],
     expiresAtUtc, maxUse: 1,
     prohibitedOperations: [...GATE_START_PROHIBITED_OPERATIONS],
     startAuthorized: true, executionAuthorized: true, recordDigest: null
@@ -279,7 +479,8 @@ export function buildGateStartDocuments({ root, gateId, eventId, recordedAt, exp
   }
   return {
     document: LIFECYCLE_RECORD_BUILDER_DOCUMENT, verdict: 'BUILT', gateId, transitionType: 'START',
-    recordPath: gateStartRecordPath(gateId), authorityPath: gateStartAuthorityPath(gateId), findings: []
+    recordPath: gateStartRecordPath(gateId), authorityPath: gateStartAuthorityPath(gateId),
+    record, authority, findings: []
   };
 }
 

@@ -57,6 +57,32 @@ const writeJson = (root, relative, value) => {
   fs.mkdirSync(path.dirname(target), { recursive: true });
   fs.writeFileSync(target, `${JSON.stringify(value, null, 2)}\n`);
 };
+const AUTH_RECORD_RELATIVE = `governance/authority/authorizations/${GATE}/GATE_AUTHORIZATION_RECORD.json`;
+const SUCCESSOR_RELATIVE = `governance/gates/${GATE}/contracts/EXECUTION_CONTRACT_R0002.json`;
+const PLAUSIBLE_RELATIVE = `governance/gates/${GATE}/contracts/EXECUTION_CONTRACT_R0009.json`;
+function snapshotFiles(root, relatives) {
+  return relatives.map((relative) => {
+    const target = path.join(root, ...relative.split('/'));
+    return { relative, existed: fs.existsSync(target), bytes: fs.existsSync(target) ? fs.readFileSync(target) : null };
+  });
+}
+function restoreFiles(root, snapshot) {
+  for (const entry of snapshot) {
+    const target = path.join(root, ...entry.relative.split('/'));
+    if (!entry.existed) {
+      fs.rmSync(target, { force: true });
+      continue;
+    }
+    fs.mkdirSync(path.dirname(target), { recursive: true });
+    fs.writeFileSync(target, entry.bytes);
+  }
+}
+function probeStart(root) {
+  return buildGateStartDocuments({
+    root, gateId: GATE, eventId: `${GATE}_START_PROBE_R1`,
+    recordedAt: '2026-08-15T13:13:00.000Z', expiresAtUtc: EXPIRES_AT, apply: false
+  });
+}
 const git = (cwd, args) => spawnSync('git', args, { cwd, encoding: 'utf8' });
 
 /**
@@ -408,6 +434,107 @@ test('the full lawful chain: NOT_STARTED -> bootstrap -> AUTHORIZATION -> START'
     recordedAt: '2026-08-15T13:12:00.000Z', checkpoint
   });
   assert.equal(authorizationApply.result, 'APPLIED', JSON.stringify(authorizationApply.findings));
+
+  const contractABytes = fs.readFileSync(path.join(fixture.root, ...CONTRACT_RELATIVE.split('/')));
+  const hashA = sha256(contractABytes);
+  const pointerBytes = fs.readFileSync(path.join(fixture.root, ...POINTER_RELATIVE.split('/')));
+  const contractA = JSON.parse(contractABytes.toString('utf8'));
+  const liveAuthRecord = readJson(fixture.root, AUTH_RECORD_RELATIVE);
+  assert.equal(liveAuthRecord.contractSha256, hashA);
+
+  const ordinary = probeStart(fixture.root);
+  assert.equal(ordinary.verdict, 'BUILT', JSON.stringify(ordinary.findings));
+  assert.equal(ordinary.record.contractSha256, hashA);
+  assert.equal(ordinary.record.contractSha256, liveAuthRecord.contractSha256);
+  assert.equal(ordinary.record.currentContractSha256, sha256(pointerBytes));
+  assert.deepEqual(ordinary.record.functionalExecutionScope, contractA.authorizedPaths);
+
+  const successor = structuredClone(contractA);
+  successor.contractRevision = 'R0002';
+  successor.previousContractPath = CONTRACT_RELATIVE;
+  successor.previousContractSha256 = hashA;
+  successor.authorizedPaths = [...contractA.authorizedPaths, `governance/gates/${GATE}/contracts/EXECUTION_CONTRACT_R0002.json`];
+  const lineageSnapshot = snapshotFiles(fixture.root, [POINTER_RELATIVE, SUCCESSOR_RELATIVE]);
+  writeJson(fixture.root, SUCCESSOR_RELATIVE, successor);
+  const successorBytes = fs.readFileSync(path.join(fixture.root, ...SUCCESSOR_RELATIVE.split('/')));
+  writeJson(fixture.root, POINTER_RELATIVE, {
+    schemaVersion: 1, gateId: GATE, contractRevision: 'R0002',
+    contractPath: SUCCESSOR_RELATIVE, contractSha256: sha256(successorBytes), activatedByEventId: null
+  });
+  const succession = probeStart(fixture.root);
+  assert.equal(succession.verdict, 'BUILT', JSON.stringify(succession.findings));
+  assert.equal(succession.record.contractSha256, hashA);
+  assert.equal(succession.record.currentContractSha256, sha256(fs.readFileSync(path.join(fixture.root, ...POINTER_RELATIVE.split('/')))));
+  assert.deepEqual(succession.record.functionalExecutionScope, contractA.authorizedPaths);
+  assert.notDeepEqual(succession.record.functionalExecutionScope, successor.authorizedPaths);
+  restoreFiles(fixture.root, lineageSnapshot);
+
+  const hostileSnapshot = snapshotFiles(fixture.root, [
+    AUTH_RECORD_RELATIVE, POINTER_RELATIVE, CONTRACT_RELATIVE, SUCCESSOR_RELATIVE, PLAUSIBLE_RELATIVE
+  ]);
+  const assertStartBlocked = (code) => {
+    const result = probeStart(fixture.root);
+    assert.equal(result.verdict, 'BLOCKED', code);
+    assert.ok(result.findings.some((finding) => finding.code === code), `${code}: ${JSON.stringify(result.findings)}`);
+    restoreFiles(fixture.root, hostileSnapshot);
+  };
+
+  writeJson(fixture.root, AUTH_RECORD_RELATIVE, { ...liveAuthRecord, contractSha256: 'a'.repeat(64) });
+  assertStartBlocked('START_BOUND_CONTRACT_NOT_FOUND');
+
+  writeJson(fixture.root, AUTH_RECORD_RELATIVE, { ...liveAuthRecord, gateId: 'GATE18' });
+  assertStartBlocked('GATE_AUTHORIZATION_RECORD_GATE_MISMATCH');
+
+  writeJson(fixture.root, AUTH_RECORD_RELATIVE, { ...liveAuthRecord, transitionType: 'START', fromStatus: 'AUTHORIZED_NOT_STARTED', toStatus: 'IN_PROGRESS' });
+  assertStartBlocked('GATE_AUTHORIZATION_RECORD_TRANSITION_INVALID');
+
+  writeJson(fixture.root, SUCCESSOR_RELATIVE, {
+    ...successor,
+    previousContractPath: `governance/gates/${GATE}/contracts/../GATE17/contracts/EXECUTION_CONTRACT_R0001.json`,
+    previousContractSha256: hashA
+  });
+  writeJson(fixture.root, POINTER_RELATIVE, {
+    schemaVersion: 1, gateId: GATE, contractRevision: 'R0002',
+    contractPath: SUCCESSOR_RELATIVE, contractSha256: sha256(fs.readFileSync(path.join(fixture.root, ...SUCCESSOR_RELATIVE.split('/')))),
+    activatedByEventId: null
+  });
+  assertStartBlocked('START_CONTRACT_LINEAGE_PATH_INVALID');
+
+  writeJson(fixture.root, SUCCESSOR_RELATIVE, { ...successor, previousContractSha256: 'b'.repeat(64) });
+  writeJson(fixture.root, POINTER_RELATIVE, {
+    schemaVersion: 1, gateId: GATE, contractRevision: 'R0002',
+    contractPath: SUCCESSOR_RELATIVE, contractSha256: sha256(fs.readFileSync(path.join(fixture.root, ...SUCCESSOR_RELATIVE.split('/')))),
+    activatedByEventId: null
+  });
+  assertStartBlocked('START_CONTRACT_LINEAGE_PREDECESSOR_SHA_MISMATCH');
+
+  writeJson(fixture.root, PLAUSIBLE_RELATIVE, { ...contractA, contractRevision: 'R0009' });
+  writeJson(fixture.root, POINTER_RELATIVE, {
+    schemaVersion: 1, gateId: GATE, contractRevision: 'R0009',
+    contractPath: PLAUSIBLE_RELATIVE, contractSha256: sha256(fs.readFileSync(path.join(fixture.root, ...PLAUSIBLE_RELATIVE.split('/')))),
+    activatedByEventId: null
+  });
+  assertStartBlocked('START_CONTRACT_LINEAGE_DOES_NOT_DESCEND');
+
+  const unscopeable = { ...contractA, authorizedPaths: [] };
+  writeJson(fixture.root, CONTRACT_RELATIVE, unscopeable);
+  const unscopeableBytes = fs.readFileSync(path.join(fixture.root, ...CONTRACT_RELATIVE.split('/')));
+  writeJson(fixture.root, AUTH_RECORD_RELATIVE, { ...liveAuthRecord, contractSha256: sha256(unscopeableBytes) });
+  writeJson(fixture.root, POINTER_RELATIVE, {
+    schemaVersion: 1, gateId: GATE, contractRevision: 'R0001',
+    contractPath: CONTRACT_RELATIVE, contractSha256: sha256(unscopeableBytes), activatedByEventId: null
+  });
+  assertStartBlocked('START_BOUND_SCOPE_UNAVAILABLE');
+
+  writeJson(fixture.root, SUCCESSOR_RELATIVE, { ...contractA, contractRevision: 'R0002' });
+  writeJson(fixture.root, POINTER_RELATIVE, {
+    schemaVersion: 1, gateId: GATE, contractRevision: 'R0002',
+    contractPath: SUCCESSOR_RELATIVE, contractSha256: sha256(fs.readFileSync(path.join(fixture.root, ...SUCCESSOR_RELATIVE.split('/')))),
+    activatedByEventId: null
+  });
+  assertStartBlocked('START_CONTRACT_LINEAGE_DOES_NOT_DESCEND');
+
+  restoreFiles(fixture.root, hostileSnapshot);
 
   // 7/8/9. normal START, accepted by the ledger, and the Gate leaves NOT_STARTED
   const startBuild = buildGateStartDocuments({

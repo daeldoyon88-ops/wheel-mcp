@@ -1,0 +1,1077 @@
+{
+  "gateId": "GATE25",
+  "contractRevision": "R0003",
+  "strategicRegistryReference": {
+    "registryPath": "governance/GATE_REGISTRY_00_40.json",
+    "registrySha256": "76d5f9ff0a21f8c1eadaf9ccd9e48c9087d12655fac6a5c9215584053652a56b",
+    "gateId": "GATE25",
+    "canonicalObjectiveSha256": "fee3eda4020defc918200ee93c43b13f72d29d66be087068f5c6538641f1f588"
+  },
+  "canonicalRequirements": [
+    {
+      "requirementId": "G25-BUILD-01",
+      "statement": "Bind the Owner-ratified GATE25 canonical mandate by its exact SHA-256 0aefedc757e2ba749ebd25a2cd40dc2070fafb04f3ac8f7b194c08d2b513c618 and preserve EXECUTION_CONTRACT_R0001 and EXECUTION_CONTRACT_R0002 bytes unchanged. This revision activates GATE25 BUILD scope for the already-ratified Historical Analogue Engine under OWNER_AUTHORIZE_GATE25_BUILD_SCOPE_CONTRACT_SUCCESSION_R1 and binds all eight mandate deferredToContract items (D1-D8). It does not close, confirm, replay START or execute the functional BUILD.",
+      "normativeSource": "governance/sources/GATE25_CANONICAL_MANDATE_R0.json",
+      "ownerAuthorizationIds": [
+        "OWNER_AUTHORIZE_GATE25_BUILD_SCOPE_CONTRACT_SUCCESSION_R1",
+        "OWNER_SELECT_GATE25_R0003_LEDGER_BOUND_SUCCESSION_ROUTE_R1"
+      ]
+    },
+    {
+      "requirementId": "G25-BUILD-02",
+      "statement": "Carried forward unchanged from R0002: GATE24 COMPLETE_CONFIRMED is the sole predecessor terminal proof and is not reopened; OD-1 through OD-5 remain CLOSED and unchanged; OD-4 remains the unchanged P3H pinset of 793 VERSION_CACHED keys plus 9 documented exclusions; DatasetId_observation admission remains authorized only within the exact bounded GATE25 historical scope and the global identity policy is unchanged.",
+      "normativeSource": "governance/sources/GATE25_CANONICAL_MANDATE_R0.json",
+      "observationAdmissionAuthorized": true,
+      "ownerAuthorizationIds": [
+        "OWNER_AUTHORIZE_GATE25_P3H_DATASETID_OBSERVATION_ADMISSION_UNDER_SEPARATE_HISTORICAL_SCOPE_R1",
+        "OWNER_AUTHORIZE_GATE25_OBSERVATION_ADMISSION_CONTRACT_SUCCESSION_R1",
+        "OWNER_AUTHORIZE_BIND_GATE25_HISTORICAL_OBSERVATION_ADMISSION_IN_SUCCESSOR_CONTRACT_R1"
+      ],
+      "observationAdmissionScope": {
+        "datasetIdentity": "sha256:cc7bb76f37a97a5673a32c5a8f357088ee94230fefcbef1c19ad16227476488e",
+        "admittedKeyDigest": "9fdc19bff5de2769c32cdb7fde866e83adb120ec16736c8cabc1b1851f98ef85",
+        "exclusionDigest": "7eca4720595e05aaeaf3d8e35f40ada3efb41ab4d7a58147670119304c0c2e7d",
+        "cohort": {
+          "status": "VERSION_CACHED",
+          "admittedCount": 793,
+          "exclusionCount": 9
+        },
+        "historicalObservationWindow": {
+          "startSessionInclusive": "2018-01-02",
+          "endSessionInclusive": "2026-09-04"
+        },
+        "restriction": "GATE25_HISTORICAL_SCOPE_ONLY"
+      },
+      "identityPolicy": {
+        "earliestAdmissibleSession": "2026-05-04",
+        "aliasBackdating": "FORBIDDEN",
+        "retroactive2026IdentityApplication": "FORBIDDEN",
+        "identityResolutionRule": "RESOLVE_AT_EACH_HISTORICAL_SESSION_DATE",
+        "preEarliestAdmissibleSessionRule": "ADMITTED_ONLY_THROUGH_BOUNDED_GATE25_HISTORICAL_SCOPE"
+      }
+    },
+    {
+      "requirementId": "G25-BUILD-03",
+      "statement": "Every mandate deferredToContract item is bound by exactly one OWNER_RESOLVED decision D1-D8 in G25-BUILD-04 through G25-BUILD-11. resolvedCount = 8, unresolvedCount = 0; no deferredToContract item remains unbound.",
+      "normativeSource": "governance/sources/GATE25_CANONICAL_MANDATE_R0.json",
+      "deferredToContractResolution": {
+        "deferredCount": 8,
+        "resolvedCount": 8,
+        "unresolvedCount": 0,
+        "determinedCount": 8,
+        "ownerDecisionRequiredCount": 0,
+        "mapping": [
+          {
+            "deferredToContractIndex": 0,
+            "decisionId": "D1",
+            "requirementId": "G25-BUILD-04",
+            "bindingId": "GATE25_ANALOGUE_IDENTITY_V1"
+          },
+          {
+            "deferredToContractIndex": 1,
+            "decisionId": "D2",
+            "requirementId": "G25-BUILD-05",
+            "bindingId": "GATE25_ANALOGUE_COMPARISON_REPORT_V1"
+          },
+          {
+            "deferredToContractIndex": 2,
+            "decisionId": "D3",
+            "requirementId": "G25-BUILD-06",
+            "bindingId": "GATE25_ANALOGUE_SUPPORT_REPORT_V1"
+          },
+          {
+            "deferredToContractIndex": 3,
+            "decisionId": "D4",
+            "requirementId": "G25-BUILD-07",
+            "bindingId": "GATE25_ANALOGUE_INDEX_V1"
+          },
+          {
+            "deferredToContractIndex": 4,
+            "decisionId": "D5",
+            "requirementId": "G25-BUILD-08",
+            "bindingId": "GATE25_ANALOGUE_PROVENANCE_MANIFEST_V1"
+          },
+          {
+            "deferredToContractIndex": 5,
+            "decisionId": "D6",
+            "requirementId": "G25-BUILD-09",
+            "bindingId": "GATE25_DISTANCE_PARAMETERS_V1"
+          },
+          {
+            "deferredToContractIndex": 6,
+            "decisionId": "D7",
+            "requirementId": "G25-BUILD-10",
+            "bindingId": "GATE25_ELIGIBILITY_EXCLUSION_REASON_V1"
+          },
+          {
+            "deferredToContractIndex": 7,
+            "decisionId": "D8",
+            "requirementId": "G25-BUILD-11",
+            "bindingId": "GATE25_POST_SELECTION_OUTCOME_SET_V1"
+          }
+        ]
+      }
+    },
+    {
+      "requirementId": "G25-BUILD-04",
+      "statement": "D1 binds analogue identity canonicalization and digest: analogueIdentityId = sha256Canonical over the closed versioned object { schema: GATE25_ANALOGUE_IDENTITY_V1, orderedMembers } serialized as CanonicalJSON/1, with the OD-3 eleven members in exact OD-3 order; no reorder, no silent default, no additional member, no locale-sensitive serialization, no alias backdating, no fuzzy identity.",
+      "normativeSource": "governance/sources/GATE25_CANONICAL_MANDATE_R0.json",
+      "decisionId": "D1",
+      "resolutionStatus": "OWNER_RESOLVED",
+      "ownerAuthorizationId": "OWNER_AUTHORIZE_GATE25_BUILD_SCOPE_CONTRACT_SUCCESSION_R1",
+      "deferredToContractIndex": 0,
+      "deferredToContractItem": "the exact canonicalization and digest rules applied over the ratified analogue identity member list",
+      "bindingId": "GATE25_ANALOGUE_IDENTITY_V1",
+      "bindingArtifactPath": "governance/gates/GATE25/contracts/GATE25_ANALOGUE_IDENTITY_V1.json",
+      "binding": {
+        "schema": "GATE25_ANALOGUE_IDENTITY_V1",
+        "serialization": "CanonicalJSON/1",
+        "canonicalizationImplementation": "governance/tools/canonical-json.mjs::canonicalize",
+        "digestPrimitive": "sha256Canonical",
+        "digestImplementation": "governance/tools/canonical-json.mjs::sha256Canonical",
+        "domainVersionId": "GATE25_ANALOGUE_IDENTITY_V1",
+        "identityRule": "analogueIdentityId = sha256Canonical({ schema: 'GATE25_ANALOGUE_IDENTITY_V1', orderedMembers })",
+        "digestInputFields": [
+          "schema",
+          "orderedMembers"
+        ],
+        "digestInputClosed": true,
+        "orderedMembersSource": {
+          "path": "governance/sources/GATE25_CANONICAL_MANDATE_R0.json",
+          "pointer": "/closedOwnerDecisions[id=OD-3]/resolution",
+          "sha256": "0aefedc757e2ba749ebd25a2cd40dc2070fafb04f3ac8f7b194c08d2b513c618"
+        },
+        "memberCount": 11,
+        "orderedMemberIds": [
+          "InstrumentIdentityId",
+          "SessionDate",
+          "KnowledgeCutoff",
+          "FeatureVectorBindingId",
+          "RegimeRecordId",
+          "RegimeHorizonSpecId",
+          "MacroContextBindingId",
+          "SelectionPolicyVersionId",
+          "EligibleHistoryPinSetId",
+          "PriceBasisId",
+          "MissingnessStateId"
+        ],
+        "orderedMembersEncoding": "orderedMembers is a JSON array of exactly eleven entries in OD-3 order; entry i is { memberId, value } where memberId is the i-th OD-3 member name and value is its resolved value. Array order is significant under CanonicalJSON/1; an object keyed by member name is forbidden because CanonicalJSON/1 key ordering would discard OD-3 order.",
+        "valueEncoding": {
+          "SessionDate": "canonical YYYY-MM-DD string",
+          "KnowledgeCutoff": "canonical UTC RFC3339 timestamp exactly as supplied by its governed source",
+          "versionAndIdMembers": "exact governed strings",
+          "MissingnessStateId": "exact governed string",
+          "PriceBasisId": "exact governed string; SPLIT_ADJUSTED only per OD-3"
+        },
+        "memberRules": {
+          "reorder": "FORBIDDEN",
+          "omittedMemberSilentDefault": "FORBIDDEN",
+          "additionalIdentityMember": "FORBIDDEN"
+        },
+        "forbidden": [
+          "locale-sensitive serialization",
+          "alias backdating",
+          "fuzzy identity"
+        ],
+        "forbiddenInIdentityDigestPerOD3": [
+          "ticker/symbol/alias",
+          "Outcome*",
+          "distances",
+          "rankings",
+          "analogue set",
+          "classificationQuality",
+          "regimeVector values",
+          "outcome HorizonId"
+        ],
+        "calendarWindowBindingIdRulePerOD3": "not a twelfth member; carried inside FeatureVectorBindingId and fails closed if not single-valued"
+      }
+    },
+    {
+      "requirementId": "G25-BUILD-05",
+      "statement": "D2 binds the closed versioned comparison report GATE25_ANALOGUE_COMPARISON_REPORT_V1 with its exact top-level fields, analogue entry fields, commonFactors as the exact matched CORE_V1 regime/state dimensions, and per-distance-dimension differences over exactly the OD-2 features; no AI-generated prose.",
+      "normativeSource": "governance/sources/GATE25_CANONICAL_MANDATE_R0.json",
+      "decisionId": "D2",
+      "resolutionStatus": "OWNER_RESOLVED",
+      "ownerAuthorizationId": "OWNER_AUTHORIZE_GATE25_BUILD_SCOPE_CONTRACT_SUCCESSION_R1",
+      "deferredToContractIndex": 1,
+      "deferredToContractItem": "the exact schema of the analogue comparison report and of the common factors and differences fields",
+      "bindingId": "GATE25_ANALOGUE_COMPARISON_REPORT_V1",
+      "bindingArtifactPath": "governance/gates/GATE25/contracts/GATE25_ANALOGUE_COMPARISON_REPORT_V1.json",
+      "binding": {
+        "schema": "GATE25_ANALOGUE_COMPARISON_REPORT_V1",
+        "closed": true,
+        "topLevelRequiredFields": [
+          "schema",
+          "queryIdentityId",
+          "datasetId",
+          "selectionPolicyVersionId",
+          "knowledgeCutoff",
+          "eligibleCount",
+          "supportStatus",
+          "decision",
+          "analogues"
+        ],
+        "analogueEntryRequiredFields": [
+          "rank",
+          "analogueIdentityId",
+          "sessionDate",
+          "finalDistance",
+          "distanceComponents",
+          "commonFactors",
+          "differences"
+        ],
+        "commonFactors": "the exact matched CORE_V1 regime/state dimensions that made the candidate eligible",
+        "differencesCardinality": "one entry for each distance dimension",
+        "differencesEntryRequiredFields": [
+          "featureId",
+          "queryRawValue",
+          "candidateRawValue",
+          "min",
+          "max",
+          "queryNormalizedValue",
+          "candidateNormalizedValue",
+          "absoluteNormalizedDelta"
+        ],
+        "distanceFeatureIds": [
+          "F1_SIMPLE_RETURN@W5",
+          "F1_SIMPLE_RETURN@W21"
+        ],
+        "distanceFeatureSource": {
+          "path": "governance/sources/GATE25_CANONICAL_MANDATE_R0.json",
+          "pointer": "/closedOwnerDecisions[id=OD-2]/resolution",
+          "reading": "Manhattan L1 on (F1@W5, F1@W21)"
+        },
+        "rankOrdering": "GATE25_ANALOGUE_INDEX_V1 canonical query-result ordering",
+        "aiGeneratedProse": "FORBIDDEN"
+      }
+    },
+    {
+      "requirementId": "G25-BUILD-06",
+      "statement": "D3 binds the closed support report GATE25_ANALOGUE_SUPPORT_REPORT_V1: eligibleCount < 2 yields INSUFFICIENT_SUPPORT / ABSTAIN / INSUFFICIENT_SUPPORT; eligibleCount >= 2 yields SUFFICIENT_SUPPORT / PROCEED / null; no ESS, confidence score, probability or statistical significance claim. OD-5 is preserved unchanged.",
+      "normativeSource": "governance/sources/GATE25_CANONICAL_MANDATE_R0.json",
+      "decisionId": "D3",
+      "resolutionStatus": "OWNER_RESOLVED",
+      "ownerAuthorizationId": "OWNER_AUTHORIZE_GATE25_BUILD_SCOPE_CONTRACT_SUCCESSION_R1",
+      "deferredToContractIndex": 2,
+      "deferredToContractItem": "the exact schema of the uncertainty and sample-size report",
+      "bindingId": "GATE25_ANALOGUE_SUPPORT_REPORT_V1",
+      "bindingArtifactPath": "governance/gates/GATE25/contracts/GATE25_ANALOGUE_SUPPORT_REPORT_V1.json",
+      "binding": {
+        "schema": "GATE25_ANALOGUE_SUPPORT_REPORT_V1",
+        "closed": true,
+        "requiredFields": [
+          "schema",
+          "universeCount",
+          "eligibleCount",
+          "excludedCount",
+          "exclusionCountsByReason",
+          "structuralGatesPass",
+          "supportStatus",
+          "decision",
+          "abstainReason"
+        ],
+        "supportStatusVocabulary": [
+          "INSUFFICIENT_SUPPORT",
+          "SUFFICIENT_SUPPORT"
+        ],
+        "decisionVocabulary": [
+          "ABSTAIN",
+          "PROCEED"
+        ],
+        "rules": [
+          {
+            "when": "eligibleCount < 2",
+            "supportStatus": "INSUFFICIENT_SUPPORT",
+            "decision": "ABSTAIN",
+            "abstainReason": "INSUFFICIENT_SUPPORT"
+          },
+          {
+            "when": "eligibleCount >= 2",
+            "supportStatus": "SUFFICIENT_SUPPORT",
+            "decision": "PROCEED",
+            "abstainReason": null
+          }
+        ],
+        "exclusionCountsByReasonVocabulary": "GATE25_ELIGIBILITY_EXCLUSION_REASON_V1",
+        "od5Preservation": "OD-5 is unchanged: SUFFICIENT_SUPPORT is never emitted with structuralGatesPass = false; that condition introduces no additional abstainReason value and fails closed. Sufficiency never truncates, re-ranks or silently narrows the analogue set; under INSUFFICIENT_SUPPORT the frozen set is still emitted with exclusion reasons.",
+        "forbidden": [
+          "ESS",
+          "confidence score",
+          "probability",
+          "statistical significance claim"
+        ]
+      }
+    },
+    {
+      "requirementId": "G25-BUILD-07",
+      "statement": "D4 binds the append-only analogue index GATE25_ANALOGUE_INDEX_V1: primary key analogueIdentityId, canonical query-result ordering finalDistance ASC, sessionDate ASC, analogueIdentityId lexicographic ASC, pageSize 100 applied after ranking, storage ordered by analogueIdentityId lexicographic ASC, CanonicalJSON/1 at the exact OFF_SCAN path; the live Wheel scan never rebuilds it.",
+      "normativeSource": "governance/sources/GATE25_CANONICAL_MANDATE_R0.json",
+      "decisionId": "D4",
+      "resolutionStatus": "OWNER_RESOLVED",
+      "ownerAuthorizationId": "OWNER_AUTHORIZE_GATE25_BUILD_SCOPE_CONTRACT_SUCCESSION_R1",
+      "deferredToContractIndex": 3,
+      "deferredToContractItem": "the exact storage layout, key ordering and pagination of the analogue index",
+      "bindingId": "GATE25_ANALOGUE_INDEX_V1",
+      "bindingArtifactPath": "governance/gates/GATE25/contracts/GATE25_ANALOGUE_INDEX_V1.json",
+      "binding": {
+        "schema": "GATE25_ANALOGUE_INDEX_V1",
+        "storageSemantics": {
+          "appendOnly": true,
+          "identicalReplay": "IDEMPOTENT",
+          "divergentReplay": "REFUSED",
+          "rewriteOfExistingDifferentValue": "FORBIDDEN"
+        },
+        "primaryKey": "analogueIdentityId (GATE25_ANALOGUE_IDENTITY_V1)",
+        "queryResultOrdering": [
+          {
+            "ordinal": 1,
+            "key": "finalDistance",
+            "direction": "ASC"
+          },
+          {
+            "ordinal": 2,
+            "key": "sessionDate",
+            "direction": "ASC"
+          },
+          {
+            "ordinal": 3,
+            "key": "analogueIdentityId",
+            "direction": "ASC",
+            "comparison": "LEXICOGRAPHIC"
+          }
+        ],
+        "pagination": {
+          "pageSize": 100,
+          "appliedAfter": "deterministic query-result ranking"
+        },
+        "productClass": "OFF_SCAN",
+        "persistedProductPath": "data/jarvise/historical-analogue/GATE25/V1/ANALOGUE_INDEX.json",
+        "serialization": "CanonicalJSON/1",
+        "persistedFields": [
+          "schema",
+          "datasetId",
+          "selectionPolicyVersionId",
+          "pageSize",
+          "recordCount",
+          "records"
+        ],
+        "persistedFieldsClosed": true,
+        "storageOrder": "records ordered by analogueIdentityId lexicographic ASC",
+        "forbidden": [
+          "filesystem-order dependence",
+          "locale-dependent ordering",
+          "directory wildcard"
+        ],
+        "liveWheelScanRebuild": "FORBIDDEN"
+      }
+    },
+    {
+      "requirementId": "G25-BUILD-08",
+      "statement": "D5 binds the closed provenance manifest GATE25_ANALOGUE_PROVENANCE_MANIFEST_V1 at the exact canonical path with its full required field list, inputProof fields, availableByCutoff = true for every selection/distance input, and analogueIndexSha256 over the exact canonical ANALOGUE_INDEX.json bytes; no required field is silently defaulted.",
+      "normativeSource": "governance/sources/GATE25_CANONICAL_MANDATE_R0.json",
+      "decisionId": "D5",
+      "resolutionStatus": "OWNER_RESOLVED",
+      "ownerAuthorizationId": "OWNER_AUTHORIZE_GATE25_BUILD_SCOPE_CONTRACT_SUCCESSION_R1",
+      "deferredToContractIndex": 4,
+      "deferredToContractItem": "the exact provenance manifest schema and its required field list",
+      "bindingId": "GATE25_ANALOGUE_PROVENANCE_MANIFEST_V1",
+      "bindingArtifactPath": "governance/gates/GATE25/contracts/GATE25_ANALOGUE_PROVENANCE_MANIFEST_V1.json",
+      "binding": {
+        "schema": "GATE25_ANALOGUE_PROVENANCE_MANIFEST_V1",
+        "persistedPath": "data/jarvise/historical-analogue/GATE25/V1/PROVENANCE.json",
+        "serialization": "CanonicalJSON/1",
+        "closed": true,
+        "requiredFields": [
+          "schema",
+          "queryIdentityId",
+          "datasetId",
+          "datasetSha256",
+          "sourceBindingId",
+          "instrumentIdentityId",
+          "featureDatasetId",
+          "selectionPolicyVersionId",
+          "knowledgeCutoff",
+          "eligibleHistoryPinSetId",
+          "inputProofs",
+          "selectedAnalogueIdentityIds",
+          "distanceEvidence",
+          "eligibleUniverseCount",
+          "excludedUniverseCount",
+          "exclusionCountsByReason",
+          "outcomeHorizonBindings",
+          "supportReportId",
+          "analogueIndexSha256"
+        ],
+        "inputProofRequiredFields": [
+          "inputId",
+          "sourceArtifactId",
+          "sourceArtifactSha256",
+          "availableAt",
+          "knowledgeCutoff",
+          "availableByCutoff"
+        ],
+        "availableByCutoffRule": "availableByCutoff = true for every input participating in selection or distance",
+        "analogueIndexSha256Rule": "SHA-256 of the exact canonical bytes of data/jarvise/historical-analogue/GATE25/V1/ANALOGUE_INDEX.json",
+        "requiredFieldSilentDefault": "FORBIDDEN"
+      }
+    },
+    {
+      "requirementId": "G25-BUILD-09",
+      "statement": "D6 binds the distance parameter set GATE25_DISTANCE_PARAMETERS_V1: Manhattan L1 over exactly the OD-2 dimensions, no weights, per-dimension min-max over the frozen eligible historical candidate universe for query T excluding the query observation, explicit zero-range rule keeping the dimension, finite numbers only, no epsilon, tolerance or intermediate rounding.",
+      "normativeSource": "governance/sources/GATE25_CANONICAL_MANDATE_R0.json",
+      "decisionId": "D6",
+      "resolutionStatus": "OWNER_RESOLVED",
+      "ownerAuthorizationId": "OWNER_AUTHORIZE_GATE25_BUILD_SCOPE_CONTRACT_SUCCESSION_R1",
+      "deferredToContractIndex": 5,
+      "deferredToContractItem": "the numeric parameters of the ratified distance metric, held in a versioned parameter set",
+      "bindingId": "GATE25_DISTANCE_PARAMETERS_V1",
+      "bindingArtifactPath": "governance/gates/GATE25/contracts/GATE25_DISTANCE_PARAMETERS_V1.json",
+      "binding": {
+        "parameterSetId": "GATE25_DISTANCE_PARAMETERS_V1",
+        "distance": "MANHATTAN_L1",
+        "distanceFeatureIds": [
+          "F1_SIMPLE_RETURN@W5",
+          "F1_SIMPLE_RETURN@W21"
+        ],
+        "distanceFeatureSource": "OD-2 authorized dimensions exactly",
+        "weights": "NONE; each dimension weight is implicitly 1; configurable weights forbidden",
+        "normalization": {
+          "method": "PER_DIMENSION_MIN_MAX",
+          "population": "frozen eligible HISTORICAL candidate universe for query T",
+          "queryObservationInPopulation": false,
+          "formula": "normalized = (x - min) / (max - min)"
+        },
+        "zeroRange": {
+          "condition": "max == min",
+          "queryNormalizedValue": 0,
+          "candidateNormalizedValue": 0,
+          "componentDistance": 0,
+          "dimensionRetained": true,
+          "dimensionDropped": false
+        },
+        "componentDistance": "absoluteNormalizedDelta = |queryNormalizedValue - candidateNormalizedValue|",
+        "finalDistance": "sum of componentDistance over every distance dimension",
+        "numericRules": {
+          "finiteNumbersOnly": true,
+          "epsilon": "NONE",
+          "tolerance": "NONE",
+          "intermediateRounding": "FORBIDDEN",
+          "configurableWeights": "FORBIDDEN"
+        },
+        "representation": "CanonicalJSON/1 provides the deterministic representation"
+      }
+    },
+    {
+      "requirementId": "G25-BUILD-10",
+      "statement": "D7 binds the closed exclusion reason vocabulary GATE25_ELIGIBILITY_EXCLUSION_REASON_V1 with its exact twelve-reason precedence order; a candidate may carry several reasons emitted in that order; no candidate is silently dropped; dataset-level identity or binding failure is an engine fail-closed condition, never a candidate exclusion reason.",
+      "normativeSource": "governance/sources/GATE25_CANONICAL_MANDATE_R0.json",
+      "decisionId": "D7",
+      "resolutionStatus": "OWNER_RESOLVED",
+      "ownerAuthorizationId": "OWNER_AUTHORIZE_GATE25_BUILD_SCOPE_CONTRACT_SUCCESSION_R1",
+      "deferredToContractIndex": 6,
+      "deferredToContractItem": "the exact exclusion reason vocabulary for the eligible universe accounting",
+      "bindingId": "GATE25_ELIGIBILITY_EXCLUSION_REASON_V1",
+      "bindingArtifactPath": "governance/gates/GATE25/contracts/GATE25_ELIGIBILITY_EXCLUSION_REASON_V1.json",
+      "binding": {
+        "vocabularyId": "GATE25_ELIGIBILITY_EXCLUSION_REASON_V1",
+        "closed": true,
+        "multipleReasonsPerCandidate": true,
+        "emissionOrder": "all applicable reasons in precedence order",
+        "precedence": [
+          {
+            "ordinal": 1,
+            "reasonId": "P3H_EXCLUDED_MALFORMED_PROVIDER_RESULT"
+          },
+          {
+            "ordinal": 2,
+            "reasonId": "P3H_EXCLUDED_SCHEMA_FAILURE"
+          },
+          {
+            "ordinal": 3,
+            "reasonId": "P3H_EXCLUDED_SNAPSHOT_CONTRACT_INVALID"
+          },
+          {
+            "ordinal": 4,
+            "reasonId": "OUTSIDE_HISTORICAL_WINDOW"
+          },
+          {
+            "ordinal": 5,
+            "reasonId": "AVAILABLE_AFTER_KNOWLEDGE_CUTOFF"
+          },
+          {
+            "ordinal": 6,
+            "reasonId": "INSTRUMENT_IDENTITY_MISMATCH"
+          },
+          {
+            "ordinal": 7,
+            "reasonId": "REGIME_HORIZON_SPEC_MISMATCH"
+          },
+          {
+            "ordinal": 8,
+            "reasonId": "CORE_V1_REGIME_MISMATCH"
+          },
+          {
+            "ordinal": 9,
+            "reasonId": "VOLATILITY_STATE_UNAVAILABLE"
+          },
+          {
+            "ordinal": 10,
+            "reasonId": "REQUIRED_DISTANCE_FEATURE_MISSING"
+          },
+          {
+            "ordinal": 11,
+            "reasonId": "REQUIRED_DISTANCE_FEATURE_MALFORMED"
+          },
+          {
+            "ordinal": 12,
+            "reasonId": "REQUIRED_DISTANCE_FEATURE_NON_FINITE"
+          }
+        ],
+        "p3hClassMapping": [
+          {
+            "p3hExclusionClass": "MALFORMED_PROVIDER_RESULT",
+            "reasonId": "P3H_EXCLUDED_MALFORMED_PROVIDER_RESULT"
+          },
+          {
+            "p3hExclusionClass": "SCHEMA_FAILURE",
+            "reasonId": "P3H_EXCLUDED_SCHEMA_FAILURE"
+          },
+          {
+            "p3hExclusionClass": "SNAPSHOT_CONTRACT_INVALID",
+            "reasonId": "P3H_EXCLUDED_SNAPSHOT_CONTRACT_INVALID"
+          }
+        ],
+        "silentCandidateDrop": "FORBIDDEN",
+        "datasetLevelIdentityOrBindingFailure": "ENGINE_FAIL_CLOSED; never converted into a candidate exclusion reason"
+      }
+    },
+    {
+      "requirementId": "G25-BUILD-11",
+      "statement": "D8 binds the post-selection outcome set GATE25_POST_SELECTION_OUTCOME_SET_V1 as per-analogue, per-horizon records over all and only the HorizonId values admissible under the published GATE22_TEMPORAL_HORIZON_V1 contract; MISSING outcomes carry null; no substitution, fabrication, quantiles, probabilities or confidence; outcomes never influence eligibility, normalization, distance, ordering, support count or selection.",
+      "normativeSource": "governance/sources/GATE25_CANONICAL_MANDATE_R0.json",
+      "decisionId": "D8",
+      "resolutionStatus": "OWNER_RESOLVED",
+      "ownerAuthorizationId": "OWNER_AUTHORIZE_GATE25_BUILD_SCOPE_CONTRACT_SUCCESSION_R1",
+      "deferredToContractIndex": 7,
+      "deferredToContractItem": "the exact shape of the post-selection outcome distribution artifact",
+      "bindingId": "GATE25_POST_SELECTION_OUTCOME_SET_V1",
+      "bindingArtifactPath": "governance/gates/GATE25/contracts/GATE25_POST_SELECTION_OUTCOME_SET_V1.json",
+      "binding": {
+        "artifactId": "GATE25_POST_SELECTION_OUTCOME_SET_V1",
+        "recordGranularity": "PER_ANALOGUE_PER_HORIZON",
+        "horizonSource": {
+          "contractId": "GATE22_TEMPORAL_HORIZON_V1",
+          "path": "governance/gates/GATE22/contracts/GATE22_TEMPORAL_HORIZON_V1.json",
+          "sha256": "c53ec179919f90593efdaad625187bc56218a4615bd7d0cecb415a27d4b55783",
+          "admissibleSessionCountsPointer": "/mandateProjection/sessionCountingRules/horizonsV1",
+          "horizonIdCompositionPointer": "/mandateProjection/sessionCountingRules/horizonIdComposition"
+        },
+        "admissibleSessionCountsAtBinding": [
+          30,
+          90,
+          180,
+          252
+        ],
+        "horizonCoverage": "ALL_AND_ONLY admissible HorizonId values; preferred subset, invented horizon and omitted admissible horizon are forbidden",
+        "recordRequiredFields": [
+          "analogueIdentityId",
+          "horizonId",
+          "selectionComplete",
+          "outcomeStatus",
+          "outcomeValue",
+          "outcomeAvailableAt",
+          "sourceBindingId"
+        ],
+        "selectionCompleteRule": "selectionComplete must be true before outcome attachment",
+        "outcomeStatusVocabulary": [
+          "AVAILABLE",
+          "MISSING"
+        ],
+        "missingRule": {
+          "outcomeStatus": "MISSING",
+          "outcomeValue": null
+        },
+        "horizonSubstitution": "FORBIDDEN",
+        "outcomeFabrication": "FORBIDDEN",
+        "forbidden": [
+          "summary quantiles",
+          "probabilities",
+          "confidence values"
+        ],
+        "postSelectionOnly": true,
+        "mustNeverInfluence": [
+          "eligibility",
+          "normalization",
+          "distance",
+          "ordering",
+          "support count",
+          "selection"
+        ]
+      }
+    },
+    {
+      "requirementId": "G25-BUILD-12",
+      "statement": "Freeze the exact 22-path GATE25 BUILD workset: 8 implementation modules, 8 D1-D8 binding artifacts, 4 deterministic tests, the canonical OFF_SCAN analogue index and the canonical provenance manifest. Add NONE and remove NONE; no wildcard, no directory-wide path, no UI, app, AI, broker or Yahoo path, and no 23rd path.",
+      "normativeSource": "governance/sources/GATE25_CANONICAL_MANDATE_R0.json",
+      "buildWorkset": {
+        "pathCount": 22,
+        "implementationPaths": [
+          "governance/gates/GATE25/implementation/analogue-identity-v1.mjs",
+          "governance/gates/GATE25/implementation/analogue-eligibility-v1.mjs",
+          "governance/gates/GATE25/implementation/analogue-distance-v1.mjs",
+          "governance/gates/GATE25/implementation/analogue-index-v1.mjs",
+          "governance/gates/GATE25/implementation/analogue-report-v1.mjs",
+          "governance/gates/GATE25/implementation/analogue-outcome-v1.mjs",
+          "governance/gates/GATE25/implementation/analogue-provenance-v1.mjs",
+          "governance/gates/GATE25/implementation/historical-analogue-engine-v1.mjs"
+        ],
+        "bindingArtifactPaths": [
+          "governance/gates/GATE25/contracts/GATE25_ANALOGUE_IDENTITY_V1.json",
+          "governance/gates/GATE25/contracts/GATE25_ANALOGUE_COMPARISON_REPORT_V1.json",
+          "governance/gates/GATE25/contracts/GATE25_ANALOGUE_SUPPORT_REPORT_V1.json",
+          "governance/gates/GATE25/contracts/GATE25_ANALOGUE_INDEX_V1.json",
+          "governance/gates/GATE25/contracts/GATE25_ANALOGUE_PROVENANCE_MANIFEST_V1.json",
+          "governance/gates/GATE25/contracts/GATE25_DISTANCE_PARAMETERS_V1.json",
+          "governance/gates/GATE25/contracts/GATE25_ELIGIBILITY_EXCLUSION_REASON_V1.json",
+          "governance/gates/GATE25/contracts/GATE25_POST_SELECTION_OUTCOME_SET_V1.json"
+        ],
+        "testPaths": [
+          "governance/gates/GATE25/tests/gate25-foundation.test.mjs",
+          "governance/gates/GATE25/tests/gate25-hostiles.test.mjs",
+          "governance/gates/GATE25/tests/gate25-replay.test.mjs",
+          "governance/gates/GATE25/tests/gate25-integration.test.mjs"
+        ],
+        "dataProductPaths": [
+          "data/jarvise/historical-analogue/GATE25/V1/ANALOGUE_INDEX.json",
+          "data/jarvise/historical-analogue/GATE25/V1/PROVENANCE.json"
+        ]
+      }
+    },
+    {
+      "requirementId": "G25-BUILD-13",
+      "statement": "This succession is the ledger-bound CONTRACT_SUCCESSION IN_PROGRESS -> IN_PROGRESS of GATE25 from R0002 to R0003 under LOCAL_EXPLICIT_AUTHORITY, following the GATE23/GATE24 post-START BUILD-scope precedent, as selected by the PROJECT_OWNER (OWNER_SELECT_GATE25_R0003_LEDGER_BOUND_SUCCESSION_ROUTE_R1) because GATE25 is IN_PROGRESS and its sealed state revision binds CURRENT_CONTRACT. The succession publication paths are publication-only for this single transition and are not BUILD authorizedPaths. No status changes, no START replay and no lifecycle closure.",
+      "normativeSource": "governance/tools/validate-status-ledger.mjs",
+      "successionPublicationPaths": [
+        "governance/gates/GATE25/contracts/EXECUTION_CONTRACT_R0003.json",
+        "governance/gates/GATE25/contracts/CURRENT_CONTRACT.json",
+        "governance/authority/authorizations/GATE25/GATE_CONTRACT_SUCCESSION_LOCAL_AUTHORITY.json",
+        "governance/gates/GATE25/state/revisions/R0003/CHECKPOINT.json",
+        "governance/gates/GATE25/state/revisions/R0003/OPEN_DEFECTS.json",
+        "governance/gates/GATE25/state/revisions/R0003/STATE_SEAL.json",
+        "governance/gates/GATE25/state/CURRENT_STATE.json",
+        "governance/state/GATE_STATUS_LEDGER.ndjson"
+      ],
+      "successionLedgerEventId": "GATE25_CONTRACT_SUCCESSION_R0003_R1",
+      "successorStateRevision": "R0003"
+    },
+    {
+      "requirementId": "G25-BUILD-14",
+      "statement": "Permitted under this revision: deterministic GATE25 BUILD of the Historical Analogue Engine within the exact workset, deterministic analogue computation for BUILD tests and replay, D1-D8 binding artifact creation, deterministic BUILD tests, canonical OFF_SCAN index generation, canonical provenance generation, and one bounded local BUILD commit under the existing Builder authority. Forbidden: Yahoo refetch, P3H mutation, excluded observation fabrication, AI/LLM scoring, embeddings, autonomous trading, broker writes, mandate mutation, OD mutation, ACTIVE_GATE mutation, lifecycle closure, COMPLETE_AGENT without separate closure authority, COMPLETE_CONFIRMED, GATE26, unrelated contract succession, and any live Wheel scan rebuild of the OFF_SCAN product.",
+      "normativeSource": "governance/sources/GATE25_CANONICAL_MANDATE_R0.json"
+    },
+    {
+      "requirementId": "G25-BUILD-15",
+      "statement": "GATE21, GATE22, GATE23 and GATE24 surfaces, P3H, P3G, ACTIVE_GATE, the ratified mandate, EXECUTION_CONTRACT_R0001 and EXECUTION_CONTRACT_R0002 stay unmodified. The status ledger receives only the single CONTRACT_SUCCESSION event of this succession and no event during BUILD.",
+      "normativeSource": "governance/sources/GATE25_CANONICAL_MANDATE_R0.json"
+    }
+  ],
+  "requiredInputs": [
+    {
+      "path": "governance/sources/GATE25_CANONICAL_MANDATE_R0.json",
+      "sha256": "0aefedc757e2ba749ebd25a2cd40dc2070fafb04f3ac8f7b194c08d2b513c618",
+      "role": "OWNER_RATIFIED_CANONICAL_MANDATE"
+    },
+    {
+      "path": "governance/GATE_REGISTRY_00_40.json",
+      "sha256": "76d5f9ff0a21f8c1eadaf9ccd9e48c9087d12655fac6a5c9215584053652a56b",
+      "role": "CANONICAL_STRATEGIC_REGISTRY"
+    },
+    {
+      "path": "governance/sources/GATE24_INDEPENDENT_EXTERNAL_CONFIRMATION_R2_EXTERNAL_REINSPECTION_REPORT.json",
+      "sha256": "54cea8f4226ba06c0f2c86215f317855652227023a2321884ddd86810f67e5d9",
+      "role": "GATE24_TERMINAL_DEPENDENCY_PROOF"
+    },
+    {
+      "path": "governance/gates/GATE24/state/CURRENT_STATE.json",
+      "sha256": "e7719b557b2377243cacb6f4c3764d954c8606822ac2625735117163344d0050",
+      "role": "GATE24_TERMINAL_STATE_R0005"
+    },
+    {
+      "path": "governance/gates/GATE25/contracts/EXECUTION_CONTRACT_R0001.json",
+      "sha256": "cf1be745b245b0bd0bdd3bee759bc7f1136dcd8cce86d9f31d855f1f90d2720e",
+      "role": "IMMUTABLE_PREDECESSOR_CONTRACT"
+    },
+    {
+      "path": "governance/gates/GATE25/contracts/EXECUTION_CONTRACT_R0002.json",
+      "sha256": "1f3e4f9fd2214423f7a63ff1068e200bfe8ab61d54eff8635722fd96a1d28308",
+      "role": "IMMUTABLE_PREDECESSOR_CONTRACT"
+    },
+    {
+      "path": "governance/gates/GATE22/contracts/GATE22_TEMPORAL_HORIZON_V1.json",
+      "sha256": "c53ec179919f90593efdaad625187bc56218a4615bd7d0cecb415a27d4b55783",
+      "role": "D8_ADMISSIBLE_HORIZON_SOURCE"
+    },
+    {
+      "path": "governance/gates/GATE24/contracts/GATE24_REGIME_IDENTITY_V1.json",
+      "sha256": "9a5fb945f4aa98618ab81d65bbd82ce29f15f04b1f7c5c3ba8428c3fd9ff47ec",
+      "role": "INHERITED_IDENTITY_PATTERN"
+    },
+    {
+      "path": "governance/gates/GATE24/contracts/GATE24_BINDING_V1.json",
+      "sha256": "7c041d3bbb91ceeafd1029e5c10a2403207c9de5223e318017da5cb62f360650",
+      "role": "GATE24_BINDING_AUTHORITY"
+    },
+    {
+      "path": "governance/gates/GATE24/contracts/GATE24_CONSUMPTION_BOUNDARY_V1.json",
+      "sha256": "781b5cba2123a5b65166bd3db742525b57eac9c38b9093b9bb10e4cdeeca29bf",
+      "role": "GATE24_CONSUMPTION_BOUNDARY"
+    },
+    {
+      "path": "governance/gates/GATE25/state/revisions/R0002/STATE_SEAL.json",
+      "sha256": "b3c47514ffcf616b50e500bc674cc34796f11ddb14835fc85634a8f78c3f304a",
+      "role": "GATE25_START_POST_STATE_SEAL"
+    },
+    {
+      "path": "governance/state/GATE_STATUS_LEDGER.ndjson",
+      "sha256": "f59f829e3ed0a73905497c058181343d4998c55ede55e2f6057af4da4a3c9b68",
+      "role": "LIFECYCLE_PRESTATE_REBIND_AT_APPLY"
+    }
+  ],
+  "requiredOutputs": [
+    {
+      "ordinal": 1,
+      "path": "governance/gates/GATE25/implementation/analogue-identity-v1.mjs"
+    },
+    {
+      "ordinal": 2,
+      "path": "governance/gates/GATE25/implementation/analogue-eligibility-v1.mjs"
+    },
+    {
+      "ordinal": 3,
+      "path": "governance/gates/GATE25/implementation/analogue-distance-v1.mjs"
+    },
+    {
+      "ordinal": 4,
+      "path": "governance/gates/GATE25/implementation/analogue-index-v1.mjs"
+    },
+    {
+      "ordinal": 5,
+      "path": "governance/gates/GATE25/implementation/analogue-report-v1.mjs"
+    },
+    {
+      "ordinal": 6,
+      "path": "governance/gates/GATE25/implementation/analogue-outcome-v1.mjs"
+    },
+    {
+      "ordinal": 7,
+      "path": "governance/gates/GATE25/implementation/analogue-provenance-v1.mjs"
+    },
+    {
+      "ordinal": 8,
+      "path": "governance/gates/GATE25/implementation/historical-analogue-engine-v1.mjs"
+    },
+    {
+      "ordinal": 9,
+      "path": "governance/gates/GATE25/contracts/GATE25_ANALOGUE_IDENTITY_V1.json"
+    },
+    {
+      "ordinal": 10,
+      "path": "governance/gates/GATE25/contracts/GATE25_ANALOGUE_COMPARISON_REPORT_V1.json"
+    },
+    {
+      "ordinal": 11,
+      "path": "governance/gates/GATE25/contracts/GATE25_ANALOGUE_SUPPORT_REPORT_V1.json"
+    },
+    {
+      "ordinal": 12,
+      "path": "governance/gates/GATE25/contracts/GATE25_ANALOGUE_INDEX_V1.json"
+    },
+    {
+      "ordinal": 13,
+      "path": "governance/gates/GATE25/contracts/GATE25_ANALOGUE_PROVENANCE_MANIFEST_V1.json"
+    },
+    {
+      "ordinal": 14,
+      "path": "governance/gates/GATE25/contracts/GATE25_DISTANCE_PARAMETERS_V1.json"
+    },
+    {
+      "ordinal": 15,
+      "path": "governance/gates/GATE25/contracts/GATE25_ELIGIBILITY_EXCLUSION_REASON_V1.json"
+    },
+    {
+      "ordinal": 16,
+      "path": "governance/gates/GATE25/contracts/GATE25_POST_SELECTION_OUTCOME_SET_V1.json"
+    },
+    {
+      "ordinal": 17,
+      "path": "governance/gates/GATE25/tests/gate25-foundation.test.mjs"
+    },
+    {
+      "ordinal": 18,
+      "path": "governance/gates/GATE25/tests/gate25-hostiles.test.mjs"
+    },
+    {
+      "ordinal": 19,
+      "path": "governance/gates/GATE25/tests/gate25-replay.test.mjs"
+    },
+    {
+      "ordinal": 20,
+      "path": "governance/gates/GATE25/tests/gate25-integration.test.mjs"
+    },
+    {
+      "ordinal": 21,
+      "path": "data/jarvise/historical-analogue/GATE25/V1/ANALOGUE_INDEX.json"
+    },
+    {
+      "ordinal": 22,
+      "path": "data/jarvise/historical-analogue/GATE25/V1/PROVENANCE.json"
+    }
+  ],
+  "validators": [
+    "node governance/tools/validate-gate-contract.mjs --contract governance/gates/GATE25/contracts/EXECUTION_CONTRACT_R0003.json --pointer governance/gates/GATE25/contracts/CURRENT_CONTRACT.json",
+    "node governance/tools/validate-state-seal.mjs --seal governance/gates/GATE25/state/revisions/R0003/STATE_SEAL.json",
+    "node governance/tools/validate-state-revision.mjs --gate-id GATE25 --contract governance/gates/GATE25/contracts/EXECUTION_CONTRACT_R0003.json",
+    "node governance/tools/validate-status-ledger.mjs",
+    "node governance/tools/governance-preflight.mjs --work-unit-type GATE --work-unit-id GATE25",
+    "node governance/gates/GATE25/tests/gate25-foundation.test.mjs",
+    "node governance/gates/GATE25/tests/gate25-hostiles.test.mjs",
+    "node governance/gates/GATE25/tests/gate25-replay.test.mjs",
+    "node governance/gates/GATE25/tests/gate25-integration.test.mjs"
+  ],
+  "positiveTests": [
+    {
+      "testId": "G25-BUILD-POS-01",
+      "case": "R0003 and CURRENT_CONTRACT validate against the canonical contract schema and R0003 declares the exact R0002 predecessor bytes",
+      "expected": "AUTHORIZED"
+    },
+    {
+      "testId": "G25-BUILD-POS-02",
+      "case": "every requiredInput binds its verified SHA-256 exactly and D1-D8 are bound with resolvedCount 8 and unresolvedCount 0",
+      "expected": "AUTHORIZED"
+    },
+    {
+      "testId": "G25-BUILD-POS-03",
+      "case": "GATE25 remains IN_PROGRESS with sealed state R0003 chained to the START post-state R0002 and bound by exactly one CONTRACT_SUCCESSION ledger event",
+      "expected": "AUTHORIZED"
+    },
+    {
+      "testId": "G25-BUILD-POS-04",
+      "case": "identical analogue inputs replay to identical analogueIdentityId, report, index and provenance bytes",
+      "expected": "AUTHORIZED"
+    }
+  ],
+  "negativeTests": [
+    {
+      "testId": "G25-BUILD-NEG-01",
+      "case": "any write outside the exact 22-path BUILD workset during BUILD",
+      "expected": "BLOCKED"
+    },
+    {
+      "testId": "G25-BUILD-NEG-02",
+      "case": "any write to a GATE21, GATE22, GATE23 or GATE24 surface, to P3H, to ACTIVE_GATE, to the mandate, or to R0001/R0002",
+      "expected": "BLOCKED"
+    },
+    {
+      "testId": "G25-BUILD-NEG-03",
+      "case": "outcome data influencing eligibility, normalization, distance, ordering, support count or selection",
+      "expected": "BLOCKED"
+    },
+    {
+      "testId": "G25-BUILD-NEG-04",
+      "case": "identity member reorder, omission default or extra member; weighted, epsilon, tolerance or rounded distance; horizon subset, substitution or fabrication",
+      "expected": "BLOCKED"
+    },
+    {
+      "testId": "G25-BUILD-NEG-05",
+      "case": "Yahoo refetch, excluded observation fabrication, AI/LLM scoring, embeddings, broker write or live Wheel scan rebuild of the OFF_SCAN index",
+      "expected": "BLOCKED"
+    }
+  ],
+  "countertests": [
+    {
+      "testId": "G25-BUILD-CTR-01",
+      "case": "this revision presented as START, AGENT_CLOSURE, COMPLETE_AGENT, EXTERNAL_CONFIRMATION or GATE26 authority",
+      "expected": "BLOCKED"
+    },
+    {
+      "testId": "G25-BUILD-CTR-02",
+      "case": "replay of the GATE25 R0002 -> R0003 CONTRACT_SUCCESSION or its single-use local authority",
+      "expected": "BLOCKED"
+    },
+    {
+      "testId": "G25-BUILD-CTR-03",
+      "case": "mandate, R0001, R0002 or GATE22_TEMPORAL_HORIZON_V1 bytes changed after this binding",
+      "expected": "BLOCKED"
+    },
+    {
+      "testId": "G25-BUILD-CTR-04",
+      "case": "this revision presented as authority to reopen OD-1 through OD-5, reclassify D1-D8, or mutate the P3H 793/9 pinset",
+      "expected": "BLOCKED"
+    }
+  ],
+  "reuseRules": [
+    "Reuse the GATE23/GATE24 ledger-bound CONTRACT_SUCCESSION pattern and GATE_CONTRACT_SUCCESSION_LOCAL_AUTHORITY document family; invent no new primitive, transition class or START route.",
+    "Reuse governance/tools/canonical-json.mjs for CanonicalJSON/1 and sha256Canonical; do not reimplement canonicalization.",
+    "Reuse the verified mandate, GATE22 horizon contract and GATE24 dependency SHA-256 values; do not reserialize or republish them.",
+    "Reuse GATE24 COMPLETE_CONFIRMED as the sole predecessor terminal proof."
+  ],
+  "invalidationRules": [
+    "Any drift of a hash-pinned required input other than the append-only ledger prestate blocks this revision.",
+    "Any loss of GATE24 COMPLETE_CONFIRMED blocks this revision.",
+    "Any change of GATE25 away from IN_PROGRESS other than a separately authorized lifecycle transition blocks this revision.",
+    "Any GATE21, GATE22, GATE23, GATE24, P3H, mandate, R0001 or R0002 mutation blocks this revision.",
+    "Any unbound, reclassified or altered D1-D8 binding blocks this revision.",
+    "Any BUILD write outside the exact 22-path workset blocks this revision."
+  ],
+  "forbiddenReplays": [
+    "GATE25 START",
+    "SECOND_START",
+    "PROJECT_OWNER_GATE_START_AUTHORITY",
+    "GATE_START_RECORD",
+    "GATE25 R0002 -> R0003 CONTRACT_SUCCESSION replay",
+    "Yahoo refetch",
+    "P3H mutation",
+    "excluded observation fabrication",
+    "AI/LLM scoring",
+    "embeddings",
+    "autonomous trading",
+    "broker writes",
+    "mandate mutation",
+    "OD-1 through OD-5 mutation",
+    "GATE24 mutation",
+    "GATE23 mutation",
+    "GATE22 mutation",
+    "GATE21 mutation",
+    "ACTIVE_GATE mutation",
+    "AGENT_CLOSURE",
+    "COMPLETE_AGENT without separate closure authority",
+    "EXTERNAL_CONFIRMATION",
+    "COMPLETE_CONFIRMED",
+    "GATE26",
+    "unrelated contract succession",
+    "ledger rewrite",
+    "live Wheel scan rebuild of the OFF_SCAN analogue index",
+    "23rd BUILD path",
+    "second BUILD commit",
+    "git push"
+  ],
+  "closureConditions": [
+    "This revision is BUILD-scope activation only. Publication of these bytes is authorized solely by OWNER_AUTHORIZE_GATE25_BUILD_SCOPE_CONTRACT_SUCCESSION_R1 under LOCAL_EXPLICIT_AUTHORITY as the ledger-bound CONTRACT_SUCCESSION GATE25_CONTRACT_SUCCESSION_R0003_R1.",
+    "CLOSURE_PATH_PROOF is recalculated from bound bytes, not asserted PASS.",
+    "D1-D8 conformance, the 22-path freeze, outcome isolation and deterministic replay are each evidenced by the later functional BUILD.",
+    "This contract does not COMPLETE_AGENT, EXTERNAL_CONFIRM, close GATE25 or authorize GATE26.",
+    "This succession does not execute the functional BUILD."
+  ],
+  "nextGateAuthorizationConditions": [
+    "No next-Gate authorization is created by this revision.",
+    "GATE25 closure requires a separately authorized AGENT_CLOSURE and independent EXTERNAL_CONFIRMATION after BUILD."
+  ],
+  "performanceBudget": {
+    "targetMinutes": 120,
+    "expectedMaximumMinutes": 240,
+    "closeoutStartMinutes": 200,
+    "absoluteMaximumMinutes": 480
+  },
+  "checkpointPolicy": {
+    "resume": "IN_PROGRESS under EXECUTION_CONTRACT_R0003 at state R0003; BUILD scope activated; next exact step is GATE25_FUNCTIONAL_BUILD over the frozen 22 paths; this succession does not execute BUILD",
+    "reuse": "Exact G25-BUILD-01 through G25-BUILD-15 packet, D1-D8 bindings, GATE24 terminal dependency proof, and GATE_CONTRACT_SUCCESSION_LOCAL_AUTHORITY",
+    "independentConfirmation": "required separately after BUILD; not this succession",
+    "deferred": "No deferredToContract item remains unbound: resolvedCount 8, unresolvedCount 0"
+  },
+  "authorizedPaths": [
+    "governance/gates/GATE25/implementation/analogue-identity-v1.mjs",
+    "governance/gates/GATE25/implementation/analogue-eligibility-v1.mjs",
+    "governance/gates/GATE25/implementation/analogue-distance-v1.mjs",
+    "governance/gates/GATE25/implementation/analogue-index-v1.mjs",
+    "governance/gates/GATE25/implementation/analogue-report-v1.mjs",
+    "governance/gates/GATE25/implementation/analogue-outcome-v1.mjs",
+    "governance/gates/GATE25/implementation/analogue-provenance-v1.mjs",
+    "governance/gates/GATE25/implementation/historical-analogue-engine-v1.mjs",
+    "governance/gates/GATE25/contracts/GATE25_ANALOGUE_IDENTITY_V1.json",
+    "governance/gates/GATE25/contracts/GATE25_ANALOGUE_COMPARISON_REPORT_V1.json",
+    "governance/gates/GATE25/contracts/GATE25_ANALOGUE_SUPPORT_REPORT_V1.json",
+    "governance/gates/GATE25/contracts/GATE25_ANALOGUE_INDEX_V1.json",
+    "governance/gates/GATE25/contracts/GATE25_ANALOGUE_PROVENANCE_MANIFEST_V1.json",
+    "governance/gates/GATE25/contracts/GATE25_DISTANCE_PARAMETERS_V1.json",
+    "governance/gates/GATE25/contracts/GATE25_ELIGIBILITY_EXCLUSION_REASON_V1.json",
+    "governance/gates/GATE25/contracts/GATE25_POST_SELECTION_OUTCOME_SET_V1.json",
+    "governance/gates/GATE25/tests/gate25-foundation.test.mjs",
+    "governance/gates/GATE25/tests/gate25-hostiles.test.mjs",
+    "governance/gates/GATE25/tests/gate25-replay.test.mjs",
+    "governance/gates/GATE25/tests/gate25-integration.test.mjs",
+    "data/jarvise/historical-analogue/GATE25/V1/ANALOGUE_INDEX.json",
+    "data/jarvise/historical-analogue/GATE25/V1/PROVENANCE.json"
+  ],
+  "requiredPolicyIds": [
+    "MAIN_AGENT_ONLY",
+    "SUBAGENTS_FORBIDDEN_BY_DEFAULT",
+    "NETWORK_FORBIDDEN_BY_DEFAULT",
+    "GIT_WRITES_FORBIDDEN_BY_DEFAULT",
+    "DANGEROUS_GIT_COMMANDS_FORBIDDEN",
+    "AUTHORIZED_PATHS_ONLY",
+    "NO_RESTART_FROM_ZERO",
+    "RESUME_FROM_CHECKPOINT",
+    "NO_HARDCODED_PASS",
+    "NO_CIRCULAR_VALIDATION",
+    "NO_FUTURE_LEAKAGE",
+    "NO_GATE_MANDATE_REDEFINITION",
+    "BLOCK_ON_AUTHORITY_CONFLICT",
+    "DETERMINISTIC_OPERATIONS_LOCAL",
+    "SEPARATE_SESSION_REINSPECTION",
+    "GENERATED_FILES_NON_CANONICAL",
+    "HISTORICAL_REJECTED_NOT_ACTIVE",
+    "DEFERRED_CAPABILITY_MUST_BE_DURABLY_REGISTERED"
+  ],
+  "sourceReferences": [
+    {
+      "sourcePath": "governance/GATE_REGISTRY_00_40.json",
+      "sourceSha256": "76d5f9ff0a21f8c1eadaf9ccd9e48c9087d12655fac6a5c9215584053652a56b",
+      "sourceLocation": "/gates/GATE25",
+      "field": "canonicalObjective"
+    },
+    {
+      "sourcePath": "governance/sources/GATE25_CANONICAL_MANDATE_R0.json",
+      "sourceSha256": "0aefedc757e2ba749ebd25a2cd40dc2070fafb04f3ac8f7b194c08d2b513c618",
+      "sourceLocation": "/",
+      "field": "canonicalIdentity, closedOwnerDecisions (OD-2, OD-3, OD-5), deferredToContract, historyPolicy.pinSet"
+    },
+    {
+      "sourcePath": "governance/gates/GATE22/contracts/GATE22_TEMPORAL_HORIZON_V1.json",
+      "sourceSha256": "c53ec179919f90593efdaad625187bc56218a4615bd7d0cecb415a27d4b55783",
+      "sourceLocation": "/mandateProjection/sessionCountingRules",
+      "field": "horizonsV1, horizonIdComposition"
+    },
+    {
+      "sourcePath": "governance/gates/GATE24/contracts/GATE24_REGIME_IDENTITY_V1.json",
+      "sourceSha256": "9a5fb945f4aa98618ab81d65bbd82ce29f15f04b1f7c5c3ba8428c3fd9ff47ec",
+      "sourceLocation": "/orderedMembers, /readingPrinciple",
+      "field": "inherited EXACT_ONLY identity pattern"
+    },
+    {
+      "sourcePath": "governance/authority/authorizations/GATE24/GATE_CONTRACT_SUCCESSION_LOCAL_AUTHORITY.json",
+      "sourceSha256": "301accf31e49926773aef8a7ca806389889fc6241d7c40004da3ccbbc8bc1ea5",
+      "sourceLocation": "/",
+      "field": "POSTSTART_BUILD_SCOPE_ACTIVATION succession authority precedent"
+    },
+    {
+      "sourcePath": "governance/tools/validate-status-ledger.mjs",
+      "sourceSha256": "71a868fbf8b17f44866163b6b5f3e676258328852c8a57828e60685b6782554b",
+      "sourceLocation": "validateContractSuccession",
+      "field": "CONTRACT_SUCCESSION proof obligations"
+    },
+    {
+      "sourcePath": "governance/tools/validate-state-seal.mjs",
+      "sourceSha256": "070994d8178acabb40345c79d9ed72a13453e462935dd09f84d09ec394f16d80",
+      "sourceLocation": "validateStateSeal",
+      "field": "current revision sealed CURRENT_CONTRACT member"
+    },
+    {
+      "sourcePath": "governance/gee-v1/adapters/wheel/gate-start-authority-source.mjs",
+      "sourceSha256": "0e4d84a6c963e08f21ff6e68690568d0e16dbb88e63924b1f6cce3abde0c022f",
+      "sourceLocation": "checkPostStartState",
+      "field": "post-START state descent"
+    }
+  ],
+  "previousContractPath": "governance/gates/GATE25/contracts/EXECUTION_CONTRACT_R0002.json",
+  "previousContractSha256": "1f3e4f9fd2214423f7a63ff1068e200bfe8ab61d54eff8635722fd96a1d28308"
+}

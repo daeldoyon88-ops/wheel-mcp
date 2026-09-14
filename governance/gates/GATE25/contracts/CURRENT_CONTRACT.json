@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "gateId": "GATE25",
-  "contractRevision": "R0002",
-  "contractPath": "governance/gates/GATE25/contracts/EXECUTION_CONTRACT_R0002.json",
-  "contractSha256": "1f3e4f9fd2214423f7a63ff1068e200bfe8ab61d54eff8635722fd96a1d28308",
+  "contractRevision": "R0003",
+  "contractPath": "governance/gates/GATE25/contracts/EXECUTION_CONTRACT_R0003.json",
+  "contractSha256": "f369ce7844167a5ae46940dcd1e2edd61f1b92327893723cd6953d8fafa0578f",
   "activatedByEventId": null
 }

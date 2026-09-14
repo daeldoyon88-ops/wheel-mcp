@@ -1,0 +1,19 @@
+{
+  "gateId": "GATE25",
+  "stateRevision": "R0003",
+  "milestone": "GATE25_CONTRACT_SUCCESSION",
+  "resumePoint": "IN_PROGRESS_BUILD_AUTHORIZED",
+  "completedTasks": [
+    "GATE25_CONTRACT_SUCCESSION_R0002_TO_R0003"
+  ],
+  "openTasks": [
+    "GATE25_FUNCTIONAL_BUILD"
+  ],
+  "reusableEvidence": [],
+  "invalidatedEvidence": [],
+  "requiredNextActions": [
+    "GATE25_FUNCTIONAL_BUILD"
+  ],
+  "protectedHashes": [],
+  "createdAt": "2026-09-14T15:00:00.000Z"
+}

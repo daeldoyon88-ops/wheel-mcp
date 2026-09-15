@@ -1,0 +1,84 @@
+{
+  "document": "GATE25_BINDING_ARTIFACT",
+  "schemaVersion": 1,
+  "gateId": "GATE25",
+  "bindingId": "GATE25_POST_SELECTION_OUTCOME_SET_V1",
+  "decisionId": "D8",
+  "requirementId": "G25-BUILD-11",
+  "resolutionStatus": "OWNER_RESOLVED",
+  "ownerAuthorizationId": "OWNER_AUTHORIZE_GATE25_BUILD_SCOPE_CONTRACT_SUCCESSION_R1",
+  "deferredToContractIndex": 7,
+  "deferredToContractItem": "the exact shape of the post-selection outcome distribution artifact",
+  "authority": {
+    "executionContractPath": "governance/gates/GATE25/contracts/EXECUTION_CONTRACT_R0003.json",
+    "executionContractRevision": "R0003",
+    "executionContractSha256": "f369ce7844167a5ae46940dcd1e2edd61f1b92327893723cd6953d8fafa0578f",
+    "bindingPointer": "/canonicalRequirements[requirementId=G25-BUILD-11]/binding",
+    "bindingSha256Canonical": "f2b49b20722e01a46deff1a4f2ca183d1d7a75ffc71ae30e8a5b44339dc7900e",
+    "mandatePath": "governance/sources/GATE25_CANONICAL_MANDATE_R0.json",
+    "mandateSha256": "0aefedc757e2ba749ebd25a2cd40dc2070fafb04f3ac8f7b194c08d2b513c618"
+  },
+  "binding": {
+    "artifactId": "GATE25_POST_SELECTION_OUTCOME_SET_V1",
+    "recordGranularity": "PER_ANALOGUE_PER_HORIZON",
+    "horizonSource": {
+      "contractId": "GATE22_TEMPORAL_HORIZON_V1",
+      "path": "governance/gates/GATE22/contracts/GATE22_TEMPORAL_HORIZON_V1.json",
+      "sha256": "c53ec179919f90593efdaad625187bc56218a4615bd7d0cecb415a27d4b55783",
+      "admissibleSessionCountsPointer": "/mandateProjection/sessionCountingRules/horizonsV1",
+      "horizonIdCompositionPointer": "/mandateProjection/sessionCountingRules/horizonIdComposition"
+    },
+    "admissibleSessionCountsAtBinding": [
+      30,
+      90,
+      180,
+      252
+    ],
+    "horizonCoverage": "ALL_AND_ONLY admissible HorizonId values; preferred subset, invented horizon and omitted admissible horizon are forbidden",
+    "recordRequiredFields": [
+      "analogueIdentityId",
+      "horizonId",
+      "selectionComplete",
+      "outcomeStatus",
+      "outcomeValue",
+      "outcomeAvailableAt",
+      "sourceBindingId"
+    ],
+    "selectionCompleteRule": "selectionComplete must be true before outcome attachment",
+    "outcomeStatusVocabulary": [
+      "AVAILABLE",
+      "MISSING"
+    ],
+    "missingRule": {
+      "outcomeStatus": "MISSING",
+      "outcomeValue": null
+    },
+    "horizonSubstitution": "FORBIDDEN",
+    "outcomeFabrication": "FORBIDDEN",
+    "forbidden": [
+      "summary quantiles",
+      "probabilities",
+      "confidence values"
+    ],
+    "postSelectionOnly": true,
+    "mustNeverInfluence": [
+      "eligibility",
+      "normalization",
+      "distance",
+      "ordering",
+      "support count",
+      "selection"
+    ]
+  },
+  "implementationPaths": [
+    "governance/gates/GATE25/implementation/analogue-outcome-v1.mjs"
+  ],
+  "implementationReading": {
+    "normative": false,
+    "notes": [
+      "HorizonId values are composed through governance/gates/GATE22/implementation/temporal-horizon-v1.mjs::createHorizon as sessionCount:calendarRegistryManifestId over the horizonsV1 values read from the pinned GATE22 contract.",
+      "AVAILABLE requires a finite outcomeValue with outcomeAvailableAt <= the query K(T) (mandate IC-2); otherwise the record is MISSING with outcomeValue null and outcomeAvailableAt null.",
+      "Attachment requires a frozen selection whose selectionDigest recomputes, and the digest is re-verified after attachment so outcome visibility cannot alter the analogue set."
+    ]
+  }
+}

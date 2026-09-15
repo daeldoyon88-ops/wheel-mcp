@@ -15,3 +15,10 @@ CLAUDE.md text eol=lf
 # sha256 of their exact bytes (the ALFRED archive carries raw CR bytes). Preserve bytes,
 # never convert. Same mechanism as the content-addressed trees above.
 data/jarvise/historical-macro-context/** -text
+
+# GATE25 analogue index publication transport: GitHub rejects normal Git blobs
+# above 100 MB. Preserve analogue working-tree bytes against core.autocrlf, and
+# track ONLY ANALOGUE_INDEX.json through Git LFS. Canonical JSON bytes and the
+# PROVENANCE analogueIndexSha256 binding are unchanged.
+data/jarvise/historical-analogue/** -text
+data/jarvise/historical-analogue/GATE25/V1/ANALOGUE_INDEX.json filter=lfs diff=lfs merge=lfs -text

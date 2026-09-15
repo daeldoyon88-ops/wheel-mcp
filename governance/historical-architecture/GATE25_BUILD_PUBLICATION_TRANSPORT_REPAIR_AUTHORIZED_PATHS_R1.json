@@ -1,0 +1,30 @@
+{
+  "documentKind": "POST_FREEZE_MAINTENANCE_AUTHORIZED_PATH_MANIFEST",
+  "schemaVersion": 2,
+  "manifestId": "GATE25_BUILD_PUBLICATION_TRANSPORT_REPAIR_AUTHORIZED_PATHS_R1",
+  "programId": "GATE25_BUILD_PUBLICATION_TRANSPORT_REPAIR_R1",
+  "paths": [
+    {
+      "path": ".gitattributes",
+      "operation": "MODIFY",
+      "phase": "MAINTENANCE",
+      "reason": "Publication-transport only: byte-protect data/jarvise/historical-analogue/** and Git-LFS-track ONLY ANALOGUE_INDEX.json so the already-audited GATE25 BUILD can be published without a >100 MB normal Git blob. Working-tree canonical bytes, analogue semantics, D1-D8 and PROVENANCE are unchanged.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "PRESENT",
+        "sha256": "1dbbdcb641bbbcc34ee653383155ecebe5b8d0a1b9703923b86326ed3016a092",
+        "byteLength": 931
+      }
+    },
+    {
+      "path": "governance/historical-architecture/GATE25_BUILD_PUBLICATION_TRANSPORT_REPAIR_CONSUMPTION_R1.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "Single-use GATE25 BUILD publication-transport-repair R1 authority consumption receipt. Authorized by this manifest; created by the canonical publisher; not supplied as a candidate.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    }
+  ]
+}

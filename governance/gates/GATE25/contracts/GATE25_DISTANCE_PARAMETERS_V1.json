@@ -1,0 +1,66 @@
+{
+  "document": "GATE25_BINDING_ARTIFACT",
+  "schemaVersion": 1,
+  "gateId": "GATE25",
+  "bindingId": "GATE25_DISTANCE_PARAMETERS_V1",
+  "decisionId": "D6",
+  "requirementId": "G25-BUILD-09",
+  "resolutionStatus": "OWNER_RESOLVED",
+  "ownerAuthorizationId": "OWNER_AUTHORIZE_GATE25_BUILD_SCOPE_CONTRACT_SUCCESSION_R1",
+  "deferredToContractIndex": 5,
+  "deferredToContractItem": "the numeric parameters of the ratified distance metric, held in a versioned parameter set",
+  "authority": {
+    "executionContractPath": "governance/gates/GATE25/contracts/EXECUTION_CONTRACT_R0003.json",
+    "executionContractRevision": "R0003",
+    "executionContractSha256": "f369ce7844167a5ae46940dcd1e2edd61f1b92327893723cd6953d8fafa0578f",
+    "bindingPointer": "/canonicalRequirements[requirementId=G25-BUILD-09]/binding",
+    "bindingSha256Canonical": "3624d04a2355d04ac1d926c8be13f84e2a1659eee3f7cc9fa1880d17a8c6ddb0",
+    "mandatePath": "governance/sources/GATE25_CANONICAL_MANDATE_R0.json",
+    "mandateSha256": "0aefedc757e2ba749ebd25a2cd40dc2070fafb04f3ac8f7b194c08d2b513c618"
+  },
+  "binding": {
+    "parameterSetId": "GATE25_DISTANCE_PARAMETERS_V1",
+    "distance": "MANHATTAN_L1",
+    "distanceFeatureIds": [
+      "F1_SIMPLE_RETURN@W5",
+      "F1_SIMPLE_RETURN@W21"
+    ],
+    "distanceFeatureSource": "OD-2 authorized dimensions exactly",
+    "weights": "NONE; each dimension weight is implicitly 1; configurable weights forbidden",
+    "normalization": {
+      "method": "PER_DIMENSION_MIN_MAX",
+      "population": "frozen eligible HISTORICAL candidate universe for query T",
+      "queryObservationInPopulation": false,
+      "formula": "normalized = (x - min) / (max - min)"
+    },
+    "zeroRange": {
+      "condition": "max == min",
+      "queryNormalizedValue": 0,
+      "candidateNormalizedValue": 0,
+      "componentDistance": 0,
+      "dimensionRetained": true,
+      "dimensionDropped": false
+    },
+    "componentDistance": "absoluteNormalizedDelta = |queryNormalizedValue - candidateNormalizedValue|",
+    "finalDistance": "sum of componentDistance over every distance dimension",
+    "numericRules": {
+      "finiteNumbersOnly": true,
+      "epsilon": "NONE",
+      "tolerance": "NONE",
+      "intermediateRounding": "FORBIDDEN",
+      "configurableWeights": "FORBIDDEN"
+    },
+    "representation": "CanonicalJSON/1 provides the deterministic representation"
+  },
+  "implementationPaths": [
+    "governance/gates/GATE25/implementation/analogue-distance-v1.mjs"
+  ],
+  "implementationReading": {
+    "normative": false,
+    "notes": [
+      "min and max are recomputed for every query over its eligible historical candidate set only; query raw values are neither added to the population nor clamped into [min, max].",
+      "finalDistance is summed in distanceFeatureIds order starting from 0; a non-finite intermediate or result is an engine fail-closed condition.",
+      "A computed negative zero is emitted as 0 because CanonicalJSON/1 refuses -0; the two are numerically identical, so this is representation, not rounding."
+    ]
+  }
+}

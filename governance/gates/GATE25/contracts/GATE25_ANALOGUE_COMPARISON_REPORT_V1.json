@@ -1,0 +1,79 @@
+{
+  "document": "GATE25_BINDING_ARTIFACT",
+  "schemaVersion": 1,
+  "gateId": "GATE25",
+  "bindingId": "GATE25_ANALOGUE_COMPARISON_REPORT_V1",
+  "decisionId": "D2",
+  "requirementId": "G25-BUILD-05",
+  "resolutionStatus": "OWNER_RESOLVED",
+  "ownerAuthorizationId": "OWNER_AUTHORIZE_GATE25_BUILD_SCOPE_CONTRACT_SUCCESSION_R1",
+  "deferredToContractIndex": 1,
+  "deferredToContractItem": "the exact schema of the analogue comparison report and of the common factors and differences fields",
+  "authority": {
+    "executionContractPath": "governance/gates/GATE25/contracts/EXECUTION_CONTRACT_R0003.json",
+    "executionContractRevision": "R0003",
+    "executionContractSha256": "f369ce7844167a5ae46940dcd1e2edd61f1b92327893723cd6953d8fafa0578f",
+    "bindingPointer": "/canonicalRequirements[requirementId=G25-BUILD-05]/binding",
+    "bindingSha256Canonical": "1d04a5f89313c5c35f5f8c269a8ecb4a7df3f8161b74420b0bc3508abfb013f2",
+    "mandatePath": "governance/sources/GATE25_CANONICAL_MANDATE_R0.json",
+    "mandateSha256": "0aefedc757e2ba749ebd25a2cd40dc2070fafb04f3ac8f7b194c08d2b513c618"
+  },
+  "binding": {
+    "schema": "GATE25_ANALOGUE_COMPARISON_REPORT_V1",
+    "closed": true,
+    "topLevelRequiredFields": [
+      "schema",
+      "queryIdentityId",
+      "datasetId",
+      "selectionPolicyVersionId",
+      "knowledgeCutoff",
+      "eligibleCount",
+      "supportStatus",
+      "decision",
+      "analogues"
+    ],
+    "analogueEntryRequiredFields": [
+      "rank",
+      "analogueIdentityId",
+      "sessionDate",
+      "finalDistance",
+      "distanceComponents",
+      "commonFactors",
+      "differences"
+    ],
+    "commonFactors": "the exact matched CORE_V1 regime/state dimensions that made the candidate eligible",
+    "differencesCardinality": "one entry for each distance dimension",
+    "differencesEntryRequiredFields": [
+      "featureId",
+      "queryRawValue",
+      "candidateRawValue",
+      "min",
+      "max",
+      "queryNormalizedValue",
+      "candidateNormalizedValue",
+      "absoluteNormalizedDelta"
+    ],
+    "distanceFeatureIds": [
+      "F1_SIMPLE_RETURN@W5",
+      "F1_SIMPLE_RETURN@W21"
+    ],
+    "distanceFeatureSource": {
+      "path": "governance/sources/GATE25_CANONICAL_MANDATE_R0.json",
+      "pointer": "/closedOwnerDecisions[id=OD-2]/resolution",
+      "reading": "Manhattan L1 on (F1@W5, F1@W21)"
+    },
+    "rankOrdering": "GATE25_ANALOGUE_INDEX_V1 canonical query-result ordering",
+    "aiGeneratedProse": "FORBIDDEN"
+  },
+  "implementationPaths": [
+    "governance/gates/GATE25/implementation/analogue-report-v1.mjs"
+  ],
+  "implementationReading": {
+    "normative": false,
+    "notes": [
+      "commonFactors is an array of six { dimensionId, value } entries in CORE_V1 order: primaryMarketRegime, volatilityState, inflationState, ratesState, yieldCurveShape, yieldCurveDirection.",
+      "distanceComponents is one { featureId, componentDistance, zeroRange } entry per distance dimension in distanceFeatureIds order; differences carries exactly the eight bound fields in the same order.",
+      "analogues is the complete ranked eligible set with rank 1 through eligibleCount; the report is refused when the analogue count differs from eligibleCount."
+    ]
+  }
+}

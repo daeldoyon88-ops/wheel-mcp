@@ -1,0 +1,70 @@
+{
+  "document": "GATE25_BINDING_ARTIFACT",
+  "schemaVersion": 1,
+  "gateId": "GATE25",
+  "bindingId": "GATE25_ANALOGUE_PROVENANCE_MANIFEST_V1",
+  "decisionId": "D5",
+  "requirementId": "G25-BUILD-08",
+  "resolutionStatus": "OWNER_RESOLVED",
+  "ownerAuthorizationId": "OWNER_AUTHORIZE_GATE25_BUILD_SCOPE_CONTRACT_SUCCESSION_R1",
+  "deferredToContractIndex": 4,
+  "deferredToContractItem": "the exact provenance manifest schema and its required field list",
+  "authority": {
+    "executionContractPath": "governance/gates/GATE25/contracts/EXECUTION_CONTRACT_R0003.json",
+    "executionContractRevision": "R0003",
+    "executionContractSha256": "f369ce7844167a5ae46940dcd1e2edd61f1b92327893723cd6953d8fafa0578f",
+    "bindingPointer": "/canonicalRequirements[requirementId=G25-BUILD-08]/binding",
+    "bindingSha256Canonical": "1d0e54334e6752dc8061a8c3d19fdfe2bb114a5624900bc9e3101e45775d042a",
+    "mandatePath": "governance/sources/GATE25_CANONICAL_MANDATE_R0.json",
+    "mandateSha256": "0aefedc757e2ba749ebd25a2cd40dc2070fafb04f3ac8f7b194c08d2b513c618"
+  },
+  "binding": {
+    "schema": "GATE25_ANALOGUE_PROVENANCE_MANIFEST_V1",
+    "persistedPath": "data/jarvise/historical-analogue/GATE25/V1/PROVENANCE.json",
+    "serialization": "CanonicalJSON/1",
+    "closed": true,
+    "requiredFields": [
+      "schema",
+      "queryIdentityId",
+      "datasetId",
+      "datasetSha256",
+      "sourceBindingId",
+      "instrumentIdentityId",
+      "featureDatasetId",
+      "selectionPolicyVersionId",
+      "knowledgeCutoff",
+      "eligibleHistoryPinSetId",
+      "inputProofs",
+      "selectedAnalogueIdentityIds",
+      "distanceEvidence",
+      "eligibleUniverseCount",
+      "excludedUniverseCount",
+      "exclusionCountsByReason",
+      "outcomeHorizonBindings",
+      "supportReportId",
+      "analogueIndexSha256"
+    ],
+    "inputProofRequiredFields": [
+      "inputId",
+      "sourceArtifactId",
+      "sourceArtifactSha256",
+      "availableAt",
+      "knowledgeCutoff",
+      "availableByCutoff"
+    ],
+    "availableByCutoffRule": "availableByCutoff = true for every input participating in selection or distance",
+    "analogueIndexSha256Rule": "SHA-256 of the exact canonical bytes of data/jarvise/historical-analogue/GATE25/V1/ANALOGUE_INDEX.json",
+    "requiredFieldSilentDefault": "FORBIDDEN"
+  },
+  "implementationPaths": [
+    "governance/gates/GATE25/implementation/analogue-provenance-v1.mjs"
+  ],
+  "implementationReading": {
+    "normative": false,
+    "notes": [
+      "inputProofs cover the query inputs, proved against K(T), and every eligible historical analogue input, proved against its own K(T_hist) which precedes K(T); inputId is prefixed with its owner (QUERY or the analogueIdentityId).",
+      "availableByCutoff is recomputed from availableAt and knowledgeCutoff, never copied; a false value refuses the manifest.",
+      "datasetId and eligibleHistoryPinSetId are the R0003 datasetIdentity string; datasetSha256 is the hex SHA-256 of the pinned P3H finalization bytes; outcomeHorizonBindings carries one entry per admissible HorizonId."
+    ]
+  }
+}

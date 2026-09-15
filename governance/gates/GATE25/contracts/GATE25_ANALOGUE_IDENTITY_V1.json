@@ -1,0 +1,97 @@
+{
+  "document": "GATE25_BINDING_ARTIFACT",
+  "schemaVersion": 1,
+  "gateId": "GATE25",
+  "bindingId": "GATE25_ANALOGUE_IDENTITY_V1",
+  "decisionId": "D1",
+  "requirementId": "G25-BUILD-04",
+  "resolutionStatus": "OWNER_RESOLVED",
+  "ownerAuthorizationId": "OWNER_AUTHORIZE_GATE25_BUILD_SCOPE_CONTRACT_SUCCESSION_R1",
+  "deferredToContractIndex": 0,
+  "deferredToContractItem": "the exact canonicalization and digest rules applied over the ratified analogue identity member list",
+  "authority": {
+    "executionContractPath": "governance/gates/GATE25/contracts/EXECUTION_CONTRACT_R0003.json",
+    "executionContractRevision": "R0003",
+    "executionContractSha256": "f369ce7844167a5ae46940dcd1e2edd61f1b92327893723cd6953d8fafa0578f",
+    "bindingPointer": "/canonicalRequirements[requirementId=G25-BUILD-04]/binding",
+    "bindingSha256Canonical": "7a3f06d8e087bd5f8684acbfbe2e4ec13e903f9c0f3ede1927c030d5c4502074",
+    "mandatePath": "governance/sources/GATE25_CANONICAL_MANDATE_R0.json",
+    "mandateSha256": "0aefedc757e2ba749ebd25a2cd40dc2070fafb04f3ac8f7b194c08d2b513c618"
+  },
+  "binding": {
+    "schema": "GATE25_ANALOGUE_IDENTITY_V1",
+    "serialization": "CanonicalJSON/1",
+    "canonicalizationImplementation": "governance/tools/canonical-json.mjs::canonicalize",
+    "digestPrimitive": "sha256Canonical",
+    "digestImplementation": "governance/tools/canonical-json.mjs::sha256Canonical",
+    "domainVersionId": "GATE25_ANALOGUE_IDENTITY_V1",
+    "identityRule": "analogueIdentityId = sha256Canonical({ schema: 'GATE25_ANALOGUE_IDENTITY_V1', orderedMembers })",
+    "digestInputFields": [
+      "schema",
+      "orderedMembers"
+    ],
+    "digestInputClosed": true,
+    "orderedMembersSource": {
+      "path": "governance/sources/GATE25_CANONICAL_MANDATE_R0.json",
+      "pointer": "/closedOwnerDecisions[id=OD-3]/resolution",
+      "sha256": "0aefedc757e2ba749ebd25a2cd40dc2070fafb04f3ac8f7b194c08d2b513c618"
+    },
+    "memberCount": 11,
+    "orderedMemberIds": [
+      "InstrumentIdentityId",
+      "SessionDate",
+      "KnowledgeCutoff",
+      "FeatureVectorBindingId",
+      "RegimeRecordId",
+      "RegimeHorizonSpecId",
+      "MacroContextBindingId",
+      "SelectionPolicyVersionId",
+      "EligibleHistoryPinSetId",
+      "PriceBasisId",
+      "MissingnessStateId"
+    ],
+    "orderedMembersEncoding": "orderedMembers is a JSON array of exactly eleven entries in OD-3 order; entry i is { memberId, value } where memberId is the i-th OD-3 member name and value is its resolved value. Array order is significant under CanonicalJSON/1; an object keyed by member name is forbidden because CanonicalJSON/1 key ordering would discard OD-3 order.",
+    "valueEncoding": {
+      "SessionDate": "canonical YYYY-MM-DD string",
+      "KnowledgeCutoff": "canonical UTC RFC3339 timestamp exactly as supplied by its governed source",
+      "versionAndIdMembers": "exact governed strings",
+      "MissingnessStateId": "exact governed string",
+      "PriceBasisId": "exact governed string; SPLIT_ADJUSTED only per OD-3"
+    },
+    "memberRules": {
+      "reorder": "FORBIDDEN",
+      "omittedMemberSilentDefault": "FORBIDDEN",
+      "additionalIdentityMember": "FORBIDDEN"
+    },
+    "forbidden": [
+      "locale-sensitive serialization",
+      "alias backdating",
+      "fuzzy identity"
+    ],
+    "forbiddenInIdentityDigestPerOD3": [
+      "ticker/symbol/alias",
+      "Outcome*",
+      "distances",
+      "rankings",
+      "analogue set",
+      "classificationQuality",
+      "regimeVector values",
+      "outcome HorizonId"
+    ],
+    "calendarWindowBindingIdRulePerOD3": "not a twelfth member; carried inside FeatureVectorBindingId and fails closed if not single-valued"
+  },
+  "implementationPaths": [
+    "governance/gates/GATE25/implementation/analogue-identity-v1.mjs"
+  ],
+  "implementationReading": {
+    "normative": false,
+    "notes": [
+      "The identity input is an object carrying exactly the eleven OD-3 members; orderedMembers is rebuilt from ANALOGUE_IDENTITY_MEMBERS_V1 so input key order never reaches the digest, and a persisted orderedMembers array whose memberId sequence differs from OD-3 order is refused.",
+      "Member strings are consumed byte-exact: a value that is empty, not already NFC-normalized, or carries leading or trailing whitespace is refused, because CanonicalJSON/1 NFC normalization would otherwise merge distinct inputs into one identity.",
+      "Keys named in forbiddenInIdentityDigestPerOD3 (ticker, symbol, alias, temporaryAlias, any Outcome* key, HorizonId, distances, rankings, analogue set, classificationQuality, regimeVector and the six CORE_V1 value keys) are refused before digesting.",
+      "InstrumentIdentityId is matchable only when it was resolved at the same SessionDate it identifies (R0003 identityResolutionRule RESOLVE_AT_EACH_HISTORICAL_SESSION_DATE); a resolution made at any other date is alias backdating and is never matchable.",
+      "MissingnessStateId follows the GATE23 and GATE24 module precedent: GATE25_MissingnessState/1:<STATE>, first match in the order DISTANCE_FEATURE_INCOMPLETE, VOLATILITY_STATE_UNAVAILABLE, COMPLETE.",
+      "SelectionPolicyVersionId is sha256Canonical of the GATE25_SelectionPolicyVersion/1 payload over the D1, D3, D4, D6 and D7 binding digests, the CORE_V1 dimensions, the historical observation window, the pin set and the identity policy; EligibleHistoryPinSetId is the exact R0003 datasetIdentity string."
+    ]
+  }
+}

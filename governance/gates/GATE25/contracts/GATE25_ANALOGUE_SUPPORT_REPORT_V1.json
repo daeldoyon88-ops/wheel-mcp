@@ -1,0 +1,77 @@
+{
+  "document": "GATE25_BINDING_ARTIFACT",
+  "schemaVersion": 1,
+  "gateId": "GATE25",
+  "bindingId": "GATE25_ANALOGUE_SUPPORT_REPORT_V1",
+  "decisionId": "D3",
+  "requirementId": "G25-BUILD-06",
+  "resolutionStatus": "OWNER_RESOLVED",
+  "ownerAuthorizationId": "OWNER_AUTHORIZE_GATE25_BUILD_SCOPE_CONTRACT_SUCCESSION_R1",
+  "deferredToContractIndex": 2,
+  "deferredToContractItem": "the exact schema of the uncertainty and sample-size report",
+  "authority": {
+    "executionContractPath": "governance/gates/GATE25/contracts/EXECUTION_CONTRACT_R0003.json",
+    "executionContractRevision": "R0003",
+    "executionContractSha256": "f369ce7844167a5ae46940dcd1e2edd61f1b92327893723cd6953d8fafa0578f",
+    "bindingPointer": "/canonicalRequirements[requirementId=G25-BUILD-06]/binding",
+    "bindingSha256Canonical": "67456e13693558d384c3ae6017abd890c44b2c7a8d176ceb0d4bca8992d5f140",
+    "mandatePath": "governance/sources/GATE25_CANONICAL_MANDATE_R0.json",
+    "mandateSha256": "0aefedc757e2ba749ebd25a2cd40dc2070fafb04f3ac8f7b194c08d2b513c618"
+  },
+  "binding": {
+    "schema": "GATE25_ANALOGUE_SUPPORT_REPORT_V1",
+    "closed": true,
+    "requiredFields": [
+      "schema",
+      "universeCount",
+      "eligibleCount",
+      "excludedCount",
+      "exclusionCountsByReason",
+      "structuralGatesPass",
+      "supportStatus",
+      "decision",
+      "abstainReason"
+    ],
+    "supportStatusVocabulary": [
+      "INSUFFICIENT_SUPPORT",
+      "SUFFICIENT_SUPPORT"
+    ],
+    "decisionVocabulary": [
+      "ABSTAIN",
+      "PROCEED"
+    ],
+    "rules": [
+      {
+        "when": "eligibleCount < 2",
+        "supportStatus": "INSUFFICIENT_SUPPORT",
+        "decision": "ABSTAIN",
+        "abstainReason": "INSUFFICIENT_SUPPORT"
+      },
+      {
+        "when": "eligibleCount >= 2",
+        "supportStatus": "SUFFICIENT_SUPPORT",
+        "decision": "PROCEED",
+        "abstainReason": null
+      }
+    ],
+    "exclusionCountsByReasonVocabulary": "GATE25_ELIGIBILITY_EXCLUSION_REASON_V1",
+    "od5Preservation": "OD-5 is unchanged: SUFFICIENT_SUPPORT is never emitted with structuralGatesPass = false; that condition introduces no additional abstainReason value and fails closed. Sufficiency never truncates, re-ranks or silently narrows the analogue set; under INSUFFICIENT_SUPPORT the frozen set is still emitted with exclusion reasons.",
+    "forbidden": [
+      "ESS",
+      "confidence score",
+      "probability",
+      "statistical significance claim"
+    ]
+  },
+  "implementationPaths": [
+    "governance/gates/GATE25/implementation/analogue-report-v1.mjs"
+  ],
+  "implementationReading": {
+    "normative": false,
+    "notes": [
+      "exclusionCountsByReason is an array of twelve { reasonId, count } entries in GATE25_ELIGIBILITY_EXCLUSION_REASON_V1 precedence order, because a keyed object would be re-sorted by CanonicalJSON/1.",
+      "structuralGatesPass is true only when the query is comparable: identity resolved at T, a GATE24 RegimeRecord bound, volatilityState classifying, both distance features RESOLVED and finite, and every query input availableAt <= K(T).",
+      "eligibleCount >= 2 with structuralGatesPass false is an engine fail-closed condition and emits no report; supportReportId is sha256Canonical of the closed report."
+    ]
+  }
+}

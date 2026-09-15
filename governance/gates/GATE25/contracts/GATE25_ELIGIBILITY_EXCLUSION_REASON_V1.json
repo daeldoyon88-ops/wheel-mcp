@@ -1,0 +1,108 @@
+{
+  "document": "GATE25_BINDING_ARTIFACT",
+  "schemaVersion": 1,
+  "gateId": "GATE25",
+  "bindingId": "GATE25_ELIGIBILITY_EXCLUSION_REASON_V1",
+  "decisionId": "D7",
+  "requirementId": "G25-BUILD-10",
+  "resolutionStatus": "OWNER_RESOLVED",
+  "ownerAuthorizationId": "OWNER_AUTHORIZE_GATE25_BUILD_SCOPE_CONTRACT_SUCCESSION_R1",
+  "deferredToContractIndex": 6,
+  "deferredToContractItem": "the exact exclusion reason vocabulary for the eligible universe accounting",
+  "authority": {
+    "executionContractPath": "governance/gates/GATE25/contracts/EXECUTION_CONTRACT_R0003.json",
+    "executionContractRevision": "R0003",
+    "executionContractSha256": "f369ce7844167a5ae46940dcd1e2edd61f1b92327893723cd6953d8fafa0578f",
+    "bindingPointer": "/canonicalRequirements[requirementId=G25-BUILD-10]/binding",
+    "bindingSha256Canonical": "a0db478ebb430e4513a4c33e2afd5443c16db87b3d44b55595e78698ca031370",
+    "mandatePath": "governance/sources/GATE25_CANONICAL_MANDATE_R0.json",
+    "mandateSha256": "0aefedc757e2ba749ebd25a2cd40dc2070fafb04f3ac8f7b194c08d2b513c618"
+  },
+  "binding": {
+    "vocabularyId": "GATE25_ELIGIBILITY_EXCLUSION_REASON_V1",
+    "closed": true,
+    "multipleReasonsPerCandidate": true,
+    "emissionOrder": "all applicable reasons in precedence order",
+    "precedence": [
+      {
+        "ordinal": 1,
+        "reasonId": "P3H_EXCLUDED_MALFORMED_PROVIDER_RESULT"
+      },
+      {
+        "ordinal": 2,
+        "reasonId": "P3H_EXCLUDED_SCHEMA_FAILURE"
+      },
+      {
+        "ordinal": 3,
+        "reasonId": "P3H_EXCLUDED_SNAPSHOT_CONTRACT_INVALID"
+      },
+      {
+        "ordinal": 4,
+        "reasonId": "OUTSIDE_HISTORICAL_WINDOW"
+      },
+      {
+        "ordinal": 5,
+        "reasonId": "AVAILABLE_AFTER_KNOWLEDGE_CUTOFF"
+      },
+      {
+        "ordinal": 6,
+        "reasonId": "INSTRUMENT_IDENTITY_MISMATCH"
+      },
+      {
+        "ordinal": 7,
+        "reasonId": "REGIME_HORIZON_SPEC_MISMATCH"
+      },
+      {
+        "ordinal": 8,
+        "reasonId": "CORE_V1_REGIME_MISMATCH"
+      },
+      {
+        "ordinal": 9,
+        "reasonId": "VOLATILITY_STATE_UNAVAILABLE"
+      },
+      {
+        "ordinal": 10,
+        "reasonId": "REQUIRED_DISTANCE_FEATURE_MISSING"
+      },
+      {
+        "ordinal": 11,
+        "reasonId": "REQUIRED_DISTANCE_FEATURE_MALFORMED"
+      },
+      {
+        "ordinal": 12,
+        "reasonId": "REQUIRED_DISTANCE_FEATURE_NON_FINITE"
+      }
+    ],
+    "p3hClassMapping": [
+      {
+        "p3hExclusionClass": "MALFORMED_PROVIDER_RESULT",
+        "reasonId": "P3H_EXCLUDED_MALFORMED_PROVIDER_RESULT"
+      },
+      {
+        "p3hExclusionClass": "SCHEMA_FAILURE",
+        "reasonId": "P3H_EXCLUDED_SCHEMA_FAILURE"
+      },
+      {
+        "p3hExclusionClass": "SNAPSHOT_CONTRACT_INVALID",
+        "reasonId": "P3H_EXCLUDED_SNAPSHOT_CONTRACT_INVALID"
+      }
+    ],
+    "silentCandidateDrop": "FORBIDDEN",
+    "datasetLevelIdentityOrBindingFailure": "ENGINE_FAIL_CLOSED; never converted into a candidate exclusion reason"
+  },
+  "implementationPaths": [
+    "governance/gates/GATE25/implementation/analogue-eligibility-v1.mjs"
+  ],
+  "implementationReading": {
+    "normative": false,
+    "notes": [
+      "The P3H exclusion class is read from P3H finalization exclusions[].reasonCode; a P3H exclusion cannot be re-presented as ADMITTED, and an exclusion class outside p3hClassMapping is dataset-level and fails closed.",
+      "OUTSIDE_HISTORICAL_WINDOW applies when sessionDate is outside the R0003 historicalObservationWindow or is not strictly before the query SessionDate T.",
+      "AVAILABLE_AFTER_KNOWLEDGE_CUTOFF applies when any selection or distance input cannot prove availableAt <= its own K(T_hist) and <= K(T), including an absent K(T_hist).",
+      "INSTRUMENT_IDENTITY_MISMATCH applies when the candidate identity was not resolved at its own session date or differs from the query identity.",
+      "REGIME_HORIZON_SPEC_MISMATCH, CORE_V1_REGIME_MISMATCH and VOLATILITY_STATE_UNAVAILABLE all apply when no GATE24 RegimeRecord is bound to the candidate; CORE_V1 matching is exact string equality of the six dimensions.",
+      "GATE23 feature status maps as: absent record, INSUFFICIENT_DATA, null value or FAIL_CLOSED code INPUT_MISSING to REQUIRED_DISTANCE_FEATURE_MISSING; any other FAIL_CLOSED or a non-number value to REQUIRED_DISTANCE_FEATURE_MALFORMED; a non-finite number to REQUIRED_DISTANCE_FEATURE_NON_FINITE.",
+      "A structurally invalid candidate, a candidate outside the bound pin set, a RegimeRecord whose identity does not recompute, a non-single-valued calendar binding, and duplicate or non-canonical candidate order are engine fail-closed conditions, never exclusion reasons."
+    ]
+  }
+}

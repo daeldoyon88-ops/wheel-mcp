@@ -1,0 +1,25 @@
+{
+  "document": "MAINTENANCE_PUBLICATION_ADMISSION_OWNER_AUTHORIZATION",
+  "schemaVersion": 1,
+  "authorityId": "GATE25_BUILD_PUBLICATION_TRANSPORT_REPAIR_PUBLICATION_OWNER_AUTHORIZATION_R1",
+  "authorityClass": "PROJECT_OWNER_MAINTENANCE_PUBLICATION_ADMISSION_AUTHORITY",
+  "authorityMode": "LOCAL_EXPLICIT_AUTHORITY",
+  "issuedBy": "PROJECT_OWNER",
+  "issuedAtUtc": "2026-09-15T00:00:00.000Z",
+  "decisionId": "OWNER_ADMIT_GATE25_BUILD_PUBLICATION_TRANSPORT_REPAIR_R1",
+  "purpose": "MAINTENANCE_PUBLICATION_ADMISSION",
+  "reexecutionAuthorized": false,
+  "grantsFutureBytePermission": false,
+  "genericV1Admission": false,
+  "admittedPublications": [
+    {
+      "admissionId": "GATE25_BUILD_PUBLICATION_TRANSPORT_REPAIR_PUBLICATION_ADMISSION_R1",
+      "projectId": "WHEEL",
+      "gateId": "GATE25",
+      "programId": "GATE25_BUILD_PUBLICATION_TRANSPORT_REPAIR_R1",
+      "admissionPath": "governance/authority/publication-admissions/GATE25/GATE25_BUILD_PUBLICATION_TRANSPORT_REPAIR_PUBLICATION_ADMISSION_R1.json",
+      "admissionDigest": "259142b7d118056ede992d0fae66f3529ed6df01b7106f7896f8418dc4b933cd"
+    }
+  ],
+  "registryDigest": "85debde23f2c265f2efcb1521f929f25a4b5e8926a05677884847c96629f7fa0"
+}

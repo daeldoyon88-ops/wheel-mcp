@@ -1,0 +1,83 @@
+{
+  "document": "GATE25_BINDING_ARTIFACT",
+  "schemaVersion": 1,
+  "gateId": "GATE25",
+  "bindingId": "GATE25_ANALOGUE_INDEX_V1",
+  "decisionId": "D4",
+  "requirementId": "G25-BUILD-07",
+  "resolutionStatus": "OWNER_RESOLVED",
+  "ownerAuthorizationId": "OWNER_AUTHORIZE_GATE25_BUILD_SCOPE_CONTRACT_SUCCESSION_R1",
+  "deferredToContractIndex": 3,
+  "deferredToContractItem": "the exact storage layout, key ordering and pagination of the analogue index",
+  "authority": {
+    "executionContractPath": "governance/gates/GATE25/contracts/EXECUTION_CONTRACT_R0003.json",
+    "executionContractRevision": "R0003",
+    "executionContractSha256": "f369ce7844167a5ae46940dcd1e2edd61f1b92327893723cd6953d8fafa0578f",
+    "bindingPointer": "/canonicalRequirements[requirementId=G25-BUILD-07]/binding",
+    "bindingSha256Canonical": "9a57c0f14f5e02ed77308d2d997a292b482890829e9bc910a4200de1f5ad639e",
+    "mandatePath": "governance/sources/GATE25_CANONICAL_MANDATE_R0.json",
+    "mandateSha256": "0aefedc757e2ba749ebd25a2cd40dc2070fafb04f3ac8f7b194c08d2b513c618"
+  },
+  "binding": {
+    "schema": "GATE25_ANALOGUE_INDEX_V1",
+    "storageSemantics": {
+      "appendOnly": true,
+      "identicalReplay": "IDEMPOTENT",
+      "divergentReplay": "REFUSED",
+      "rewriteOfExistingDifferentValue": "FORBIDDEN"
+    },
+    "primaryKey": "analogueIdentityId (GATE25_ANALOGUE_IDENTITY_V1)",
+    "queryResultOrdering": [
+      {
+        "ordinal": 1,
+        "key": "finalDistance",
+        "direction": "ASC"
+      },
+      {
+        "ordinal": 2,
+        "key": "sessionDate",
+        "direction": "ASC"
+      },
+      {
+        "ordinal": 3,
+        "key": "analogueIdentityId",
+        "direction": "ASC",
+        "comparison": "LEXICOGRAPHIC"
+      }
+    ],
+    "pagination": {
+      "pageSize": 100,
+      "appliedAfter": "deterministic query-result ranking"
+    },
+    "productClass": "OFF_SCAN",
+    "persistedProductPath": "data/jarvise/historical-analogue/GATE25/V1/ANALOGUE_INDEX.json",
+    "serialization": "CanonicalJSON/1",
+    "persistedFields": [
+      "schema",
+      "datasetId",
+      "selectionPolicyVersionId",
+      "pageSize",
+      "recordCount",
+      "records"
+    ],
+    "persistedFieldsClosed": true,
+    "storageOrder": "records ordered by analogueIdentityId lexicographic ASC",
+    "forbidden": [
+      "filesystem-order dependence",
+      "locale-dependent ordering",
+      "directory wildcard"
+    ],
+    "liveWheelScanRebuild": "FORBIDDEN"
+  },
+  "implementationPaths": [
+    "governance/gates/GATE25/implementation/analogue-index-v1.mjs"
+  ],
+  "implementationReading": {
+    "normative": false,
+    "notes": [
+      "Each record is closed over analogueIdentityId, orderedMembers, p3hKeyId, coreV1RegimeFactors, distanceFeatures and inputProofs; a record is admitted only when its identity is formable from bound inputs.",
+      "Persisted bytes are exactly the CanonicalJSON/1 canonicalize output encoded as UTF-8 with no trailing newline; lexicographic comparison is UTF-16 code-unit order, never locale collation.",
+      "Append-only merge: an identical record is idempotent, a divergent record under an existing analogueIdentityId is refused, and a change of datasetId or selectionPolicyVersionId is refused."
+    ]
+  }
+}

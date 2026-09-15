@@ -1,0 +1,32 @@
+{
+  "documentKind": "POST_FREEZE_MAINTENANCE_AUTHORITY_CONSUMPTION",
+  "schemaVersion": 2,
+  "authorityId": "GATE25_BUILD_PUBLICATION_TRANSPORT_REPAIR_LOCAL_AUTHORITY_R1",
+  "programId": "GATE25_BUILD_PUBLICATION_TRANSPORT_REPAIR_R1",
+  "manifestSha256": "87b9729028a7dfae5615c2a90720d4d97916bce270536ea5baaa60b4c717e1b0",
+  "baseHead": "5a679fc52373249fd20c9b86948b272d35e7e633",
+  "consumedUse": 1,
+  "transactionId": "GATE25_BUILD_PUBLICATION_TRANSPORT_REPAIR_R1_TRANSACTION",
+  "recordedAt": "2026-09-15T00:00:00.000Z",
+  "commitMessage": "feat(jarvise): implement GATE25 historical analogue engine",
+  "publicationAdmission": {
+    "admissionId": "GATE25_BUILD_PUBLICATION_TRANSPORT_REPAIR_PUBLICATION_ADMISSION_R1",
+    "admissionPath": "governance/authority/publication-admissions/GATE25/GATE25_BUILD_PUBLICATION_TRANSPORT_REPAIR_PUBLICATION_ADMISSION_R1.json",
+    "admissionSha256": "b082ee11ddfcfe988202ca423b08f126fb13ae0ca32e302196276170fa5bbf46"
+  },
+  "cohortSelfExclusion": {
+    "path": "governance/historical-architecture/GATE25_BUILD_PUBLICATION_TRANSPORT_REPAIR_CONSUMPTION_R1.json",
+    "reason": "The consumption record cannot hash its own final bytes; its identity is bound by the authority and manifest instead."
+  },
+  "cohortPathCount": 2,
+  "cohort": [
+    {
+      "path": ".gitattributes",
+      "sha256": "212ddf094b1323096779f221d664d2f9dedd21666a54a5be5ee9838c4449e80a",
+      "byteLength": 1350,
+      "operation": "MODIFY",
+      "reason": "Publication-transport only: byte-protect data/jarvise/historical-analogue/** and Git-LFS-track ONLY ANALOGUE_INDEX.json so the already-audited GATE25 BUILD can be published without a >100 MB normal Git blob. Working-tree canonical bytes, analogue semantics, D1-D8 and PROVENANCE are unchanged.",
+      "artifactClass": "MAINTENANCE"
+    }
+  ]
+}

@@ -1,0 +1,25 @@
+{
+  "document": "MAINTENANCE_PUBLICATION_ADMISSION_OWNER_AUTHORIZATION",
+  "schemaVersion": 1,
+  "authorityId": "GATE25_HISTORICAL_REGIME_FOUNDATION_PUBLICATION_OWNER_AUTHORIZATION_R1",
+  "authorityClass": "PROJECT_OWNER_MAINTENANCE_PUBLICATION_ADMISSION_AUTHORITY",
+  "authorityMode": "LOCAL_EXPLICIT_AUTHORITY",
+  "issuedBy": "PROJECT_OWNER",
+  "issuedAtUtc": "2026-09-15T00:00:00.000Z",
+  "decisionId": "OWNER_DECIDE_GATE25_CPI_SUCCESSOR_POLICY_R1",
+  "purpose": "MAINTENANCE_PUBLICATION_ADMISSION",
+  "reexecutionAuthorized": false,
+  "grantsFutureBytePermission": false,
+  "genericV1Admission": false,
+  "admittedPublications": [
+    {
+      "admissionId": "GATE25_HISTORICAL_REGIME_FOUNDATION_PUBLICATION_ADMISSION_R1",
+      "projectId": "WHEEL",
+      "gateId": "GATE24",
+      "programId": "GATE25_HISTORICAL_REGIME_FOUNDATION_R1",
+      "admissionPath": "governance/authority/publication-admissions/GATE24/GATE25_HISTORICAL_REGIME_FOUNDATION_PUBLICATION_ADMISSION_R1.json",
+      "admissionDigest": "b29a90647c9b7f4368e1c393384bf39cb92c95ae2649c4498563d32393735275"
+    }
+  ],
+  "registryDigest": "de7bc012fe8eb480baf343d3bfedee5a5b6b3b05f0d4bd98082b2f6728c3e5e3"
+}

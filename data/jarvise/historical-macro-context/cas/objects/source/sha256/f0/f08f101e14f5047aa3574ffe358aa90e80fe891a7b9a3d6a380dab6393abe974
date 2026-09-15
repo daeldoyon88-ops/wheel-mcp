@@ -1,0 +1,1 @@
+{"canonicalSeriesCode":"US.TREAS.DGS3MO","concept":"U.S. Treasury Daily Par Yield Curve Rate, 3 Mo constant maturity, percent","schemaVersion":"WHEEL_JARVISE_G25_HISTORICAL_MACRO_METHODOLOGY_DESCRIPTOR/1","sourceAuthority":"US_TREASURY","sourceColumn":"3 Mo","vintageRule":"FINAL_ONLY: one INITIAL vintage per business date as published"}

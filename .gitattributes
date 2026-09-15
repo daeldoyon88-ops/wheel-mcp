@@ -10,3 +10,8 @@ governance/** -text
 AGENTS.md text eol=lf
 CLAUDE.md text eol=lf
 .cursor/rules/00-wheel-critical-policy.mdc text eol=lf
+
+# GATE25 historical regime foundation: macro evidence and CAS objects are pinned by the
+# sha256 of their exact bytes (the ALFRED archive carries raw CR bytes). Preserve bytes,
+# never convert. Same mechanism as the content-addressed trees above.
+data/jarvise/historical-macro-context/** -text

@@ -1,0 +1,1 @@
+{"canonicalSeriesCode":"US.TREAS.DGS2","concept":"U.S. Treasury Daily Par Yield Curve Rate, 2 Yr constant maturity, percent","schemaVersion":"WHEEL_JARVISE_G25_HISTORICAL_MACRO_METHODOLOGY_DESCRIPTOR/1","sourceAuthority":"US_TREASURY","sourceColumn":"2 Yr","vintageRule":"FINAL_ONLY: one INITIAL vintage per business date as published"}

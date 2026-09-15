@@ -1,0 +1,72 @@
+{
+  "documentKind": "MAINTENANCE_PUBLICATION_ADMISSION",
+  "schemaVersion": 1,
+  "authorityMode": "LOCAL_EXPLICIT_AUTHORITY",
+  "issuedBy": "PROJECT_OWNER",
+  "admissionId": "GATE25_HISTORICAL_REGIME_FOUNDATION_PUBLICATION_ADMISSION_R1",
+  "decisionId": "OWNER_DECIDE_GATE25_CPI_SUCCESSOR_POLICY_R1",
+  "issuedAtUtc": "2026-09-15T00:00:00.000Z",
+  "expiresAtUtc": null,
+  "projectId": "WHEEL",
+  "repositoryId": "WHEEL_MCP_CANONICAL",
+  "gateId": "GATE24",
+  "programId": "GATE25_HISTORICAL_REGIME_FOUNDATION_R1",
+  "purpose": "MAINTENANCE_PUBLICATION_ADMISSION",
+  "publicationClass": "PATH_PRESTATE_PROGRAM_PUBLISHER",
+  "authorityPurpose": "NORMAL_MAINTENANCE",
+  "maxUse": 1,
+  "admissionStatement": "One exact Owner admission (OWNER_DECIDE_GATE25_CPI_SUCCESSOR_POLICY_R1, OPTION A; standing Owner authority of the GATE25 historical regime foundation completion mission) for the bounded publication cohort GATE25_HISTORICAL_REGIME_FOUNDATION_R1: the additive CPI YoY successor policy MarketMacroInstrumentProjectionPolicy/2 (ENDPOINTS_M_AND_M_MINUS_12_REQUIRED) and its producer, the historical regime foundation modules, targeted tests and scripts, the historical macro-context data and evidence, the .gitattributes byte protection for data/jarvise/historical-macro-context/**, and one publisher-generated consumption receipt. The closed GATE24 CPI YoY V1 policy, the V1 inflation producer and every V1 and production identity are unchanged. October 2025 CPI remains absent and is never fabricated, interpolated or forward filled. It does not mutate GATE21-GATE25 lifecycle state, GATE25 R0003, CURRENT_CONTRACT, GATE_STATUS_LEDGER or ACTIVE_GATE, appends no ledger event, does not touch the primary GATE25 BUILD files, performs no network acquisition, no Yahoo fetch, no broker access and no model inference. Frozen Owner ruling B-2 for the later GATE25 BUILD resume: a non-classifying CORE_V1 dimension is never a positive exact match and equal missingness tokens are not regime equality; a query with any non-classifying CORE_V1 dimension has structuralGatesPass = false and abstains; a candidate with any non-classifying CORE_V1 dimension is ineligible under the existing D7 CORE_V1_REGIME_MISMATCH. Historical coverage debt recorded, not solved: instrument identity resolves only from 2026-05-04; pre-2026-05-04 pairs remain truthfully unresolved and no alias is backdated.",
+  "admittedAuthority": {
+    "path": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_GATE25_HISTORICAL_REGIME_FOUNDATION_R1.json",
+    "sha256": "696ac8fcb15e6c172613a8ce99d36035b09f1144b7e0f7ec4802f4952d045c51",
+    "byteLength": 2125,
+    "schemaVersion": 2,
+    "documentId": "GATE25_HISTORICAL_REGIME_FOUNDATION_LOCAL_AUTHORITY_R1"
+  },
+  "admittedManifest": {
+    "path": "governance/historical-architecture/GATE25_HISTORICAL_REGIME_FOUNDATION_R1_AUTHORIZED_PATHS_R1.json",
+    "sha256": "ef96226425fdbfc7332d88965e9bf4f69adc95a6450f192f40dd45e9450061d2",
+    "byteLength": 2852390,
+    "schemaVersion": 2,
+    "documentId": "GATE25_HISTORICAL_REGIME_FOUNDATION_R1_AUTHORIZED_PATHS_R1"
+  },
+  "admittedPrestate": {
+    "baseHead": "4d234c772c3941388fff0e8c4ffc5786c9378e0a",
+    "ledgerEventCount": 107,
+    "ledgerPrefixSha256": "64f11d155fc0a6571d14f03a19c7240042c349796678811cf6e081567358bc85",
+    "gateId": "GATE24",
+    "gateStatus": "COMPLETE_CONFIRMED",
+    "stateRevision": "R0005",
+    "contractRevision": "R0002",
+    "activeGate": "GATE13",
+    "R8ExpectedAbsent": true
+  },
+  "admittedOperationClasses": [
+    "MAINTENANCE"
+  ],
+  "grantsFutureBytePermission": false,
+  "grantsGateAuthorizationPermission": false,
+  "grantsStartPermission": false,
+  "grantsStatusTransitionPermission": false,
+  "grantsHistoricalAdmissionWidening": false,
+  "genericV1Admission": false,
+  "derivedFromGitDelta": false,
+  "derivedFromFinalGateIntegrityFindings": false,
+  "prohibitedOperations": [
+    "START",
+    "SECOND_START",
+    "GATE_AUTHORIZATION",
+    "STATUS_TRANSITION",
+    "ACTIVE_GATE_SWITCH",
+    "GEE_R8",
+    "GIT_PUSH",
+    "HISTORY_REWRITE",
+    "GENERIC_V1_ADMISSION",
+    "HISTORICAL_ADMISSION_WIDENING",
+    "SELF_ADMISSION"
+  ],
+  "successorRequirement": "A later publication requires a new exact Owner admission over a new exact pre-state.",
+  "admissionDigest": "b29a90647c9b7f4368e1c393384bf39cb92c95ae2649c4498563d32393735275",
+  "ownerAuthorizationPath": "governance/sources/MAINTENANCE_PUBLICATION_ADMISSION_OWNER_AUTHORIZATION_GATE25_HISTORICAL_REGIME_FOUNDATION_R1.json",
+  "ownerAuthorizationSha256": "b901c8f93ab2267a5a3b7ca8218c992caf7e6cab934b14a063aec807a6d75bec"
+}

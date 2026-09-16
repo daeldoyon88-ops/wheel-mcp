@@ -103,6 +103,32 @@ export const SUCCESSION_FORBIDDEN_GRANTED_PATHS = Object.freeze([
   SUCCESSION_LEDGER_PATH,
   SUCCESSION_ACTIVE_GATE_PATH
 ]);
+/**
+ * The governed finding each forbidden path raises. Keeping the mapping beside the
+ * set is what lets ONE invariant serve both authority families without either of
+ * them restating which code belongs to which path. A member of the set with no
+ * mapped code still blocks: extending the set can never fail open.
+ */
+const SUCCESSION_FORBIDDEN_GRANTED_PATH_CODES = Object.freeze({
+  [SUCCESSION_LEDGER_PATH]: 'LEDGER_PATH_FORBIDDEN',
+  [SUCCESSION_ACTIVE_GATE_PATH]: 'ACTIVE_GATE_PATH_FORBIDDEN'
+});
+
+/**
+ * The forbidden-granted-path invariant, stated once.
+ *
+ * The legacy/local family applies it to `authorizedPaths` + `statePaths`, which is
+ * where its grant is written down. The ledger-bound family carries NO authorizedPaths
+ * array — its granted scope is DERIVED from the succession path fields themselves
+ * (successor contract + CURRENT_CONTRACT pointer) — so the same invariant has to be
+ * applied to those fields, or a ledger or ACTIVE_GATE path reaches the authorized set
+ * through the successor or pointer slot with only isSafePath() in the way, and
+ * isSafePath() is happy to accept both.
+ */
+function forbiddenGrantedPathCode(value) {
+  if (typeof value !== 'string' || !SUCCESSION_FORBIDDEN_GRANTED_PATHS.includes(value)) return null;
+  return SUCCESSION_FORBIDDEN_GRANTED_PATH_CODES[value] || 'FORBIDDEN_GRANTED_PATH';
+}
 
 const SHA256_RE = /^[a-f0-9]{64}$/;
 const COMMIT_RE = /^[a-f0-9]{40}$/;
@@ -168,6 +194,39 @@ export const SUCCESSION_LOCAL_AUTHORITY_FIELDS = Object.freeze([
   'recordDigest', 'bindingDigest', 'pushAuthorized', 'prohibitedOperations'
 ]);
 
+/**
+ * Ledger-bound local succession authorities (GATE14 event 59, GATE21-GATE25
+ * CONTRACT_SUCCESSION). Same documentKind as the GEE-local CURRENT_CONTRACT_SWITCH
+ * family, but a different field set: pre-ledger prefix, contract revisions and a
+ * CURRENT_CONTRACT pointer path, and no authorizedDelta/request digest. The
+ * legacy signed validator used to canonicalize the missing authorizedDelta and
+ * throw; this family is now accepted on its own closed shape.
+ */
+export const SUCCESSION_LEDGER_BOUND_REQUIRED_FIELDS = Object.freeze([
+  'documentKind', 'schemaVersion', 'authorityId', 'authorityMode', 'issuedBy',
+  'projectId', 'gateId', 'reason', 'baseHead', 'preLedgerEventCount',
+  'preLedgerPrefixSha256', 'predecessorContractPath', 'predecessorContractSha256',
+  'predecessorContractRevision', 'successorContractPath', 'successorContractSha256',
+  'successorContractRevision', 'currentContractPointerPath',
+  'successorCurrentContractSha256', 'previousStateSealSha256',
+  'successorStateRevision', 'successorStateSealSha256', 'maxUse',
+  'pushAuthorized', 'prohibitedOperations'
+]);
+export const SUCCESSION_LEDGER_BOUND_OPTIONAL_FIELDS = Object.freeze([
+  'programId', 'programAuthorityId', 'candidate', 'published', 'ownerRatified',
+  'predecessorCurrentContractSha256', 'successorStateSealBinding',
+  'ledgerHeadEventId', 'ledgerHeadEventPayloadSha256', 'functionalBuildAuthorized'
+]);
+export const SUCCESSION_LEDGER_BOUND_ALLOWED_FIELDS = Object.freeze([
+  ...SUCCESSION_LEDGER_BOUND_REQUIRED_FIELDS,
+  ...SUCCESSION_LEDGER_BOUND_OPTIONAL_FIELDS
+]);
+export const SUCCESSION_LEDGER_BOUND_REQUIRED_PROHIBITIONS = Object.freeze([
+  'START', 'AGENT_CLOSURE', 'EXTERNAL_CONFIRMATION', 'COMPLETE_AGENT',
+  'COMPLETE_CONFIRMED', 'ACTIVE_GATE_SWITCH', 'GIT_PUSH', 'HISTORY_REWRITE',
+  'LEDGER_REWRITE'
+]);
+
 function finding(findings, code, detail = undefined) {
   findings.push(detail === undefined ? { code } : { code, detail });
 }
@@ -184,7 +243,9 @@ function isSafePath(value) {
 }
 function isDate(value) { return typeof value === 'string' && !Number.isNaN(Date.parse(value)); }
 function revisionNumber(value) { return REVISION_RE.test(String(value)) ? Number.parseInt(String(value).slice(1), 10) : null; }
-function same(a, b) { return canonicalize(a) === canonicalize(b); }
+function same(a, b) {
+  try { return canonicalize(a) === canonicalize(b); } catch { return false; }
+}
 
 function checkShape(document, required, allowed, findings, label) {
   if (!isObject(document)) { finding(findings, `${label.toUpperCase()}_MALFORMED`); return false; }
@@ -235,11 +296,15 @@ function validateShared(document, findings, { local = false } = {}) {
     if (!isSafePath(p)) finding(findings, 'AUTHORIZED_PATH_INVALID', p);
     if (String(p).startsWith('governance/gee-v1/')) finding(findings, 'GEE_PATH_FORBIDDEN', p);
     if (String(p).includes('*')) finding(findings, 'WILDCARD_PATH_FORBIDDEN', p);
-    if (String(p) === SUCCESSION_LEDGER_PATH) finding(findings, 'LEDGER_PATH_FORBIDDEN', p);
-    if (String(p) === SUCCESSION_ACTIVE_GATE_PATH) finding(findings, 'ACTIVE_GATE_PATH_FORBIDDEN', p);
+    const forbidden = forbiddenGrantedPathCode(String(p));
+    if (forbidden) finding(findings, forbidden, p);
   }
   if (!Array.isArray(document.authorizedDelta) || document.authorizedDelta.length === 0) finding(findings, 'AUTHORIZED_DELTA_INVALID');
-  if (sha256Bytes(Buffer.from(canonicalize(document.authorizedDelta), 'utf8')) !== document.authorizedDeltaDigest) finding(findings, 'AUTHORIZED_DELTA_DIGEST_MISMATCH');
+  else {
+    try {
+      if (sha256Bytes(Buffer.from(canonicalize(document.authorizedDelta), 'utf8')) !== document.authorizedDeltaDigest) finding(findings, 'AUTHORIZED_DELTA_DIGEST_MISMATCH');
+    } catch { finding(findings, 'AUTHORIZED_DELTA_DIGEST_MISMATCH'); }
+  }
 }
 
 export function validateGateContractSuccessionRequestShape(request) {
@@ -273,6 +338,10 @@ export function validateGateContractSuccessionRecordShape(record, { local = fals
 }
 
 export function validateGateContractSuccessionAuthorityShape(authority) {
+  try {
+  if (isLedgerBoundGateContractSuccessionAuthority(authority)) {
+    return validateGateContractSuccessionLedgerBoundAuthorityShape(authority);
+  }
   const findings = [];
   const valid = checkShape(authority, SUCCESSION_AUTHORITY_FIELDS, SUCCESSION_AUTHORITY_ALLOWED_FIELDS, findings, 'authority');
   if (valid) {
@@ -291,11 +360,97 @@ export function validateGateContractSuccessionAuthorityShape(authority) {
     if (typeof authority.signature !== 'string' || !authority.signature) finding(findings, 'SIGNATURE_MISSING');
   }
   return { valid: findings.length === 0, findings };
+  } catch (error) {
+    return { valid: false, findings: [{ code: 'AUTHORITY_VALIDATION_EXCEPTION', detail: error?.name || 'Error' }] };
+  }
 }
 
 /** True when the document names the local mode. Absence resolves to legacy. */
 export function isLocalGateContractSuccessionAuthority(authority) {
   return resolveAuthorityMode(authority, { defaultLegacy: true }) === SUCCESSION_LOCAL_AUTHORITY_MODE;
+}
+
+/**
+ * Discriminator for the ledger-bound family already cited by canonical
+ * CONTRACT_SUCCESSION events. Requires the local documentKind plus the
+ * pre-ledger / pointer fields that the GEE-local CURRENT_CONTRACT_SWITCH
+ * documents never carry, so the two families cannot silently swap.
+ */
+export function isLedgerBoundGateContractSuccessionAuthority(authority) {
+  return isObject(authority)
+    && authority.documentKind === SUCCESSION_LOCAL_AUTHORITY_KIND
+    && Object.hasOwn(authority, 'baseHead')
+    && Object.hasOwn(authority, 'preLedgerEventCount')
+    && Object.hasOwn(authority, 'preLedgerPrefixSha256')
+    && Object.hasOwn(authority, 'currentContractPointerPath')
+    && Object.hasOwn(authority, 'predecessorContractRevision');
+}
+
+export function validateGateContractSuccessionLedgerBoundAuthorityShape(authority) {
+  const findings = [];
+  try {
+    const valid = checkShape(authority, SUCCESSION_LEDGER_BOUND_REQUIRED_FIELDS, SUCCESSION_LEDGER_BOUND_ALLOWED_FIELDS, findings, 'authority');
+    if (!valid) return { valid: false, findings };
+    if (authority.documentKind !== SUCCESSION_LOCAL_AUTHORITY_KIND) finding(findings, 'AUTHORITY_DOCUMENT_KIND_INVALID');
+    if (authority.issuedBy !== 'PROJECT_OWNER') finding(findings, 'AUTHORITY_NOT_OWNER_ISSUED');
+    if (typeof authority.authorityId !== 'string' || !authority.authorityId) finding(findings, 'AUTHORITY_ID_INVALID');
+    const modeResult = validateAuthorityMode(authority, { requireLegacySignature: false, defaultLegacy: false });
+    findings.push(...modeResult.findings);
+    if (modeResult.mode !== SUCCESSION_LOCAL_AUTHORITY_MODE) finding(findings, 'AUTHORITY_MODE_INVALID', authority.authorityMode);
+    if (authority.schemaVersion !== SUCCESSION_SCHEMA_VERSION) finding(findings, 'SCHEMA_VERSION_UNSUPPORTED');
+    if (typeof authority.projectId !== 'string' || !authority.projectId) finding(findings, 'PROJECT_ID_INVALID');
+    if (!SUCCESSION_GATE_RE.test(String(authority.gateId || ''))) finding(findings, 'GATE_ID_INVALID', authority.gateId);
+    if (typeof authority.reason !== 'string' || !authority.reason.trim()) finding(findings, 'REASON_INVALID');
+    if (!COMMIT_RE.test(String(authority.baseHead || ''))) finding(findings, 'BASE_COMMIT_INVALID');
+    if (!Number.isInteger(authority.preLedgerEventCount) || authority.preLedgerEventCount < 1) finding(findings, 'LEDGER_HEAD_EVENT_INVALID');
+    if (!isSha(authority.preLedgerPrefixSha256)) finding(findings, 'SHA256_INVALID', 'preLedgerPrefixSha256');
+    for (const field of ['predecessorContractSha256', 'successorContractSha256', 'successorCurrentContractSha256', 'previousStateSealSha256']) {
+      if (!isSha(authority[field])) finding(findings, 'SHA256_INVALID', field);
+    }
+    if (Object.hasOwn(authority, 'predecessorCurrentContractSha256') && !isSha(authority.predecessorCurrentContractSha256)) {
+      finding(findings, 'SHA256_INVALID', 'predecessorCurrentContractSha256');
+    }
+    if (Object.hasOwn(authority, 'ledgerHeadEventPayloadSha256') && !isSha(authority.ledgerHeadEventPayloadSha256)) {
+      finding(findings, 'SHA256_INVALID', 'ledgerHeadEventPayloadSha256');
+    }
+    // Every field here can reach the authorized scope, so each is held to BOTH the
+    // shape rule and the forbidden-granted-path invariant. isSafePath() accepts the
+    // ledger and ACTIVE_GATE paths perfectly happily; only this second check refuses
+    // them, and refusing them here is what keeps them out of authorizedPaths below.
+    for (const field of ['predecessorContractPath', 'successorContractPath', 'currentContractPointerPath']) {
+      if (!isSafePath(authority[field])) finding(findings, 'PATH_INVALID', `${field}:${authority[field]}`);
+      const forbidden = forbiddenGrantedPathCode(authority[field]);
+      if (forbidden) finding(findings, forbidden, `${field}:${authority[field]}`);
+    }
+    if (!REVISION_RE.test(String(authority.predecessorContractRevision || ''))) finding(findings, 'SUCCESSOR_REVISION_INVALID');
+    if (!REVISION_RE.test(String(authority.successorContractRevision || ''))) finding(findings, 'SUCCESSOR_REVISION_INVALID');
+    if (!REVISION_RE.test(String(authority.successorStateRevision || ''))) finding(findings, 'SUCCESSOR_REVISION_INVALID');
+    const predecessorRevision = revisionNumber(authority.predecessorContractRevision);
+    const successorRevision = revisionNumber(authority.successorContractRevision);
+    if (predecessorRevision === null || successorRevision === null || successorRevision !== predecessorRevision + 1) {
+      finding(findings, 'SUCCESSOR_REVISION_LINEAGE_GAP');
+    }
+    if (authority.successorContractPath === authority.predecessorContractPath) finding(findings, 'PREDECESSOR_MUTATION_FORBIDDEN');
+    if (authority.successorStateSealSha256 !== null && !isSha(authority.successorStateSealSha256)) {
+      finding(findings, 'SHA256_INVALID', 'successorStateSealSha256');
+    }
+    if (typeof authority.ledgerHeadEventId === 'string' ? authority.ledgerHeadEventId.length === 0 : Object.hasOwn(authority, 'ledgerHeadEventId')) {
+      finding(findings, 'LEDGER_HEAD_EVENT_INVALID');
+    }
+    if (authority.maxUse !== SUCCESSION_MAX_USE) finding(findings, 'MAX_USE_INVALID');
+    if (authority.pushAuthorized !== false) finding(findings, 'PUSH_NOT_FORBIDDEN');
+    if (!Array.isArray(authority.prohibitedOperations) || authority.prohibitedOperations.length === 0) {
+      finding(findings, 'PROHIBITED_OPERATIONS_INVALID');
+    } else {
+      for (const required of SUCCESSION_LEDGER_BOUND_REQUIRED_PROHIBITIONS) {
+        if (!authority.prohibitedOperations.includes(required)) finding(findings, 'PROHIBITED_OPERATIONS_INVALID', required);
+      }
+    }
+    return { valid: findings.length === 0, findings };
+  } catch (error) {
+    finding(findings, 'AUTHORITY_VALIDATION_EXCEPTION', error?.name || 'Error');
+    return { valid: false, findings };
+  }
 }
 
 /**
@@ -316,6 +471,10 @@ export function computeGateContractSuccessionLocalRequestDigest(authority) {
 }
 
 export function validateGateContractSuccessionLocalAuthorityShape(authority) {
+  try {
+  if (isLedgerBoundGateContractSuccessionAuthority(authority)) {
+    return validateGateContractSuccessionLedgerBoundAuthorityShape(authority);
+  }
   const findings = [];
   const valid = checkShape(authority, SUCCESSION_LOCAL_AUTHORITY_FIELDS, SUCCESSION_LOCAL_AUTHORITY_FIELDS, findings, 'authority');
   if (valid) {
@@ -337,6 +496,9 @@ export function validateGateContractSuccessionLocalAuthorityShape(authority) {
     if (!sameStringSet(authority.prohibitedOperations, SUCCESSION_LOCAL_REQUIRED_PROHIBITIONS)) finding(findings, 'PROHIBITED_OPERATIONS_INVALID');
   }
   return { valid: findings.length === 0, findings };
+  } catch (error) {
+    return { valid: false, findings: [{ code: 'AUTHORITY_VALIDATION_EXCEPTION', detail: error?.name || 'Error' }] };
+  }
 }
 
 export function canonicalSuccessionSigningPayload(authority) {
@@ -412,7 +574,137 @@ function exactPathSet(left, right) {
   return Array.isArray(left) && Array.isArray(right) && left.length === right.length && [...left].sort().every((v, i) => v === [...right].sort()[i]);
 }
 
+function blockedEvaluation(findings, authorityMode) {
+  return { decision: 'BLOCKED', successionAuthorized: false, authorityMode, findings, authorizedPaths: [], executionAuthorized: false, startAuthorized: false, closureAuthorized: false };
+}
+
+function evaluateLedgerBoundGateContractSuccessionAuthority({ authority, request, predecessorContract, successorContract, predecessorCurrentContract, successorCurrentContract, observed }) {
+  const findings = [];
+  const authorityResult = validateGateContractSuccessionLedgerBoundAuthorityShape(authority);
+  findings.push(...authorityResult.findings);
+  if (request !== null) finding(findings, 'LOCAL_AUTHORITY_REQUEST_NOT_PERMITTED');
+  if (!authorityResult.valid) return blockedEvaluation(findings, SUCCESSION_LOCAL_AUTHORITY_MODE);
+  /**
+   * MISSING OBSERVATION IS NOT AGREEMENT.
+   *
+   * A conditional of the form `if (observed.X && observed.X !== authority.Y)` reads
+   * an ABSENT observation as a match, so a caller that simply omits a field is
+   * authorized on evidence nobody ever produced — the strongest possible fail-open.
+   * Presence is therefore proven BEFORE any comparison, and absence raises the SAME
+   * governed finding a divergent value raises: absence is a mismatch, never a default.
+   *
+   * The shape validator above has already proven every authority binding is a
+   * well-formed non-empty string / SHA-256 / safe path. That is what lets a single
+   * STRICT equality against the authority do both jobs at once: `undefined` can never
+   * equal a validated binding, so `observed.X !== authority.Y` rejects absent,
+   * malformed and divergent observations alike, with no truthiness shortcut and no
+   * permissive default anywhere. Only the two values the authority does NOT bind —
+   * the live and candidate ledger digests — need an explicit well-formedness test.
+   */
+  const seen = isObject(observed) ? observed : {};
+  const pointerPath = authority.currentContractPointerPath;
+
+  // Exactly one authority may be in play: absent, non-integer and >1 all block.
+  if (seen.competingAuthorityCount !== 1) finding(findings, 'COMPETING_SUCCESSION_AUTHORITIES');
+  // Single-use. Only an explicit, observed `false` clears the replay blocker; absent
+  // or malformed consumption evidence is treated exactly as a replay.
+  if (seen.authorityConsumed !== false) finding(findings, 'AUTHORITY_REPLAY');
+  if (seen.projectId !== authority.projectId || seen.gateId !== authority.gateId) finding(findings, 'CROSS_GATE_OR_PROJECT_BINDING');
+  if (seen.baseCommit !== authority.baseHead) finding(findings, 'BASE_COMMIT_MISMATCH');
+
+  if (seen.predecessorContractPath !== authority.predecessorContractPath) finding(findings, 'PREDECESSOR_PATH_MISMATCH');
+  if (seen.predecessorContractSha256 !== authority.predecessorContractSha256) finding(findings, 'PREDECESSOR_SHA_MISMATCH');
+  if (seen.successorContractPath !== authority.successorContractPath) finding(findings, 'SUCCESSOR_PATH_MISMATCH');
+  if (seen.successorContractSha256 !== authority.successorContractSha256) finding(findings, 'SUCCESSOR_SHA_MISMATCH');
+  if (seen.predecessorCurrentContractPath !== pointerPath) finding(findings, 'PREDECESSOR_CURRENT_POINTER_PATH_MISMATCH');
+  if (seen.successorCurrentContractPath !== pointerPath) finding(findings, 'SUCCESSOR_CURRENT_POINTER_PATH_MISMATCH');
+  if (seen.successorCurrentContractSha256 !== authority.successorCurrentContractSha256) {
+    finding(findings, 'SUCCESSOR_CURRENT_POINTER_SHA_MISMATCH');
+  }
+  // Optional bindings: required as evidence exactly when the authority declares them,
+  // and then compared as strictly as every mandatory one.
+  if (Object.hasOwn(authority, 'predecessorCurrentContractSha256')
+    && seen.predecessorCurrentContractSha256 !== authority.predecessorCurrentContractSha256) {
+    finding(findings, 'PREDECESSOR_CURRENT_POINTER_SHA_MISMATCH');
+  }
+  if (Object.hasOwn(authority, 'ledgerHeadEventId')
+    && (seen.ledgerHeadEventId !== authority.ledgerHeadEventId
+      || seen.ledgerHeadEventPayloadSha256 !== authority.ledgerHeadEventPayloadSha256)) {
+    finding(findings, 'LEDGER_HEAD_BINDING_MISMATCH');
+  }
+
+  if (authority.successorContractPath === authority.predecessorContractPath) finding(findings, 'PREDECESSOR_MUTATION_FORBIDDEN');
+  if (authority.successorContractPath === pointerPath) finding(findings, 'CURRENT_POINTER_REPLACEMENT_PATH_INVALID');
+  // Neither digest is bound by the authority, so here presence is proven explicitly:
+  // an unobservable ledger cannot witness that the ledger did not move.
+  if (!isSha(seen.ledgerSha256) || seen.candidateLedgerSha256 !== seen.ledgerSha256) {
+    finding(findings, 'LEDGER_MUTATION_NOT_AUTHORIZED');
+  }
+
+  /**
+   * The contract and pointer documents are required evidence, not a nicety: the
+   * lineage checks below are the only thing proving the successor actually succeeds
+   * THIS predecessor and that the pointer really moves between them. Authorizing
+   * while they are unreadable would be authorizing on nothing at all.
+   */
+  if (!isObject(predecessorContract)) finding(findings, 'CONTRACT_BYTES_UNAVAILABLE', 'predecessorContract');
+  else if (predecessorContract.gateId !== authority.gateId) finding(findings, 'SUCCESSOR_GATE_MISMATCH');
+  if (!isObject(successorContract)) finding(findings, 'CONTRACT_BYTES_UNAVAILABLE', 'successorContract');
+  else {
+    if (successorContract.gateId !== authority.gateId) finding(findings, 'SUCCESSOR_GATE_MISMATCH');
+    if (successorContract.previousContractPath !== authority.predecessorContractPath
+      || successorContract.previousContractSha256 !== authority.predecessorContractSha256) {
+      finding(findings, 'SUCCESSOR_PREDECESSOR_LINEAGE_MISMATCH');
+    }
+    if (successorContract.contractRevision !== authority.successorContractRevision) {
+      finding(findings, 'SUCCESSOR_REVISION_LINEAGE_GAP');
+    }
+  }
+  /**
+   * `contractPath`/`contractSha256` INSIDE a CURRENT_CONTRACT pointer name the
+   * execution contract it points at — never the pointer's own path, which is
+   * `currentContractPointerPath`, and never the pointer's own bytes, which are
+   * `{predecessor,successor}CurrentContractSha256`. The legacy family already binds
+   * the pointed-at contract; the ledger-bound family binds it the same way here.
+   */
+  if (!isObject(predecessorCurrentContract)) finding(findings, 'CONTRACT_BYTES_UNAVAILABLE', 'predecessorCurrentContract');
+  else if (predecessorCurrentContract.gateId !== authority.gateId
+    || predecessorCurrentContract.contractRevision !== authority.predecessorContractRevision
+    || predecessorCurrentContract.contractPath !== authority.predecessorContractPath
+    || predecessorCurrentContract.contractSha256 !== authority.predecessorContractSha256) {
+    finding(findings, 'PREDECESSOR_POINTER_BINDING_MISMATCH');
+  }
+  if (!isObject(successorCurrentContract)) finding(findings, 'CONTRACT_BYTES_UNAVAILABLE', 'successorCurrentContract');
+  else if (successorCurrentContract.gateId !== authority.gateId
+    || successorCurrentContract.contractRevision !== authority.successorContractRevision
+    || successorCurrentContract.contractPath !== authority.successorContractPath
+    || successorCurrentContract.contractSha256 !== authority.successorContractSha256) {
+    finding(findings, 'SUCCESSOR_POINTER_BINDING_MISMATCH');
+  }
+
+  const grantedPaths = [authority.successorContractPath, pointerPath];
+  // Belt and braces at the actual grant point: the shape validator already refused
+  // a forbidden successor or pointer path, so this can only fire if that check is
+  // ever weakened. No forbidden path may leave this function inside authorizedPaths.
+  for (const granted of grantedPaths) {
+    const forbidden = forbiddenGrantedPathCode(granted);
+    if (forbidden) finding(findings, forbidden, granted);
+  }
+  const authorized = findings.length === 0;
+  return {
+    decision: authorized ? 'AUTHORIZED' : 'BLOCKED',
+    successionAuthorized: authorized,
+    authorityMode: SUCCESSION_LOCAL_AUTHORITY_MODE,
+    executionAuthorized: false,
+    startAuthorized: false,
+    closureAuthorized: false,
+    authorizedPaths: authorized ? grantedPaths : [],
+    findings
+  };
+}
+
 export function evaluateGateContractSuccessionAuthority({ request = null, record = null, authority = null, ownerKey = null, predecessorContract = null, successorContract = null, predecessorCurrentContract = null, successorCurrentContract = null, observed = {}, now = new Date() } = {}) {
+  try {
   const findings = [];
   /**
    * The mode is read from the authority alone, and absence resolves to legacy, so
@@ -421,6 +713,11 @@ export function evaluateGateContractSuccessionAuthority({ request = null, record
    * smuggle a second, differently-bound document past an authority that never
    * binds it.
    */
+  if (isLedgerBoundGateContractSuccessionAuthority(authority)) {
+    return evaluateLedgerBoundGateContractSuccessionAuthority({
+      authority, request, predecessorContract, successorContract, predecessorCurrentContract, successorCurrentContract, observed
+    });
+  }
   const local = isLocalGateContractSuccessionAuthority(authority);
   const requestResult = local ? { valid: true, findings: [] } : validateGateContractSuccessionRequestShape(request);
   const recordResult = validateGateContractSuccessionRecordShape(record, { local });
@@ -430,7 +727,7 @@ export function evaluateGateContractSuccessionAuthority({ request = null, record
   findings.push(...requestResult.findings, ...recordResult.findings, ...authorityResult.findings);
   if (local && request !== null) finding(findings, 'LOCAL_AUTHORITY_REQUEST_NOT_PERMITTED');
   const authorityMode = local ? SUCCESSION_LOCAL_AUTHORITY_MODE : SUCCESSION_LEGACY_AUTHORITY_MODE;
-  if (!requestResult.valid || !recordResult.valid || !authorityResult.valid) return { decision: 'BLOCKED', successionAuthorized: false, authorityMode, findings, authorizedPaths: [] };
+  if (!requestResult.valid || !recordResult.valid || !authorityResult.valid) return blockedEvaluation(findings, authorityMode);
 
   /**
    * The document the live repository is compared against: the external request in
@@ -464,7 +761,8 @@ export function evaluateGateContractSuccessionAuthority({ request = null, record
   if (observed.successorCurrentContractPath !== binding.successorCurrentContractPath) finding(findings, 'SUCCESSOR_CURRENT_POINTER_PATH_MISMATCH');
   if (observed.successorCurrentContractSha256 !== binding.successorCurrentContractSha256) finding(findings, 'SUCCESSOR_CURRENT_POINTER_SHA_MISMATCH');
   if (observed.candidateLedgerSha256 && observed.candidateLedgerSha256 !== binding.ledgerSha256) finding(findings, 'LEDGER_MUTATION_NOT_AUTHORIZED');
-  if (!exactPathSet(binding.authorizedPaths, [binding.successorContractPath, binding.successorCurrentContractPath, ...binding.statePaths])) finding(findings, 'AUTHORIZED_PATH_SCOPE_MISMATCH');
+  const statePaths = Array.isArray(binding.statePaths) ? binding.statePaths : [];
+  if (!exactPathSet(binding.authorizedPaths, [binding.successorContractPath, binding.successorCurrentContractPath, ...statePaths])) finding(findings, 'AUTHORIZED_PATH_SCOPE_MISMATCH');
 
   const predecessorRevision = revisionNumber(predecessorContract?.contractRevision);
   const successorRevision = revisionNumber(successorContract?.contractRevision);
@@ -474,13 +772,18 @@ export function evaluateGateContractSuccessionAuthority({ request = null, record
   if (predecessorContract && successorContract) {
     const actualDelta = diffContractSemantics(predecessorContract, successorContract);
     if (!same(actualDelta, binding.authorizedDelta)) finding(findings, 'SUCCESSOR_DELTA_OUTSIDE_AUTHORIZATION', actualDelta);
-    if (sha256Bytes(Buffer.from(canonicalize(actualDelta), 'utf8')) !== binding.authorizedDeltaDigest) finding(findings, 'SUCCESSOR_DELTA_DIGEST_MISMATCH');
+    try {
+      if (sha256Bytes(Buffer.from(canonicalize(actualDelta), 'utf8')) !== binding.authorizedDeltaDigest) finding(findings, 'SUCCESSOR_DELTA_DIGEST_MISMATCH');
+    } catch { finding(findings, 'SUCCESSOR_DELTA_DIGEST_MISMATCH'); }
   } else finding(findings, 'CONTRACT_BYTES_UNAVAILABLE');
   if (successorCurrentContract && (successorCurrentContract.gateId !== binding.gateId || successorCurrentContract.contractRevision !== binding.successorRevision || successorCurrentContract.contractPath !== binding.successorContractPath || successorCurrentContract.contractSha256 !== binding.successorContractSha256)) finding(findings, 'SUCCESSOR_POINTER_BINDING_MISMATCH');
   if (predecessorCurrentContract && (predecessorCurrentContract.gateId !== binding.gateId || predecessorCurrentContract.contractPath !== binding.predecessorContractPath || predecessorCurrentContract.contractSha256 !== binding.predecessorContractSha256)) finding(findings, 'PREDECESSOR_POINTER_BINDING_MISMATCH');
 
   const authorized = findings.length === 0;
   return { decision: authorized ? 'AUTHORIZED' : 'BLOCKED', successionAuthorized: authorized, authorityMode, executionAuthorized: false, startAuthorized: false, closureAuthorized: false, authorizedPaths: authorized ? binding.authorizedPaths : [], findings };
+  } catch (error) {
+    return blockedEvaluation([{ code: 'AUTHORITY_VALIDATION_EXCEPTION', detail: error?.name || 'Error' }], null);
+  }
 }
 
 export function gateContractSuccessionRecordPath(gateId) {

@@ -1,0 +1,98 @@
+{
+  "documentKind": "POST_FREEZE_MAINTENANCE_AUTHORIZED_PATH_MANIFEST",
+  "schemaVersion": 2,
+  "manifestId": "GATE25_PRE_CLOSURE_SUCCESSION_VALIDATION_REPAIR_AUTHORIZED_PATHS_R1",
+  "programId": "GATE25_PRE_CLOSURE_SUCCESSION_VALIDATION_REPAIR_R1",
+  "prestateSelfExclusion": [
+    {
+      "path": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_GATE25_PRE_CLOSURE_SUCCESSION_VALIDATION_REPAIR_R1.json",
+      "role": "AUTHORITY_DOCUMENT",
+      "reason": "The authority document is a causally prior publisher input and remains bound by the exact V2 self-exclusion."
+    },
+    {
+      "path": "governance/historical-architecture/GATE25_PRE_CLOSURE_SUCCESSION_VALIDATION_REPAIR_AUTHORIZED_PATHS_R1.json",
+      "role": "AUTHORIZED_PATH_MANIFEST",
+      "reason": "The manifest is a causally prior publisher input and remains bound by the exact V2 self-exclusion."
+    }
+  ],
+  "paths": [
+    {
+      "path": "governance/gee-v1/core/gate-contract-succession-authority.mjs",
+      "operation": "MODIFY",
+      "phase": "MAINTENANCE",
+      "reason": "Accept the canonical ledger-bound succession authority family without TypeError while preserving fail-closed SHA/path/authority checks.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "PRESENT",
+        "sha256": "737a97bd14bdc8294237aeebbddeb1e879d0b9c1c2b5cce5e95d9179286b1372",
+        "byteLength": 34127
+      }
+    },
+    {
+      "path": "governance/gee-v1/adapters/wheel/gate-contract-succession-authority-source.mjs",
+      "operation": "MODIFY",
+      "phase": "MAINTENANCE",
+      "reason": "Observe ledger-bound pointer fields without TypeError and bind single-use consumption to authority identity.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "PRESENT",
+        "sha256": "bc7fe19d874ecb6431f694eca491c4b0538994288787c432742a3f822f7c6518",
+        "byteLength": 10234
+      }
+    },
+    {
+      "path": "governance/tools/validate-status-ledger.mjs",
+      "operation": "MODIFY",
+      "phase": "MAINTENANCE",
+      "reason": "Reject replay of a consumed single-use succession authority even when only eventId changes; malformed authority files fail closed.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "PRESENT",
+        "sha256": "71a868fbf8b17f44866163b6b5f3e676258328852c8a57828e60685b6782554b",
+        "byteLength": 172884
+      }
+    },
+    {
+      "path": "governance/tests/gate-contract-succession-authority-primitive.test.mjs",
+      "operation": "MODIFY",
+      "phase": "MAINTENANCE",
+      "reason": "Targeted A-H regressions for ledger-bound shape, malformed fail-closed, first consumption, same-eventId replay, different-eventId replay, distinct authorities, historical records and ledger immutability.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "PRESENT",
+        "sha256": "b8798e60037e514d14baf090e7e4f76709522fb4b39c433417eebf6dec3d56ea",
+        "byteLength": 35029
+      }
+    },
+    {
+      "path": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_GATE25_PRE_CLOSURE_SUCCESSION_VALIDATION_REPAIR_R1.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "Fresh single-use V2 local explicit authority for this pre-closure succession validation repair.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "governance/historical-architecture/GATE25_PRE_CLOSURE_SUCCESSION_VALIDATION_REPAIR_AUTHORIZED_PATHS_R1.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "Finite exact-path manifest for this pre-closure succession validation repair.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "governance/historical-architecture/GATE25_PRE_CLOSURE_SUCCESSION_VALIDATION_REPAIR_CONSUMPTION_R1.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "Mechanically produced single-use V2 consumption receipt.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    }
+  ]
+}

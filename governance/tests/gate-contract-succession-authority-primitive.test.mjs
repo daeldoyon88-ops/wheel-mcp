@@ -1,6 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import crypto from 'node:crypto';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import {
   SUCCESSION_AUTHORITY_KIND,
   SUCCESSION_OPERATION,
@@ -22,16 +26,20 @@ import {
   evaluateGateContractSuccessionAuthority,
   gateContractSuccessionAuthorityPath,
   gateContractSuccessionLocalAuthorityPath,
+  isLedgerBoundGateContractSuccessionAuthority,
   isLocalGateContractSuccessionAuthority,
   validateGateContractSuccessionAuthorityShape,
+  validateGateContractSuccessionLedgerBoundAuthorityShape,
   validateGateContractSuccessionLocalAuthorityShape,
   validateGateContractSuccessionRecordShape,
   validateGateContractSuccessionRequestShape,
   verifyGateContractSuccessionOwnerSignature
 } from '../gee-v1/core/gate-contract-succession-authority.mjs';
 import { FORBIDDEN_SIGNATURE_FIELDS } from '../gee-v1/core/post-freeze-maintenance-authority.mjs';
-import { CONTRACT_SUCCESSION_TRANSITIONS, CONTRACT_SUCCESSION_TRANSITION_TYPE } from '../tools/validate-status-ledger.mjs';
-import { canonicalize } from '../tools/canonical-json.mjs';
+import { CONTRACT_SUCCESSION_TRANSITIONS, CONTRACT_SUCCESSION_TRANSITION_TYPE, MODE_FULL, validateLedger } from '../tools/validate-status-ledger.mjs';
+import { canonicalize, sha256Canonical } from '../tools/canonical-json.mjs';
+import { createWheelGateContractSuccessionAuthoritySource } from '../gee-v1/adapters/wheel/gate-contract-succession-authority-source.mjs';
+import { WHEEL_EXTERNAL_AUTHORITY_POLICY as policy } from '../gee-v1/adapters/wheel/external-authority-policy.mjs';
 
 const KEY_ID = 'WHEEL-OWNER-RELEASE-2D441D1E';
 const KEYS = crypto.generateKeyPairSync('ed25519');
@@ -475,3 +483,648 @@ test('L43 the signed route is unchanged: explicit legacy mode, and absence, both
   assert.equal(validateGateContractSuccessionAuthorityShape(buildLocalScenario().authority).valid, false);
   assert.equal(validateGateContractSuccessionRequestShape(implicit.request).valid, true);
 });
+
+const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
+const LIVE_LEDGER = path.join(REPO_ROOT, 'governance/state/GATE_STATUS_LEDGER.ndjson');
+const LEDGER_BOUND_AUTHORITIES = Object.freeze([
+  'governance/historical-architecture/CONTRACT_SUCCESSION_R0002_LOCAL_AUTHORITY.json',
+  'governance/authority/authorizations/GATE21/GATE_CONTRACT_SUCCESSION_LOCAL_AUTHORITY.json',
+  'governance/authority/authorizations/GATE22/GATE_CONTRACT_SUCCESSION_LOCAL_AUTHORITY.json',
+  'governance/authority/authorizations/GATE23/GATE_CONTRACT_SUCCESSION_LOCAL_AUTHORITY.json',
+  'governance/authority/authorizations/GATE24/GATE_CONTRACT_SUCCESSION_LOCAL_AUTHORITY.json',
+  'governance/authority/authorizations/GATE25/GATE_CONTRACT_SUCCESSION_LOCAL_AUTHORITY.json'
+]);
+const readRepoJson = (relative) => JSON.parse(fs.readFileSync(path.join(REPO_ROOT, ...relative.split('/')), 'utf8'));
+const shaFile = (absolute) => crypto.createHash('sha256').update(fs.readFileSync(absolute)).digest('hex');
+function recomputeEvent(event) {
+  const payload = { ...event };
+  delete payload.eventPayloadSha256;
+  return { ...event, eventPayloadSha256: sha256Canonical(payload) };
+}
+function appendLedgerEvent(extra) {
+  const original = fs.readFileSync(LIVE_LEDGER);
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'g25-succ-replay-'));
+  const out = path.join(tmp, 'GATE_STATUS_LEDGER.ndjson');
+  const text = original.toString('utf8');
+  const prefix = text.endsWith('\n') ? text : `${text}\n`;
+  fs.writeFileSync(out, `${prefix}${canonicalize(extra)}\n`);
+  return { tmp, out };
+}
+function blockingCodes(report) {
+  return report.findings.filter((item) => item.severity === 'BLOCKING').map((item) => item.detectorId);
+}
+
+test('A valid ledger-bound succession authority shape PASSes without TypeError', () => {
+  const authority = readRepoJson('governance/authority/authorizations/GATE25/GATE_CONTRACT_SUCCESSION_LOCAL_AUTHORITY.json');
+  assert.equal(isLedgerBoundGateContractSuccessionAuthority(authority), true);
+  let legacy;
+  let local;
+  let dedicated;
+  assert.doesNotThrow(() => { legacy = validateGateContractSuccessionAuthorityShape(authority); });
+  assert.doesNotThrow(() => { local = validateGateContractSuccessionLocalAuthorityShape(authority); });
+  assert.doesNotThrow(() => { dedicated = validateGateContractSuccessionLedgerBoundAuthorityShape(authority); });
+  assert.equal(legacy.valid, true, JSON.stringify(legacy.findings));
+  assert.equal(local.valid, true, JSON.stringify(local.findings));
+  assert.equal(dedicated.valid, true, JSON.stringify(dedicated.findings));
+  assert.doesNotThrow(() => {
+    createWheelGateContractSuccessionAuthoritySource(REPO_ROOT).resolveGateContractSuccessionAuthority('GATE25');
+  });
+});
+
+test('B malformed ledger-bound shape fails closed without uncaught exception', () => {
+  const malformed = [
+    null,
+    [],
+    42,
+    'not-json-object',
+    { documentKind: SUCCESSION_LOCAL_AUTHORITY_KIND },
+    {
+      documentKind: SUCCESSION_LOCAL_AUTHORITY_KIND,
+      baseHead: 1,
+      preLedgerEventCount: 'nope',
+      preLedgerPrefixSha256: 1,
+      currentContractPointerPath: 1,
+      predecessorContractRevision: 1
+    }
+  ];
+  for (const value of malformed) {
+    let legacy;
+    let local;
+    let evaluateResult;
+    assert.doesNotThrow(() => { legacy = validateGateContractSuccessionAuthorityShape(value); });
+    assert.doesNotThrow(() => { local = validateGateContractSuccessionLocalAuthorityShape(value); });
+    assert.doesNotThrow(() => { evaluateResult = evaluateGateContractSuccessionAuthority({ authority: value }); });
+    assert.equal(legacy.valid, false);
+    assert.equal(local.valid, false);
+    assert.equal(evaluateResult.decision, 'BLOCKED');
+    assert.equal(evaluateResult.successionAuthorized, false);
+    assert.ok(Array.isArray(legacy.findings) && legacy.findings.length > 0);
+  }
+});
+
+/**
+ * The COMPLETE evidence a lawful ledger-bound succession requires, derived entirely
+ * from the authority's own bindings — which is exactly what a correct observer at the
+ * authorized pre-state reports. Every fail-closed test below starts from this and
+ * removes exactly ONE thing, so each proves that one absence blocks on its own.
+ *
+ * The pointer documents are shaped like a real CURRENT_CONTRACT.json: `contractPath`
+ * and `contractSha256` name the execution contract POINTED AT, never the pointer's
+ * own path or bytes.
+ */
+function ledgerBoundEvidence(authority, { ledgerDigest = 'a'.repeat(64) } = {}) {
+  const pointerPath = authority.currentContractPointerPath;
+  const pointer = (revision, contractPath, contractSha256) => ({
+    schemaVersion: 1, gateId: authority.gateId, contractRevision: revision,
+    contractPath, contractSha256, activatedByEventId: null
+  });
+  return {
+    predecessorContract: {
+      schemaVersion: 1, gateId: authority.gateId, contractRevision: authority.predecessorContractRevision
+    },
+    successorContract: {
+      schemaVersion: 1, gateId: authority.gateId, contractRevision: authority.successorContractRevision,
+      previousContractPath: authority.predecessorContractPath,
+      previousContractSha256: authority.predecessorContractSha256
+    },
+    predecessorCurrentContract: pointer(authority.predecessorContractRevision, authority.predecessorContractPath, authority.predecessorContractSha256),
+    successorCurrentContract: pointer(authority.successorContractRevision, authority.successorContractPath, authority.successorContractSha256),
+    observed: {
+      projectId: authority.projectId,
+      gateId: authority.gateId,
+      baseCommit: authority.baseHead,
+      competingAuthorityCount: 1,
+      authorityConsumed: false,
+      predecessorContractPath: authority.predecessorContractPath,
+      predecessorContractSha256: authority.predecessorContractSha256,
+      successorContractPath: authority.successorContractPath,
+      successorContractSha256: authority.successorContractSha256,
+      predecessorCurrentContractPath: pointerPath,
+      successorCurrentContractPath: pointerPath,
+      predecessorCurrentContractSha256: authority.predecessorCurrentContractSha256,
+      successorCurrentContractSha256: authority.successorCurrentContractSha256,
+      ledgerHeadEventId: authority.ledgerHeadEventId,
+      ledgerHeadEventPayloadSha256: authority.ledgerHeadEventPayloadSha256,
+      ledgerSha256: ledgerDigest,
+      candidateLedgerSha256: ledgerDigest
+    }
+  };
+}
+const evaluateLedgerBound = (authority, evidence) =>
+  evaluateGateContractSuccessionAuthority({ request: null, authority, ...evidence });
+const GATE25_AUTHORITY_PATH = 'governance/authority/authorizations/GATE25/GATE_CONTRACT_SUCCESSION_LOCAL_AUTHORITY.json';
+
+test('C valid first consumption of single-use ledger-bound authority PASSes', () => {
+  const authority = readRepoJson(GATE25_AUTHORITY_PATH);
+  const first = evaluateLedgerBound(authority, ledgerBoundEvidence(authority));
+  assert.equal(first.decision, 'AUTHORIZED', JSON.stringify(first.findings));
+  assert.equal(first.successionAuthorized, true);
+  const consumed = ledgerBoundEvidence(authority);
+  consumed.observed.authorityConsumed = true;
+  const replayed = evaluateLedgerBound(authority, consumed);
+  assert.equal(replayed.decision, 'BLOCKED');
+  assert.equal(replayed.findings.some((item) => item.code === 'AUTHORITY_REPLAY'), true);
+  const live = validateLedger({ root: REPO_ROOT, ledgerPath: LIVE_LEDGER, policy, mode: MODE_FULL });
+  const succession = live.events.filter((event) => event.transitionType === CONTRACT_SUCCESSION_TRANSITION_TYPE && event.gateId === 'GATE25');
+  assert.equal(succession.length, 1);
+  const successionBlocking = live.findings.filter((item) => item.severity === 'BLOCKING' && String(item.detectorId).startsWith('CONTRACT_SUCCESSION_'));
+  assert.deepEqual(successionBlocking, []);
+  assert.equal(live.findings.some((item) => item.detectorId === 'CONTRACT_SUCCESSION_AUTHORITY_REPLAYED'), false);
+  assert.equal(live.findings.some((item) => item.detectorId === 'CONTRACT_SUCCESSION_APPLIED' && item.eventId === succession[0].eventId), true);
+});
+
+test('D second use with the same eventId is rejected', () => {
+  const events = fs.readFileSync(LIVE_LEDGER, 'utf8').split(/\r?\n/).filter(Boolean).map((line) => JSON.parse(line));
+  const last = events.at(-1);
+  const original = events.find((event) => event.eventId === 'GATE25_CONTRACT_SUCCESSION_R0003_R1');
+  const duplicate = recomputeEvent({
+    ...original,
+    ordinal: last.ordinal + 1,
+    previousEventSha256: last.eventPayloadSha256,
+    recordedAt: '2026-09-15T12:00:00.000Z'
+  });
+  const { tmp, out } = appendLedgerEvent(duplicate);
+  try {
+    const report = validateLedger({ root: REPO_ROOT, ledgerPath: out, policy, mode: MODE_FULL });
+    assert.equal(report.valid, false);
+    assert.equal(blockingCodes(report).includes('LEDGER_DUPLICATE_EVENT_ID'), true, JSON.stringify(blockingCodes(report)));
+  } finally { fs.rmSync(tmp, { recursive: true, force: true }); }
+});
+
+test('E second use with a different eventId but the same single-use authority is rejected', () => {
+  const events = fs.readFileSync(LIVE_LEDGER, 'utf8').split(/\r?\n/).filter(Boolean).map((line) => JSON.parse(line));
+  const last = events.at(-1);
+  const original = events.find((event) => event.eventId === 'GATE25_CONTRACT_SUCCESSION_R0003_R1');
+  const replay = recomputeEvent({
+    ...original,
+    eventId: 'GATE25_CONTRACT_SUCCESSION_R0003_REPLAY',
+    ordinal: last.ordinal + 1,
+    previousEventSha256: last.eventPayloadSha256,
+    recordedAt: '2026-09-15T12:00:00.000Z'
+  });
+  const { tmp, out } = appendLedgerEvent(replay);
+  try {
+    const report = validateLedger({ root: REPO_ROOT, ledgerPath: out, policy, mode: MODE_FULL });
+    assert.equal(report.valid, false);
+    assert.equal(blockingCodes(report).includes('CONTRACT_SUCCESSION_AUTHORITY_REPLAYED'), true, JSON.stringify(blockingCodes(report)));
+    assert.equal(blockingCodes(report).includes('LEDGER_DUPLICATE_EVENT_ID'), false);
+  } finally { fs.rmSync(tmp, { recursive: true, force: true }); }
+});
+
+test('F genuinely distinct authorized successions remain allowed', () => {
+  const live = validateLedger({ root: REPO_ROOT, ledgerPath: LIVE_LEDGER, policy, mode: MODE_FULL });
+  const succession = live.events.filter((event) => event.transitionType === CONTRACT_SUCCESSION_TRANSITION_TYPE);
+  const identities = succession.map((event) => `${event.authorityPath}::${event.authoritySha256}`);
+  assert.ok(succession.length >= 6, `expected multiple canonical successions, got ${succession.length}`);
+  assert.equal(new Set(identities).size, identities.length);
+  const successionBlocking = live.findings.filter((item) => item.severity === 'BLOCKING' && String(item.detectorId).startsWith('CONTRACT_SUCCESSION_'));
+  assert.deepEqual(successionBlocking, []);
+  assert.equal(live.findings.filter((item) => item.detectorId === 'CONTRACT_SUCCESSION_APPLIED').length, succession.length);
+});
+
+test('G historical canonical succession records continue validating unchanged', () => {
+  for (const relative of LEDGER_BOUND_AUTHORITIES) {
+    const authority = readRepoJson(relative);
+    let result;
+    assert.doesNotThrow(() => { result = validateGateContractSuccessionAuthorityShape(authority); });
+    assert.equal(isLedgerBoundGateContractSuccessionAuthority(authority), true, relative);
+    assert.equal(result.valid, true, `${relative}: ${JSON.stringify(result.findings)}`);
+  }
+  const live = validateLedger({ root: REPO_ROOT, ledgerPath: LIVE_LEDGER, policy, mode: MODE_FULL });
+  const successionBlocking = live.findings.filter((item) => item.severity === 'BLOCKING' && String(item.detectorId).startsWith('CONTRACT_SUCCESSION_'));
+  assert.deepEqual(successionBlocking, []);
+  assert.equal(live.findings.some((item) => item.detectorId === 'CONTRACT_SUCCESSION_AUTHORITY_REPLAYED'), false);
+});
+
+test('H existing ledger bytes are not mutated by this repair', () => {
+  const before = shaFile(LIVE_LEDGER);
+  validateLedger({ root: REPO_ROOT, ledgerPath: LIVE_LEDGER, policy, mode: MODE_FULL });
+  validateGateContractSuccessionAuthorityShape(readRepoJson('governance/authority/authorizations/GATE25/GATE_CONTRACT_SUCCESSION_LOCAL_AUTHORITY.json'));
+  const after = shaFile(LIVE_LEDGER);
+  assert.equal(after, before);
+  assert.equal(before, '64f11d155fc0a6571d14f03a19c7240042c349796678811cf6e081567358bc85');
+});
+
+/* ===================================================================== *
+ * R2 — the three independent-audit defects, proven repaired.
+ * ===================================================================== */
+
+/* --- DEFECT 1: forbidden granted paths must not fail open ------------ */
+
+const FORBIDDEN_GRANTED_PATH_CASES = Object.freeze([
+  [SUCCESSION_LEDGER_PATH, 'LEDGER_PATH_FORBIDDEN'],
+  [SUCCESSION_ACTIVE_GATE_PATH, 'ACTIVE_GATE_PATH_FORBIDDEN']
+]);
+const LEDGER_BOUND_GRANTABLE_PATH_FIELDS = Object.freeze([
+  'currentContractPointerPath', 'successorContractPath', 'predecessorContractPath'
+]);
+
+test('R2-D1 every ledger-bound succession path field refuses the forbidden granted paths', () => {
+  const base = readRepoJson(GATE25_AUTHORITY_PATH);
+  for (const field of LEDGER_BOUND_GRANTABLE_PATH_FIELDS) {
+    for (const [forbiddenPath, expectedCode] of FORBIDDEN_GRANTED_PATH_CASES) {
+      const authority = clone(base);
+      authority[field] = forbiddenPath;
+      // isSafePath() alone accepts both of these, so the shape may only refuse them
+      // via the forbidden-granted-path invariant.
+      const shape = validateGateContractSuccessionLedgerBoundAuthorityShape(authority);
+      assert.equal(shape.valid, false, `${field}=${forbiddenPath}`);
+      assert.equal(
+        shape.findings.some((item) => item.code === expectedCode && item.detail === `${field}:${forbiddenPath}`),
+        true,
+        `${field}=${forbiddenPath}: ${JSON.stringify(shape.findings)}`
+      );
+      // The same refusal through both public shape entry points and the evaluator.
+      assert.equal(validateGateContractSuccessionAuthorityShape(authority).valid, false);
+      assert.equal(validateGateContractSuccessionLocalAuthorityShape(authority).valid, false);
+      const result = evaluateLedgerBound(authority, ledgerBoundEvidence(authority));
+      assert.equal(result.decision, 'BLOCKED');
+      assert.equal(result.successionAuthorized, false);
+      assert.deepEqual(result.authorizedPaths, []);
+      assert.equal(result.findings.some((item) => item.code === expectedCode), true);
+    }
+  }
+});
+
+test('R2-D1 no forbidden path can ever appear in authorizedPaths', () => {
+  const base = readRepoJson(GATE25_AUTHORITY_PATH);
+  const granted = [];
+  const authorized = evaluateLedgerBound(base, ledgerBoundEvidence(base));
+  assert.equal(authorized.decision, 'AUTHORIZED', JSON.stringify(authorized.findings));
+  granted.push(...authorized.authorizedPaths);
+  for (const field of LEDGER_BOUND_GRANTABLE_PATH_FIELDS) {
+    for (const [forbiddenPath] of FORBIDDEN_GRANTED_PATH_CASES) {
+      const authority = clone(base);
+      authority[field] = forbiddenPath;
+      granted.push(...evaluateLedgerBound(authority, ledgerBoundEvidence(authority)).authorizedPaths);
+    }
+  }
+  for (const [forbiddenPath] of FORBIDDEN_GRANTED_PATH_CASES) {
+    assert.equal(granted.includes(forbiddenPath), false, `${forbiddenPath} reached authorizedPaths`);
+  }
+  // And the grant, when it is made, is exactly successor contract + pointer.
+  assert.deepEqual(authorized.authorizedPaths, [base.successorContractPath, base.currentContractPointerPath]);
+});
+
+/* --- DEFECT 2: missing observation must fail closed ------------------ */
+
+const REQUIRED_LEDGER_BOUND_OBSERVATIONS = Object.freeze([
+  ['projectId', 'CROSS_GATE_OR_PROJECT_BINDING'],
+  ['gateId', 'CROSS_GATE_OR_PROJECT_BINDING'],
+  ['baseCommit', 'BASE_COMMIT_MISMATCH'],
+  ['competingAuthorityCount', 'COMPETING_SUCCESSION_AUTHORITIES'],
+  ['authorityConsumed', 'AUTHORITY_REPLAY'],
+  ['predecessorContractPath', 'PREDECESSOR_PATH_MISMATCH'],
+  ['predecessorContractSha256', 'PREDECESSOR_SHA_MISMATCH'],
+  ['successorContractPath', 'SUCCESSOR_PATH_MISMATCH'],
+  ['successorContractSha256', 'SUCCESSOR_SHA_MISMATCH'],
+  ['predecessorCurrentContractPath', 'PREDECESSOR_CURRENT_POINTER_PATH_MISMATCH'],
+  ['successorCurrentContractPath', 'SUCCESSOR_CURRENT_POINTER_PATH_MISMATCH'],
+  ['predecessorCurrentContractSha256', 'PREDECESSOR_CURRENT_POINTER_SHA_MISMATCH'],
+  ['successorCurrentContractSha256', 'SUCCESSOR_CURRENT_POINTER_SHA_MISMATCH'],
+  ['ledgerHeadEventId', 'LEDGER_HEAD_BINDING_MISMATCH'],
+  ['ledgerHeadEventPayloadSha256', 'LEDGER_HEAD_BINDING_MISMATCH'],
+  ['ledgerSha256', 'LEDGER_MUTATION_NOT_AUTHORIZED'],
+  ['candidateLedgerSha256', 'LEDGER_MUTATION_NOT_AUTHORIZED']
+]);
+const REQUIRED_LEDGER_BOUND_DOCUMENTS = Object.freeze([
+  'predecessorContract', 'successorContract', 'predecessorCurrentContract', 'successorCurrentContract'
+]);
+
+test('R2-D2 an absent or empty observation never authorizes', () => {
+  const authority = readRepoJson(GATE25_AUTHORITY_PATH);
+  const complete = ledgerBoundEvidence(authority);
+  for (const absent of [undefined, null, {}, [], 'observed', 42]) {
+    let result;
+    assert.doesNotThrow(() => {
+      result = evaluateGateContractSuccessionAuthority({
+        request: null, authority, ...complete, observed: absent
+      });
+    });
+    assert.equal(result.decision, 'BLOCKED', JSON.stringify(absent));
+    assert.equal(result.successionAuthorized, false);
+    assert.deepEqual(result.authorizedPaths, []);
+    assert.ok(result.findings.length > 0);
+    // Absence is never silently treated as agreement.
+    assert.equal(result.findings.some((item) => item.code === 'AUTHORITY_REPLAY'), true);
+  }
+});
+
+test('R2-D2 each required observation field blocks on its own when absent', () => {
+  const authority = readRepoJson(GATE25_AUTHORITY_PATH);
+  for (const [field, expectedCode] of REQUIRED_LEDGER_BOUND_OBSERVATIONS) {
+    const evidence = ledgerBoundEvidence(authority);
+    delete evidence.observed[field];
+    let result;
+    assert.doesNotThrow(() => { result = evaluateLedgerBound(authority, evidence); });
+    assert.equal(result.decision, 'BLOCKED', `absent ${field} authorized`);
+    assert.equal(result.successionAuthorized, false);
+    assert.deepEqual(result.authorizedPaths, []);
+    assert.equal(
+      result.findings.some((item) => item.code === expectedCode),
+      true,
+      `absent ${field}: expected ${expectedCode}, got ${JSON.stringify(result.findings)}`
+    );
+  }
+});
+
+test('R2-D2 a malformed observed value blocks with the same finding a divergent one raises', () => {
+  const authority = readRepoJson(GATE25_AUTHORITY_PATH);
+  const malformed = [
+    ['predecessorContractSha256', null, 'PREDECESSOR_SHA_MISMATCH'],
+    ['successorContractSha256', 42, 'SUCCESSOR_SHA_MISMATCH'],
+    ['successorContractPath', {}, 'SUCCESSOR_PATH_MISMATCH'],
+    ['baseCommit', '', 'BASE_COMMIT_MISMATCH'],
+    ['competingAuthorityCount', '1', 'COMPETING_SUCCESSION_AUTHORITIES'],
+    ['competingAuthorityCount', 2, 'COMPETING_SUCCESSION_AUTHORITIES'],
+    // Only an explicit observed `false` clears the single-use blocker.
+    ['authorityConsumed', 'false', 'AUTHORITY_REPLAY'],
+    ['authorityConsumed', null, 'AUTHORITY_REPLAY'],
+    ['ledgerSha256', 'not-a-sha', 'LEDGER_MUTATION_NOT_AUTHORIZED']
+  ];
+  for (const [field, value, expectedCode] of malformed) {
+    const evidence = ledgerBoundEvidence(authority);
+    evidence.observed[field] = value;
+    let result;
+    assert.doesNotThrow(() => { result = evaluateLedgerBound(authority, evidence); });
+    assert.equal(result.decision, 'BLOCKED', `${field}=${JSON.stringify(value)}`);
+    assert.equal(
+      result.findings.some((item) => item.code === expectedCode),
+      true,
+      `${field}=${JSON.stringify(value)}: ${JSON.stringify(result.findings)}`
+    );
+  }
+});
+
+test('R2-D2 an unavailable predecessor or successor contract document blocks', () => {
+  const authority = readRepoJson(GATE25_AUTHORITY_PATH);
+  for (const document of REQUIRED_LEDGER_BOUND_DOCUMENTS) {
+    for (const absent of [null, undefined]) {
+      const evidence = ledgerBoundEvidence(authority);
+      evidence[document] = absent;
+      let result;
+      assert.doesNotThrow(() => { result = evaluateLedgerBound(authority, evidence); });
+      assert.equal(result.decision, 'BLOCKED', `absent ${document} authorized`);
+      assert.equal(result.successionAuthorized, false);
+      assert.deepEqual(result.authorizedPaths, []);
+      assert.equal(
+        result.findings.some((item) => item.code === 'CONTRACT_BYTES_UNAVAILABLE' && item.detail === document),
+        true,
+        `absent ${document}: ${JSON.stringify(result.findings)}`
+      );
+    }
+  }
+});
+
+test('R2-D2 after presence is proven, values are compared strictly', () => {
+  const authority = readRepoJson(GATE25_AUTHORITY_PATH);
+  // A successor pointer that names the pointer's own path instead of the contract it
+  // points at is a mismatch, not a match: the two are different things.
+  const confused = ledgerBoundEvidence(authority);
+  confused.successorCurrentContract.contractPath = authority.currentContractPointerPath;
+  assert.equal(evaluateLedgerBound(authority, confused).findings.some((item) => item.code === 'SUCCESSOR_POINTER_BINDING_MISMATCH'), true);
+  // And a pointer still holding the predecessor cannot witness the successor.
+  const stale = ledgerBoundEvidence(authority);
+  stale.successorCurrentContract.contractSha256 = authority.predecessorContractSha256;
+  assert.equal(evaluateLedgerBound(authority, stale).findings.some((item) => item.code === 'SUCCESSOR_POINTER_BINDING_MISMATCH'), true);
+  const complete = evaluateLedgerBound(authority, ledgerBoundEvidence(authority));
+  assert.equal(complete.decision, 'AUTHORIZED', JSON.stringify(complete.findings));
+});
+
+/* --- DEFECT 3: consumption identity is path AND sha ------------------ */
+
+/**
+ * Appends a CONTRACT_SUCCESSION event that reuses a historical one's bindings while
+ * overriding the authority identity, so the replay rule can be probed in isolation.
+ */
+function successionReplayReport(overrides) {
+  const events = fs.readFileSync(LIVE_LEDGER, 'utf8').split(/\r?\n/).filter(Boolean).map((line) => JSON.parse(line));
+  const last = events.at(-1);
+  const original = events.find((event) => event.eventId === 'GATE25_CONTRACT_SUCCESSION_R0003_R1');
+  const candidate = recomputeEvent({
+    ...original,
+    eventId: 'GATE25_CONTRACT_SUCCESSION_R0003_PROBE',
+    ordinal: last.ordinal + 1,
+    previousEventSha256: last.eventPayloadSha256,
+    recordedAt: '2026-09-15T12:00:00.000Z',
+    ...overrides
+  });
+  const { tmp, out } = appendLedgerEvent(candidate);
+  try {
+    return blockingCodes(validateLedger({ root: REPO_ROOT, ledgerPath: out, policy, mode: MODE_FULL }));
+  } finally { fs.rmSync(tmp, { recursive: true, force: true }); }
+}
+
+test('R2-A first use of a distinct authority is AUTHORIZED', () => {
+  const authority = readRepoJson(GATE25_AUTHORITY_PATH);
+  const result = evaluateLedgerBound(authority, ledgerBoundEvidence(authority));
+  assert.equal(result.decision, 'AUTHORIZED', JSON.stringify(result.findings));
+  assert.equal(result.successionAuthorized, true);
+  // And it still grants nothing beyond the switch.
+  assert.equal(result.startAuthorized, false);
+  assert.equal(result.executionAuthorized, false);
+  assert.equal(result.closureAuthorized, false);
+});
+
+test('R2-B the exact same authority a second time is rejected as AUTHORITY_REPLAY', () => {
+  const authority = readRepoJson(GATE25_AUTHORITY_PATH);
+  const evidence = ledgerBoundEvidence(authority);
+  evidence.observed.authorityConsumed = true;
+  const result = evaluateLedgerBound(authority, evidence);
+  assert.equal(result.decision, 'BLOCKED');
+  assert.equal(result.findings.some((item) => item.code === 'AUTHORITY_REPLAY'), true);
+  assert.deepEqual(result.authorizedPaths, []);
+});
+
+test('R2-C same authority path and sha under a different eventId is still a replay', () => {
+  const codes = successionReplayReport({});
+  assert.equal(codes.includes('CONTRACT_SUCCESSION_AUTHORITY_REPLAYED'), true, JSON.stringify(codes));
+  assert.equal(codes.includes('LEDGER_DUPLICATE_EVENT_ID'), false);
+});
+
+/**
+ * The replay rule can only be REACHED when the cited authority actually resolves —
+ * the path exists and its bytes hash to the cited digest. Against the live repository
+ * the only resolvable identities are the six already-consumed ones, so probing the
+ * path-arm and the sha-arm in isolation requires a root where a second authority
+ * document genuinely exists. This builds exactly that root: the governed authority
+ * files named by `files`, a ledger of the real history plus one appended event, and
+ * nothing else. Findings about the unrelated events are irrelevant here; the only
+ * assertion made is whether THIS event is judged a replay.
+ */
+function successionIdentityProbe({ files, authorityPath, authoritySha256 }) {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'g25-succ-identity-'));
+  try {
+    for (const [relative, contents] of Object.entries(files)) {
+      const target = path.join(tmp, ...relative.split('/'));
+      fs.mkdirSync(path.dirname(target), { recursive: true });
+      fs.writeFileSync(target, contents);
+    }
+    const events = fs.readFileSync(LIVE_LEDGER, 'utf8').split(/\r?\n/).filter(Boolean).map((line) => JSON.parse(line));
+    const last = events.at(-1);
+    const original = events.find((event) => event.eventId === 'GATE25_CONTRACT_SUCCESSION_R0003_R1');
+    const candidate = recomputeEvent({
+      ...original,
+      eventId: 'GATE25_CONTRACT_SUCCESSION_R0003_PROBE',
+      ordinal: last.ordinal + 1,
+      previousEventSha256: last.eventPayloadSha256,
+      recordedAt: '2026-09-15T12:00:00.000Z',
+      authorityPath,
+      authoritySha256
+    });
+    const ledgerPath = path.join(tmp, 'PROBE_LEDGER.ndjson');
+    const text = fs.readFileSync(LIVE_LEDGER, 'utf8');
+    fs.writeFileSync(ledgerPath, `${text.endsWith('\n') ? text : `${text}\n`}${canonicalize(candidate)}\n`);
+    const report = validateLedger({ root: tmp, ledgerPath, policy, mode: MODE_FULL });
+    const forProbe = report.findings.filter((item) => item.eventId === candidate.eventId).map((item) => item.detectorId);
+    return { codes: forProbe, all: report.findings.map((item) => item.detectorId) };
+  } finally { fs.rmSync(tmp, { recursive: true, force: true }); }
+}
+
+const GATE25_CANONICAL_AUTHORITY_PATH = 'governance/authority/authorizations/GATE25/GATE_CONTRACT_SUCCESSION_LOCAL_AUTHORITY.json';
+const GATE25_SECOND_AUTHORITY_PATH = 'governance/authority/authorizations/GATE25/GATE_CONTRACT_SUCCESSION_LOCAL_AUTHORITY_R2.json';
+
+test('R2-D the same authority path bearing a NEW sha is a distinct authority, not a replay', () => {
+  const original = fs.readFileSync(path.join(REPO_ROOT, ...GATE25_CANONICAL_AUTHORITY_PATH.split('/')));
+  // A genuinely different document written to the SAME governed path.
+  const revised = Buffer.from(JSON.stringify({ ...JSON.parse(original.toString('utf8')), authorityId: 'GATE25_SECOND_LAWFUL_AUTHORITY_R2' }));
+  const revisedSha = sha(revised);
+  assert.notEqual(revisedSha, sha(original));
+  const probe = successionIdentityProbe({
+    files: { [GATE25_CANONICAL_AUTHORITY_PATH]: revised },
+    authorityPath: GATE25_CANONICAL_AUTHORITY_PATH,
+    authoritySha256: revisedSha
+  });
+  // The authority resolves, so the replay rule is genuinely reached...
+  assert.equal(probe.codes.includes('CONTRACT_SUCCESSION_AUTHORITY_UNRESOLVED'), false, JSON.stringify(probe.codes));
+  // ...and the path alone — identical to an already-consumed authority — must not
+  // condemn it. Under the old disjunction this is exactly where a Gate became unable
+  // to ever lawfully succeed again.
+  assert.equal(probe.codes.includes('CONTRACT_SUCCESSION_AUTHORITY_REPLAYED'), false, JSON.stringify(probe.codes));
+});
+
+test('R2-E the same sha under a different governed path is not the same consumption identity', () => {
+  const original = fs.readFileSync(path.join(REPO_ROOT, ...GATE25_CANONICAL_AUTHORITY_PATH.split('/')));
+  // Byte-identical document at a SECOND governed path: same sha, different path.
+  const probe = successionIdentityProbe({
+    files: {
+      [GATE25_CANONICAL_AUTHORITY_PATH]: original,
+      [GATE25_SECOND_AUTHORITY_PATH]: original
+    },
+    authorityPath: GATE25_SECOND_AUTHORITY_PATH,
+    authoritySha256: sha(original)
+  });
+  assert.equal(probe.codes.includes('CONTRACT_SUCCESSION_AUTHORITY_UNRESOLVED'), false, JSON.stringify(probe.codes));
+  // The sha alone matches a consumed authority, but the governed path differs and no
+  // frozen rule declares the two locations equivalent, so this is not that consumption.
+  assert.equal(probe.codes.includes('CONTRACT_SUCCESSION_AUTHORITY_REPLAYED'), false, JSON.stringify(probe.codes));
+});
+
+test('R2-E both components matching IS a replay, so the conjunction still blocks', () => {
+  const original = fs.readFileSync(path.join(REPO_ROOT, ...GATE25_CANONICAL_AUTHORITY_PATH.split('/')));
+  const probe = successionIdentityProbe({
+    files: { [GATE25_CANONICAL_AUTHORITY_PATH]: original },
+    authorityPath: GATE25_CANONICAL_AUTHORITY_PATH,
+    authoritySha256: sha(original)
+  });
+  assert.equal(probe.codes.includes('CONTRACT_SUCCESSION_AUTHORITY_UNRESOLVED'), false, JSON.stringify(probe.codes));
+  assert.equal(probe.codes.includes('CONTRACT_SUCCESSION_AUTHORITY_REPLAYED'), true, JSON.stringify(probe.codes));
+});
+
+test('R2-F the consumption check honors the authority actually loaded via localAuthorityPath', () => {
+  const overridePath = 'governance/authority/authorizations/GATE24/GATE_CONTRACT_SUCCESSION_LOCAL_AUTHORITY.json';
+  const overrideSha = shaFile(path.join(REPO_ROOT, ...overridePath.split('/')));
+  const result = createWheelGateContractSuccessionAuthoritySource(REPO_ROOT, { localAuthorityPath: overridePath })
+    .resolveGateContractSuccessionAuthority('GATE25');
+  // The evaluated authority names itself; the gate-scoped canonical path is NOT assumed.
+  assert.equal(result.authorityPath, overridePath);
+  assert.equal(result.authoritySha256, overrideSha);
+  assert.notEqual(result.authorityPath, gateContractSuccessionLocalAuthorityPath('GATE25'));
+  // That identity — GATE24's path AND GATE24's bytes — is consumed in the live ledger,
+  // which is only visible if the lookup used the loaded document rather than GATE25's.
+  assert.equal(result.findings.some((item) => item.code === 'AUTHORITY_REPLAY'), true, JSON.stringify(result.findings));
+  assert.equal(result.decision, 'BLOCKED');
+  // Without an override the canonical location is still what gets evaluated.
+  const canonical = createWheelGateContractSuccessionAuthoritySource(REPO_ROOT).resolveGateContractSuccessionAuthority('GATE24');
+  assert.equal(canonical.authorityPath, overridePath);
+  assert.equal(canonical.authoritySha256, overrideSha);
+});
+
+test('R2-G the six historical canonical successions remain valid', () => {
+  const live = validateLedger({ root: REPO_ROOT, ledgerPath: LIVE_LEDGER, policy, mode: MODE_FULL });
+  const succession = live.events.filter((event) => event.transitionType === CONTRACT_SUCCESSION_TRANSITION_TYPE);
+  assert.equal(succession.length, 6, succession.map((event) => event.eventId).join(','));
+  // Six distinct (path, sha) identities: none consumes another under the conjunction.
+  const identities = succession.map((event) => `${event.authorityPath}::${event.authoritySha256}`);
+  assert.equal(new Set(identities).size, 6);
+  assert.deepEqual(live.findings.filter((item) => item.severity === 'BLOCKING' && String(item.detectorId).startsWith('CONTRACT_SUCCESSION_')), []);
+  assert.equal(live.findings.some((item) => item.detectorId === 'CONTRACT_SUCCESSION_AUTHORITY_REPLAYED'), false);
+  assert.equal(live.findings.filter((item) => item.detectorId === 'CONTRACT_SUCCESSION_APPLIED').length, 6);
+  for (const relative of LEDGER_BOUND_AUTHORITIES) {
+    assert.equal(validateGateContractSuccessionAuthorityShape(readRepoJson(relative)).valid, true, relative);
+  }
+});
+
+/**
+ * MANDATORY. GATE25 has already consumed one succession authority. A future, lawful,
+ * genuinely DISTINCT authority must still be authorizable — otherwise the replay rule
+ * has permanently frozen the Gate and closure could never proceed. This is the case
+ * the previous suite never exercised.
+ */
+test('R2-H a future lawful GATE25 succession with a distinct authority is AUTHORIZED', () => {
+  const consumed = readRepoJson(GATE25_AUTHORITY_PATH);
+  const future = {
+    ...clone(consumed),
+    authorityId: 'OWNER_AUTHORIZE_GATE25_FUTURE_LAWFUL_CONTRACT_SUCCESSION_R2',
+    reason: 'Synthetic future lawful succession proving a distinct authority is not a replay.',
+    baseHead: 'd'.repeat(40),
+    preLedgerEventCount: 107,
+    preLedgerPrefixSha256: 'e'.repeat(64),
+    predecessorContractPath: consumed.successorContractPath,
+    predecessorContractSha256: consumed.successorContractSha256,
+    predecessorContractRevision: 'R0003',
+    successorContractPath: 'governance/gates/GATE25/contracts/EXECUTION_CONTRACT_R0004.json',
+    successorContractSha256: 'f'.repeat(64),
+    successorContractRevision: 'R0004',
+    predecessorCurrentContractSha256: consumed.successorCurrentContractSha256,
+    successorCurrentContractSha256: '1'.repeat(64),
+    previousStateSealSha256: '2'.repeat(64),
+    successorStateRevision: 'R0004',
+    successorStateSealSha256: null,
+    ledgerHeadEventId: 'GATE25_CONTRACT_SUCCESSION_R0003_R1',
+    ledgerHeadEventPayloadSha256: '3'.repeat(64)
+  };
+  // It is a different document from the consumed one by both identity components.
+  assert.notEqual(sha256Canonical(future), sha256Canonical(consumed));
+  assert.equal(isLedgerBoundGateContractSuccessionAuthority(future), true);
+  assert.equal(validateGateContractSuccessionLedgerBoundAuthorityShape(future).valid, true, JSON.stringify(validateGateContractSuccessionLedgerBoundAuthorityShape(future).findings));
+
+  const result = evaluateLedgerBound(future, ledgerBoundEvidence(future));
+  assert.equal(result.decision, 'AUTHORIZED', JSON.stringify(result.findings));
+  assert.equal(result.successionAuthorized, true);
+  // Specifically NOT rejected merely because GATE25 previously consumed an authority.
+  assert.equal(result.findings.some((item) => item.code === 'AUTHORITY_REPLAY'), false);
+  assert.deepEqual(result.authorizedPaths, [future.successorContractPath, future.currentContractPointerPath]);
+  assert.equal(result.startAuthorized, false);
+  assert.equal(result.closureAuthorized, false);
+  // The already-consumed authority is still refused at the same moment.
+  const replay = ledgerBoundEvidence(consumed);
+  replay.observed.authorityConsumed = true;
+  assert.equal(evaluateLedgerBound(consumed, replay).findings.some((item) => item.code === 'AUTHORITY_REPLAY'), true);
+});
+
+test('R2 the original TypeError repair is preserved across all three validators', () => {
+  const authority = readRepoJson(GATE25_AUTHORITY_PATH);
+  for (const validator of [
+    validateGateContractSuccessionAuthorityShape,
+    validateGateContractSuccessionLocalAuthorityShape,
+    validateGateContractSuccessionLedgerBoundAuthorityShape
+  ]) {
+    let result;
+    assert.doesNotThrow(() => { result = validator(authority); });
+    assert.equal(result.valid, true, JSON.stringify(result.findings));
+    // No canonicalize(undefined) / undefined.split('/') escaping as an exception.
+    assert.equal(result.findings.some((item) => item.code === 'AUTHORITY_VALIDATION_EXCEPTION'), false);
+  }
+});
+

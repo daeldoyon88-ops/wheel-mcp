@@ -24,6 +24,7 @@ const OWNER_KEY_PATH = 'governance/authority/PROJECT_OWNER_RELEASE_KEY.json';
 function sha256(bytes) { return crypto.createHash('sha256').update(bytes).digest('hex'); }
 function readJson(file) { return JSON.parse(fs.readFileSync(file, 'utf8').replace(/^\uFEFF/, '')); }
 function info(root, relative) {
+  if (typeof relative !== 'string' || !relative) return null;
   const file = path.join(root, ...relative.split('/'));
   if (!fs.existsSync(file) || !fs.statSync(file).isFile()) return null;
   const bytes = fs.readFileSync(file);
@@ -54,15 +55,55 @@ function ledgerFacts(root) {
   catch { return { events: [], sha256: ledger.sha256 }; }
 }
 
-function observe(baseRoot, candidateRoot, request) {
+/**
+ * The governed (repository-relative, forward-slash) path of a file that is actually
+ * on disk inside the root, or null when it lies outside the governed root. This is
+ * how the authority BEING EVALUATED names itself, rather than being assumed to sit
+ * at the gate-scoped canonical location.
+ */
+function governedRelativePath(root, file) {
+  const relative = path.relative(root, path.resolve(file));
+  if (!relative || relative.startsWith('..') || path.isAbsolute(relative)) return null;
+  return relative.split(path.sep).join('/');
+}
+
+/**
+ * SINGLE-USE CONSUMPTION IDENTITY = authorityPath AND authoritySha256.
+ *
+ * A prior CONTRACT_SUCCESSION consumes THIS authority only when BOTH components
+ * identify the same document. Matching on either alone is two separate defects:
+ *
+ *   path alone — every future authority written to a Gate's canonical location is
+ *     a "replay" of the first one ever consumed there, so no Gate could ever
+ *     lawfully succeed a second time. The same path with a DIFFERENT sha is a
+ *     DIFFERENT authority.
+ *   sha alone — binds one identity across governed locations that no frozen rule
+ *     declares equivalent.
+ *
+ * `null` means the identity could not be resolved to a governed path at all, and so
+ * consumption is neither proven nor disproven. The ledger-bound evaluator treats
+ * that as a replay and fails closed; it is never reported as `false`.
+ */
+function authorityConsumedByLedger(events, identity) {
+  if (!identity || !identity.path || !identity.sha256) return null;
+  return events.some((event) =>
+    event.transitionType === 'CONTRACT_SUCCESSION'
+    && event.authorityPath === identity.path
+    && event.authoritySha256 === identity.sha256
+  );
+}
+
+function observe(baseRoot, candidateRoot, request, authorityIdentity = null) {
   const baseLedger = ledgerFacts(baseRoot);
   const candidateLedger = ledgerFacts(candidateRoot);
-  const basePointer = info(baseRoot, request.predecessorCurrentContractPath);
+  const pointerPath = request.predecessorCurrentContractPath || request.successorCurrentContractPath || request.currentContractPointerPath;
+  const basePointer = info(baseRoot, pointerPath);
   const predecessor = info(baseRoot, request.predecessorContractPath);
   const successor = info(candidateRoot, request.successorContractPath);
-  const candidatePointer = info(candidateRoot, request.successorCurrentContractPath);
+  const candidatePointer = info(candidateRoot, request.successorCurrentContractPath || pointerPath);
   const latest = baseLedger.events.at(-1);
   const gateEvents = baseLedger.events.filter((event) => event.gateId === request.gateId);
+  const authorityConsumed = authorityConsumedByLedger(baseLedger.events, authorityIdentity);
   return {
     projectId: 'WHEEL', gateId: request.gateId, baseCommit: gitHead(baseRoot),
     currentStatus: gateEvents.at(-1)?.toStatus || null,
@@ -72,14 +113,14 @@ function observe(baseRoot, candidateRoot, request) {
     candidateLedgerSha256: candidateLedger.sha256,
     predecessorContractPath: request.predecessorContractPath,
     predecessorContractSha256: predecessor?.sha256 || null,
-    predecessorCurrentContractPath: request.predecessorCurrentContractPath,
+    predecessorCurrentContractPath: pointerPath || null,
     predecessorCurrentContractSha256: basePointer?.sha256 || null,
     successorContractPath: request.successorContractPath,
     successorContractSha256: successor?.sha256 || null,
-    successorCurrentContractPath: request.successorCurrentContractPath,
+    successorCurrentContractPath: request.successorCurrentContractPath || pointerPath || null,
     successorCurrentContractSha256: candidatePointer?.sha256 || null,
     competingAuthorityCount: 1,
-    authorityConsumed: false,
+    authorityConsumed,
     predecessorContract: predecessor?.json || null,
     successorContract: successor?.json || null,
     predecessorCurrentContract: basePointer?.json || null,
@@ -117,23 +158,40 @@ export function createWheelGateContractSuccessionAuthoritySource(repoRoot, {
     let record = null;
     try { record = readJson(recordPath || path.join(root, ...gateContractSuccessionRecordPath(workUnitId).split('/'))); }
     catch { findings.push({ code: 'SUCCESSION_RECORD_UNREADABLE' }); }
-    if (authority?.gateId !== workUnitId || record?.gateId !== workUnitId) findings.push({ code: 'CROSS_GATE_AUTHORITY_BORROWING' });
-    if (!authority || !record) return { decision: 'BLOCKED', successionAuthorized: false, authorizedPaths: [], findings };
-    const observed = observe(root, futureRoot, authority);
-    const result = evaluateGateContractSuccessionAuthority({
-      request: null, record, authority, ownerKey: null,
-      predecessorContract: observed.predecessorContract,
-      successorContract: observed.successorContract,
-      predecessorCurrentContract: observed.predecessorCurrentContract,
-      successorCurrentContract: observed.successorCurrentContract,
-      observed, now
-    });
-    return {
-      ...result, findings: [...findings, ...result.findings], workUnitId,
-      workUnitType: GATE_CONTRACT_SUCCESSION_WORK_UNIT_TYPE,
-      recordPath: gateContractSuccessionRecordPath(workUnitId),
-      authorityPath: gateContractSuccessionLocalAuthorityPath(workUnitId)
-    };
+    if (authority?.gateId !== workUnitId) findings.push({ code: 'CROSS_GATE_AUTHORITY_BORROWING' });
+    if (!authority) return { decision: 'BLOCKED', successionAuthorized: false, authorizedPaths: [], findings };
+    /**
+     * The identity of the authority ACTUALLY being evaluated, which is `file` — the
+     * localAuthorityPath override when one was given, the gate-scoped canonical
+     * location otherwise. Deriving it from the gateId instead would ask the ledger
+     * about a document this evaluation never loaded.
+     */
+    const authorityRelative = governedRelativePath(root, file);
+    const authorityInfo = authorityRelative ? info(root, authorityRelative) : null;
+    const resolvedAuthorityPath = authorityRelative || gateContractSuccessionLocalAuthorityPath(workUnitId);
+    try {
+      const observed = observe(root, futureRoot, authority, authorityInfo && authorityRelative
+        ? { path: authorityRelative, sha256: authorityInfo.sha256 }
+        : null);
+      const result = evaluateGateContractSuccessionAuthority({
+        request: null, record, authority, ownerKey: null,
+        predecessorContract: observed.predecessorContract,
+        successorContract: observed.successorContract,
+        predecessorCurrentContract: observed.predecessorCurrentContract,
+        successorCurrentContract: observed.successorCurrentContract,
+        observed, now
+      });
+      return {
+        ...result, findings: [...findings, ...result.findings], workUnitId,
+        workUnitType: GATE_CONTRACT_SUCCESSION_WORK_UNIT_TYPE,
+        recordPath: gateContractSuccessionRecordPath(workUnitId),
+        authorityPath: resolvedAuthorityPath,
+        authoritySha256: authorityInfo?.sha256 || null
+      };
+    } catch (error) {
+      findings.push({ code: 'AUTHORITY_VALIDATION_EXCEPTION', detail: error?.name || 'Error' });
+      return { decision: 'BLOCKED', successionAuthorized: false, authorizedPaths: [], findings, workUnitId, workUnitType: GATE_CONTRACT_SUCCESSION_WORK_UNIT_TYPE };
+    }
   }
 
   function resolveGateContractSuccessionAuthority(workUnitId) {
@@ -162,6 +220,11 @@ export function createWheelGateContractSuccessionAuthoritySource(repoRoot, {
     let ownerKey = null;
     try { ownerKey = loadOwnerReleaseKey(keyPath).ownerKey; } catch { findings.push({ code: 'OWNER_PUBLIC_KEY_UNAVAILABLE' }); }
     if (!request || !record || !authority) return { decision: 'BLOCKED', successionAuthorized: false, authorizedPaths: [], findings };
+    // No governed authority identity is passed here on purpose: a signed authority is
+    // required to live OUTSIDE the repository, so it has no repository-relative path
+    // to form the consumption conjunction with. The previous code substituted the
+    // gate-scoped canonical LOCAL path — a document this route never loads — which
+    // matched historical events belonging to an entirely different authority.
     const result = evaluateGateContractSuccessionAuthority({ request, record, authority, ownerKey, ...observe(root, futureRoot, request), now });
     return { ...result, findings: [...findings, ...result.findings], workUnitId, workUnitType: GATE_CONTRACT_SUCCESSION_WORK_UNIT_TYPE, recordPath: gateContractSuccessionRecordPath(workUnitId), authorityPath: gateContractSuccessionAuthorityPath(workUnitId) };
   }

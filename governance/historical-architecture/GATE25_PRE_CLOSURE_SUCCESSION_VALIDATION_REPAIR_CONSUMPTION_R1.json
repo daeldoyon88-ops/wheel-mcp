@@ -1,0 +1,67 @@
+{
+  "documentKind": "POST_FREEZE_MAINTENANCE_AUTHORITY_CONSUMPTION",
+  "schemaVersion": 2,
+  "authorityId": "GATE25_PRE_CLOSURE_SUCCESSION_VALIDATION_REPAIR_LOCAL_AUTHORITY_R1",
+  "programId": "GATE25_PRE_CLOSURE_SUCCESSION_VALIDATION_REPAIR_R1",
+  "manifestSha256": "4a93b516764e34f6dc739d068fc66366a406743caa563004b70be02c219a665c",
+  "baseHead": "46076341486647f0e059a50784ecc9ed44304468",
+  "consumedUse": 1,
+  "transactionId": "GATE25_PRE_CLOSURE_SUCCESSION_VALIDATION_REPAIR_R1_TRANSACTION",
+  "recordedAt": "2026-09-15T12:00:00.000Z",
+  "commitMessage": "governance: repair GATE25 pre-closure succession validation",
+  "cohortSelfExclusion": {
+    "path": "governance/historical-architecture/GATE25_PRE_CLOSURE_SUCCESSION_VALIDATION_REPAIR_CONSUMPTION_R1.json",
+    "reason": "The consumption record cannot hash its own final bytes; its identity is bound by the authority and manifest instead."
+  },
+  "cohortPathCount": 7,
+  "cohort": [
+    {
+      "path": "governance/gee-v1/core/gate-contract-succession-authority.mjs",
+      "sha256": "a50afb1061493be00a569fd2c83ab7f76f647ced2a4f55d8bd3e5c6bcd20be28",
+      "byteLength": 52487,
+      "operation": "MODIFY",
+      "reason": "Accept the canonical ledger-bound succession authority family without TypeError while preserving fail-closed SHA/path/authority checks.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "governance/gee-v1/adapters/wheel/gate-contract-succession-authority-source.mjs",
+      "sha256": "1ecc2a6ac512f848ac05641d9f12dfba255a5724ed3a1a0e339339beb8bbda2a",
+      "byteLength": 13694,
+      "operation": "MODIFY",
+      "reason": "Observe ledger-bound pointer fields without TypeError and bind single-use consumption to authority identity.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "governance/tools/validate-status-ledger.mjs",
+      "sha256": "5265bb88491641b66db926404d7a686f9583f4bc20dcddae095ed3b533c91af1",
+      "byteLength": 174535,
+      "operation": "MODIFY",
+      "reason": "Reject replay of a consumed single-use succession authority even when only eventId changes; malformed authority files fail closed.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "governance/tests/gate-contract-succession-authority-primitive.test.mjs",
+      "sha256": "a99a42f2ede8654e7a06212ac82f3bd966f03ae9883dc9e0fc9bfc2113b21dbc",
+      "byteLength": 71031,
+      "operation": "MODIFY",
+      "reason": "Targeted A-H regressions for ledger-bound shape, malformed fail-closed, first consumption, same-eventId replay, different-eventId replay, distinct authorities, historical records and ledger immutability.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_GATE25_PRE_CLOSURE_SUCCESSION_VALIDATION_REPAIR_R1.json",
+      "sha256": "048a238645bd36da3217dcfd3c0b9b02c9884fbb77171518235a694f603693c7",
+      "byteLength": 2236,
+      "operation": "CREATE",
+      "reason": "Fresh single-use V2 local explicit authority for this pre-closure succession validation repair.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "governance/historical-architecture/GATE25_PRE_CLOSURE_SUCCESSION_VALIDATION_REPAIR_AUTHORIZED_PATHS_R1.json",
+      "sha256": "4a93b516764e34f6dc739d068fc66366a406743caa563004b70be02c219a665c",
+      "byteLength": 4264,
+      "operation": "CREATE",
+      "reason": "Finite exact-path manifest for this pre-closure succession validation repair.",
+      "artifactClass": "MAINTENANCE"
+    }
+  ]
+}

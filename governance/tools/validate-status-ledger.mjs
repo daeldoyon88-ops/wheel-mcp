@@ -1835,7 +1835,7 @@ function validatePrecontractConsumptionAnchor({ root, event, lineNumber, authori
  * previous seal, never from the event, so the event can bind the seal without
  * the seal needing to know the event.
  */
-function validateContractSuccession({ root, event, lineNumber, authority, mode = MODE_FULL, findings }) {
+function validateContractSuccession({ root, event, lineNumber, authority, priorEvents = [], mode = MODE_FULL, findings }) {
   const before = findings.length;
   const R = (detectorId, pointer, actual, expected, message) =>
     finding(findings, detectorId, event, lineNumber, pointer, actual, expected, 'GATE_CONTRACT_SUCCESSION_AUTHORITY', message, 'REQ-CSU-01');
@@ -1846,11 +1846,41 @@ function validateContractSuccession({ root, event, lineNumber, authority, mode =
   let record;
   try { record = JSON.parse(fs.readFileSync(authority.filePath, 'utf8')); }
   catch { R('CONTRACT_SUCCESSION_AUTHORITY_MALFORMED', '/', event.authorityPath, 'JSON object', 'Succession authority is not parsable JSON.'); return; }
+  if (record === null || typeof record !== 'object' || Array.isArray(record)) {
+    R('CONTRACT_SUCCESSION_AUTHORITY_MALFORMED', '/', event.authorityPath, 'JSON object', 'Succession authority is not a JSON object.');
+    return;
+  }
 
   if (record.documentKind !== 'GATE_CONTRACT_SUCCESSION_LOCAL_AUTHORITY') R('CONTRACT_SUCCESSION_AUTHORITY_KIND_INVALID', '/', record.documentKind, 'GATE_CONTRACT_SUCCESSION_LOCAL_AUTHORITY', 'Cited document is not a contract succession authority.');
   if (record.gateId !== event.gateId) R('CONTRACT_SUCCESSION_GATE_MISMATCH', '/gateId', record.gateId, event.gateId, 'Succession authority belongs to another Gate.');
   if (record.authorityMode !== 'LOCAL_EXPLICIT_AUTHORITY') R('CONTRACT_SUCCESSION_MODE_INVALID', '/authorityMode', record.authorityMode, 'LOCAL_EXPLICIT_AUTHORITY', 'Unsupported succession authority mode.');
   if (record.maxUse !== 1) R('CONTRACT_SUCCESSION_MAX_USE_INVALID', '/maxUse', record.maxUse, 1, 'A succession authority is single use.');
+
+  /**
+   * Consumption identity is the CONJUNCTION authorityPath AND authoritySha256, which
+   * is exactly what the replay message below has always claimed ("path + digest").
+   * A disjunction says something much stronger and wrong: under the path arm, every
+   * later authority written to a Gate's canonical location is a replay of the first
+   * one consumed there, so a Gate could never lawfully succeed a second time — the
+   * same path bearing a DIFFERENT digest is a DIFFERENT authority. Both components
+   * must be present and both must match before a prior event has consumed this one.
+   */
+  const priorConsumption = typeof event.authorityPath === 'string' && event.authorityPath
+    && typeof event.authoritySha256 === 'string' && event.authoritySha256
+    ? priorEvents.filter((item) =>
+      item.transitionType === CONTRACT_SUCCESSION_TRANSITION_TYPE
+      && item.authorityPath === event.authorityPath
+      && item.authoritySha256 === event.authoritySha256)
+    : [];
+  if (priorConsumption.length > 0) {
+    R(
+      'CONTRACT_SUCCESSION_AUTHORITY_REPLAYED',
+      '/authoritySha256',
+      event.authoritySha256,
+      priorConsumption[0].eventId,
+      'A single-use succession authority cannot authorize a second CONTRACT_SUCCESSION merely because the eventId differs; consumption binds the authority identity (path + digest).'
+    );
+  }
 
   const predecessor = readLiveArtifact(root, record.predecessorContractPath);
   const successor = readLiveArtifact(root, record.successorContractPath);
@@ -2165,7 +2195,7 @@ export function validateLedger({ root, ledgerPath, sourceMapPath = null, registr
       }
     }
     if (event.transitionType === CONTRACT_SUCCESSION_TRANSITION_TYPE) {
-      validateContractSuccession({ root, event, lineNumber, authority, mode, findings });
+      validateContractSuccession({ root, event, lineNumber, authority, priorEvents: events.slice(0, i), mode, findings });
     }
     if (event.transitionType === PRECONTRACT_CONSUMPTION_ANCHOR_TRANSITION_TYPE) {
       validatePrecontractConsumptionAnchor({ root, event, lineNumber, authority, priorEvents: events.slice(0, i), findings });

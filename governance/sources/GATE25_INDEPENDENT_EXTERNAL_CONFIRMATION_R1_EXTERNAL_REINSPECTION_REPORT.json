@@ -1,0 +1,337 @@
+{
+  "document": "EXTERNAL_REINSPECTION_REPORT",
+  "schemaVersion": 1,
+  "reportId": "GATE25_INDEPENDENT_EXTERNAL_CONFIRMATION_R1_EXTERNAL_REINSPECTION_REPORT",
+  "gateId": "GATE25",
+  "programId": "GATE25_INDEPENDENT_EXTERNAL_CONFIRMATION_R1",
+  "verifierId": "GATE25_INDEPENDENT_EXTERNAL_CONFIRMATION_R1",
+  "independentSession": true,
+  "reinspectionMission": "GATE25_INDEPENDENT_EXTERNAL_CONFIRMATION_R1",
+  "reinspectionVerdict": "GATE25_REINSPECTION_PASS",
+  "applySessionDistinctFromReinspection": true,
+  "verdict": "PASS",
+  "reinspectionBasis": "Independent separate-session reinspection of GATE25 COMPLETE_AGENT R0004 / EXECUTION_CONTRACT_R0003 at closure commit e3543debe34ebcad80d2710c4799259424eeb1c5 (parent e53d8a4858911d489f104c4e9680b09d88cecf54). The reinspecting session did not author the AGENT_CLOSURE; every binding was re-derived from live bytes. Closure diff equals exactly the 9-path authorized cohort. Ledger 108 events SHA256 94effb6a9d17ee7d98dcdaa0c88174d5e5155e4f01b39d0f0f97484c6227993e; its first 65870 bytes are byte-identical to the parent ledger 64f11d155fc0a6571d14f03a19c7240042c349796678811cf6e081567358bc85; all payload digests recompute; ordinals and chain contiguous. Event 108 GATE25_AGENT_CLOSURE_R1 IN_PROGRESS->COMPLETE_AGENT, previousEventSha256 equals event 107 payload, pins R0004 seal 6df1eb203447ad830c829bd770f08f535b915f3d07495cc94d7af0a523c507a2. R0004 seal valid; revision LEDGER_ANCHORED via NATIVE_EVENT_PIN, seal chain R0001-R0004. Status snapshot re-derivation not stale. Closure authority GATE25_FINAL_CLOSURE_LOCAL_AUTHORITY_R1: LOCAL_EXPLICIT_AUTHORITY, purpose GATE_FINAL_CLOSURE, operation AGENT_CLOSURE only, maxUse 1, pushAuthorized false; VERIFY_PROGRAM_CONSUMPTION AUTHORIZED; AUTHORIZE replay BLOCKED (AUTHORITY_ALREADY_CONSUMED); orchestrator replay ALREADY_SATISFIED, distinct event id DUPLICATE_TRANSITION_FOR_GATE. 22 R0003 required outputs byte-identical across BUILD 46076341, repair e53d8a48 and closure e3543deb (drift 0); ANALOGUE_INDEX e32c2e3de4ee6d88b80ed27fec4f29b930c02ce022477ce084f7ae4c768a4f0b recordCount 68562 (LFS oid identical); PROVENANCE 14afcaf09ea499edb5a17da7db7e8127e61761854b43c90b828843a08846b692. Canonical mandate, R0003, D1-D8, historical regime foundation, P3H and GATE21-GATE24 unchanged. Differential full ledger validation parent vs closure: preExistingBlocking 3 (GATE15/16/17 GATE_AUTHORIZATION_STATE_LINEAGE_INVALID), introduced 0, GATE25-specific 0. Repair R2 semantics present: 100/101 primitive tests pass. The single failure is test H, a literal pin of the pre-closure ledger SHA 64f11d15..., necessarily stale after the lawful append of event 108 (its non-mutation assertion passes); it is not bound into R0003 validators or closure conditions, is classified NON_BLOCKING and was not repaired. GATE25 product suites and the integration run were not re-executed by mission instruction; product immutability is proven from bytes. ACTIVE_GATE GATE13. GATE26 NOT_STARTED.",
+  "preState": {
+    "baseHead": "e3543debe34ebcad80d2710c4799259424eeb1c5",
+    "ledgerEventCount": 108,
+    "ledgerPrefixSha256": "94effb6a9d17ee7d98dcdaa0c88174d5e5155e4f01b39d0f0f97484c6227993e",
+    "gateStatus": "COMPLETE_AGENT",
+    "stateRevision": "R0004",
+    "contractRevision": "R0003",
+    "activeGate": "GATE13",
+    "R8ExpectedAbsent": true
+  },
+  "independentChecks": [
+    {
+      "check": "SESSION_INDEPENDENCE",
+      "reinspectionSessionId": "84dafd03-3162-4a8d-913f-03cdba96ad90",
+      "closureCommit": "e3543debe34ebcad80d2710c4799259424eeb1c5",
+      "closureAuthoredInReinspectionSession": false,
+      "closureCommittedBeforeReinspectionStart": true
+    },
+    {
+      "check": "PRESTATE",
+      "result": "GATE25_EXTERNAL_CONFIRMATION_PRESTATE_VALID"
+    },
+    {
+      "check": "CLOSURE_COMMIT",
+      "sha": "e3543debe34ebcad80d2710c4799259424eeb1c5",
+      "parent": "e53d8a4858911d489f104c4e9680b09d88cecf54",
+      "subject": "governance: close GATE25 under final closure authority",
+      "changedPathCount": 9,
+      "cohortExact": true,
+      "unrelatedChangeCount": 0
+    },
+    {
+      "check": "LEDGER",
+      "eventCount": 108,
+      "sha256": "94effb6a9d17ee7d98dcdaa0c88174d5e5155e4f01b39d0f0f97484c6227993e",
+      "byteLength": 66572,
+      "headEventId": "GATE25_AGENT_CLOSURE_R1",
+      "headOrdinal": 108,
+      "parentPrefixSha256": "64f11d155fc0a6571d14f03a19c7240042c349796678811cf6e081567358bc85",
+      "parentPrefixByteIdentical": true,
+      "payloadDigestsRecompute": true,
+      "chainContiguous": true
+    },
+    {
+      "check": "GATE25_STATUS",
+      "result": "COMPLETE_AGENT",
+      "stateRevision": "R0004",
+      "currentStateSha256": "282f0f73bc35fc04574cee6adf8b1e7e96b0f505abc31fe124db502c4a5198e7",
+      "stateSealSha256": "6df1eb203447ad830c829bd770f08f535b915f3d07495cc94d7af0a523c507a2",
+      "previousStateSealSha256": "f83827c790e8adce363c3959d57f76b3276bd3d834883bc38f1122835b541735",
+      "checkpointSha256": "f0670735d739c8d987a6314ed3e3f496b097bbed75334f779fd55df2468b588b",
+      "openDefectsSha256": "5972609938232391166753b42be85ae9eccb89017074f289f1edc0a1aacb64c9",
+      "openDefectCount": 0
+    },
+    {
+      "check": "COMPLETE_AGENT_EVENT",
+      "eventId": "GATE25_AGENT_CLOSURE_R1",
+      "ordinal": 108,
+      "transitionType": "AGENT_CLOSURE",
+      "fromStatus": "IN_PROGRESS",
+      "toStatus": "COMPLETE_AGENT",
+      "eventPayloadSha256": "5ba081941cf6f629dc96de48c27becb0301b4758afe9bab7a979b31215788c94",
+      "previousEventSha256": "25fc5e86d17ed3846f18b1e16da58ec31a3342f421ecbe1cf793e935d40eb99c",
+      "unique": true
+    },
+    {
+      "check": "CURRENT_CONTRACT",
+      "contractRevision": "R0003",
+      "pointerSha256": "be80f08b70b0ee2adb597eb81a3dec58d95d3fe4b037fce8c7375165e8bbb2e5",
+      "executionContractSha256": "f369ce7844167a5ae46940dcd1e2edd61f1b92327893723cd6953d8fafa0578f",
+      "executionContractByteLength": 50455
+    },
+    {
+      "check": "AGENT_CLOSURE_AUTHORITY",
+      "authorityId": "GATE25_FINAL_CLOSURE_LOCAL_AUTHORITY_R1",
+      "authorityPath": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_GATE25_AGENT_CLOSURE_R1.json",
+      "authoritySha256": "4b41c4ce019d5abc958b8215fb56edff6b514646988a7ead487193c4b542ec5f",
+      "manifestSha256": "e4f9aec1b91af02d5883b6f5bd8fade25ea0475483250c3fde4b0a004b4b97be",
+      "consumptionSha256": "614342e0c2022a1704450120a3d1a1e86e55375cd980a4f963792f1aeb83e005",
+      "authorityMode": "LOCAL_EXPLICIT_AUTHORITY",
+      "authorityPurpose": "GATE_FINAL_CLOSURE",
+      "authorizedOperationClasses": [
+        "AGENT_CLOSURE"
+      ],
+      "maxUse": 1,
+      "pushAuthorized": false,
+      "verifyConsumption": "AUTHORIZED",
+      "authorizeReplay": "BLOCKED",
+      "gate26Authority": false,
+      "productAuthority": false
+    },
+    {
+      "check": "STATUS_SNAPSHOT",
+      "sha256": "7655053f71071c2d8e6f52d7bd358c70c96a92e1b49b12b02258ef4481646ed6",
+      "stale": false,
+      "sourceLedgerSha256": "94effb6a9d17ee7d98dcdaa0c88174d5e5155e4f01b39d0f0f97484c6227993e"
+    },
+    {
+      "check": "BUILD_OUTPUT_PINS",
+      "outputCount": 22,
+      "unexpectedDrift": 0,
+      "analogueIndexSha256": "e32c2e3de4ee6d88b80ed27fec4f29b930c02ce022477ce084f7ae4c768a4f0b",
+      "analogueIndexRecordCount": 68562,
+      "provenanceSha256": "14afcaf09ea499edb5a17da7db7e8127e61761854b43c90b828843a08846b692",
+      "provenanceAnalogueIndexSha256": "e32c2e3de4ee6d88b80ed27fec4f29b930c02ce022477ce084f7ae4c768a4f0b"
+    },
+    {
+      "check": "IMMUTABILITY",
+      "mandatePath": "governance/sources/GATE25_CANONICAL_MANDATE_R0.json",
+      "mandateSha256": "0aefedc757e2ba749ebd25a2cd40dc2070fafb04f3ac8f7b194c08d2b513c618",
+      "mandateUnchanged": true,
+      "d1d8Unchanged": true,
+      "r0003Unchanged": true,
+      "historicalRegimeFoundationUnchanged": true,
+      "p3hUnchanged": true,
+      "gate21To24Unchanged": true
+    },
+    {
+      "check": "PRE_CLOSURE_REPAIR_R2",
+      "commit": "e53d8a4858911d489f104c4e9680b09d88cecf54",
+      "ancestorOfClosure": true,
+      "ledgerBoundShapeNoTypeError": true,
+      "forbiddenLedgerActiveGatePathsFailClosed": true,
+      "missingEvidenceFailsClosed": true,
+      "singleUseIdentityPathAndSha": true,
+      "distinctLawfulAuthorityNotReplayBlocked": true,
+      "primitiveTests": "100/101",
+      "nonBlockingObservation": "TEST_H_LITERAL_PRE_CLOSURE_LEDGER_SHA_PIN_STALE_AFTER_LAWFUL_APPEND"
+    },
+    {
+      "check": "BLOCKING_DIFFERENTIAL",
+      "baselineCommit": "e53d8a4858911d489f104c4e9680b09d88cecf54",
+      "preExistingBlockingFindingCount": 3,
+      "preExistingBlockingFindings": [
+        "GATE15_AUTHORIZATION_R1",
+        "GATE16_AUTHORIZATION_R1",
+        "GATE17_AUTHORIZATION_R1"
+      ],
+      "preExistingDetectorId": "GATE_AUTHORIZATION_STATE_LINEAGE_INVALID",
+      "introducedBlockingFindingCount": 0,
+      "GATE25SpecificBlockingFindingCount": 0
+    },
+    {
+      "check": "LIFECYCLE",
+      "r0004SealValid": true,
+      "r0004RevisionValid": true,
+      "r0004ResolvedBy": "NATIVE_EVENT_PIN",
+      "r0004AnchorState": "LEDGER_ANCHORED",
+      "event108Findings": 0,
+      "gate25BlockingCount": 0,
+      "introducedBlockingLedgerFindingCount": 0
+    },
+    {
+      "check": "ACTIVE_GATE",
+      "result": "GATE13"
+    },
+    {
+      "check": "GATE26",
+      "result": "NOT_STARTED",
+      "lastEventId": "GENESIS_IMPORT_GATE26"
+    },
+    {
+      "check": "HEAD",
+      "sha": "e3543debe34ebcad80d2710c4799259424eeb1c5"
+    }
+  ],
+  "buildCohortPins": [
+    {
+      "path": "governance/gates/GATE25/implementation/analogue-identity-v1.mjs",
+      "role": "BUILD_OUTPUT",
+      "sha256": "48447b1f862518657c4883e23b6c39c78841c39a1bce1734d5ba00d568ecb902",
+      "byteLength": 10683,
+      "match": true
+    },
+    {
+      "path": "governance/gates/GATE25/implementation/analogue-eligibility-v1.mjs",
+      "role": "BUILD_OUTPUT",
+      "sha256": "838ba488b43ce47c404111aa86c363dd649bdddecb408292a7156492ddd37424",
+      "byteLength": 28234,
+      "match": true
+    },
+    {
+      "path": "governance/gates/GATE25/implementation/analogue-distance-v1.mjs",
+      "role": "BUILD_OUTPUT",
+      "sha256": "97d6210bb7df06efd5087ae366c0c9fc6649391f1b290fe3e3854618f78b3559",
+      "byteLength": 7036,
+      "match": true
+    },
+    {
+      "path": "governance/gates/GATE25/implementation/analogue-index-v1.mjs",
+      "role": "BUILD_OUTPUT",
+      "sha256": "000fe094f591794d92b8e8ad7048ce829801b581bcd2733fcaeb129f88b0df8d",
+      "byteLength": 12095,
+      "match": true
+    },
+    {
+      "path": "governance/gates/GATE25/implementation/analogue-report-v1.mjs",
+      "role": "BUILD_OUTPUT",
+      "sha256": "58287cdbb0f73c0ae993964425b518916f04f145e7c102beed19cfaa3894a75c",
+      "byteLength": 10799,
+      "match": true
+    },
+    {
+      "path": "governance/gates/GATE25/implementation/analogue-outcome-v1.mjs",
+      "role": "BUILD_OUTPUT",
+      "sha256": "1cd96dd8617ee3ab249c191927e8dd3ee826b471797aa241b0ae61452dab6fdd",
+      "byteLength": 8314,
+      "match": true
+    },
+    {
+      "path": "governance/gates/GATE25/implementation/analogue-provenance-v1.mjs",
+      "role": "BUILD_OUTPUT",
+      "sha256": "7a5382dd508fc8daea1ae5d028ef2370b4bd15a4010b6d2c5f27d32c9ff9e4bc",
+      "byteLength": 7275,
+      "match": true
+    },
+    {
+      "path": "governance/gates/GATE25/implementation/historical-analogue-engine-v1.mjs",
+      "role": "BUILD_OUTPUT",
+      "sha256": "68872785c900dc7760ca4f6d5cd8b2f7379743339d96f7bbaf739433ff857a43",
+      "byteLength": 57872,
+      "match": true
+    },
+    {
+      "path": "governance/gates/GATE25/contracts/GATE25_ANALOGUE_IDENTITY_V1.json",
+      "role": "BUILD_OUTPUT",
+      "sha256": "308e968b2124b7809aad5f32459abdb072f4f14664483f277d085020ec44a395",
+      "byteLength": 5436,
+      "match": true
+    },
+    {
+      "path": "governance/gates/GATE25/contracts/GATE25_ANALOGUE_COMPARISON_REPORT_V1.json",
+      "role": "BUILD_OUTPUT",
+      "sha256": "3d86611f48d97fae96f55a6a16526696ab84222b470e00a7300bc4278ef2ae92",
+      "byteLength": 3217,
+      "match": true
+    },
+    {
+      "path": "governance/gates/GATE25/contracts/GATE25_ANALOGUE_SUPPORT_REPORT_V1.json",
+      "role": "BUILD_OUTPUT",
+      "sha256": "7024defd6f54e792fedae94b353bf294204bf0ae70e142d3a36ce60725b42cd7",
+      "byteLength": 3267,
+      "match": true
+    },
+    {
+      "path": "governance/gates/GATE25/contracts/GATE25_ANALOGUE_INDEX_V1.json",
+      "role": "BUILD_OUTPUT",
+      "sha256": "a1f9c4a732dff72fb7d8385db299785a1ea90023899553c5285e04d54e0ff16c",
+      "byteLength": 3239,
+      "match": true
+    },
+    {
+      "path": "governance/gates/GATE25/contracts/GATE25_ANALOGUE_PROVENANCE_MANIFEST_V1.json",
+      "role": "BUILD_OUTPUT",
+      "sha256": "87e876cd2c726bd93a6b7cd82108829421a27067d60c6894e0671aeecf56ec02",
+      "byteLength": 3081,
+      "match": true
+    },
+    {
+      "path": "governance/gates/GATE25/contracts/GATE25_DISTANCE_PARAMETERS_V1.json",
+      "role": "BUILD_OUTPUT",
+      "sha256": "d9f03258762922b807f6777b383ea94355b8651fb1577120c58962de47df2c26",
+      "byteLength": 3052,
+      "match": true
+    },
+    {
+      "path": "governance/gates/GATE25/contracts/GATE25_ELIGIBILITY_EXCLUSION_REASON_V1.json",
+      "role": "BUILD_OUTPUT",
+      "sha256": "f20bb2aecd59a33481e062f04bfb65805c62dda2e3e2aa8e3aee8a8d42471652",
+      "byteLength": 4695,
+      "match": true
+    },
+    {
+      "path": "governance/gates/GATE25/contracts/GATE25_POST_SELECTION_OUTCOME_SET_V1.json",
+      "role": "BUILD_OUTPUT",
+      "sha256": "75713aaff337fec1753492f5b8d1be3bb11eb6e54e7c1ae80bb472400f16b974",
+      "byteLength": 3485,
+      "match": true
+    },
+    {
+      "path": "governance/gates/GATE25/tests/gate25-foundation.test.mjs",
+      "role": "BUILD_OUTPUT",
+      "sha256": "576f05fc33dbf33784966bd45c0de90e0396cf4550bebd99dcc85545e70e691e",
+      "byteLength": 31375,
+      "match": true
+    },
+    {
+      "path": "governance/gates/GATE25/tests/gate25-hostiles.test.mjs",
+      "role": "BUILD_OUTPUT",
+      "sha256": "bb35ee747c7520adf2b14880887af63c5be2b69681f0e6da82a9b6016dc1c70d",
+      "byteLength": 40611,
+      "match": true
+    },
+    {
+      "path": "governance/gates/GATE25/tests/gate25-replay.test.mjs",
+      "role": "BUILD_OUTPUT",
+      "sha256": "f1cdbaebe1b8226d82e98a518123ec52d44743ec312a476c955af3d766b203f0",
+      "byteLength": 12865,
+      "match": true
+    },
+    {
+      "path": "governance/gates/GATE25/tests/gate25-integration.test.mjs",
+      "role": "BUILD_OUTPUT",
+      "sha256": "71e3c394f41bbc4efa0c6eaa4827dd38d11eb4acb8c83c5c3674a32bd080b3e4",
+      "byteLength": 24629,
+      "match": true
+    },
+    {
+      "path": "data/jarvise/historical-analogue/GATE25/V1/ANALOGUE_INDEX.json",
+      "role": "LFS_TRACKED_PRODUCT",
+      "sha256": "e32c2e3de4ee6d88b80ed27fec4f29b930c02ce022477ce084f7ae4c768a4f0b",
+      "byteLength": 191493292,
+      "match": true
+    },
+    {
+      "path": "data/jarvise/historical-analogue/GATE25/V1/PROVENANCE.json",
+      "role": "BUILD_OUTPUT",
+      "sha256": "14afcaf09ea499edb5a17da7db7e8127e61761854b43c90b828843a08846b692",
+      "byteLength": 10850,
+      "match": true
+    }
+  ],
+  "recordedAt": "2026-09-16T13:00:00.000Z"
+}

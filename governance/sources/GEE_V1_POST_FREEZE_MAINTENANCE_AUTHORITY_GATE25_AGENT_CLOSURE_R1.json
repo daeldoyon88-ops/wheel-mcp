@@ -1,0 +1,61 @@
+{
+  "document": "GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY",
+  "schemaVersion": 2,
+  "authorityId": "GATE25_FINAL_CLOSURE_LOCAL_AUTHORITY_R1",
+  "authorityClass": "PROJECT_OWNER_POST_FREEZE_MAINTENANCE_AUTHORITY",
+  "authorityMode": "LOCAL_EXPLICIT_AUTHORITY",
+  "issuedBy": "PROJECT_OWNER",
+  "createdAt": "2026-09-16T12:00:00.000Z",
+  "expiresAt": "2026-12-31T23:59:59.000Z",
+  "targetSystem": "PROJECT_GOVERNANCE",
+  "programId": "GATE25_AGENT_CLOSURE_BUILD_E32C2E3DE4EE6D88B80ED27FEC4F29B930C02CE022477CE084F7AE4C768A4F0B_R1",
+  "authorityPurpose": "GATE_FINAL_CLOSURE",
+  "resumePoint": "GATE25_R0003_ANALOGUE_INDEX_E32C2E3DE4EE6D88B80ED27FEC4F29B930C02CE022477CE084F7AE4C768A4F0B",
+  "maxUse": 1,
+  "preState": {
+    "baseHead": "e53d8a4858911d489f104c4e9680b09d88cecf54",
+    "ledgerEventCount": 107,
+    "ledgerPrefixSha256": "64f11d155fc0a6571d14f03a19c7240042c349796678811cf6e081567358bc85",
+    "gateId": "GATE25",
+    "gateStatus": "IN_PROGRESS",
+    "stateRevision": "R0003",
+    "contractRevision": "R0003",
+    "activeGate": "GATE13",
+    "R8ExpectedAbsent": true
+  },
+  "authorizedPathManifestPath": "governance/historical-architecture/GATE25_AGENT_CLOSURE_AUTHORIZED_PATHS_R1.json",
+  "authorizedPathManifestSha256": "e4f9aec1b91af02d5883b6f5bd8fade25ea0475483250c3fde4b0a004b4b97be",
+  "authorizedOperationClasses": [
+    "AGENT_CLOSURE"
+  ],
+  "commitPolicy": {
+    "maxCommitCount": 1,
+    "allowedGitOperations": [
+      "GIT_ADD_PATHSPEC",
+      "GIT_COMMIT"
+    ],
+    "commitMessage": "governance: close GATE25 under final closure authority",
+    "thirdCommitAuthorized": false
+  },
+  "pushAuthorized": false,
+  "authorityPredecessor": null,
+  "authorityHeadBinding": {
+    "mode": "BASE_HEAD",
+    "baseHead": "e53d8a4858911d489f104c4e9680b09d88cecf54"
+  },
+  "consumptionRecordPath": "governance/historical-architecture/GATE25_AGENT_CLOSURE_CONSUMPTION_R1.json",
+  "prohibitedOperations": [
+    "START",
+    "SECOND_START",
+    "AGENT_CLOSURE",
+    "EXTERNAL_CONFIRMATION",
+    "COMPLETE_AGENT",
+    "COMPLETE_CONFIRMED",
+    "ACTIVE_GATE_SWITCH",
+    "GEE_R8",
+    "GIT_PUSH",
+    "HISTORY_REWRITE",
+    "THIRD_COMMIT",
+    "UNRELATED_WRITE"
+  ]
+}

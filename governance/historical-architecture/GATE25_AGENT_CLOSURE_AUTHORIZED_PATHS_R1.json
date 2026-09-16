@@ -1,0 +1,71 @@
+{
+  "documentKind": "POST_FREEZE_MAINTENANCE_AUTHORIZED_PATH_MANIFEST",
+  "schemaVersion": 1,
+  "manifestId": "GATE25_AGENT_CLOSURE_AUTHORIZED_PATHS_R1",
+  "programId": "GATE25_AGENT_CLOSURE_BUILD_E32C2E3DE4EE6D88B80ED27FEC4F29B930C02CE022477CE084F7AE4C768A4F0B_R1",
+  "paths": [
+    {
+      "path": "governance/gates/GATE25/state/CURRENT_STATE.json",
+      "operation": "MODIFY",
+      "phase": "AGENT_CLOSURE",
+      "reason": "Advance the canonical GATE25 state pointer to R0004 COMPLETE_AGENT.",
+      "artifactClass": "AGENT_CLOSURE"
+    },
+    {
+      "path": "governance/gates/GATE25/state/revisions/R0004/CHECKPOINT.json",
+      "operation": "CREATE",
+      "phase": "AGENT_CLOSURE",
+      "reason": "New GATE25 closure checkpoint after the exact AGENT_CLOSURE transition.",
+      "artifactClass": "AGENT_CLOSURE"
+    },
+    {
+      "path": "governance/gates/GATE25/state/revisions/R0004/OPEN_DEFECTS.json",
+      "operation": "CREATE",
+      "phase": "AGENT_CLOSURE",
+      "reason": "Derived GATE25 closure defect projection preserving the zero blocking-defect state.",
+      "artifactClass": "AGENT_CLOSURE"
+    },
+    {
+      "path": "governance/gates/GATE25/state/revisions/R0004/STATE_SEAL.json",
+      "operation": "CREATE",
+      "phase": "AGENT_CLOSURE",
+      "reason": "Native GATE25 state seal chained from R0003 and pinned by the AGENT_CLOSURE event.",
+      "artifactClass": "AGENT_CLOSURE"
+    },
+    {
+      "path": "governance/historical-architecture/GATE25_AGENT_CLOSURE_AUTHORIZED_PATHS_R1.json",
+      "operation": "CREATE",
+      "phase": "AGENT_CLOSURE",
+      "reason": "Finite exact-file GATE25 closure cohort with no wildcard or directory blanket.",
+      "artifactClass": "AGENT_CLOSURE"
+    },
+    {
+      "path": "governance/historical-architecture/GATE25_AGENT_CLOSURE_CONSUMPTION_R1.json",
+      "operation": "CREATE",
+      "phase": "AGENT_CLOSURE",
+      "reason": "Single-use consumption record binding the GATE25 authority, manifest and transaction.",
+      "artifactClass": "AGENT_CLOSURE"
+    },
+    {
+      "path": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_GATE25_AGENT_CLOSURE_R1.json",
+      "operation": "CREATE",
+      "phase": "AGENT_CLOSURE",
+      "reason": "Single-use LOCAL_EXPLICIT_AUTHORITY bound to the exact GATE25 closure pre-state.",
+      "artifactClass": "AGENT_CLOSURE"
+    },
+    {
+      "path": "governance/state/GATE_STATUS_LEDGER.ndjson",
+      "operation": "MODIFY",
+      "phase": "AGENT_CLOSURE",
+      "reason": "Append exactly one canonical GATE25 AGENT_CLOSURE event; every earlier event stays byte-identical.",
+      "artifactClass": "AGENT_CLOSURE"
+    },
+    {
+      "path": "governance/state/generated/GATE_STATUS_SNAPSHOT.json",
+      "operation": "MODIFY",
+      "phase": "AGENT_CLOSURE",
+      "reason": "Regenerate the derived status projection from the post-closure canonical ledger.",
+      "artifactClass": "AGENT_CLOSURE"
+    }
+  ]
+}

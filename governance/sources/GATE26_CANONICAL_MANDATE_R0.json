@@ -1,0 +1,380 @@
+{
+  "document": "GATE26_CANONICAL_MANDATE_R0",
+  "schemaVersion": 1,
+  "documentKind": "CANONICAL_GATE_MANDATE",
+  "projectId": "WHEEL",
+  "gateId": "GATE26",
+  "officialName": "PREDICTIVE ENSEMBLE ENGINE",
+  "canonicalObjective": "Combiner plusieurs modeles, regles et familles de signaux.",
+  "dependencies": [
+    "GATE25"
+  ],
+  "authorityId": "GATE26_CANONICAL_MANDATE_RATIFICATION_R0",
+  "issuedBy": "PROJECT_OWNER",
+  "draftStatus": "RATIFIED",
+  "ratified": true,
+  "revision": "R0_OWNER_RATIFICATION",
+  "temporary": false,
+  "canonical": true,
+  "canonicalityNote": "This document is a canonical source file in governance/sources. Canonical placement plus this Owner ratification freeze the GATE26 V1 design scope for later precontract derivation. draftStatus is RATIFIED. The document still confers no execution, START, BUILD, contract, precontract, status-transition, ledger-append, commit or push authority. A mandate ratification is not a START.",
+  "ratificationOnly": true,
+  "executionAuthorized": false,
+  "startAuthorized": false,
+  "statusTransitionAuthorized": false,
+  "functionalImplementationAuthorized": false,
+  "precontractAuthorized": false,
+  "contractAuthorized": false,
+  "buildAuthorized": false,
+  "commitAuthorized": false,
+  "pushAuthorized": false,
+  "ledgerAppendAuthorized": false,
+  "activeGateModificationAuthorized": false,
+  "impliedAuthority": "NONE",
+  "ratificationStatusLegend": {
+    "INHERITED_FROM_CANONICAL_PRIOR_AUTHORITY": "Bound byte-for-byte or semantically unchanged from an existing canonical artifact; this mandate restates, it does not create.",
+    "OWNER_RATIFIED_IN_R0_OWNER_RATIFICATION": "Ratified by the PROJECT_OWNER GATE26_CANONICAL_MANDATE_R0 act under GATE26_MINI_BUILD_R1 authorization. It freezes the V1 design scope for precontract derivation and confers no execution, START, BUILD, contract, precontract, status-transition, ledger, commit or push authority.",
+    "DEFERRED_TO_CONTRACT": "Intentionally left unfrozen here; the exact value or materialization is fixed later by a versioned execution contract or parameter set."
+  },
+  "canonicalIdentity": {
+    "gateId": "GATE26",
+    "canonicalName": "PREDICTIVE ENSEMBLE ENGINE",
+    "architecturalTerm": "ENSEMBLE ENGINE",
+    "canonicalObjective": "Combiner plusieurs modeles, regles et familles de signaux.",
+    "canonicalObjectiveBinding": {
+      "sourcePath": "governance/GATE_REGISTRY_00_40.json",
+      "sourcePointer": "/gates/26/canonicalObjective",
+      "sha256": "3a7185867330b345a6fcbe0d67d022d52d4f0ad941e955c81b133a5fa536d8a1",
+      "lengthChars": 58,
+      "lengthBytes": 58,
+      "encoding": "ASCII_ONLY",
+      "normalizationApplied": false,
+      "rule": "byte-identical to the registry; no normalization, no translation, no re-accentuation"
+    },
+    "officialNameBinding": {
+      "sourcePath": "governance/GATE_REGISTRY_00_40.json",
+      "sourcePointer": "/gates/26/officialName",
+      "value": "PREDICTIVE ENSEMBLE ENGINE",
+      "sha256": "b1d000a54298d066106859a761277b1ff3666728150c4b15a6a9ab59dca79142"
+    },
+    "strategicPurpose": "Combine diverse model, rule and signal families without allowing one opaque model to silently control a critical decision.",
+    "strategicPurposeBinding": {
+      "sourcePath": "governance/GATE_REGISTRY_00_40.json",
+      "sourcePointer": "/gates/26/strategicPurpose",
+      "rule": "byte-identical registry reuse"
+    }
+  },
+  "lifecycleState": {
+    "ratificationStatus": "OWNER_RATIFIED_IN_R0_OWNER_RATIFICATION",
+    "gate25Status": "COMPLETE_CONFIRMED",
+    "gate26Status": "NOT_STARTED",
+    "lifecycleMutatedByThisDocument": false,
+    "activeGatePointerMutatedByThisDocument": false,
+    "ledgerAppendedByThisDocument": false,
+    "rule": "A mandate ratification is not a START. GATE26 remains NOT_STARTED after this document is materialized."
+  },
+  "missionBoundary": {
+    "produces": {
+      "transform": "bound GATE25 analogue evidence plus GATE22 post-selection outcomes over ALL_AND_ONLY horizons 30/90/180/252, plus GATE24 CORE_V1 regime binding and GATE25 support state, to a deterministic inspectable ensemble record at T",
+      "carries": [
+        "ensemble identity",
+        "knowledge cutoff",
+        "horizon binding",
+        "model and evidence family identities",
+        "combination policy version",
+        "support-derived confidence that is not a probability",
+        "uncertainty and sample-size state",
+        "abstention",
+        "decision decomposition trace",
+        "provenance",
+        "missingness state"
+      ]
+    },
+    "doesNotProduce": [
+      "broker order",
+      "trade",
+      "autonomous live trading",
+      "continuous live learning",
+      "operational live-fill decision journal",
+      "calibrated probability without calibration evidence",
+      "a silent single-model truth",
+      "Wheel live-scan lengthening",
+      "Yahoo refetch",
+      "P3H regeneration",
+      "analogue regeneration",
+      "GATE21 through GATE25 mutation",
+      "GATE27 profit-protection decision",
+      "full historical ensemble materialization in V1 mini-build"
+    ]
+  },
+  "scope": {
+    "included": [
+      "versioned ensemble registry",
+      "explicit combination policy",
+      "multi-horizon output over GATE22 horizonsV1 only",
+      "support-derived confidence representation",
+      "uncertainty and sample-size reporting",
+      "explicit abstention",
+      "decision decomposition traces",
+      "decision journal SCHEMA only",
+      "provenance and replay evidence",
+      "downstream consumption boundary",
+      "representative mini-build fixture"
+    ],
+    "excluded": [
+      "one silent model treated as absolute truth",
+      "winner-take-all substitution",
+      "permissive fallback",
+      "continuous live learning",
+      "operational live-fill journal",
+      "broker execution",
+      "autonomous live trading",
+      "heavy model training",
+      "full GATE26 historical ensemble materialization",
+      "new PKI or signing framework",
+      "reopening GATE21 through GATE25",
+      "Yahoo refetch",
+      "invented horizon"
+    ]
+  },
+  "v1DefinitionFreeze": {
+    "sourceMission": "GATE26_DEFINITION_AND_PREBUILD_READINESS_R1",
+    "ownerAuthorization": "GATE26_MINI_BUILD_R1",
+    "horizons": {
+      "sessionCounts": [30, 90, 180, 252],
+      "coverage": "ALL_AND_ONLY",
+      "horizonAuthorityPath": "governance/gates/GATE22/contracts/GATE22_TEMPORAL_HORIZON_V1.json",
+      "horizonAuthoritySha256": "c53ec179919f90593efdaad625187bc56218a4615bd7d0cecb415a27d4b55783",
+      "rule": "GATE26 consumes GATE22 horizonsV1 and does not invent, omit, prefer or substitute a horizon."
+    },
+    "evidenceFamilies": [
+      {
+        "familyId": "ANALOGUE_OUTCOME_FAMILY",
+        "role": "PREDICTIVE",
+        "input": "GATE25 frozen analogue set plus GATE22 outcomes attached only after selectionComplete",
+        "missingBehavior": "ABSTAIN",
+        "productionInV1": true
+      },
+      {
+        "familyId": "ANALOGUE_SUPPORT_FAMILY",
+        "role": "VALIDITY",
+        "input": "GATE25_ANALOGUE_SUPPORT_REPORT_V1",
+        "rule": "eligibleCount < 2 => ABSTAIN; insufficiency is never promoted to confidence",
+        "productionInV1": true
+      },
+      {
+        "familyId": "REGIME_BINDING_FAMILY",
+        "role": "CONDITIONING",
+        "input": "GATE24 CORE_V1 six active dimensions already bound in analogue identity",
+        "rule": "GATE26 does not reclassify regime; composite-label matching remains forbidden",
+        "productionInV1": true
+      }
+    ],
+    "additionalPredictiveFamilies": "ADDITIVE_VERSIONED after V1; mini-build may inject a non-production hostile second family to prove combination fail-closed",
+    "combination": {
+      "policyId": "GATE26_COMBINATION_POLICY_V1",
+      "weights": "FORBIDDEN_IN_V1_NO_CALIBRATION_EVIDENCE",
+      "winnerTakeAll": "FORBIDDEN",
+      "missingFamily": "ABSTAIN",
+      "insufficientSupport": "ABSTAIN",
+      "disagreementWhenSecondFamilyRegistered": "ABSTAIN",
+      "degradedInput": "FAIL_CLOSED",
+      "absentFamilyDoesNotElevateAnotherToTruth": true
+    },
+    "confidence": {
+      "kind": "SUPPORT_DERIVED_NOT_PROBABILITY",
+      "calibratedProbability": null,
+      "calibrationEvidenceId": null,
+      "rule": "A heuristic score must not be called a calibrated probability."
+    },
+    "uncertainty": {
+      "kind": "SUPPORT_AND_OUTCOME_MISSINGNESS",
+      "distinctFromConfidence": true
+    },
+    "abstention": {
+      "validOutput": true,
+      "reasons": [
+        "QUERY_NOT_COMPARABLE",
+        "INSUFFICIENT_SUPPORT",
+        "ANALOGUE_ABSTAIN",
+        "PREDICTIVE_FAMILY_MISSING",
+        "STALE_OR_WRONG_VERSION",
+        "HORIZON_NOT_ADMISSIBLE",
+        "LEAKAGE_ATTEMPT",
+        "PROVENANCE_OR_IDENTITY_MISMATCH",
+        "REGISTERED_DISAGREEMENT",
+        "INSUFFICIENT_EVIDENCE"
+      ]
+    },
+    "replay": {
+      "knowledgeCutoff": "K(T) = PinnedCanonicalSession(T).closeUtc, inherited, not redefined",
+      "availableAt": "every input availableAt <= applicable cutoff",
+      "outcomeInSelection": "FORBIDDEN",
+      "latestReconstruction": "FORBIDDEN",
+      "futureLeakage": "FORBIDDEN"
+    },
+    "performance": {
+      "computationPlacement": "OFF_SCAN",
+      "liveScanCriticalPath": "MUST_NOT_LENGTHEN",
+      "latencyTargetDelta": "ZERO"
+    }
+  },
+  "inputBoundaries": {
+    "gate25AnalogueIndex": {
+      "path": "data/jarvise/historical-analogue/GATE25/V1/ANALOGUE_INDEX.json",
+      "storage": "Git LFS",
+      "oidSha256": "e32c2e3de4ee6d88b80ed27fec4f29b930c02ce022477ce084f7ae4c768a4f0b",
+      "workingSizeBytes": 191493292,
+      "recordCount": 68562,
+      "pageSize": 100,
+      "mutation": "FORBIDDEN"
+    },
+    "gate25Provenance": {
+      "path": "data/jarvise/historical-analogue/GATE25/V1/PROVENANCE.json",
+      "sha256": "14afcaf09ea499edb5a17da7db7e8127e61761854b43c90b828843a08846b692",
+      "mutation": "FORBIDDEN"
+    },
+    "p3hPinset": {
+      "artifactPath": "C:\\Users\\melan\\JarviseDurable\\P3_HISTORICAL_YAHOO_FETCH_ONCE_R1\\P3H_HISTORICAL_DATASET_FINALIZATION_R1.json",
+      "datasetIdentity": "sha256:cc7bb76f37a97a5673a32c5a8f357088ee94230fefcbef1c19ad16227476488e",
+      "admittedKeyCount": 793,
+      "exclusionCount": 9,
+      "planKeyCount": 802,
+      "yahooRefetch": "FORBIDDEN"
+    },
+    "gate25Mandate": {
+      "path": "governance/sources/GATE25_CANONICAL_MANDATE_R0.json",
+      "sha256": "0aefedc757e2ba749ebd25a2cd40dc2070fafb04f3ac8f7b194c08d2b513c618",
+      "d1d8": "FROZEN_CONSUMED_READ_ONLY"
+    }
+  },
+  "miniBuild": {
+    "id": "GATE26_MINI_BUILD_R1",
+    "samePipelineAsFullBuild": true,
+    "productRoot": "data/jarvise/predictive-ensemble/GATE26/V1/MINI",
+    "fullHistoricalMaterialization": "FORBIDDEN",
+    "hostileFrontier": "H01-H21"
+  },
+  "storagePublication": {
+    "controlPlane": "normal Git",
+    "miniFixture": "normal Git if under GitHub 100MB limit; LFS required before any product file would exceed that limit",
+    "fullBuildSize": "measured from mini-build bytes/row before any full materialization",
+    "lessonFromGate25": "classify Git vs LFS before generating large product bytes"
+  },
+  "consumptionBoundaryRequirement": {
+    "gate25ConsumptionBoundaryV1": "ABSENT_CLOSED_GAP_DO_NOT_REOPEN_GATE25",
+    "gate26MustEmit": "GATE26_CONSUMPTION_BOUNDARY_V1",
+    "futureConsumer": "GATE27",
+    "wheelScanInlineCompute": "FORBIDDEN"
+  },
+  "deferredToContract": [
+    "exact ensemble identity digest rules",
+    "exact combination-policy schema field list",
+    "exact multi-horizon output schema field list",
+    "exact mini fixture record selection",
+    "exact test file layout",
+    "numeric LFS threshold parameterization if needed"
+  ],
+  "openOwnerDecisions": [],
+  "forbiddenScope": [
+    "hardcoded ensemble PASS",
+    "silent model substitution",
+    "future-trained model used before its as-of boundary",
+    "autonomous trading",
+    "broker writes",
+    "commit",
+    "push",
+    "AGENT_CLOSURE by this mandate",
+    "EXTERNAL_CONFIRMATION by this mandate",
+    "GATE26 COMPLETE by this mandate",
+    "GATE27"
+  ],
+  "downstreamGuarantees": {
+    "GATE25": "Consumed read-only. No GATE25 artifact is modified or reopened.",
+    "GATE26": "Declares the ensemble mission boundary only; no execution scope is authorized by this mandate itself.",
+    "GATE27": "GATE27 may receive decomposable decision evidence rather than opaque single-model claims. No GATE27 scope is authorized by this mandate."
+  },
+  "startBoundary": {
+    "ratificationIsNotStart": true,
+    "notAuthorizedByThisDocument": true
+  },
+  "ownerDisposition": {
+    "status": "OWNER_RATIFIED_MANDATE_ONLY",
+    "execution": "NOT_AUTHORIZED_BY_THIS_DOCUMENT",
+    "start": "NOT_AUTHORIZED_BY_THIS_DOCUMENT",
+    "build": "NOT_AUTHORIZED_BY_THIS_DOCUMENT",
+    "contract": "NOT_AUTHORIZED_BY_THIS_DOCUMENT",
+    "precontract": "NOT_AUTHORIZED_BY_THIS_DOCUMENT",
+    "statusTransition": "NOT_AUTHORIZED_BY_THIS_DOCUMENT",
+    "ledgerAppend": "NOT_AUTHORIZED_BY_THIS_DOCUMENT",
+    "commit": "NOT_AUTHORIZED_BY_THIS_DOCUMENT",
+    "push": "NOT_AUTHORIZED_BY_THIS_DOCUMENT"
+  },
+  "ownerRatification": {
+    "ratificationId": "GATE26_CANONICAL_MANDATE_R0_OWNER_RATIFICATION",
+    "ownerDecisionId": "OWNER_AUTHORIZE_GATE26_MINI_BUILD_R1",
+    "authorityId": "GATE26_CANONICAL_MANDATE_RATIFICATION_R0",
+    "issuedBy": "PROJECT_OWNER",
+    "ratified": true,
+    "scope": "GATE26_CANONICAL_MANDATE_ONLY",
+    "mechanism": "IN_PLACE_OWNER_RATIFICATION_OF_THE_CANONICAL_MANDATE_ARTIFACT",
+    "noNewPrimitiveRequired": {
+      "newAuthorityPrimitive": false,
+      "newSchema": false,
+      "newLifecycleCeremony": false,
+      "circularSelfAuthorization": false
+    },
+    "prestateVerified": {
+      "head": "ddebceac4a5faa80697e1225c52cde47e4111c31",
+      "tree": "a57d019b2316df636a08ebccfd3dfd549d0166eb",
+      "ledgerEventCount": 109,
+      "ledgerSha256": "6855b07416703dcc89d3cecdf8105d7320acf2816466402fd9d5a55b48647f07",
+      "gate25": "COMPLETE_CONFIRMED",
+      "gate26": "NOT_STARTED",
+      "activeGate": "GATE13 COMPLETE_CONFIRMED unchanged",
+      "workingTree": "CLEAN at mandate materialization start"
+    },
+    "doesNotAuthorize": [
+      "PRECONTRACT execution by this document itself",
+      "START",
+      "BUILD",
+      "AGENT_CLOSURE",
+      "EXTERNAL_CONFIRMATION",
+      "COMPLETE",
+      "commit",
+      "push"
+    ]
+  },
+  "sourceReferences": [
+    {
+      "sourceId": "WHEEL_GATE_REGISTRY_00_40",
+      "sourcePath": "governance/GATE_REGISTRY_00_40.json",
+      "sourceSha256": "76d5f9ff0a21f8c1eadaf9ccd9e48c9087d12655fac6a5c9215584053652a56b",
+      "sourceLocation": "/gates/26",
+      "field": "officialName, canonicalObjective, strategicPurpose, dependencies, entryConditions, expectedOutputs, exitConditions, nextGate"
+    },
+    {
+      "sourceId": "GATE16_40_OWNER_RATIFICATION_R2",
+      "sourcePath": "governance/sources/GATE16_40_OWNER_RATIFICATION_R2.json",
+      "sourceLocation": "/gates[gateId=GATE26]",
+      "field": "requiredOutputs, requiredArtifacts, validationClasses, forbiddenScope, downstreamGuarantees"
+    },
+    {
+      "sourceId": "GATE25_CANONICAL_MANDATE_R0",
+      "sourcePath": "governance/sources/GATE25_CANONICAL_MANDATE_R0.json",
+      "sourceSha256": "0aefedc757e2ba749ebd25a2cd40dc2070fafb04f3ac8f7b194c08d2b513c618",
+      "field": "D1-D8 frozen analogue semantics consumed read-only"
+    },
+    {
+      "sourceId": "GATE22_TEMPORAL_HORIZON_V1",
+      "sourcePath": "governance/gates/GATE22/contracts/GATE22_TEMPORAL_HORIZON_V1.json",
+      "sourceSha256": "c53ec179919f90593efdaad625187bc56218a4615bd7d0cecb415a27d4b55783",
+      "field": "horizonsV1 30/90/180/252"
+    },
+    {
+      "sourceId": "GATE25_TERMINAL_CONFIRMATION",
+      "sourcePath": "governance/sources/GATE25_INDEPENDENT_EXTERNAL_CONFIRMATION_R1_EXTERNAL_REINSPECTION_REPORT.json",
+      "sourceSha256": "c272730cd520bde9bfa3283a12150bbf13d5b75fa560807b139b2f802d1358ba",
+      "field": "GATE25 COMPLETE_CONFIRMED dependency"
+    }
+  ]
+}

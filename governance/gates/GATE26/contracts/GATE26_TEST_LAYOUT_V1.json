@@ -1,0 +1,31 @@
+{
+  "document": "GATE26_BINDING_ARTIFACT",
+  "schemaVersion": 1,
+  "gateId": "GATE26",
+  "bindingId": "GATE26_TEST_LAYOUT_V1",
+  "requirementId": "G26-MINI-08",
+  "resolutionStatus": "OWNER_RESOLVED",
+  "ownerAuthorizationId": "OWNER_AUTHORIZE_GATE26_MINI_BUILD_SCOPE_CONTRACT_SUCCESSION_R1",
+  "deferredToContractIndex": 4,
+  "authority": {
+    "executionContractPath": "governance/gates/GATE26/contracts/EXECUTION_CONTRACT_R0002.json",
+    "executionContractRevision": "R0002",
+    "executionContractSha256": "b0ab114a7a8125d37c871addfc2d795f3900894edac287fd7a1d5a67150a8d93",
+    "bindingPointer": "/canonicalRequirements[requirementId=G26-MINI-08]/binding",
+    "bindingSha256Canonical": "f8240bfbe2f62fa24817741d9c8e1b0a1c523ed43e39b46c2251b53e71374c64",
+    "mandatePath": "governance/sources/GATE26_CANONICAL_MANDATE_R0.json",
+    "mandateSha256": "5b02dc6628ca1874e0f60cbdf44823a1adc4b7c63d0428dfb78f3de16902b8b7"
+  },
+  "binding": {
+    "schema": "GATE26_TEST_LAYOUT_V1",
+    "files": [
+      "governance/gates/GATE26/tests/gate26-foundation.test.mjs",
+      "governance/gates/GATE26/tests/gate26-hostiles.test.mjs",
+      "governance/gates/GATE26/tests/gate26-replay.test.mjs",
+      "governance/gates/GATE26/tests/gate26-integration.test.mjs"
+    ],
+    "hostileFrontier": "H01-H21",
+    "hardcodedPass": "FORBIDDEN",
+    "selfAssignedIndependentPass": "FORBIDDEN"
+  }
+}

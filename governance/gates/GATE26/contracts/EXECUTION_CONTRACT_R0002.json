@@ -1,0 +1,546 @@
+{
+  "gateId": "GATE26",
+  "contractRevision": "R0002",
+  "previousContractPath": "governance/gates/GATE26/contracts/EXECUTION_CONTRACT_R0001.json",
+  "previousContractSha256": "ed3180aee6a6cef9222f967d17f837de522a8cc3e4519c95fb31c7a75c7740aa",
+  "strategicRegistryReference": {
+    "registryPath": "governance/GATE_REGISTRY_00_40.json",
+    "registrySha256": "76d5f9ff0a21f8c1eadaf9ccd9e48c9087d12655fac6a5c9215584053652a56b",
+    "gateId": "GATE26",
+    "canonicalObjectiveSha256": "80e822991ab213f2d054f4b62e8897f06c7528f9cb3a20e68030fe19cde7d662"
+  },
+  "canonicalRequirements": [
+    {
+      "requirementId": "G26-MINI-01",
+      "statement": "Bind the Owner-ratified GATE26 canonical mandate by its exact SHA-256 5b02dc6628ca1874e0f60cbdf44823a1adc4b7c63d0428dfb78f3de16902b8b7 (16384 bytes) and preserve EXECUTION_CONTRACT_R0001 bytes unchanged. This revision activates GATE26 MINI_BUILD scope only under OWNER_AUTHORIZE_GATE26_MINI_BUILD_R1. It does not close, confirm, replay START, execute a full historical ensemble, or authorize AGENT_CLOSURE.",
+      "normativeSource": "governance/sources/GATE26_CANONICAL_MANDATE_R0.json",
+      "ownerAuthorizationIds": [
+        "OWNER_AUTHORIZE_GATE26_MINI_BUILD_R1",
+        "OWNER_AUTHORIZE_GATE26_MINI_BUILD_SCOPE_CONTRACT_SUCCESSION_R1"
+      ]
+    },
+    {
+      "requirementId": "G26-MINI-02",
+      "statement": "Reuse GATE25 COMPLETE_CONFIRMED as the sole predecessor terminal proof, bound by exact SHA-256. Consume GATE25 analogue products, P3H pinset 793/9, analogue index LFS identity e32c2e3de4ee6d88b80ed27fec4f29b930c02ce022477ce084f7ae4c768a4f0b, GATE22 horizonsV1 30/90/180/252, and GATE25 D1-D8 read-only. GATE21 through GATE25 surfaces, P3H and the analogue index are not mutated. Yahoo refetch is forbidden.",
+      "normativeSource": "governance/sources/GATE25_INDEPENDENT_EXTERNAL_CONFIRMATION_R1_EXTERNAL_REINSPECTION_REPORT.json"
+    },
+    {
+      "requirementId": "G26-MINI-03",
+      "statement": "Every mandate deferredToContract item is bound by exactly one OWNER_RESOLVED decision D1-D6 in G26-MINI-04 through G26-MINI-09. resolvedCount = 6, unresolvedCount = 0.",
+      "normativeSource": "governance/sources/GATE26_CANONICAL_MANDATE_R0.json",
+      "deferredToContractResolution": {
+        "deferredCount": 6,
+        "resolvedCount": 6,
+        "unresolvedCount": 0,
+        "mapping": [
+          {
+            "deferredToContractIndex": 0,
+            "decisionId": "D1",
+            "requirementId": "G26-MINI-04",
+            "bindingId": "GATE26_ENSEMBLE_IDENTITY_V1"
+          },
+          {
+            "deferredToContractIndex": 1,
+            "decisionId": "D2",
+            "requirementId": "G26-MINI-05",
+            "bindingId": "GATE26_COMBINATION_POLICY_V1"
+          },
+          {
+            "deferredToContractIndex": 2,
+            "decisionId": "D3",
+            "requirementId": "G26-MINI-06",
+            "bindingId": "GATE26_MULTI_HORIZON_OUTPUT_V1"
+          },
+          {
+            "deferredToContractIndex": 3,
+            "decisionId": "D4",
+            "requirementId": "G26-MINI-07",
+            "bindingId": "GATE26_MINI_FIXTURE_SELECTION_V1"
+          },
+          {
+            "deferredToContractIndex": 4,
+            "decisionId": "D5",
+            "requirementId": "G26-MINI-08",
+            "bindingId": "GATE26_TEST_LAYOUT_V1"
+          },
+          {
+            "deferredToContractIndex": 5,
+            "decisionId": "D6",
+            "requirementId": "G26-MINI-09",
+            "bindingId": "GATE26_LFS_THRESHOLD_V1"
+          }
+        ]
+      }
+    },
+    {
+      "requirementId": "G26-MINI-04",
+      "statement": "ensembleIdentityId = sha256Canonical({ schema: 'GATE26_ENSEMBLE_IDENTITY_V1', orderedMembers }) over exactly ten EXACT_ONLY members in declared order. No optional member, no reorder, no alias, no outcome-in-identity, no calibrated-probability member.",
+      "normativeSource": "governance/sources/GATE26_CANONICAL_MANDATE_R0.json",
+      "bindingId": "GATE26_ENSEMBLE_IDENTITY_V1",
+      "resolutionStatus": "OWNER_RESOLVED",
+      "bindingArtifactPath": "governance/gates/GATE26/contracts/GATE26_ENSEMBLE_IDENTITY_V1.json",
+      "binding": {
+        "schema": "GATE26_ENSEMBLE_IDENTITY_V1",
+        "serialization": "CanonicalJSON/1",
+        "digestPrimitive": "sha256Canonical",
+        "digestImplementation": "governance/tools/canonical-json.mjs::sha256Canonical",
+        "identityRule": "ensembleIdentityId = sha256Canonical({ schema: 'GATE26_ENSEMBLE_IDENTITY_V1', orderedMembers })",
+        "closureRule": "EXACT_ONLY",
+        "memberCount": 10,
+        "orderedMemberIds": [
+          "QueryAnalogueIdentityId",
+          "KnowledgeCutoff",
+          "CombinationPolicyVersionId",
+          "HorizonCoverageId",
+          "AnalogueSupportReportId",
+          "OutcomeSetId",
+          "RegimeBindingDigest",
+          "DatasetId_observation",
+          "EnsembleEngineVersionId",
+          "MissingnessStateId"
+        ]
+      }
+    },
+    {
+      "requirementId": "G26-MINI-05",
+      "statement": "Combination policy GATE26_COMBINATION_POLICY_V1 is inspectable and weightless. Weights are FORBIDDEN_IN_V1_NO_CALIBRATION_EVIDENCE. Winner-take-all is forbidden. Missing predictive family, insufficient support, registered disagreement, degraded input and stale identity fail closed to ABSTAIN. An absent family does not elevate another family to truth.",
+      "normativeSource": "governance/sources/GATE26_CANONICAL_MANDATE_R0.json",
+      "bindingId": "GATE26_COMBINATION_POLICY_V1",
+      "resolutionStatus": "OWNER_RESOLVED",
+      "bindingArtifactPath": "governance/gates/GATE26/contracts/GATE26_COMBINATION_POLICY_V1.json",
+      "binding": {
+        "schema": "GATE26_COMBINATION_POLICY_V1",
+        "policyId": "GATE26_COMBINATION_POLICY_V1",
+        "closedFields": [
+          "schema",
+          "policyId",
+          "weights",
+          "winnerTakeAll",
+          "missingFamily",
+          "insufficientSupport",
+          "disagreementWhenSecondFamilyRegistered",
+          "degradedInput",
+          "familiesV1",
+          "abstainReasons"
+        ],
+        "weights": "FORBIDDEN_IN_V1_NO_CALIBRATION_EVIDENCE",
+        "winnerTakeAll": "FORBIDDEN",
+        "missingFamily": "ABSTAIN",
+        "insufficientSupport": "ABSTAIN",
+        "disagreementWhenSecondFamilyRegistered": "ABSTAIN",
+        "degradedInput": "FAIL_CLOSED",
+        "familiesV1": [
+          "ANALOGUE_OUTCOME_FAMILY",
+          "ANALOGUE_SUPPORT_FAMILY",
+          "REGIME_BINDING_FAMILY"
+        ]
+      }
+    },
+    {
+      "requirementId": "G26-MINI-06",
+      "statement": "Multi-horizon ensemble output covers ALL_AND_ONLY GATE22 horizonsV1 sessionCounts 30, 90, 180 and 252. Confidence is SUPPORT_DERIVED_NOT_PROBABILITY with calibratedProbability=null. Uncertainty is distinct from confidence. Horizon invention is forbidden.",
+      "normativeSource": "governance/gates/GATE22/contracts/GATE22_TEMPORAL_HORIZON_V1.json",
+      "bindingId": "GATE26_MULTI_HORIZON_OUTPUT_V1",
+      "resolutionStatus": "OWNER_RESOLVED",
+      "bindingArtifactPath": "governance/gates/GATE26/contracts/GATE26_MULTI_HORIZON_OUTPUT_V1.json",
+      "binding": {
+        "schema": "GATE26_MULTI_HORIZON_OUTPUT_V1",
+        "coverage": "ALL_AND_ONLY",
+        "sessionCounts": [30, 90, 180, 252],
+        "closedFields": [
+          "schema",
+          "ensembleIdentityId",
+          "horizonId",
+          "sessionCount",
+          "outcomeAvailability",
+          "analogueOutcomeSummary",
+          "supportDerivedConfidence",
+          "uncertainty",
+          "abstention",
+          "combinationTrace",
+          "provenanceBinding"
+        ],
+        "confidenceKind": "SUPPORT_DERIVED_NOT_PROBABILITY",
+        "calibratedProbability": null
+      }
+    },
+    {
+      "requirementId": "G26-MINI-07",
+      "statement": "The MINI fixture is representative of the same pipeline as a later full build. It reuses GATE25 historical-analogue-engine-v1, analogue-index-v1, analogue-outcome-v1 and analogue-report-v1 read-only. Named query cases: GATE25 AAPL anchors end=2026-09-04, mid>=2026-06-01, preAlias=2024-06-03; one ABSTAIN eligibleCount<2; one horizon MISSING; at least two CORE_V1 signatures; all four horizons. Full historical materialization is forbidden. The canonical ANALOGUE_INDEX is not rewritten.",
+      "normativeSource": "governance/sources/GATE26_CANONICAL_MANDATE_R0.json",
+      "bindingId": "GATE26_MINI_FIXTURE_SELECTION_V1",
+      "resolutionStatus": "OWNER_RESOLVED",
+      "bindingArtifactPath": "governance/gates/GATE26/contracts/GATE26_MINI_FIXTURE_SELECTION_V1.json",
+      "binding": {
+        "schema": "GATE26_MINI_FIXTURE_SELECTION_V1",
+        "productRoot": "data/jarvise/predictive-ensemble/GATE26/V1/MINI",
+        "samePipelineAsFullBuild": true,
+        "fullHistoricalMaterialization": "FORBIDDEN",
+        "analogueIndexMutation": "FORBIDDEN",
+        "queryCases": [
+          "AAPL_END_2026-09-04",
+          "AAPL_MID_FROM_2026-06-01",
+          "AAPL_PREALIAS_2024-06-03",
+          "ABSTAIN_ELIGIBLE_COUNT_LT_2",
+          "HORIZON_MISSING",
+          "CORE_V1_SIGNATURES_GTE_2",
+          "HORIZONS_ALL_AND_ONLY_30_90_180_252"
+        ]
+      }
+    },
+    {
+      "requirementId": "G26-MINI-08",
+      "statement": "Exact GATE26 test layout is four files under governance/gates/GATE26/tests: foundation, hostiles H01-H21, replay/leakage, and integration including publication, consumption-boundary and closure-readiness rehearsals. No hardcoded PASS. Independent audit PASS is not self-assigned.",
+      "normativeSource": "governance/sources/GATE26_CANONICAL_MANDATE_R0.json",
+      "bindingId": "GATE26_TEST_LAYOUT_V1",
+      "resolutionStatus": "OWNER_RESOLVED",
+      "bindingArtifactPath": "governance/gates/GATE26/contracts/GATE26_TEST_LAYOUT_V1.json",
+      "binding": {
+        "schema": "GATE26_TEST_LAYOUT_V1",
+        "files": [
+          "governance/gates/GATE26/tests/gate26-foundation.test.mjs",
+          "governance/gates/GATE26/tests/gate26-hostiles.test.mjs",
+          "governance/gates/GATE26/tests/gate26-replay.test.mjs",
+          "governance/gates/GATE26/tests/gate26-integration.test.mjs"
+        ],
+        "hostileFrontier": "H01-H21",
+        "hardcodedPass": "FORBIDDEN",
+        "selfAssignedIndependentPass": "FORBIDDEN"
+      }
+    },
+    {
+      "requirementId": "G26-MINI-09",
+      "statement": "A product file that would equal or exceed 52428800 bytes (50 MiB) without a Git LFS pointer is refused (H17). Mini-build product files remain under the normal Git threshold. Full-build size is measured from mini-build bytes/row before any later full materialization. No new PKI.",
+      "normativeSource": "governance/sources/GATE26_CANONICAL_MANDATE_R0.json",
+      "bindingId": "GATE26_LFS_THRESHOLD_V1",
+      "resolutionStatus": "OWNER_RESOLVED",
+      "bindingArtifactPath": "governance/gates/GATE26/contracts/GATE26_LFS_THRESHOLD_V1.json",
+      "binding": {
+        "schema": "GATE26_LFS_THRESHOLD_V1",
+        "thresholdBytes": 52428800,
+        "rule": "REFUSE_WRITE_WITHOUT_LFS_POINTER_AT_OR_ABOVE_THRESHOLD",
+        "miniExpectedClass": "NORMAL_GIT",
+        "newPki": "FORBIDDEN"
+      }
+    },
+    {
+      "requirementId": "G26-MINI-10",
+      "statement": "Emit GATE26_CONSUMPTION_BOUNDARY_V1 as the real consumer interface GATE27 will later import. Wheel live-scan inline compute is forbidden. Permissive fallback is forbidden. ABSTAIN is the only fallback.",
+      "normativeSource": "governance/sources/GATE26_CANONICAL_MANDATE_R0.json",
+      "bindingId": "GATE26_CONSUMPTION_BOUNDARY_V1",
+      "resolutionStatus": "OWNER_RESOLVED",
+      "bindingArtifactPath": "governance/gates/GATE26/contracts/GATE26_CONSUMPTION_BOUNDARY_V1.json"
+    },
+    {
+      "requirementId": "G26-MINI-11",
+      "statement": "Same-pipeline implementation imports GATE25 historical-analogue-engine-v1, analogue-index-v1, analogue-outcome-v1 and analogue-report-v1. Toy scorers, mock analogues, network, broker writes and live learning are forbidden.",
+      "normativeSource": "governance/gates/GATE25/implementation/historical-analogue-engine-v1.mjs"
+    },
+    {
+      "requirementId": "G26-MINI-12",
+      "statement": "Preserve the frozen 22-path MINI_BUILD workset exactly; add NONE and remove NONE; no wildcard, no directory-wide path, no GATE21-GATE25 product path, and no 23rd path.",
+      "normativeSource": "governance/sources/GATE26_CANONICAL_MANDATE_R0.json"
+    },
+    {
+      "requirementId": "G26-MINI-13",
+      "statement": "This succession is the ledger-bound CONTRACT_SUCCESSION IN_PROGRESS -> IN_PROGRESS of GATE26 from R0001 to R0002 under LOCAL_EXPLICIT_AUTHORITY, following the GATE25 post-START BUILD-scope precedent. Succession publication paths are publication-only for this single transition and are not BUILD authorizedPaths. No status change, no START replay and no lifecycle closure.",
+      "normativeSource": "governance/tools/validate-status-ledger.mjs",
+      "successionPublicationPaths": [
+        "governance/gates/GATE26/contracts/EXECUTION_CONTRACT_R0002.json",
+        "governance/gates/GATE26/contracts/CURRENT_CONTRACT.json",
+        "governance/authority/authorizations/GATE26/GATE_CONTRACT_SUCCESSION_LOCAL_AUTHORITY.json",
+        "governance/gates/GATE26/state/revisions/R0003/CHECKPOINT.json",
+        "governance/gates/GATE26/state/revisions/R0003/OPEN_DEFECTS.json",
+        "governance/gates/GATE26/state/revisions/R0003/STATE_SEAL.json",
+        "governance/gates/GATE26/state/CURRENT_STATE.json",
+        "governance/state/GATE_STATUS_LEDGER.ndjson"
+      ],
+      "successionLedgerEventId": "GATE26_CONTRACT_SUCCESSION_R0002_R1",
+      "successorStateRevision": "R0003"
+    },
+    {
+      "requirementId": "G26-MINI-14",
+      "statement": "Permitted under this revision: deterministic GATE26 MINI_BUILD of the Predictive Ensemble Engine V1 within the exact 22-path workset, representative fixture materialization under data/jarvise/predictive-ensemble/GATE26/V1/MINI, targeted tests including H01-H21, replay/leakage, publication/LFS rehearsal, consumption-boundary rehearsal and closure-readiness rehearsal. Forbidden: full historical ensemble, Yahoo refetch, P3H mutation, analogue regeneration, GATE21-GATE25 mutation, autonomous trading, broker writes, mandate mutation, ACTIVE_GATE mutation, AGENT_CLOSURE, EXTERNAL_CONFIRMATION, COMPLETE, git commit, git push, GEE R8, new PKI, permissive fallback.",
+      "normativeSource": "governance/sources/GATE26_CANONICAL_MANDATE_R0.json"
+    }
+  ],
+  "requiredInputs": [
+    {
+      "path": "governance/sources/GATE26_CANONICAL_MANDATE_R0.json",
+      "sha256": "5b02dc6628ca1874e0f60cbdf44823a1adc4b7c63d0428dfb78f3de16902b8b7",
+      "role": "OWNER_RATIFIED_CANONICAL_MANDATE"
+    },
+    {
+      "path": "governance/GATE_REGISTRY_00_40.json",
+      "sha256": "76d5f9ff0a21f8c1eadaf9ccd9e48c9087d12655fac6a5c9215584053652a56b",
+      "role": "CANONICAL_STRATEGIC_REGISTRY"
+    },
+    {
+      "path": "governance/sources/GATE25_INDEPENDENT_EXTERNAL_CONFIRMATION_R1_EXTERNAL_REINSPECTION_REPORT.json",
+      "sha256": "c272730cd520bde9bfa3283a12150bbf13d5b75fa560807b139b2f802d1358ba",
+      "role": "GATE25_TERMINAL_DEPENDENCY_PROOF"
+    },
+    {
+      "path": "governance/gates/GATE25/state/CURRENT_STATE.json",
+      "sha256": "331498c9e37f2890bc75011e7195dd324676f3bc79caacb375ab27610465b07e",
+      "role": "GATE25_TERMINAL_STATE_R0005"
+    },
+    {
+      "path": "governance/gates/GATE26/contracts/EXECUTION_CONTRACT_R0001.json",
+      "sha256": "ed3180aee6a6cef9222f967d17f837de522a8cc3e4519c95fb31c7a75c7740aa",
+      "role": "IMMUTABLE_PREDECESSOR_CONTRACT"
+    },
+    {
+      "path": "governance/gates/GATE22/contracts/GATE22_TEMPORAL_HORIZON_V1.json",
+      "sha256": "c53ec179919f90593efdaad625187bc56218a4615bd7d0cecb415a27d4b55783",
+      "role": "HORIZON_AUTHORITY_ALL_AND_ONLY"
+    },
+    {
+      "path": "data/jarvise/historical-analogue/GATE25/V1/PROVENANCE.json",
+      "sha256": "14afcaf09ea499edb5a17da7db7e8127e61761854b43c90b828843a08846b692",
+      "role": "GATE25_ANALOGUE_PROVENANCE_READ_ONLY"
+    },
+    {
+      "path": "governance/gates/GATE26/state/revisions/R0002/STATE_SEAL.json",
+      "sha256": "46c4105bbfa03e9fe3464c7421be4c45ad7bd98263898f88c598ec50b5e305b7",
+      "role": "GATE26_START_POST_STATE_SEAL"
+    }
+  ],
+  "requiredOutputs": [
+    {
+      "ordinal": 1,
+      "path": "governance/gates/GATE26/contracts/EXECUTION_CONTRACT_R0002.json",
+      "role": "Versioned MINI_BUILD execution contract"
+    },
+    {
+      "ordinal": 2,
+      "path": "governance/gates/GATE26/contracts/CURRENT_CONTRACT.json",
+      "role": "Pointer to the exact R0002 successor contract"
+    },
+    {
+      "ordinal": 3,
+      "path": "governance/authority/authorizations/GATE26/GATE_CONTRACT_SUCCESSION_LOCAL_AUTHORITY.json",
+      "role": "Finite single-use LOCAL_EXPLICIT_AUTHORITY for ledger-bound CONTRACT_SUCCESSION"
+    }
+  ],
+  "validators": [
+    "node governance/tools/validate-gate-contract.mjs --contract governance/gates/GATE26/contracts/EXECUTION_CONTRACT_R0002.json --pointer governance/gates/GATE26/contracts/CURRENT_CONTRACT.json",
+    "node governance/tools/validate-status-ledger.mjs"
+  ],
+  "positiveTests": [
+    {
+      "testId": "G26-MINI-POS-01",
+      "case": "the candidate contract and pointer bytes validate against the canonical contract schema and sha256Canonical registry objective",
+      "expected": "AUTHORIZED"
+    },
+    {
+      "testId": "G26-MINI-POS-02",
+      "case": "every requiredInput binds its verified SHA-256 exactly and R0001 remains immutable",
+      "expected": "AUTHORIZED"
+    },
+    {
+      "testId": "G26-MINI-POS-03",
+      "case": "GATE26 remains IN_PROGRESS after succession and GATE25 remains COMPLETE_CONFIRMED; MINI fixture exists under the declared product root",
+      "expected": "AUTHORIZED"
+    }
+  ],
+  "negativeTests": [
+    {
+      "testId": "G26-MINI-NEG-01",
+      "case": "full historical ensemble materialization, Yahoo refetch, or analogue index rewrite under this successor",
+      "expected": "BLOCKED"
+    },
+    {
+      "testId": "G26-MINI-NEG-02",
+      "case": "any write to a GATE21 through GATE25 surface, to P3H, or to the ratified mandate",
+      "expected": "BLOCKED"
+    },
+    {
+      "testId": "G26-MINI-NEG-03",
+      "case": "any write outside the exact 22 authorized MINI_BUILD paths",
+      "expected": "BLOCKED"
+    },
+    {
+      "testId": "G26-MINI-NEG-04",
+      "case": "AGENT_CLOSURE, EXTERNAL_CONFIRMATION, git commit or git push under this successor",
+      "expected": "BLOCKED"
+    }
+  ],
+  "countertests": [
+    {
+      "testId": "G26-MINI-CTR-01",
+      "case": "this successor presented as a full GATE26 BUILD or as GATE26 COMPLETE",
+      "expected": "BLOCKED"
+    },
+    {
+      "testId": "G26-MINI-CTR-02",
+      "case": "permissive fallback or calibrated probability without calibration evidence",
+      "expected": "BLOCKED"
+    },
+    {
+      "testId": "G26-MINI-CTR-03",
+      "case": "self-assigned independent audit PASS",
+      "expected": "BLOCKED"
+    }
+  ],
+  "reuseRules": [
+    "Reuse GATE_CONTRACT_SUCCESSION_LOCAL_AUTHORITY ledger-bound family and the GATE25 post-START succession precedent without modifying GEE or Fast Gate core.",
+    "Reuse GATE25 analogue engine modules read-only; do not copy a toy scorer.",
+    "Reuse GATE22 horizonsV1 ALL_AND_ONLY; do not invent a horizon."
+  ],
+  "invalidationRules": [
+    "Any drift of a hash-pinned required input blocks this successor.",
+    "Any loss of GATE25 COMPLETE_CONFIRMED blocks this successor.",
+    "Any GATE21 through GATE25 product mutation blocks this successor.",
+    "Any 23rd authorized path or wildcard path blocks this successor.",
+    "Any product file at or above 52428800 bytes without an LFS pointer blocks this successor."
+  ],
+  "forbiddenReplays": [
+    "GATE26 START replay",
+    "GATE26 full historical ensemble",
+    "Yahoo refetch",
+    "P3H mutation",
+    "analogue regeneration",
+    "ANALOGUE_INDEX rewrite",
+    "GATE25 mutation",
+    "GATE24 mutation",
+    "GATE23 mutation",
+    "GATE22 mutation",
+    "GATE21 mutation",
+    "AGENT_CLOSURE",
+    "EXTERNAL_CONFIRMATION",
+    "ACTIVE_GATE mutation",
+    "git commit",
+    "git push",
+    "GEE R8",
+    "new PKI",
+    "permissive fallback"
+  ],
+  "closureConditions": [
+    "This revision is MINI_BUILD-scope activation and representative fixture only. Publication of these bytes is authorized solely by OWNER_AUTHORIZE_GATE26_MINI_BUILD_SCOPE_CONTRACT_SUCCESSION_R1 under LOCAL_EXPLICIT_AUTHORITY as the ledger-bound CONTRACT_SUCCESSION GATE26_CONTRACT_SUCCESSION_R0002_R1.",
+    "This successor is not closure, not confirmation, not a full GATE26 BUILD and not GATE26 COMPLETE.",
+    "Independent audit remains a later separate session. This contract does not self-assign PASS."
+  ],
+  "nextGateAuthorizationConditions": [
+    "No GATE27 authorization is created by this successor.",
+    "No AGENT_CLOSURE or EXTERNAL_CONFIRMATION authorization is created by this successor."
+  ],
+  "performanceBudget": {
+    "targetMinutes": 40,
+    "expectedMaximumMinutes": 90,
+    "closeoutStartMinutes": 20,
+    "absoluteMaximumMinutes": 180
+  },
+  "checkpointPolicy": {
+    "resume": "GATE26 IN_PROGRESS R0003 after CONTRACT_SUCCESSION R0001 to R0002; MINI_BUILD authorized; START already consumed",
+    "reuse": "GATE25 analogue engine read-only, GATE22 horizonsV1, GATE25 COMPLETE_CONFIRMED, GEE ledger-bound CONTRACT_SUCCESSION",
+    "independentConfirmation": "required separately; not authorized here",
+    "deferred": "full historical ensemble; AGENT_CLOSURE; EXTERNAL_CONFIRMATION; GATE27"
+  },
+  "authorizedPaths": [
+    "governance/gates/GATE26/implementation/ensemble-identity-v1.mjs",
+    "governance/gates/GATE26/implementation/combination-policy-v1.mjs",
+    "governance/gates/GATE26/implementation/ensemble-record-v1.mjs",
+    "governance/gates/GATE26/implementation/ensemble-provenance-v1.mjs",
+    "governance/gates/GATE26/implementation/consumption-boundary-v1.mjs",
+    "governance/gates/GATE26/implementation/predictive-ensemble-engine-v1.mjs",
+    "governance/gates/GATE26/implementation/mini-fixture-v1.mjs",
+    "governance/gates/GATE26/contracts/GATE26_ENSEMBLE_IDENTITY_V1.json",
+    "governance/gates/GATE26/contracts/GATE26_COMBINATION_POLICY_V1.json",
+    "governance/gates/GATE26/contracts/GATE26_MULTI_HORIZON_OUTPUT_V1.json",
+    "governance/gates/GATE26/contracts/GATE26_MINI_FIXTURE_SELECTION_V1.json",
+    "governance/gates/GATE26/contracts/GATE26_TEST_LAYOUT_V1.json",
+    "governance/gates/GATE26/contracts/GATE26_LFS_THRESHOLD_V1.json",
+    "governance/gates/GATE26/contracts/GATE26_CONSUMPTION_BOUNDARY_V1.json",
+    "governance/gates/GATE26/tests/gate26-foundation.test.mjs",
+    "governance/gates/GATE26/tests/gate26-hostiles.test.mjs",
+    "governance/gates/GATE26/tests/gate26-replay.test.mjs",
+    "governance/gates/GATE26/tests/gate26-integration.test.mjs",
+    "data/jarvise/predictive-ensemble/GATE26/V1/MINI/ENSEMBLE_INDEX.json",
+    "data/jarvise/predictive-ensemble/GATE26/V1/MINI/PROVENANCE.json",
+    "data/jarvise/predictive-ensemble/GATE26/V1/MINI/SIZE_MEASUREMENT.json",
+    "data/jarvise/predictive-ensemble/GATE26/V1/MINI/REHEARSAL_REPORT.json"
+  ],
+  "requiredPolicyIds": [
+    "MAIN_AGENT_ONLY",
+    "SUBAGENTS_FORBIDDEN_BY_DEFAULT",
+    "NETWORK_FORBIDDEN_BY_DEFAULT",
+    "GIT_WRITES_FORBIDDEN_BY_DEFAULT",
+    "DANGEROUS_GIT_COMMANDS_FORBIDDEN",
+    "AUTHORIZED_PATHS_ONLY",
+    "NO_RESTART_FROM_ZERO",
+    "RESUME_FROM_CHECKPOINT",
+    "NO_HARDCODED_PASS",
+    "NO_CIRCULAR_VALIDATION",
+    "NO_FUTURE_LEAKAGE",
+    "NO_GATE_MANDATE_REDEFINITION",
+    "BLOCK_ON_AUTHORITY_CONFLICT",
+    "DETERMINISTIC_OPERATIONS_LOCAL",
+    "SEPARATE_SESSION_REINSPECTION",
+    "GENERATED_FILES_NON_CANONICAL",
+    "HISTORICAL_REJECTED_NOT_ACTIVE",
+    "DEFERRED_CAPABILITY_MUST_BE_DURABLY_REGISTERED"
+  ],
+  "sourceReferences": [
+    {
+      "sourcePath": "governance/GATE_REGISTRY_00_40.json",
+      "sourceSha256": "76d5f9ff0a21f8c1eadaf9ccd9e48c9087d12655fac6a5c9215584053652a56b",
+      "sourceLocation": "/gates/GATE26",
+      "field": "canonicalObjective"
+    },
+    {
+      "sourcePath": "governance/sources/GATE26_CANONICAL_MANDATE_R0.json",
+      "sourceSha256": "5b02dc6628ca1874e0f60cbdf44823a1adc4b7c63d0428dfb78f3de16902b8b7",
+      "sourceLocation": "/",
+      "field": "canonicalIdentity, v1DefinitionFreeze, deferredToContract, miniBuild"
+    },
+    {
+      "sourcePath": "governance/gates/GATE22/contracts/GATE22_TEMPORAL_HORIZON_V1.json",
+      "sourceSha256": "c53ec179919f90593efdaad625187bc56218a4615bd7d0cecb415a27d4b55783",
+      "sourceLocation": "/mandateProjection/sessionCountingRules",
+      "field": "horizonsV1"
+    },
+    {
+      "sourcePath": "governance/authority/authorizations/GATE25/GATE_CONTRACT_SUCCESSION_LOCAL_AUTHORITY.json",
+      "sourceSha256": "4c4679dabaee3bb16704c34283c809611a48c84efadbf69b4bab5d438adf8ec7",
+      "sourceLocation": "/",
+      "field": "POSTSTART_BUILD_SCOPE_ACTIVATION succession authority precedent"
+    },
+    {
+      "sourcePath": "governance/tools/validate-status-ledger.mjs",
+      "sourceSha256": "5265bb88491641b66db926404d7a686f9583f4bc20dcddae095ed3b533c91af1",
+      "sourceLocation": "validateContractSuccession",
+      "field": "CONTRACT_SUCCESSION proof obligations"
+    },
+    {
+      "sourcePath": "governance/gee-v1/core/gate-contract-succession-authority.mjs",
+      "sourceSha256": "a50afb1061493be00a569fd2c83ab7f76f647ced2a4f55d8bd3e5c6bcd20be28",
+      "sourceLocation": "/",
+      "field": "ledger-bound LOCAL_EXPLICIT_AUTHORITY family"
+    },
+    {
+      "sourcePath": "governance/gates/GATE25/implementation/historical-analogue-engine-v1.mjs",
+      "sourceSha256": "68872785c900dc7760ca4f6d5cd8b2f7379743339d96f7bbaf739433ff857a43",
+      "sourceLocation": "/",
+      "field": "same-pipeline analogue producer import"
+    },
+    {
+      "sourcePath": "governance/gates/GATE25/implementation/analogue-index-v1.mjs",
+      "sourceSha256": "000fe094f591794d92b8e8ad7048ce829801b581bcd2733fcaeb129f88b0df8d",
+      "sourceLocation": "/",
+      "field": "same-pipeline analogue index import"
+    },
+    {
+      "sourcePath": "governance/gates/GATE25/implementation/analogue-outcome-v1.mjs",
+      "sourceSha256": "1cd96dd8617ee3ab249c191927e8dd3ee826b471797aa241b0ae61452dab6fdd",
+      "sourceLocation": "/",
+      "field": "same-pipeline post-selection outcome import"
+    },
+    {
+      "sourcePath": "governance/gates/GATE25/implementation/analogue-report-v1.mjs",
+      "sourceSha256": "58287cdbb0f73c0ae993964425b518916f04f145e7c102beed19cfaa3894a75c",
+      "sourceLocation": "/",
+      "field": "same-pipeline support report import"
+    }
+  ]
+}

@@ -1,0 +1,543 @@
+{
+  "schema": "GATE26_MINI_PRODUCT_PROVENANCE_V1",
+  "authority": {
+    "executionContractPath": "governance/gates/GATE26/contracts/EXECUTION_CONTRACT_R0002.json",
+    "executionContractSha256": "b0ab114a7a8125d37c871addfc2d795f3900894edac287fd7a1d5a67150a8d93",
+    "mandateSha256": "5b02dc6628ca1874e0f60cbdf44823a1adc4b7c63d0428dfb78f3de16902b8b7",
+    "fixtureSelectionBindingSha256": "050d9f1da5b83a9d1b3620043b7dceaec11491d3619d8123540cc3c74ebc2c9e"
+  },
+  "modelPolicy": {
+    "engineVersion": "GATE26_PredictiveEnsembleEngine/1",
+    "combinationPolicySchema": "GATE26_COMBINATION_POLICY_V1",
+    "combinationPolicyVersionId": "e1be9c8a900586b37232aa5536eb50ecc9df40e6c6b778438c6a1e374ce96488",
+    "horizonCoverageId": "370e8921c35be24d8ea1c20d672a44103eebdeaa63a9423c56d67665cf0fc4c5",
+    "sessionCounts": [
+      30,
+      90,
+      180,
+      252
+    ]
+  },
+  "inputBinding": {
+    "datasetId": "sha256:cc7bb76f37a97a5673a32c5a8f357088ee94230fefcbef1c19ad16227476488e",
+    "datasetSha256": "cc7bb76f37a97a5673a32c5a8f357088ee94230fefcbef1c19ad16227476488e",
+    "admittedKeyDigest": "9fdc19bff5de2769c32cdb7fde866e83adb120ec16736c8cabc1b1851f98ef85",
+    "exclusionDigest": "7eca4720595e05aaeaf3d8e35f40ada3efb41ab4d7a58147670119304c0c2e7d",
+    "selectionPolicyVersionId": "e8ebc0313dfa3be27710663fa13f9b8cf7854417aad3d13639325e6ea6c2b2fc",
+    "gate25ExecutionContractSha256": "f369ce7844167a5ae46940dcd1e2edd61f1b92327893723cd6953d8fafa0578f",
+    "calendarRegistryManifestId": "sha256:3df426b405f9ae43cb996b14f310d8efed55ce9f6377ed68dea4cd6ef939883f",
+    "analogueIndexSha256": "e32c2e3de4ee6d88b80ed27fec4f29b930c02ce022477ce084f7ae4c768a4f0b",
+    "gate25ProvenanceSha256": "14afcaf09ea499edb5a17da7db7e8127e61761854b43c90b828843a08846b692",
+    "horizonContractSha256": "c53ec179919f90593efdaad625187bc56218a4615bd7d0cecb415a27d4b55783"
+  },
+  "queryCases": [
+    {
+      "caseId": "AAPL_END_2026-09-04",
+      "derivation": {
+        "role": "END",
+        "rule": "EXACT_PINNED_SESSION",
+        "anchorDate": "2026-09-04",
+        "querySymbol": "AAPL",
+        "queryAcquisitionKey": "YAHOO_CHART_EOD/AAPL/ce478528e350ceae17e8fc1569729db8fc5c430c89ad1ded9224158b90e01624",
+        "sessionDate": "2026-09-04"
+      },
+      "execution": "SELECTION_COMPLETED",
+      "refusalCode": null,
+      "queryInstrumentIdentity": {
+        "status": "RESOLVED",
+        "instrumentIdentityId": "sha256:ddc5cc4c3476c414bcfad11c7e0e992c0cfe75f7cc8fddde56321a7c068fdd55",
+        "code": null
+      },
+      "queryKnowledgeCutoff": "2026-09-04T20:00:00.000Z",
+      "queryCoreV1SignatureDigest": "44fd2148f8758e96b06f4fcef0b1f1879f1a0b752ac36981cba2ebbefab115b9",
+      "queryIdentityId": "47e43f36058c3567f46b300bd9392a77b0548c33ae3cb38881062c638461da74",
+      "accounting": {
+        "universeCount": 1750766,
+        "eligibleCount": 0,
+        "excludedCount": 1750766,
+        "decisionDigest": "86485f86490b9e6bf1f2eef802772dcb78222506c62f86d224a312037d405971"
+      },
+      "supportReportId": "785822ef6ab7b0da2bdebc605ba4905f5343e3d93db22e79c44e43d8b4eb9dcb",
+      "comparisonReportId": "1bbf97e3c080ace080424910fe69245ef1fe54e0ded37f59fe9f62d0cfa1d6fe",
+      "selectionDigest": "905b8081b89ffaa68ce1add93e31a0c02730856976fda4c1d51281f4c80fdfa7",
+      "outcomeSetId": "80245afec974de46c21f361605c7f0584f32c3ad0312b4dd196e848fc80cff41",
+      "analogueIdentityIds": [],
+      "horizonAvailability": [
+        {
+          "horizonId": "30:sha256:3df426b405f9ae43cb996b14f310d8efed55ce9f6377ed68dea4cd6ef939883f",
+          "sessionCount": 30,
+          "analogueCount": 0,
+          "availableCount": 0
+        },
+        {
+          "horizonId": "90:sha256:3df426b405f9ae43cb996b14f310d8efed55ce9f6377ed68dea4cd6ef939883f",
+          "sessionCount": 90,
+          "analogueCount": 0,
+          "availableCount": 0
+        },
+        {
+          "horizonId": "180:sha256:3df426b405f9ae43cb996b14f310d8efed55ce9f6377ed68dea4cd6ef939883f",
+          "sessionCount": 180,
+          "analogueCount": 0,
+          "availableCount": 0
+        },
+        {
+          "horizonId": "252:sha256:3df426b405f9ae43cb996b14f310d8efed55ce9f6377ed68dea4cd6ef939883f",
+          "sessionCount": 252,
+          "analogueCount": 0,
+          "availableCount": 0
+        }
+      ],
+      "ensembleIdentityId": "e3ea72482d275c6a5d15940ef35ce6f8f705a98286196382be35dddb99e7dd8f",
+      "decision": "ABSTAIN",
+      "abstainReason": "INSUFFICIENT_SUPPORT"
+    },
+    {
+      "caseId": "AAPL_MID_FROM_2026-06-01",
+      "derivation": {
+        "role": "MID",
+        "rule": "FIRST_PINNED_SESSION_ON_OR_AFTER",
+        "anchorDate": "2026-06-01",
+        "querySymbol": "AAPL",
+        "queryAcquisitionKey": "YAHOO_CHART_EOD/AAPL/ce478528e350ceae17e8fc1569729db8fc5c430c89ad1ded9224158b90e01624",
+        "sessionDate": "2026-06-01"
+      },
+      "execution": "SELECTION_COMPLETED",
+      "refusalCode": null,
+      "queryInstrumentIdentity": {
+        "status": "RESOLVED",
+        "instrumentIdentityId": "sha256:ddc5cc4c3476c414bcfad11c7e0e992c0cfe75f7cc8fddde56321a7c068fdd55",
+        "code": null
+      },
+      "queryKnowledgeCutoff": "2026-06-01T20:00:00.000Z",
+      "queryCoreV1SignatureDigest": "0ad2cd3045bfaa630f1929405e755b02b47b9c9f26380a3c4e86012b01749513",
+      "queryIdentityId": "a8a6e100a88eddbfacfeba077720a8a887ee377ad6cdb9ab6b5f9586b91c3196",
+      "accounting": {
+        "universeCount": 1750766,
+        "eligibleCount": 3,
+        "excludedCount": 1750763,
+        "decisionDigest": "32da37b886a43bfc8cf1d2eb664b9a38bb66baa0a7fa65193fa7fb6183d44d12"
+      },
+      "supportReportId": "ca12df0436163c351939bc0cb7912df575c962b4f51747e84f9b2488fffbaabc",
+      "comparisonReportId": "5cc65787dc70b6d144e10d324c3b7e761d211f738127c8ad4b4bd2f94668511b",
+      "selectionDigest": "7c303cc4aa0a157f5ce6da25e2afda2d93a5c37e767cd1a0b0e1c61592413d26",
+      "outcomeSetId": "28c6070459dc40cd6d5609e9cde8102a0a2ea0746cfd8a329d4824da85634634",
+      "analogueIdentityIds": [
+        "d1fe934e7d4f95d574b39048a1754b0939f1918c371d64eb5e59bab0cff7c063",
+        "7de65a14a27acfdc64bf0ed5da2902d05d851c82db52c3d4406db13a5b681cea",
+        "c87ade8e9c4a5b2870ec7dfb63973ba50f9a3bd577de783ee5110d411173f6c7"
+      ],
+      "horizonAvailability": [
+        {
+          "horizonId": "30:sha256:3df426b405f9ae43cb996b14f310d8efed55ce9f6377ed68dea4cd6ef939883f",
+          "sessionCount": 30,
+          "analogueCount": 3,
+          "availableCount": 0
+        },
+        {
+          "horizonId": "90:sha256:3df426b405f9ae43cb996b14f310d8efed55ce9f6377ed68dea4cd6ef939883f",
+          "sessionCount": 90,
+          "analogueCount": 3,
+          "availableCount": 0
+        },
+        {
+          "horizonId": "180:sha256:3df426b405f9ae43cb996b14f310d8efed55ce9f6377ed68dea4cd6ef939883f",
+          "sessionCount": 180,
+          "analogueCount": 3,
+          "availableCount": 0
+        },
+        {
+          "horizonId": "252:sha256:3df426b405f9ae43cb996b14f310d8efed55ce9f6377ed68dea4cd6ef939883f",
+          "sessionCount": 252,
+          "analogueCount": 3,
+          "availableCount": 0
+        }
+      ],
+      "ensembleIdentityId": "24ca2b368c111ed3c918e37d728712d6bc976b94343e225f42bd3c30d6a9c8e5",
+      "decision": "ABSTAIN",
+      "abstainReason": "PREDICTIVE_FAMILY_MISSING"
+    },
+    {
+      "caseId": "AAPL_PREALIAS_2024-06-03",
+      "derivation": {
+        "role": "PRE_ALIAS",
+        "rule": "EXACT_PINNED_SESSION",
+        "anchorDate": "2024-06-03",
+        "querySymbol": "AAPL",
+        "queryAcquisitionKey": "YAHOO_CHART_EOD/AAPL/ce478528e350ceae17e8fc1569729db8fc5c430c89ad1ded9224158b90e01624",
+        "sessionDate": "2024-06-03"
+      },
+      "execution": "QUERY_REFUSED",
+      "refusalCode": "QUERY_INSTRUMENT_IDENTITY_NOT_RESOLVED_AT_SESSION_DATE",
+      "queryInstrumentIdentity": {
+        "status": "UNRESOLVED",
+        "instrumentIdentityId": null,
+        "code": "INSTRUMENT_ALIAS_NOT_FOUND"
+      },
+      "queryKnowledgeCutoff": "2024-06-03T20:00:00.000Z",
+      "queryCoreV1SignatureDigest": null,
+      "queryIdentityId": null,
+      "accounting": null,
+      "supportReportId": null,
+      "comparisonReportId": null,
+      "selectionDigest": null,
+      "outcomeSetId": null,
+      "analogueIdentityIds": [],
+      "horizonAvailability": [],
+      "ensembleIdentityId": null,
+      "decision": "ABSTAIN",
+      "abstainReason": "QUERY_NOT_COMPARABLE"
+    }
+  ],
+  "d4Coverage": [
+    {
+      "queryCase": "AAPL_END_2026-09-04",
+      "coveredBy": [
+        "AAPL_END_2026-09-04"
+      ]
+    },
+    {
+      "queryCase": "AAPL_MID_FROM_2026-06-01",
+      "coveredBy": [
+        "AAPL_MID_FROM_2026-06-01"
+      ]
+    },
+    {
+      "queryCase": "AAPL_PREALIAS_2024-06-03",
+      "coveredBy": [
+        "AAPL_PREALIAS_2024-06-03"
+      ]
+    },
+    {
+      "queryCase": "ABSTAIN_ELIGIBLE_COUNT_LT_2",
+      "coveredBy": [
+        "AAPL_END_2026-09-04"
+      ]
+    },
+    {
+      "queryCase": "HORIZON_MISSING",
+      "coveredBy": [
+        "AAPL_END_2026-09-04",
+        "AAPL_MID_FROM_2026-06-01"
+      ]
+    },
+    {
+      "queryCase": "CORE_V1_SIGNATURES_GTE_2",
+      "coveredBy": [
+        "AAPL_END_2026-09-04",
+        "AAPL_MID_FROM_2026-06-01"
+      ],
+      "distinctSignatureDigests": [
+        "0ad2cd3045bfaa630f1929405e755b02b47b9c9f26380a3c4e86012b01749513",
+        "44fd2148f8758e96b06f4fcef0b1f1879f1a0b752ac36981cba2ebbefab115b9"
+      ]
+    },
+    {
+      "queryCase": "HORIZONS_ALL_AND_ONLY_30_90_180_252",
+      "coveredBy": [
+        "AAPL_END_2026-09-04",
+        "AAPL_MID_FROM_2026-06-01"
+      ]
+    }
+  ],
+  "records": [
+    {
+      "schema": "GATE26_ENSEMBLE_PROVENANCE_V1",
+      "ensembleIdentityId": "24ca2b368c111ed3c918e37d728712d6bc976b94343e225f42bd3c30d6a9c8e5",
+      "queryIdentityId": "a8a6e100a88eddbfacfeba077720a8a887ee377ad6cdb9ab6b5f9586b91c3196",
+      "knowledgeCutoff": "2026-06-01T20:00:00.000Z",
+      "analogueIdentityIds": [
+        "d1fe934e7d4f95d574b39048a1754b0939f1918c371d64eb5e59bab0cff7c063",
+        "7de65a14a27acfdc64bf0ed5da2902d05d851c82db52c3d4406db13a5b681cea",
+        "c87ade8e9c4a5b2870ec7dfb63973ba50f9a3bd577de783ee5110d411173f6c7"
+      ],
+      "combinationPolicyVersionId": "e1be9c8a900586b37232aa5536eb50ecc9df40e6c6b778438c6a1e374ce96488",
+      "engineVersion": "GATE26_PredictiveEnsembleEngine/1",
+      "horizonCoverageId": "370e8921c35be24d8ea1c20d672a44103eebdeaa63a9423c56d67665cf0fc4c5",
+      "selectionDigest": "7c303cc4aa0a157f5ce6da25e2afda2d93a5c37e767cd1a0b0e1c61592413d26",
+      "outcomeSetId": "28c6070459dc40cd6d5609e9cde8102a0a2ea0746cfd8a329d4824da85634634",
+      "supportReportId": "ca12df0436163c351939bc0cb7912df575c962b4f51747e84f9b2488fffbaabc",
+      "inputBinding": {
+        "datasetId": "sha256:cc7bb76f37a97a5673a32c5a8f357088ee94230fefcbef1c19ad16227476488e",
+        "datasetSha256": "cc7bb76f37a97a5673a32c5a8f357088ee94230fefcbef1c19ad16227476488e",
+        "admittedKeyDigest": "9fdc19bff5de2769c32cdb7fde866e83adb120ec16736c8cabc1b1851f98ef85",
+        "exclusionDigest": "7eca4720595e05aaeaf3d8e35f40ada3efb41ab4d7a58147670119304c0c2e7d",
+        "selectionPolicyVersionId": "e8ebc0313dfa3be27710663fa13f9b8cf7854417aad3d13639325e6ea6c2b2fc",
+        "gate25ExecutionContractSha256": "f369ce7844167a5ae46940dcd1e2edd61f1b92327893723cd6953d8fafa0578f",
+        "calendarRegistryManifestId": "sha256:3df426b405f9ae43cb996b14f310d8efed55ce9f6377ed68dea4cd6ef939883f",
+        "analogueIndexSha256": "e32c2e3de4ee6d88b80ed27fec4f29b930c02ce022477ce084f7ae4c768a4f0b",
+        "gate25ProvenanceSha256": "14afcaf09ea499edb5a17da7db7e8127e61761854b43c90b828843a08846b692",
+        "horizonContractSha256": "c53ec179919f90593efdaad625187bc56218a4615bd7d0cecb415a27d4b55783"
+      },
+      "regimeBinding": {
+        "dimensions": [
+          "primaryMarketRegime",
+          "volatilityState",
+          "inflationState",
+          "ratesState",
+          "yieldCurveShape",
+          "yieldCurveDirection"
+        ],
+        "factors": [
+          {
+            "analogueIdentityId": "d1fe934e7d4f95d574b39048a1754b0939f1918c371d64eb5e59bab0cff7c063",
+            "commonFactors": [
+              {
+                "dimensionId": "primaryMarketRegime",
+                "value": "BULL"
+              },
+              {
+                "dimensionId": "volatilityState",
+                "value": "NORMAL"
+              },
+              {
+                "dimensionId": "inflationState",
+                "value": "INFLATIONARY"
+              },
+              {
+                "dimensionId": "ratesState",
+                "value": "RATES_STABLE"
+              },
+              {
+                "dimensionId": "yieldCurveShape",
+                "value": "NORMAL"
+              },
+              {
+                "dimensionId": "yieldCurveDirection",
+                "value": "FLATTENING"
+              }
+            ]
+          },
+          {
+            "analogueIdentityId": "7de65a14a27acfdc64bf0ed5da2902d05d851c82db52c3d4406db13a5b681cea",
+            "commonFactors": [
+              {
+                "dimensionId": "primaryMarketRegime",
+                "value": "BULL"
+              },
+              {
+                "dimensionId": "volatilityState",
+                "value": "NORMAL"
+              },
+              {
+                "dimensionId": "inflationState",
+                "value": "INFLATIONARY"
+              },
+              {
+                "dimensionId": "ratesState",
+                "value": "RATES_STABLE"
+              },
+              {
+                "dimensionId": "yieldCurveShape",
+                "value": "NORMAL"
+              },
+              {
+                "dimensionId": "yieldCurveDirection",
+                "value": "FLATTENING"
+              }
+            ]
+          },
+          {
+            "analogueIdentityId": "c87ade8e9c4a5b2870ec7dfb63973ba50f9a3bd577de783ee5110d411173f6c7",
+            "commonFactors": [
+              {
+                "dimensionId": "primaryMarketRegime",
+                "value": "BULL"
+              },
+              {
+                "dimensionId": "volatilityState",
+                "value": "NORMAL"
+              },
+              {
+                "dimensionId": "inflationState",
+                "value": "INFLATIONARY"
+              },
+              {
+                "dimensionId": "ratesState",
+                "value": "RATES_STABLE"
+              },
+              {
+                "dimensionId": "yieldCurveShape",
+                "value": "NORMAL"
+              },
+              {
+                "dimensionId": "yieldCurveDirection",
+                "value": "FLATTENING"
+              }
+            ]
+          }
+        ]
+      },
+      "inputProofs": [
+        {
+          "inputId": "QUERY:F1_SIMPLE_RETURN@W5",
+          "sourceArtifactId": "sha256:76b6b2cab0bbc4d05f2a00c0fa6bc368a1cb36d93caa5f51bfc2cea04bf0ac23",
+          "sourceArtifactSha256": "76b6b2cab0bbc4d05f2a00c0fa6bc368a1cb36d93caa5f51bfc2cea04bf0ac23",
+          "availableAt": "2026-06-01T20:00:00.000Z",
+          "knowledgeCutoff": "2026-06-01T20:00:00.000Z",
+          "availableByCutoff": true
+        },
+        {
+          "inputId": "QUERY:F1_SIMPLE_RETURN@W21",
+          "sourceArtifactId": "sha256:76b6b2cab0bbc4d05f2a00c0fa6bc368a1cb36d93caa5f51bfc2cea04bf0ac23",
+          "sourceArtifactSha256": "76b6b2cab0bbc4d05f2a00c0fa6bc368a1cb36d93caa5f51bfc2cea04bf0ac23",
+          "availableAt": "2026-06-01T20:00:00.000Z",
+          "knowledgeCutoff": "2026-06-01T20:00:00.000Z",
+          "availableByCutoff": true
+        },
+        {
+          "inputId": "QUERY:GATE24_REGIME_RECORD",
+          "sourceArtifactId": "GATE24_RegimeRecord/1:31cb6e394686873cc521943e84ec7a2f8d1e7e555222c40e021363264ac3bd4b",
+          "sourceArtifactSha256": "4cb5f9945ba7a882e33ce1667e1437a8bb0d8ed918c62061161beb3a0b1839da",
+          "availableAt": "2026-06-01T20:00:00.000Z",
+          "knowledgeCutoff": "2026-06-01T20:00:00.000Z",
+          "availableByCutoff": true
+        },
+        {
+          "inputId": "d1fe934e7d4f95d574b39048a1754b0939f1918c371d64eb5e59bab0cff7c063:F1_SIMPLE_RETURN@W5",
+          "sourceArtifactId": "sha256:76b6b2cab0bbc4d05f2a00c0fa6bc368a1cb36d93caa5f51bfc2cea04bf0ac23",
+          "sourceArtifactSha256": "76b6b2cab0bbc4d05f2a00c0fa6bc368a1cb36d93caa5f51bfc2cea04bf0ac23",
+          "availableAt": "2026-05-22T20:00:00.000Z",
+          "knowledgeCutoff": "2026-05-22T20:00:00.000Z",
+          "availableByCutoff": true
+        },
+        {
+          "inputId": "d1fe934e7d4f95d574b39048a1754b0939f1918c371d64eb5e59bab0cff7c063:F1_SIMPLE_RETURN@W21",
+          "sourceArtifactId": "sha256:76b6b2cab0bbc4d05f2a00c0fa6bc368a1cb36d93caa5f51bfc2cea04bf0ac23",
+          "sourceArtifactSha256": "76b6b2cab0bbc4d05f2a00c0fa6bc368a1cb36d93caa5f51bfc2cea04bf0ac23",
+          "availableAt": "2026-05-22T20:00:00.000Z",
+          "knowledgeCutoff": "2026-05-22T20:00:00.000Z",
+          "availableByCutoff": true
+        },
+        {
+          "inputId": "d1fe934e7d4f95d574b39048a1754b0939f1918c371d64eb5e59bab0cff7c063:GATE24_REGIME_RECORD",
+          "sourceArtifactId": "GATE24_RegimeRecord/1:1b7c8141ae84092c1cecf12420880bff6a80181874418edf5f1151c8e365168e",
+          "sourceArtifactSha256": "081ab4211ff6c30ef6a290f5bc7da309b6f8431cdad74fb057f3e2278a7bff36",
+          "availableAt": "2026-05-22T20:00:00.000Z",
+          "knowledgeCutoff": "2026-05-22T20:00:00.000Z",
+          "availableByCutoff": true
+        },
+        {
+          "inputId": "7de65a14a27acfdc64bf0ed5da2902d05d851c82db52c3d4406db13a5b681cea:F1_SIMPLE_RETURN@W5",
+          "sourceArtifactId": "sha256:76b6b2cab0bbc4d05f2a00c0fa6bc368a1cb36d93caa5f51bfc2cea04bf0ac23",
+          "sourceArtifactSha256": "76b6b2cab0bbc4d05f2a00c0fa6bc368a1cb36d93caa5f51bfc2cea04bf0ac23",
+          "availableAt": "2026-05-28T20:00:00.000Z",
+          "knowledgeCutoff": "2026-05-28T20:00:00.000Z",
+          "availableByCutoff": true
+        },
+        {
+          "inputId": "7de65a14a27acfdc64bf0ed5da2902d05d851c82db52c3d4406db13a5b681cea:F1_SIMPLE_RETURN@W21",
+          "sourceArtifactId": "sha256:76b6b2cab0bbc4d05f2a00c0fa6bc368a1cb36d93caa5f51bfc2cea04bf0ac23",
+          "sourceArtifactSha256": "76b6b2cab0bbc4d05f2a00c0fa6bc368a1cb36d93caa5f51bfc2cea04bf0ac23",
+          "availableAt": "2026-05-28T20:00:00.000Z",
+          "knowledgeCutoff": "2026-05-28T20:00:00.000Z",
+          "availableByCutoff": true
+        },
+        {
+          "inputId": "7de65a14a27acfdc64bf0ed5da2902d05d851c82db52c3d4406db13a5b681cea:GATE24_REGIME_RECORD",
+          "sourceArtifactId": "GATE24_RegimeRecord/1:7ef581e48fcf965d606d51640f42bed08bf267714c34a7e40aebf6bb3476d850",
+          "sourceArtifactSha256": "350515ee4ca153e5d9714fa71567c1b37157d9d987572101b53fbd2dfe26f060",
+          "availableAt": "2026-05-28T20:00:00.000Z",
+          "knowledgeCutoff": "2026-05-28T20:00:00.000Z",
+          "availableByCutoff": true
+        },
+        {
+          "inputId": "c87ade8e9c4a5b2870ec7dfb63973ba50f9a3bd577de783ee5110d411173f6c7:F1_SIMPLE_RETURN@W5",
+          "sourceArtifactId": "sha256:76b6b2cab0bbc4d05f2a00c0fa6bc368a1cb36d93caa5f51bfc2cea04bf0ac23",
+          "sourceArtifactSha256": "76b6b2cab0bbc4d05f2a00c0fa6bc368a1cb36d93caa5f51bfc2cea04bf0ac23",
+          "availableAt": "2026-05-27T20:00:00.000Z",
+          "knowledgeCutoff": "2026-05-27T20:00:00.000Z",
+          "availableByCutoff": true
+        },
+        {
+          "inputId": "c87ade8e9c4a5b2870ec7dfb63973ba50f9a3bd577de783ee5110d411173f6c7:F1_SIMPLE_RETURN@W21",
+          "sourceArtifactId": "sha256:76b6b2cab0bbc4d05f2a00c0fa6bc368a1cb36d93caa5f51bfc2cea04bf0ac23",
+          "sourceArtifactSha256": "76b6b2cab0bbc4d05f2a00c0fa6bc368a1cb36d93caa5f51bfc2cea04bf0ac23",
+          "availableAt": "2026-05-27T20:00:00.000Z",
+          "knowledgeCutoff": "2026-05-27T20:00:00.000Z",
+          "availableByCutoff": true
+        },
+        {
+          "inputId": "c87ade8e9c4a5b2870ec7dfb63973ba50f9a3bd577de783ee5110d411173f6c7:GATE24_REGIME_RECORD",
+          "sourceArtifactId": "GATE24_RegimeRecord/1:20655ab91d84c61b5b37d88651b2b07fa8a53f3d86dfbd04760f2d50309d493a",
+          "sourceArtifactSha256": "0177c3cc7f1cf827347024e2ae2e038004e58e2cbdb6a6027c34ceda1b57b70b",
+          "availableAt": "2026-05-27T20:00:00.000Z",
+          "knowledgeCutoff": "2026-05-27T20:00:00.000Z",
+          "availableByCutoff": true
+        }
+      ],
+      "provenanceId": "a8fe19b1699a76d8846fbc36266cbb89176c5b0abf13c804aa692ec0f10471e4"
+    },
+    {
+      "schema": "GATE26_ENSEMBLE_PROVENANCE_V1",
+      "ensembleIdentityId": "e3ea72482d275c6a5d15940ef35ce6f8f705a98286196382be35dddb99e7dd8f",
+      "queryIdentityId": "47e43f36058c3567f46b300bd9392a77b0548c33ae3cb38881062c638461da74",
+      "knowledgeCutoff": "2026-09-04T20:00:00.000Z",
+      "analogueIdentityIds": [],
+      "combinationPolicyVersionId": "e1be9c8a900586b37232aa5536eb50ecc9df40e6c6b778438c6a1e374ce96488",
+      "engineVersion": "GATE26_PredictiveEnsembleEngine/1",
+      "horizonCoverageId": "370e8921c35be24d8ea1c20d672a44103eebdeaa63a9423c56d67665cf0fc4c5",
+      "selectionDigest": "905b8081b89ffaa68ce1add93e31a0c02730856976fda4c1d51281f4c80fdfa7",
+      "outcomeSetId": "80245afec974de46c21f361605c7f0584f32c3ad0312b4dd196e848fc80cff41",
+      "supportReportId": "785822ef6ab7b0da2bdebc605ba4905f5343e3d93db22e79c44e43d8b4eb9dcb",
+      "inputBinding": {
+        "datasetId": "sha256:cc7bb76f37a97a5673a32c5a8f357088ee94230fefcbef1c19ad16227476488e",
+        "datasetSha256": "cc7bb76f37a97a5673a32c5a8f357088ee94230fefcbef1c19ad16227476488e",
+        "admittedKeyDigest": "9fdc19bff5de2769c32cdb7fde866e83adb120ec16736c8cabc1b1851f98ef85",
+        "exclusionDigest": "7eca4720595e05aaeaf3d8e35f40ada3efb41ab4d7a58147670119304c0c2e7d",
+        "selectionPolicyVersionId": "e8ebc0313dfa3be27710663fa13f9b8cf7854417aad3d13639325e6ea6c2b2fc",
+        "gate25ExecutionContractSha256": "f369ce7844167a5ae46940dcd1e2edd61f1b92327893723cd6953d8fafa0578f",
+        "calendarRegistryManifestId": "sha256:3df426b405f9ae43cb996b14f310d8efed55ce9f6377ed68dea4cd6ef939883f",
+        "analogueIndexSha256": "e32c2e3de4ee6d88b80ed27fec4f29b930c02ce022477ce084f7ae4c768a4f0b",
+        "gate25ProvenanceSha256": "14afcaf09ea499edb5a17da7db7e8127e61761854b43c90b828843a08846b692",
+        "horizonContractSha256": "c53ec179919f90593efdaad625187bc56218a4615bd7d0cecb415a27d4b55783"
+      },
+      "regimeBinding": {
+        "dimensions": [
+          "primaryMarketRegime",
+          "volatilityState",
+          "inflationState",
+          "ratesState",
+          "yieldCurveShape",
+          "yieldCurveDirection"
+        ],
+        "factors": []
+      },
+      "inputProofs": [
+        {
+          "inputId": "QUERY:F1_SIMPLE_RETURN@W5",
+          "sourceArtifactId": "sha256:76b6b2cab0bbc4d05f2a00c0fa6bc368a1cb36d93caa5f51bfc2cea04bf0ac23",
+          "sourceArtifactSha256": "76b6b2cab0bbc4d05f2a00c0fa6bc368a1cb36d93caa5f51bfc2cea04bf0ac23",
+          "availableAt": "2026-09-04T20:00:00.000Z",
+          "knowledgeCutoff": "2026-09-04T20:00:00.000Z",
+          "availableByCutoff": true
+        },
+        {
+          "inputId": "QUERY:F1_SIMPLE_RETURN@W21",
+          "sourceArtifactId": "sha256:76b6b2cab0bbc4d05f2a00c0fa6bc368a1cb36d93caa5f51bfc2cea04bf0ac23",
+          "sourceArtifactSha256": "76b6b2cab0bbc4d05f2a00c0fa6bc368a1cb36d93caa5f51bfc2cea04bf0ac23",
+          "availableAt": "2026-09-04T20:00:00.000Z",
+          "knowledgeCutoff": "2026-09-04T20:00:00.000Z",
+          "availableByCutoff": true
+        },
+        {
+          "inputId": "QUERY:GATE24_REGIME_RECORD",
+          "sourceArtifactId": "GATE24_RegimeRecord/1:55c1cff0228e39c4e73993fee16f160ee693835a6b3d8272379260b478d16743",
+          "sourceArtifactSha256": "cf34052211d47b6a4e87090cb2994d6b1bd054473e95555c4142f6ce59c51a94",
+          "availableAt": "2026-09-04T20:00:00.000Z",
+          "knowledgeCutoff": "2026-09-04T20:00:00.000Z",
+          "availableByCutoff": true
+        }
+      ],
+      "provenanceId": "a69fb4395f0ec8282883f1f404cc1cd59ae10465ac46644b492d9925f8acf6a5"
+    }
+  ],
+  "product": {
+    "ensembleIndexPath": "data/jarvise/predictive-ensemble/GATE26/V1/MINI/ENSEMBLE_INDEX.json",
+    "ensembleIndexSha256": "727f7c695d40a8e0fb39404227784000b98362d37d6ad7a282ff91cdf9ab78f9",
+    "ensembleIndexByteLength": 13358,
+    "recordCount": 2
+  },
+  "analogueIndexMutation": "FORBIDDEN",
+  "samePipelineAsFullBuild": true
+}

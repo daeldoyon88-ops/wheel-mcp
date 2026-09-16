@@ -1,0 +1,219 @@
+{
+  "gateId": "GATE26",
+  "contractRevision": "R0001",
+  "strategicRegistryReference": {
+    "registryPath": "governance/GATE_REGISTRY_00_40.json",
+    "registrySha256": "76d5f9ff0a21f8c1eadaf9ccd9e48c9087d12655fac6a5c9215584053652a56b",
+    "gateId": "GATE26",
+    "canonicalObjectiveSha256": "3a7185867330b345a6fcbe0d67d022d52d4f0ad941e955c81b133a5fa536d8a1"
+  },
+  "canonicalRequirements": [
+    {
+      "requirementId": "G26-PRESTART-01",
+      "statement": "Bind the Owner-ratified GATE26 canonical mandate instrument by its exact SHA-256 5b02dc6628ca1874e0f60cbdf44823a1adc4b7c63d0428dfb78f3de16902b8b7 (16384 bytes). The mandate freezes PREDICTIVE ENSEMBLE ENGINE V1 design scope only and confers no execution, START, BUILD, ledger, commit or push authority.",
+      "normativeSource": "governance/sources/GATE26_CANONICAL_MANDATE_R0.json"
+    },
+    {
+      "requirementId": "G26-PRESTART-02",
+      "statement": "This revision is PRECONTRACT ONLY. startAuthorized=false. ratificationIsNotStart=true. GATE26 remains NOT_STARTED. It authorizes no START, no BUILD, no ensemble computation and no lifecycle transition.",
+      "normativeSource": "governance/sources/GATE26_CANONICAL_MANDATE_R0.json"
+    },
+    {
+      "requirementId": "G26-PRESTART-03",
+      "statement": "Reuse the GATE25 terminal dependency proof COMPLETE_CONFIRMED, bound by exact SHA-256. GATE25 is not re-audited and not reopened by this candidate.",
+      "normativeSource": "governance/sources/GATE25_INDEPENDENT_EXTERNAL_CONFIRMATION_R1_EXTERNAL_REINSPECTION_REPORT.json"
+    },
+    {
+      "requirementId": "G26-PRESTART-04",
+      "statement": "GATE25 D1-D8, P3H 793/9 pinset, analogue index LFS identity e32c2e3de4ee6d88b80ed27fec4f29b930c02ce022477ce084f7ae4c768a4f0b, and GATE22 horizonsV1 30/90/180/252 remain frozen consumed inputs. This revision does not mutate them.",
+      "normativeSource": "governance/sources/GATE25_CANONICAL_MANDATE_R0.json"
+    },
+    {
+      "requirementId": "G26-PRESTART-05",
+      "statement": "V1 family set, combination-without-weights, support-derived non-probability confidence, and fail-closed ABSTAIN remain as frozen in the mandate. Mini-build product implementation is reserved to a later successor revision and is not authorized here.",
+      "normativeSource": "governance/sources/GATE26_CANONICAL_MANDATE_R0.json"
+    },
+    {
+      "requirementId": "G26-PRESTART-06",
+      "statement": "Mandate deferredToContract items remain unbound in this revision. Binding them is reserved to a later GATE26 contract succession before MINI_BUILD. GATE21 through GATE25 surfaces, P3H, analogue products, the status ledger, and ACTIVE_GATE stay unmodified by this candidate.",
+      "normativeSource": "governance/sources/GATE26_CANONICAL_MANDATE_R0.json"
+    }
+  ],
+  "requiredInputs": [
+    {
+      "path": "governance/sources/GATE26_CANONICAL_MANDATE_R0.json",
+      "sha256": "5b02dc6628ca1874e0f60cbdf44823a1adc4b7c63d0428dfb78f3de16902b8b7",
+      "role": "OWNER_RATIFIED_DESIGN_SCOPE_ONLY_MANDATE"
+    },
+    {
+      "path": "governance/GATE_REGISTRY_00_40.json",
+      "sha256": "76d5f9ff0a21f8c1eadaf9ccd9e48c9087d12655fac6a5c9215584053652a56b",
+      "role": "CANONICAL_STRATEGIC_REGISTRY"
+    },
+    {
+      "path": "governance/sources/GATE25_INDEPENDENT_EXTERNAL_CONFIRMATION_R1_EXTERNAL_REINSPECTION_REPORT.json",
+      "sha256": "c272730cd520bde9bfa3283a12150bbf13d5b75fa560807b139b2f802d1358ba",
+      "role": "GATE25_TERMINAL_DEPENDENCY_PROOF"
+    },
+    {
+      "path": "governance/gates/GATE25/state/CURRENT_STATE.json",
+      "sha256": "331498c9e37f2890bc75011e7195dd324676f3bc79caacb375ab27610465b07e",
+      "role": "GATE25_TERMINAL_STATE_R0005"
+    }
+  ],
+  "requiredOutputs": [
+    {
+      "ordinal": 1,
+      "path": "governance/gates/GATE26/contracts/EXECUTION_CONTRACT_R0001.json",
+      "role": "Versioned precontract-only execution contract"
+    },
+    {
+      "ordinal": 2,
+      "path": "governance/gates/GATE26/contracts/CURRENT_CONTRACT.json",
+      "role": "Pointer to the exact versioned contract"
+    },
+    {
+      "ordinal": 3,
+      "path": "governance/gates/GATE26/contracts/PRECONTRACT_AUTHORITY_CONSUMPTION_R1.json",
+      "role": "Primitive-generated single-use consumption receipt"
+    }
+  ],
+  "validators": [
+    "node governance/tools/validate-gate-contract.mjs --contract governance/gates/GATE26/contracts/EXECUTION_CONTRACT_R0001.json --pointer governance/gates/GATE26/contracts/CURRENT_CONTRACT.json",
+    "node governance/tools/validate-precontract-authority.mjs --gate GATE26 --authority governance/authority/precontract/GATE26/PROJECT_OWNER_LOCAL_PRECONTRACT_AUTHORITY.json",
+    "node governance/tools/validate-status-ledger.mjs"
+  ],
+  "positiveTests": [
+    {
+      "testId": "G26-PRE-POS-01",
+      "case": "the candidate contract and pointer bytes validate against the canonical contract schema",
+      "expected": "AUTHORIZED"
+    },
+    {
+      "testId": "G26-PRE-POS-02",
+      "case": "every requiredInput binds its verified SHA-256 exactly, mandate instrument included",
+      "expected": "AUTHORIZED"
+    },
+    {
+      "testId": "G26-PRE-POS-03",
+      "case": "GATE26 remains NOT_STARTED and GATE25 remains COMPLETE_CONFIRMED",
+      "expected": "AUTHORIZED"
+    }
+  ],
+  "negativeTests": [
+    {
+      "testId": "G26-PRE-NEG-01",
+      "case": "START, BUILD, ensemble computation or mini-build product write under this candidate",
+      "expected": "BLOCKED"
+    },
+    {
+      "testId": "G26-PRE-NEG-02",
+      "case": "any write to a GATE21 through GATE25 surface, to P3H, or to the GATE25 analogue product",
+      "expected": "BLOCKED"
+    },
+    {
+      "testId": "G26-PRE-NEG-03",
+      "case": "any write outside the three authorized contract paths",
+      "expected": "BLOCKED"
+    }
+  ],
+  "countertests": [
+    {
+      "testId": "G26-PRE-CTR-01",
+      "case": "this candidate presented as PROJECT_OWNER_GATE_START_AUTHORITY or GATE_START_RECORD",
+      "expected": "BLOCKED"
+    },
+    {
+      "testId": "G26-PRE-CTR-02",
+      "case": "this candidate presented as a consumed Owner START authority",
+      "expected": "BLOCKED"
+    },
+    {
+      "testId": "G26-PRE-CTR-03",
+      "case": "mandate bytes changed after this binding",
+      "expected": "BLOCKED"
+    }
+  ],
+  "reuseRules": [
+    "Reuse the GATE25 precontract cohort format and the existing GEE precontract primitives without modification.",
+    "Reuse the verified mandate and dependency SHA-256 values; do not reserialize or republish them.",
+    "Reuse GATE25 COMPLETE_CONFIRMED as the sole predecessor terminal proof."
+  ],
+  "invalidationRules": [
+    "Any drift of a hash-pinned required input blocks this candidate.",
+    "Any loss of GATE25 COMPLETE_CONFIRMED blocks this candidate.",
+    "Any change of GATE26 away from NOT_STARTED blocks this candidate.",
+    "Any GATE21 through GATE25 mutation blocks this candidate.",
+    "Any binding of a deferredToContract item into this revision blocks this candidate."
+  ],
+  "forbiddenReplays": [
+    "GATE26 START",
+    "GATE26 BUILD",
+    "GATE26 MINI_BUILD product write",
+    "PROJECT_OWNER_GATE_START_AUTHORITY",
+    "GATE_START_RECORD",
+    "Yahoo refetch",
+    "P3H mutation",
+    "analogue regeneration",
+    "GATE25 mutation",
+    "GATE24 mutation",
+    "GATE23 mutation",
+    "GATE22 mutation",
+    "GATE21 mutation",
+    "AGENT_CLOSURE",
+    "EXTERNAL_CONFIRMATION",
+    "ledger mutation",
+    "ACTIVE_GATE mutation",
+    "git commit",
+    "git push"
+  ],
+  "closureConditions": [
+    "This revision is PRECONTRACT ONLY. Publication of these bytes at the GATE26 contract paths is authorized solely by PRECONTRACT_BOOTSTRAP_GATE26_LOCAL_R1 under LOCAL_EXPLICIT_AUTHORITY.",
+    "This candidate is not closure, not confirmation, not START, not BUILD and not MINI_BUILD.",
+    "A later separately authorized lifecycle is required before START. This document creates no PROJECT_OWNER_GATE_START_AUTHORITY and no GATE_START_RECORD."
+  ],
+  "nextGateAuthorizationConditions": [
+    "No next-Gate authorization is created by this candidate.",
+    "No START authorization is created by this candidate."
+  ],
+  "performanceBudget": {
+    "targetMinutes": 5,
+    "expectedMaximumMinutes": 20,
+    "closeoutStartMinutes": 10,
+    "absoluteMaximumMinutes": 60
+  },
+  "checkpointPolicy": {
+    "resume": "GATE26 mandate Owner-ratified; PRECONTRACT bootstrap under PRECONTRACT_BOOTSTRAP_GATE26_LOCAL_R1; GATE26 NOT_STARTED",
+    "reuse": "GATE25 precontract cohort format and GEE precontract primitives",
+    "independentConfirmation": "required separately before START is executed",
+    "deferred": "Mandate deferredToContract items remain unbound; START remains unauthorized; MINI_BUILD remains unauthorized"
+  },
+  "authorizedPaths": [
+    "governance/gates/GATE26/contracts/EXECUTION_CONTRACT_R0001.json",
+    "governance/gates/GATE26/contracts/CURRENT_CONTRACT.json",
+    "governance/gates/GATE26/contracts/PRECONTRACT_AUTHORITY_CONSUMPTION_R1.json"
+  ],
+  "requiredPolicyIds": [
+    "AUTHORIZED_PATHS_ONLY",
+    "NO_HARDCODED_PASS",
+    "NO_CIRCULAR_VALIDATION",
+    "DETERMINISTIC_OPERATIONS_LOCAL",
+    "NO_FUTURE_LEAKAGE",
+    "NO_GATE_MANDATE_REDEFINITION",
+    "GIT_WRITES_FORBIDDEN_BY_DEFAULT"
+  ],
+  "sourceReferences": [
+    {
+      "sourcePath": "governance/GATE_REGISTRY_00_40.json",
+      "sourceSha256": "76d5f9ff0a21f8c1eadaf9ccd9e48c9087d12655fac6a5c9215584053652a56b",
+      "sourceLocation": "/gates/GATE26",
+      "field": "canonicalObjective"
+    },
+    {
+      "sourcePath": "governance/sources/GATE26_CANONICAL_MANDATE_R0.json",
+      "sourceSha256": "5b02dc6628ca1874e0f60cbdf44823a1adc4b7c63d0428dfb78f3de16902b8b7",
+      "sourceLocation": "/",
+      "field": "canonicalIdentity, v1DefinitionFreeze, ownerRatification"
+    }
+  ]
+}

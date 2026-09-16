@@ -22,3 +22,8 @@ data/jarvise/historical-macro-context/** -text
 # PROVENANCE analogueIndexSha256 binding are unchanged.
 data/jarvise/historical-analogue/** -text
 data/jarvise/historical-analogue/GATE25/V1/ANALOGUE_INDEX.json filter=lfs diff=lfs merge=lfs -text
+
+# GATE26 predictive ensemble MINI publication transport: ENSEMBLE_INDEX, PROVENANCE,
+# SIZE_MEASUREMENT and REHEARSAL_REPORT are pinned by the sha256 of their exact LF
+# bytes. Preserve bytes against core.autocrlf, never convert. Normal Git, no LFS.
+data/jarvise/predictive-ensemble/** -text

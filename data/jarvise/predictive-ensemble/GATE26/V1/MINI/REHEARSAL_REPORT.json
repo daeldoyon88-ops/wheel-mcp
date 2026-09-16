@@ -1,0 +1,81 @@
+{
+  "schema": "GATE26_MINI_REHEARSAL_REPORT_V1",
+  "publication": {
+    "indexPath": "data/jarvise/predictive-ensemble/GATE26/V1/MINI/ENSEMBLE_INDEX.json",
+    "indexSha256": "727f7c695d40a8e0fb39404227784000b98362d37d6ad7a282ff91cdf9ab78f9",
+    "indexByteLength": 13358,
+    "provenancePath": "data/jarvise/predictive-ensemble/GATE26/V1/MINI/PROVENANCE.json",
+    "provenanceSha256": "f01508f16f438fd59cd6e7d5aee758cfac32320d688adcf5829f7738c4053782",
+    "provenanceByteLength": 24433,
+    "identityRule": "SHA256_OF_PRODUCT_BYTES_EQUALS_CONSUMED_AND_PUBLISHED",
+    "lfsPointerRequired": false
+  },
+  "consumption": {
+    "boundary": {
+      "schema": "GATE26_CONSUMPTION_BOUNDARY_V1",
+      "consumerVersion": "GATE26_ConsumptionBoundary/1",
+      "consumer": "GATE27",
+      "input": "SERIALIZED_PRODUCT_BYTES",
+      "products": [
+        "data/jarvise/predictive-ensemble/GATE26/V1/MINI/ENSEMBLE_INDEX.json",
+        "data/jarvise/predictive-ensemble/GATE26/V1/MINI/PROVENANCE.json"
+      ],
+      "declaredIdentityRequired": true,
+      "fallback": "ABSTAIN",
+      "permissiveFallback": "FORBIDDEN",
+      "wheelScanInlineCompute": "FORBIDDEN",
+      "liveLearning": "FORBIDDEN",
+      "brokerWrites": "FORBIDDEN"
+    },
+    "consumedFrom": "SERIALIZED_PRODUCT_BYTES_BEFORE_WRITE_SHA256_BOUND",
+    "results": [
+      {
+        "ensembleIdentityId": "24ca2b368c111ed3c918e37d728712d6bc976b94343e225f42bd3c30d6a9c8e5",
+        "decision": "ABSTAIN",
+        "abstainReason": "PREDICTIVE_FAMILY_MISSING",
+        "provenanceId": "a8fe19b1699a76d8846fbc36266cbb89176c5b0abf13c804aa692ec0f10471e4"
+      },
+      {
+        "ensembleIdentityId": "e3ea72482d275c6a5d15940ef35ce6f8f705a98286196382be35dddb99e7dd8f",
+        "decision": "ABSTAIN",
+        "abstainReason": "INSUFFICIENT_SUPPORT",
+        "provenanceId": "a69fb4395f0ec8282883f1f404cc1cd59ae10465ac46644b492d9925f8acf6a5"
+      }
+    ]
+  },
+  "closure": {
+    "agentClosureExecuted": false,
+    "externalConfirmationExecuted": false,
+    "independentAuditPassAssigned": false,
+    "checklist": [
+      "PRECONTRACT_ANCHORED",
+      "AUTHORIZATION_APPLIED",
+      "START_APPLIED",
+      "CONTRACT_SUCCESSION_R0002_APPLIED",
+      "MINI_REAL_DATA_MATERIALIZED",
+      "HOSTILES_H01_H21",
+      "FGI_NOT_AGENT_CLOSURE"
+    ]
+  },
+  "queryCaseOutcomes": [
+    {
+      "caseId": "AAPL_END_2026-09-04",
+      "execution": "SELECTION_COMPLETED",
+      "decision": "ABSTAIN",
+      "abstainReason": "INSUFFICIENT_SUPPORT"
+    },
+    {
+      "caseId": "AAPL_MID_FROM_2026-06-01",
+      "execution": "SELECTION_COMPLETED",
+      "decision": "ABSTAIN",
+      "abstainReason": "PREDICTIVE_FAMILY_MISSING"
+    },
+    {
+      "caseId": "AAPL_PREALIAS_2024-06-03",
+      "execution": "QUERY_REFUSED",
+      "decision": "ABSTAIN",
+      "abstainReason": "QUERY_NOT_COMPARABLE"
+    }
+  ],
+  "checkpointResume": "R0003 IN_PROGRESS_MINI_BUILD_AUTHORIZED"
+}

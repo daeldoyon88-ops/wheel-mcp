@@ -1,0 +1,59 @@
+{
+  "schema": "GATE26_MINI_SIZE_MEASUREMENT_V1",
+  "method": {
+    "methodId": "GATE26_MINI_SERIALIZED_ROW_BYTES_V1",
+    "basis": "REAL_DATA_MINI_PRODUCT_BYTES",
+    "indexRowBytes": "UTF-8 byte length of CanonicalJSON/1 of each ENSEMBLE_INDEX record as serialized in ENSEMBLE_INDEX.json",
+    "indexEnvelopeBytes": "byte length of the serialized ENSEMBLE_INDEX with zero records",
+    "provenanceRowBytes": "UTF-8 byte length of each per-record provenance manifest in PROVENANCE.json layout (JSON, 2-space indent)",
+    "projection": "envelope + rowCount x (maximum measured row bytes + separator); rowCount = GATE25 ANALOGUE_INDEX recordCount (one ensemble row per indexed observation)",
+    "conservatism": "maximum, not mean, measured row; provenance rows scale with analogue count, so the provenance projection at the MINI maximum analogue count is a lower bound where full-build analogue counts are larger"
+  },
+  "measured": {
+    "indexByteLength": 13358,
+    "indexEnvelopeByteLength": 302,
+    "provenanceByteLength": 24433,
+    "recordCount": 2,
+    "indexRows": [
+      {
+        "ensembleIdentityId": "24ca2b368c111ed3c918e37d728712d6bc976b94343e225f42bd3c30d6a9c8e5",
+        "decision": "ABSTAIN",
+        "rowBytes": 6531
+      },
+      {
+        "ensembleIdentityId": "e3ea72482d275c6a5d15940ef35ce6f8f705a98286196382be35dddb99e7dd8f",
+        "decision": "ABSTAIN",
+        "rowBytes": 6524
+      }
+    ],
+    "indexRowBytesMax": 6531,
+    "provenanceRows": [
+      {
+        "ensembleIdentityId": "24ca2b368c111ed3c918e37d728712d6bc976b94343e225f42bd3c30d6a9c8e5",
+        "analogueCount": 3,
+        "inputProofCount": 12,
+        "rowBytes": 9985
+      },
+      {
+        "ensembleIdentityId": "e3ea72482d275c6a5d15940ef35ce6f8f705a98286196382be35dddb99e7dd8f",
+        "analogueCount": 0,
+        "inputProofCount": 3,
+        "rowBytes": 3334
+      }
+    ],
+    "provenanceRowBytesMax": 9985,
+    "provenanceBytesPerAnalogue": 2217
+  },
+  "fullBuildProjection": {
+    "rowCountBasis": "GATE25_ANALOGUE_INDEX_RECORD_COUNT",
+    "analogueIndexSha256": "e32c2e3de4ee6d88b80ed27fec4f29b930c02ce022477ce084f7ae4c768a4f0b",
+    "rowCount": 68562,
+    "projectedEnsembleIndexBytes": 447847286,
+    "projectedEnsembleIndexClass": "LFS_REQUIRED",
+    "projectedProvenanceBytesAtMiniMaxAnalogueCount": 684728694,
+    "projectedProvenanceClassAtMiniMaxAnalogueCount": "LFS_REQUIRED",
+    "fullBuildRequiresLfsBeforeWrite": true
+  },
+  "lfsThresholdBytes": 52428800,
+  "miniClass": "NORMAL_GIT"
+}

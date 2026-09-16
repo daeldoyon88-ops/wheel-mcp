@@ -1,0 +1,26 @@
+{
+  "document": "GATE26_BINDING_ARTIFACT",
+  "schemaVersion": 1,
+  "gateId": "GATE26",
+  "bindingId": "GATE26_LFS_THRESHOLD_V1",
+  "requirementId": "G26-MINI-09",
+  "resolutionStatus": "OWNER_RESOLVED",
+  "ownerAuthorizationId": "OWNER_AUTHORIZE_GATE26_MINI_BUILD_SCOPE_CONTRACT_SUCCESSION_R1",
+  "deferredToContractIndex": 5,
+  "authority": {
+    "executionContractPath": "governance/gates/GATE26/contracts/EXECUTION_CONTRACT_R0002.json",
+    "executionContractRevision": "R0002",
+    "executionContractSha256": "b0ab114a7a8125d37c871addfc2d795f3900894edac287fd7a1d5a67150a8d93",
+    "bindingPointer": "/canonicalRequirements[requirementId=G26-MINI-09]/binding",
+    "bindingSha256Canonical": "1d0d0ede6bd62b55c016c61d1fa640bcadc5b117067be04491785f765b2c9bcb",
+    "mandatePath": "governance/sources/GATE26_CANONICAL_MANDATE_R0.json",
+    "mandateSha256": "5b02dc6628ca1874e0f60cbdf44823a1adc4b7c63d0428dfb78f3de16902b8b7"
+  },
+  "binding": {
+    "schema": "GATE26_LFS_THRESHOLD_V1",
+    "thresholdBytes": 52428800,
+    "rule": "REFUSE_WRITE_WITHOUT_LFS_POINTER_AT_OR_ABOVE_THRESHOLD",
+    "miniExpectedClass": "NORMAL_GIT",
+    "newPki": "FORBIDDEN"
+  }
+}

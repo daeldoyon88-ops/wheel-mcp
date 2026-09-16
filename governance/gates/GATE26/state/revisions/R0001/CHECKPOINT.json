@@ -1,0 +1,13 @@
+{
+  "gateId": "GATE26",
+  "stateRevision": "R0001",
+  "milestone": "GATE26_AUTHORIZATION",
+  "resumePoint": "AUTHORIZED_NOT_STARTED",
+  "completedTasks": [],
+  "openTasks": [],
+  "reusableEvidence": [],
+  "invalidatedEvidence": [],
+  "requiredNextActions": [],
+  "protectedHashes": [],
+  "createdAt": "2026-09-16T13:03:00.000Z"
+}

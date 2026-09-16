@@ -1,0 +1,44 @@
+{
+  "document": "GATE26_BINDING_ARTIFACT",
+  "schemaVersion": 1,
+  "gateId": "GATE26",
+  "bindingId": "GATE26_MULTI_HORIZON_OUTPUT_V1",
+  "requirementId": "G26-MINI-06",
+  "resolutionStatus": "OWNER_RESOLVED",
+  "ownerAuthorizationId": "OWNER_AUTHORIZE_GATE26_MINI_BUILD_SCOPE_CONTRACT_SUCCESSION_R1",
+  "deferredToContractIndex": 2,
+  "authority": {
+    "executionContractPath": "governance/gates/GATE26/contracts/EXECUTION_CONTRACT_R0002.json",
+    "executionContractRevision": "R0002",
+    "executionContractSha256": "b0ab114a7a8125d37c871addfc2d795f3900894edac287fd7a1d5a67150a8d93",
+    "bindingPointer": "/canonicalRequirements[requirementId=G26-MINI-06]/binding",
+    "bindingSha256Canonical": "547a0323f3f6831eed25e3df4dd7662c498bf88771d69193b8ca1180e45d4ee6",
+    "mandatePath": "governance/sources/GATE26_CANONICAL_MANDATE_R0.json",
+    "mandateSha256": "5b02dc6628ca1874e0f60cbdf44823a1adc4b7c63d0428dfb78f3de16902b8b7"
+  },
+  "binding": {
+    "schema": "GATE26_MULTI_HORIZON_OUTPUT_V1",
+    "coverage": "ALL_AND_ONLY",
+    "sessionCounts": [
+      30,
+      90,
+      180,
+      252
+    ],
+    "closedFields": [
+      "schema",
+      "ensembleIdentityId",
+      "horizonId",
+      "sessionCount",
+      "outcomeAvailability",
+      "analogueOutcomeSummary",
+      "supportDerivedConfidence",
+      "uncertainty",
+      "abstention",
+      "combinationTrace",
+      "provenanceBinding"
+    ],
+    "confidenceKind": "SUPPORT_DERIVED_NOT_PROBABILITY",
+    "calibratedProbability": null
+  }
+}

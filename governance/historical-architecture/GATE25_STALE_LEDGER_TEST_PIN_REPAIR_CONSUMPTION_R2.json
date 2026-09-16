@@ -1,0 +1,32 @@
+{
+  "documentKind": "POST_FREEZE_MAINTENANCE_AUTHORITY_CONSUMPTION",
+  "schemaVersion": 2,
+  "authorityId": "GATE25_STALE_LEDGER_TEST_PIN_REPAIR_LOCAL_AUTHORITY_R2",
+  "programId": "GATE25_STALE_LEDGER_TEST_PIN_REPAIR_R2",
+  "manifestSha256": "d65e59cc58c1f8ab04111a68187d991a8e274d2d288a8ed64a8f56b354d03897",
+  "baseHead": "734d9d94d11b9ef6b9b4b0dd1f034eadc3cd2783",
+  "consumedUse": 1,
+  "transactionId": "GATE25_STALE_LEDGER_TEST_PIN_REPAIR_R2_TRANSACTION",
+  "recordedAt": "2026-09-16T09:16:13.053Z",
+  "commitMessage": "test(governance): remove stale GATE25 ledger pin",
+  "publicationAdmission": {
+    "admissionId": "GATE25_STALE_LEDGER_TEST_PIN_REPAIR_PUBLICATION_ADMISSION_R2",
+    "admissionPath": "governance/authority/publication-admissions/GATE25/GATE25_STALE_LEDGER_TEST_PIN_REPAIR_PUBLICATION_ADMISSION_R2.json",
+    "admissionSha256": "5a62b7a66190b43a1118e52018532d0cc8e912a5202708d7658db87136424447"
+  },
+  "cohortSelfExclusion": {
+    "path": "governance/historical-architecture/GATE25_STALE_LEDGER_TEST_PIN_REPAIR_CONSUMPTION_R2.json",
+    "reason": "The consumption record cannot hash its own final bytes; its identity is bound by the authority and manifest instead."
+  },
+  "cohortPathCount": 2,
+  "cohort": [
+    {
+      "path": "governance/tests/gate-contract-succession-authority-primitive.test.mjs",
+      "sha256": "a5bc74f6d4eeb793653e7fe97407ff97974d3300c76329d0318f2581d314899e",
+      "byteLength": 76255,
+      "operation": "MODIFY",
+      "reason": "Remove the stale ledger pin and validate a lawful temporary future append using the existing closed-seal fixture, unchanged historical findings, zero introduced blockers, and exact before/after bytes.",
+      "artifactClass": "MAINTENANCE"
+    }
+  ]
+}

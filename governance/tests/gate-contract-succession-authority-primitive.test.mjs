@@ -38,6 +38,7 @@ import {
 import { FORBIDDEN_SIGNATURE_FIELDS } from '../gee-v1/core/post-freeze-maintenance-authority.mjs';
 import { CONTRACT_SUCCESSION_TRANSITIONS, CONTRACT_SUCCESSION_TRANSITION_TYPE, MODE_FULL, validateLedger } from '../tools/validate-status-ledger.mjs';
 import { canonicalize, sha256Canonical } from '../tools/canonical-json.mjs';
+import { buildLedgerEvents, rechain, stateBindingsFor, writeJson as writeFixtureJson, identity as fixtureIdentity, sealDocument, writeSeal, TRANSITION_AUTHORITY } from './closed-seal-fixture.mjs';
 import { createWheelGateContractSuccessionAuthoritySource } from '../gee-v1/adapters/wheel/gate-contract-succession-authority-source.mjs';
 import { WHEEL_EXTERNAL_AUTHORITY_POLICY as policy } from '../gee-v1/adapters/wheel/external-authority-policy.mjs';
 
@@ -696,13 +697,80 @@ test('G historical canonical succession records continue validating unchanged', 
   assert.equal(live.findings.some((item) => item.detectorId === 'CONTRACT_SUCCESSION_AUTHORITY_REPLAYED'), false);
 });
 
-test('H existing ledger bytes are not mutated by this repair', () => {
-  const before = shaFile(LIVE_LEDGER);
-  validateLedger({ root: REPO_ROOT, ledgerPath: LIVE_LEDGER, policy, mode: MODE_FULL });
+test('H existing ledger bytes are not mutated by this validation', () => {
+  const beforeBytes = fs.readFileSync(LIVE_LEDGER);
+  const before = sha(beforeBytes);
+  const baseline = validateLedger({ root: REPO_ROOT, ledgerPath: LIVE_LEDGER, policy, mode: MODE_FULL });
   validateGateContractSuccessionAuthorityShape(readRepoJson('governance/authority/authorizations/GATE25/GATE_CONTRACT_SUCCESSION_LOCAL_AUTHORITY.json'));
-  const after = shaFile(LIVE_LEDGER);
-  assert.equal(after, before);
-  assert.equal(before, '64f11d155fc0a6571d14f03a19c7240042c349796678811cf6e081567358bc85');
+  const afterBytes = fs.readFileSync(LIVE_LEDGER);
+  assert.equal(sha(afterBytes), before);
+  assert.deepEqual(afterBytes, beforeBytes);
+
+  // Reuse the canonical closed-seal fixture's RESUME event and chain builder.
+  // Only the disposable root receives this synthetic authority/state/append.
+  const events = baseline.events;
+  const last = events.at(-1);
+  const gateId = baseline.gates.find((gate) => gate.currentStatus === 'INTERRUPTED_RESUMABLE'
+    && !['GATE25', 'GATE26'].includes(gate.gateId))?.gateId;
+  assert.ok(gateId, 'A resumable gate is required for this temporary fixture');
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'g25-lawful-prefix-'));
+  try {
+    fs.cpSync(path.join(REPO_ROOT, 'governance'), path.join(tmp, 'governance'), { recursive: true });
+    const revision = 'governance/gates/' + gateId + '/state/revisions/R0001';
+    assert.equal(fs.existsSync(path.join(tmp, revision)), false, 'Do not replace existing state');
+    const contract = 'governance/gates/' + gateId + '/contracts/CURRENT_CONTRACT.json';
+    const recordedAt = new Date(Date.parse(last.recordedAt) + 1000).toISOString();
+    writeFixtureJson(tmp, TRANSITION_AUTHORITY, {
+      documentKind: 'FIXTURE_TRANSITION_AUTHORITY', issuedBy: 'PROJECT_OWNER',
+      purpose: 'Temporary closed-seal RESUME fixture only', gateId,
+      fromStatus: 'INTERRUPTED_RESUMABLE', toStatus: 'IN_PROGRESS', transitionType: 'RESUME'
+    });
+    writeFixtureJson(tmp, contract, { gateId, contractRevision: 'R0001' });
+    writeFixtureJson(tmp, revision + '/CHECKPOINT.json', { gateId, stateRevision: 'R0001', resumePoint: 'IN_PROGRESS' });
+    writeFixtureJson(tmp, revision + '/OPEN_DEFECTS.json', { gateId, stateRevision: 'R0001', defects: [] });
+    const members = [contract, revision + '/CHECKPOINT.json', revision + '/OPEN_DEFECTS.json'].map((p) => fixtureIdentity(tmp, p));
+    const seal = sealDocument({ gateId, stateRevision: 'R0001', members, previousStateSealSha256: null,
+      executionStatus: 'IN_PROGRESS', contractSha256: fixtureIdentity(tmp, contract).sha256 });
+    seal.sealedAt = recordedAt;
+    const sealSha = writeSeal(tmp, revision, seal);
+    writeFixtureJson(tmp, 'governance/gates/' + gateId + '/state/CURRENT_STATE.json', {
+      schemaVersion: 1, gateId, stateRevision: 'R0001', revisionPath: revision, stateSealSha256: sealSha
+    });
+    const resume = stateBindingsFor(null, sealSha).find((event) => event.transitionType === 'RESUME');
+    const template = buildLedgerEvents(tmp, [resume]).at(-1);
+    const future = rechain([...events, { ...template, gateId, stateRevision: 'R0001',
+      eventId: gateId + '_FUTURE_PREFIX_PROBE_' + (last.ordinal + 1), recordedAt }]).at(-1);
+    const out = path.join(tmp, 'governance/state/GATE_STATUS_LEDGER.ndjson');
+    fs.writeFileSync(out, Buffer.concat([beforeBytes, Buffer.from(canonicalize(future) + '\n')]));
+    const futureBeforeBytes = fs.readFileSync(out);
+    const futureBefore = sha(futureBeforeBytes);
+    assert.deepEqual(futureBeforeBytes.subarray(0, beforeBytes.length), beforeBytes);
+    const appended = validateLedger({ root: tmp, ledgerPath: out, policy, mode: MODE_FULL });
+    // Ignore only the transport path; preserve the complete diagnostic identity.
+    const findingSet = (report) => new Set(report.findings.filter((f) => f.severity === 'BLOCKING')
+      .map(({ ledgerPath, ...finding }) => canonicalize(finding)));
+    const baselineBlockingFindingSet = findingSet(baseline);
+    const appendedBlockingFindingSet = findingSet(appended);
+    const introducedBlockingFindings = [...appendedBlockingFindingSet].filter((key) => !baselineBlockingFindingSet.has(key));
+    assert.equal(introducedBlockingFindings.length, 0, JSON.stringify(introducedBlockingFindings));
+    assert.deepEqual([...appendedBlockingFindingSet].sort(), [...baselineBlockingFindingSet].sort());
+    assert.equal(appended.findings.some((f) => f.eventId === future.eventId && f.severity === 'BLOCKING'), false);
+    assert.equal(appended.events.length, events.length + 1);
+    assert.deepEqual(appended.events.at(-1), future);
+    assert.equal(appended.gates.find((gate) => gate.gateId === gateId).currentStatus, resume.toStatus);
+    assert.equal(future.fromStatus, baseline.gates.find((gate) => gate.gateId === gateId).currentStatus);
+    assert.ok(Date.parse(future.recordedAt) > Date.parse(last.recordedAt));
+    assert.equal(future.ordinal, last.ordinal + 1);
+    assert.equal(future.previousEventSha256, last.eventPayloadSha256);
+    assert.equal(future.eventPayloadSha256, recomputeEvent(future).eventPayloadSha256);
+    assert.equal(appended.findings.some((f) => f.eventId === future.eventId
+      && ['LEDGER_TIMESTAMP_REGRESSION', 'INVALID_STATUS_TRANSITION', 'LEDGER_CHAIN_BREAK'].includes(f.detectorId)), false);
+    const futureAfterBytes = fs.readFileSync(out);
+    assert.equal(sha(futureAfterBytes), futureBefore);
+    assert.deepEqual(futureAfterBytes, futureBeforeBytes);
+    assert.notEqual(futureBefore, before);
+    assert.deepEqual(fs.readFileSync(LIVE_LEDGER), beforeBytes);
+  } finally { fs.rmSync(tmp, { recursive: true, force: true }); }
 });
 
 /* ===================================================================== *

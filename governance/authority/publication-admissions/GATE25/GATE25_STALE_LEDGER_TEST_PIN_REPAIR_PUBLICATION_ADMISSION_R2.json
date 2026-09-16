@@ -1,0 +1,72 @@
+{
+  "documentKind": "MAINTENANCE_PUBLICATION_ADMISSION",
+  "schemaVersion": 1,
+  "authorityMode": "LOCAL_EXPLICIT_AUTHORITY",
+  "issuedBy": "PROJECT_OWNER",
+  "admissionId": "GATE25_STALE_LEDGER_TEST_PIN_REPAIR_PUBLICATION_ADMISSION_R2",
+  "decisionId": "OWNER_ADMIT_GATE25_STALE_LEDGER_TEST_PIN_REPAIR_R2",
+  "issuedAtUtc": "2026-09-16T09:11:45.082Z",
+  "expiresAtUtc": null,
+  "projectId": "WHEEL",
+  "repositoryId": "WHEEL_MCP_CANONICAL",
+  "gateId": "GATE25",
+  "programId": "GATE25_STALE_LEDGER_TEST_PIN_REPAIR_R2",
+  "purpose": "MAINTENANCE_PUBLICATION_ADMISSION",
+  "publicationClass": "PATH_PRESTATE_PROGRAM_PUBLISHER",
+  "authorityPurpose": "NORMAL_MAINTENANCE",
+  "maxUse": 1,
+  "admissionStatement": "Exact replacement of failed candidate fa810606371ae0de25759c5f79fe77d1eeec5811 from published parent 734d9d94d11b9ef6b9b4b0dd1f034eadc3cd2783, retained under a keep ref. Apply only the corrected test and publisher-generated consumption receipt. Synthetic lifecycle data exists only in a temporary fixture. No product, real lifecycle, GATE25 reopen, GATE26, or push authority. Protected bytes remain unchanged.",
+  "admittedAuthority": {
+    "path": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_GATE25_STALE_LEDGER_TEST_PIN_REPAIR_R2.json",
+    "sha256": "0943a08ae97237c074380d62d72845a59cff0ec09d3ad7520093015820b3dd57",
+    "byteLength": 2111,
+    "schemaVersion": 2,
+    "documentId": "GATE25_STALE_LEDGER_TEST_PIN_REPAIR_LOCAL_AUTHORITY_R2"
+  },
+  "admittedManifest": {
+    "path": "governance/historical-architecture/GATE25_STALE_LEDGER_TEST_PIN_REPAIR_AUTHORIZED_PATHS_R2.json",
+    "sha256": "d65e59cc58c1f8ab04111a68187d991a8e274d2d288a8ed64a8f56b354d03897",
+    "byteLength": 1208,
+    "schemaVersion": 2,
+    "documentId": "GATE25_STALE_LEDGER_TEST_PIN_REPAIR_AUTHORIZED_PATHS_R2"
+  },
+  "admittedPrestate": {
+    "baseHead": "734d9d94d11b9ef6b9b4b0dd1f034eadc3cd2783",
+    "ledgerEventCount": 109,
+    "ledgerPrefixSha256": "6855b07416703dcc89d3cecdf8105d7320acf2816466402fd9d5a55b48647f07",
+    "gateId": "GATE25",
+    "gateStatus": "COMPLETE_CONFIRMED",
+    "stateRevision": "R0005",
+    "contractRevision": "R0003",
+    "activeGate": "GATE13",
+    "R8ExpectedAbsent": true
+  },
+  "admittedOperationClasses": [
+    "MAINTENANCE"
+  ],
+  "grantsFutureBytePermission": false,
+  "grantsGateAuthorizationPermission": false,
+  "grantsStartPermission": false,
+  "grantsStatusTransitionPermission": false,
+  "grantsHistoricalAdmissionWidening": false,
+  "genericV1Admission": false,
+  "derivedFromGitDelta": false,
+  "derivedFromFinalGateIntegrityFindings": false,
+  "prohibitedOperations": [
+    "START",
+    "SECOND_START",
+    "GATE_AUTHORIZATION",
+    "STATUS_TRANSITION",
+    "ACTIVE_GATE_SWITCH",
+    "GEE_R8",
+    "GIT_PUSH",
+    "HISTORY_REWRITE",
+    "GENERIC_V1_ADMISSION",
+    "HISTORICAL_ADMISSION_WIDENING",
+    "SELF_ADMISSION"
+  ],
+  "successorRequirement": "A later publication requires a new exact Owner admission over a new exact pre-state.",
+  "admissionDigest": "6e377cccb80fb9e8bf59360aac5ae31a96240f0c504892dd4314d7910fb5a868",
+  "ownerAuthorizationPath": "governance/sources/MAINTENANCE_PUBLICATION_ADMISSION_OWNER_AUTHORIZATION_GATE25_STALE_LEDGER_TEST_PIN_REPAIR_R2.json",
+  "ownerAuthorizationSha256": "9792528efe1d51977e70049f5191c7251d698bbf229c60fb3453bb710065f66b"
+}

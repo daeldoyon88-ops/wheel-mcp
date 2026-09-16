@@ -1,0 +1,25 @@
+{
+  "document": "MAINTENANCE_PUBLICATION_ADMISSION_OWNER_AUTHORIZATION",
+  "schemaVersion": 1,
+  "authorityId": "GATE25_STALE_LEDGER_TEST_PIN_REPAIR_PUBLICATION_OWNER_AUTHORIZATION_R2",
+  "authorityClass": "PROJECT_OWNER_MAINTENANCE_PUBLICATION_ADMISSION_AUTHORITY",
+  "authorityMode": "LOCAL_EXPLICIT_AUTHORITY",
+  "issuedBy": "PROJECT_OWNER",
+  "issuedAtUtc": "2026-09-16T09:11:45.082Z",
+  "decisionId": "OWNER_ADMIT_GATE25_STALE_LEDGER_TEST_PIN_REPAIR_R2",
+  "purpose": "MAINTENANCE_PUBLICATION_ADMISSION",
+  "reexecutionAuthorized": false,
+  "grantsFutureBytePermission": false,
+  "genericV1Admission": false,
+  "admittedPublications": [
+    {
+      "admissionId": "GATE25_STALE_LEDGER_TEST_PIN_REPAIR_PUBLICATION_ADMISSION_R2",
+      "projectId": "WHEEL",
+      "gateId": "GATE25",
+      "programId": "GATE25_STALE_LEDGER_TEST_PIN_REPAIR_R2",
+      "admissionPath": "governance/authority/publication-admissions/GATE25/GATE25_STALE_LEDGER_TEST_PIN_REPAIR_PUBLICATION_ADMISSION_R2.json",
+      "admissionDigest": "6e377cccb80fb9e8bf59360aac5ae31a96240f0c504892dd4314d7910fb5a868"
+    }
+  ],
+  "registryDigest": "9f103125ce17b29e68419e373b5a2ad49e52d227c026046bac8782afaaf17ce5"
+}

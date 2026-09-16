@@ -1,0 +1,30 @@
+{
+  "documentKind": "POST_FREEZE_MAINTENANCE_AUTHORIZED_PATH_MANIFEST",
+  "schemaVersion": 2,
+  "manifestId": "GATE25_STALE_LEDGER_TEST_PIN_REPAIR_AUTHORIZED_PATHS_R2",
+  "programId": "GATE25_STALE_LEDGER_TEST_PIN_REPAIR_R2",
+  "paths": [
+    {
+      "path": "governance/tests/gate-contract-succession-authority-primitive.test.mjs",
+      "operation": "MODIFY",
+      "phase": "MAINTENANCE",
+      "reason": "Remove the stale ledger pin and validate a lawful temporary future append using the existing closed-seal fixture, unchanged historical findings, zero introduced blockers, and exact before/after bytes.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "PRESENT",
+        "sha256": "a99a42f2ede8654e7a06212ac82f3bd966f03ae9883dc9e0fc9bfc2113b21dbc",
+        "byteLength": 71031
+      }
+    },
+    {
+      "path": "governance/historical-architecture/GATE25_STALE_LEDGER_TEST_PIN_REPAIR_CONSUMPTION_R2.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "Single-use V2 consumption receipt composed by the canonical path-prestate publisher.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    }
+  ]
+}

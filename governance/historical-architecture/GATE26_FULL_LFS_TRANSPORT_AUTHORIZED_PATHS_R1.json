@@ -1,0 +1,30 @@
+{
+  "documentKind": "POST_FREEZE_MAINTENANCE_AUTHORIZED_PATH_MANIFEST",
+  "schemaVersion": 2,
+  "manifestId": "GATE26_FULL_LFS_TRANSPORT_AUTHORIZED_PATHS_R1",
+  "programId": "GATE26_FULL_LFS_TRANSPORT_R1",
+  "paths": [
+    {
+      "path": ".gitattributes",
+      "operation": "MODIFY",
+      "phase": "MAINTENANCE",
+      "reason": "Publication-transport only: append exactly the single line \"data/jarvise/predictive-ensemble/GATE26/V1/FULL/** filter=lfs diff=lfs merge=lfs -text\" immediately after the existing \"data/jarvise/predictive-ensemble/** -text\" line, so future GATE26 FULL products are transported through Git LFS. No other .gitattributes byte changes. Grants no permission to generate any data/jarvise/predictive-ensemble/GATE26/V1/FULL/** product byte.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "PRESENT",
+        "sha256": "2851709960c497b70e72e223cc77f5fe5dfc6660e8489bcf0584a1d60ac3de70",
+        "byteLength": 1643
+      }
+    },
+    {
+      "path": "governance/historical-architecture/GATE26_FULL_LFS_TRANSPORT_CONSUMPTION_R1.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "Single-use GATE26 FULL LFS transport R1 authority consumption receipt. Authorized by this manifest; created by the canonical publisher; not supplied as a candidate.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    }
+  ]
+}

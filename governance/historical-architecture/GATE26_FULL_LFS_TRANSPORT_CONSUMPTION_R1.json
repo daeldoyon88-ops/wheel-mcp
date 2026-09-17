@@ -1,0 +1,32 @@
+{
+  "documentKind": "POST_FREEZE_MAINTENANCE_AUTHORITY_CONSUMPTION",
+  "schemaVersion": 2,
+  "authorityId": "GATE26_FULL_LFS_TRANSPORT_LOCAL_AUTHORITY_R1",
+  "programId": "GATE26_FULL_LFS_TRANSPORT_R1",
+  "manifestSha256": "e67885fa4d7f9e91488f2ce6427585296a0d8c61c45ce6dc934e5531f91a6fa2",
+  "baseHead": "a731d0f7b924485d1339a7bd546e6c130a8df455",
+  "consumedUse": 1,
+  "transactionId": "GATE26_FULL_LFS_TRANSPORT_R1_TRANSACTION",
+  "recordedAt": "2026-09-17T00:00:00.000Z",
+  "commitMessage": "chore(gate26): add FULL LFS transport rule",
+  "publicationAdmission": {
+    "admissionId": "GATE26_FULL_LFS_TRANSPORT_PUBLICATION_ADMISSION_R1",
+    "admissionPath": "governance/authority/publication-admissions/GATE26/GATE26_FULL_LFS_TRANSPORT_PUBLICATION_ADMISSION_R1.json",
+    "admissionSha256": "1d7360e1dfb2791e943062d5643396f5ffa32c8d13afd6ed0d0a7e829322de30"
+  },
+  "cohortSelfExclusion": {
+    "path": "governance/historical-architecture/GATE26_FULL_LFS_TRANSPORT_CONSUMPTION_R1.json",
+    "reason": "The consumption record cannot hash its own final bytes; its identity is bound by the authority and manifest instead."
+  },
+  "cohortPathCount": 2,
+  "cohort": [
+    {
+      "path": ".gitattributes",
+      "sha256": "62b0f8638dba64da6cf430d30043df3bdf0d32ce480508a77a665910ec729161",
+      "byteLength": 1730,
+      "operation": "MODIFY",
+      "reason": "Publication-transport only: append exactly the single line \"data/jarvise/predictive-ensemble/GATE26/V1/FULL/** filter=lfs diff=lfs merge=lfs -text\" immediately after the existing \"data/jarvise/predictive-ensemble/** -text\" line, so future GATE26 FULL products are transported through Git LFS. No other .gitattributes byte changes. Grants no permission to generate any data/jarvise/predictive-ensemble/GATE26/V1/FULL/** product byte.",
+      "artifactClass": "MAINTENANCE"
+    }
+  ]
+}

@@ -27,3 +27,4 @@ data/jarvise/historical-analogue/GATE25/V1/ANALOGUE_INDEX.json filter=lfs diff=l
 # SIZE_MEASUREMENT and REHEARSAL_REPORT are pinned by the sha256 of their exact LF
 # bytes. Preserve bytes against core.autocrlf, never convert. Normal Git, no LFS.
 data/jarvise/predictive-ensemble/** -text
+data/jarvise/predictive-ensemble/GATE26/V1/FULL/** filter=lfs diff=lfs merge=lfs -text

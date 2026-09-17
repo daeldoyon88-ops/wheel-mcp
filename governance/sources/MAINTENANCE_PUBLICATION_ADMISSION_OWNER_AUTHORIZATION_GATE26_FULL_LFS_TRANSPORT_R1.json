@@ -1,0 +1,25 @@
+{
+  "document": "MAINTENANCE_PUBLICATION_ADMISSION_OWNER_AUTHORIZATION",
+  "schemaVersion": 1,
+  "authorityId": "GATE26_FULL_LFS_TRANSPORT_PUBLICATION_OWNER_AUTHORIZATION_R1",
+  "authorityClass": "PROJECT_OWNER_MAINTENANCE_PUBLICATION_ADMISSION_AUTHORITY",
+  "authorityMode": "LOCAL_EXPLICIT_AUTHORITY",
+  "issuedBy": "PROJECT_OWNER",
+  "issuedAtUtc": "2026-09-17T00:00:00.000Z",
+  "decisionId": "OWNER_ADMIT_GATE26_FULL_LFS_TRANSPORT_R1",
+  "purpose": "MAINTENANCE_PUBLICATION_ADMISSION",
+  "reexecutionAuthorized": false,
+  "grantsFutureBytePermission": false,
+  "genericV1Admission": false,
+  "admittedPublications": [
+    {
+      "admissionId": "GATE26_FULL_LFS_TRANSPORT_PUBLICATION_ADMISSION_R1",
+      "projectId": "WHEEL",
+      "gateId": "GATE26",
+      "programId": "GATE26_FULL_LFS_TRANSPORT_R1",
+      "admissionPath": "governance/authority/publication-admissions/GATE26/GATE26_FULL_LFS_TRANSPORT_PUBLICATION_ADMISSION_R1.json",
+      "admissionDigest": "183d8baa5d21e00c55a6d92ebd31e975ef9caaed045d5d4801552069bef12430"
+    }
+  ],
+  "registryDigest": "3b070943b7ff02a65bb3710cf2e61cb0a30539dd379e7a9ff15236f774824c24"
+}

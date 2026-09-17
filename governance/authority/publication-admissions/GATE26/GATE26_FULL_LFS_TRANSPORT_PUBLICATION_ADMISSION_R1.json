@@ -1,0 +1,72 @@
+{
+  "documentKind": "MAINTENANCE_PUBLICATION_ADMISSION",
+  "schemaVersion": 1,
+  "authorityMode": "LOCAL_EXPLICIT_AUTHORITY",
+  "issuedBy": "PROJECT_OWNER",
+  "admissionId": "GATE26_FULL_LFS_TRANSPORT_PUBLICATION_ADMISSION_R1",
+  "decisionId": "OWNER_ADMIT_GATE26_FULL_LFS_TRANSPORT_R1",
+  "issuedAtUtc": "2026-09-17T00:00:00.000Z",
+  "expiresAtUtc": null,
+  "projectId": "WHEEL",
+  "repositoryId": "WHEEL_MCP_CANONICAL",
+  "gateId": "GATE26",
+  "programId": "GATE26_FULL_LFS_TRANSPORT_R1",
+  "purpose": "MAINTENANCE_PUBLICATION_ADMISSION",
+  "publicationClass": "PATH_PRESTATE_PROGRAM_PUBLISHER",
+  "authorityPurpose": "NORMAL_MAINTENANCE",
+  "maxUse": 1,
+  "admissionStatement": "One exact Owner admission for the bounded GATE26 FULL LFS transport program: modify ONLY .gitattributes by appending the single rule \"data/jarvise/predictive-ensemble/GATE26/V1/FULL/** filter=lfs diff=lfs merge=lfs -text\" after the existing \"data/jarvise/predictive-ensemble/** -text\" line, plus one publisher-generated consumption receipt. It grants no permission to generate any data/jarvise/predictive-ensemble/GATE26/V1/FULL/** product byte, no FULL implementation, no R0002->R0003 contract succession, no B0/B1, no ledger event, no GATE26 closure and no GATE27. Contract, state, ledger, ACTIVE_GATE and CURRENT_CONTRACT stay unmodified. It grants no push and no published-history rewrite.",
+  "admittedAuthority": {
+    "path": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_GATE26_FULL_LFS_TRANSPORT_R1.json",
+    "sha256": "ea13525964549537e66062d646ff853efd7ae4be81155cd9af988817574cc84a",
+    "byteLength": 2048,
+    "schemaVersion": 2,
+    "documentId": "GATE26_FULL_LFS_TRANSPORT_LOCAL_AUTHORITY_R1"
+  },
+  "admittedManifest": {
+    "path": "governance/historical-architecture/GATE26_FULL_LFS_TRANSPORT_AUTHORIZED_PATHS_R1.json",
+    "sha256": "e67885fa4d7f9e91488f2ce6427585296a0d8c61c45ce6dc934e5531f91a6fa2",
+    "byteLength": 1437,
+    "schemaVersion": 2,
+    "documentId": "GATE26_FULL_LFS_TRANSPORT_AUTHORIZED_PATHS_R1"
+  },
+  "admittedPrestate": {
+    "baseHead": "a731d0f7b924485d1339a7bd546e6c130a8df455",
+    "ledgerEventCount": 113,
+    "ledgerPrefixSha256": "20c2198f2d9384ab46681e22a0252b5f05fc8e36f0181720846f612bdb0ce433",
+    "gateId": "GATE26",
+    "gateStatus": "IN_PROGRESS",
+    "stateRevision": "R0003",
+    "contractRevision": "R0002",
+    "activeGate": "GATE13",
+    "R8ExpectedAbsent": true
+  },
+  "admittedOperationClasses": [
+    "MAINTENANCE"
+  ],
+  "grantsFutureBytePermission": false,
+  "grantsGateAuthorizationPermission": false,
+  "grantsStartPermission": false,
+  "grantsStatusTransitionPermission": false,
+  "grantsHistoricalAdmissionWidening": false,
+  "genericV1Admission": false,
+  "derivedFromGitDelta": false,
+  "derivedFromFinalGateIntegrityFindings": false,
+  "prohibitedOperations": [
+    "START",
+    "SECOND_START",
+    "GATE_AUTHORIZATION",
+    "STATUS_TRANSITION",
+    "ACTIVE_GATE_SWITCH",
+    "GEE_R8",
+    "GIT_PUSH",
+    "HISTORY_REWRITE",
+    "GENERIC_V1_ADMISSION",
+    "HISTORICAL_ADMISSION_WIDENING",
+    "SELF_ADMISSION"
+  ],
+  "successorRequirement": "A later publication requires a new exact Owner admission over a new exact pre-state.",
+  "admissionDigest": "183d8baa5d21e00c55a6d92ebd31e975ef9caaed045d5d4801552069bef12430",
+  "ownerAuthorizationPath": "governance/sources/MAINTENANCE_PUBLICATION_ADMISSION_OWNER_AUTHORIZATION_GATE26_FULL_LFS_TRANSPORT_R1.json",
+  "ownerAuthorizationSha256": "160fda2de2a5e9408dd8c6651b52ebe7315c5832a7e4fd5d8717e4b945b64334"
+}

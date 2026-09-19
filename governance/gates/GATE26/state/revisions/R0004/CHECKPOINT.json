@@ -1,0 +1,34 @@
+{
+  "gateId": "GATE26",
+  "stateRevision": "R0004",
+  "milestone": "GATE26_CONTRACT_SUCCESSION",
+  "resumePoint": "IN_PROGRESS_FULL_PREBUILD_AUTHORIZED",
+  "completedTasks": [
+    "GATE26_CONTRACT_SUCCESSION_R0001_TO_R0002",
+    "GATE26_MINI_BUILD_FUNCTIONAL",
+    "GATE26_CONTRACT_SUCCESSION_R0002_TO_R0003"
+  ],
+  "openTasks": [
+    "GATE26_FULL_PREBUILD_FUNCTIONAL"
+  ],
+  "reusableEvidence": [
+    "GATE26_MINI_BUILD_R1",
+    "GATE26_FULL_LFS_TRANSPORT_R1",
+    "B0_BASE_HEAD_CAUSAL_CYCLE_PROOF"
+  ],
+  "invalidatedEvidence": [],
+  "requiredNextActions": [
+    "GATE26_FULL_PREBUILD_FUNCTIONAL"
+  ],
+  "protectedHashes": [
+    {
+      "path": ".gitattributes",
+      "sha256": "62b0f8638dba64da6cf430d30043df3bdf0d32ce480508a77a665910ec729161"
+    },
+    {
+      "path": "governance/gates/GATE26/contracts/EXECUTION_CONTRACT_R0002.json",
+      "sha256": "b0ab114a7a8125d37c871addfc2d795f3900894edac287fd7a1d5a67150a8d93"
+    }
+  ],
+  "createdAt": "2026-09-17T00:00:00.000Z"
+}

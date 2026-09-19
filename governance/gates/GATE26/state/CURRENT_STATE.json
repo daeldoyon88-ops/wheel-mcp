@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "gateId": "GATE26",
-  "stateRevision": "R0003",
-  "revisionPath": "governance/gates/GATE26/state/revisions/R0003",
-  "stateSealSha256": "1834a725f603a33af730e2842c1eba81ef489e656ecbff0e4150a467ce9fc90c",
-  "committedByTransactionId": "GATE26_CONTRACT_SUCCESSION_R0002_R1_TRANSACTION"
+  "stateRevision": "R0004",
+  "revisionPath": "governance/gates/GATE26/state/revisions/R0004",
+  "stateSealSha256": "d2d4ceecdbc7f71aba2efe9e358f0d4b80ff79faf07ce23d6e08fcf5035098f8",
+  "committedByTransactionId": "GATE26_CONTRACT_SUCCESSION_R0003_R1_TRANSACTION"
 }

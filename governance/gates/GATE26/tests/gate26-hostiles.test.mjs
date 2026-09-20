@@ -25,7 +25,8 @@ import {
 } from '../implementation/ensemble-provenance-v1.mjs';
 import { consumeEnsemble, consumePublishedEnsemble, refuseWheelScanInlineCompute } from '../implementation/consumption-boundary-v1.mjs';
 import {
-  combineFrozenSelection, loadGate26MiniBuildAuthority, readEnsembleCache, writeEnsembleCache,
+  combineFrozenSelection, ENSEMBLE_CACHE_MAX_ENTRIES, ensembleCacheSize, loadGate26MiniBuildAuthority,
+  readEnsembleCache, writeEnsembleCache,
 } from '../implementation/predictive-ensemble-engine-v1.mjs';
 import { MINI_PRODUCT_PATHS_V1, REHEARSAL_REPORT_PATH_V1 } from '../implementation/mini-fixture-v1.mjs';
 import { fixtureInputBinding, mixedSelection } from './gate26-foundation.test.mjs';
@@ -138,6 +139,61 @@ refuse(() => verifyProvenanceBinding({ manifest: manifestOf(clone(), withAnalogu
 /* H10 stale cache never silent hit */
 refuse(() => writeEnsembleCache(sha256Canonical('old'), {}, sha256Canonical('new')), 'STALE_CACHE_SILENT_HIT_FORBIDDEN');
 check(() => assert.equal(readEnsembleCache(sha256Canonical('never-written')), null));
+
+/* H10b bounded engine cache: exact 128-entry retention with deterministic FIFO eviction.
+ *
+ * The cache is a stale-identity guard, never an output source, so the decisive
+ * assertions are that the bound holds under hostile volume, that eviction is
+ * deterministic, and that an evicted identity recomputes to the same bytes.
+ */
+const cacheId = (seed) => sha256Canonical(`H22-${seed}`);
+const cachePut = (seed) => writeEnsembleCache(cacheId(seed), { identity: { ensembleIdentityId: cacheId(seed) }, seed }, cacheId(seed));
+
+/* Byte identity across warm hit, forced eviction and recomputation, on a real selection. */
+const warmPayload = combineFrozenSelection({ authority, selection, inputBinding });
+const warmDigest = sha256Canonical(warmPayload);
+const warmIdentityId = warmPayload.identity.ensembleIdentityId;
+check(() => assert.notEqual(readEnsembleCache(warmIdentityId), null));
+check(() => assert.equal(sha256Canonical(combineFrozenSelection({ authority, selection, inputBinding })), warmDigest));
+
+/* 128 fresh identities fill the cache exactly; the 129th evicts exactly the oldest. */
+for (let i = 0; i < ENSEMBLE_CACHE_MAX_ENTRIES; i += 1) cachePut(`A${i}`);
+check(() => assert.equal(ensembleCacheSize(), ENSEMBLE_CACHE_MAX_ENTRIES));
+check(() => assert.notEqual(readEnsembleCache(cacheId('A0')), null));
+cachePut('A128');
+check(() => assert.equal(ensembleCacheSize(), ENSEMBLE_CACHE_MAX_ENTRIES));
+check(() => assert.equal(readEnsembleCache(cacheId('A0')), null));
+check(() => assert.notEqual(readEnsembleCache(cacheId('A1')), null));
+check(() => assert.notEqual(readEnsembleCache(cacheId('A128')), null));
+
+/* The warm identity has been evicted by volume; recomputation is byte-identical. */
+check(() => assert.equal(readEnsembleCache(warmIdentityId), null));
+check(() => assert.equal(sha256Canonical(combineFrozenSelection({ authority, selection, inputBinding })), warmDigest));
+
+/* Hostile volume never exceeds the bound. */
+let observedMax = 0;
+for (let i = 0; i < 20000; i += 1) { cachePut(`B${i}`); observedMax = Math.max(observedMax, ensembleCacheSize()); }
+check(() => assert.equal(observedMax, ENSEMBLE_CACHE_MAX_ENTRIES));
+
+/* Re-writing a retained identity neither grows the cache nor refreshes its FIFO position. */
+const sizeBeforeRewrite = ensembleCacheSize();
+cachePut('B19999');
+check(() => assert.equal(ensembleCacheSize(), sizeBeforeRewrite));
+
+/* The same insertion sequence twice survives identically: eviction is deterministic. */
+const survivorsOf = (count) => Array.from({ length: count }, (item, i) => i).filter((i) => readEnsembleCache(cacheId(`C${i}`)) !== null).join(',');
+for (let i = 0; i < 300; i += 1) cachePut(`C${i}`);
+const firstSurvivors = survivorsOf(300);
+for (let i = 0; i < 300; i += 1) cachePut(`C${i}`);
+check(() => assert.equal(survivorsOf(300), firstSurvivors));
+/* Exactly the last 128 inserted identities survive. */
+check(() => assert.equal(firstSurvivors, Array.from({ length: ENSEMBLE_CACHE_MAX_ENTRIES }, (item, i) => 300 - ENSEMBLE_CACHE_MAX_ENTRIES + i).join(',')));
+
+/* Interleaving unrelated traffic does not change a given query's output. */
+for (let i = 0; i < 777; i += 1) cachePut(`D${i}`);
+check(() => assert.equal(sha256Canonical(combineFrozenSelection({ authority, selection, inputBinding })), warmDigest));
+check(() => assert.ok(ensembleCacheSize() <= ENSEMBLE_CACHE_MAX_ENTRIES));
+
 
 /* H11 partial artifact */
 const truncated = indexBytes.subarray(0, Math.floor(indexBytes.length / 2));

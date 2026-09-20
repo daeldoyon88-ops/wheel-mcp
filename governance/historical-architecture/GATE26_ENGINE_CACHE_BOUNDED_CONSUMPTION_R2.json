@@ -1,0 +1,64 @@
+{
+  "documentKind": "POST_FREEZE_MAINTENANCE_AUTHORITY_CONSUMPTION",
+  "schemaVersion": 2,
+  "authorityId": "GATE26_ENGINE_CACHE_BOUNDED_LOCAL_AUTHORITY_R2",
+  "programId": "GATE26_ENGINE_CACHE_BOUNDED_R2",
+  "manifestSha256": "8f69bd6e6041ce9f09e7ab18cf1df1335eccc58d22cef8ac51b8fc174e65f9f6",
+  "baseHead": "9b72c873704aad1bca64667883682bd2fbfde545",
+  "consumedUse": 1,
+  "transactionId": "GATE26_ENGINE_CACHE_BOUNDED_R2_PROGRAM_TRANSACTION",
+  "recordedAt": "2026-09-20T14:33:54.386Z",
+  "commitMessage": "fix(gate26): bound predictive engine cache to 128 entries",
+  "publicationAdmission": {
+    "admissionId": "GATE26_ENGINE_CACHE_BOUNDED_PUBLICATION_ADMISSION_R2",
+    "admissionPath": "governance/authority/publication-admissions/GATE26/GATE26_ENGINE_CACHE_BOUNDED_PUBLICATION_ADMISSION_R2.json",
+    "admissionSha256": "57e0897244f5411fdd4e403bad5175b70f90ce538facc7a6ca2644b1d5a3d118"
+  },
+  "cohortSelfExclusion": {
+    "path": "governance/historical-architecture/GATE26_ENGINE_CACHE_BOUNDED_CONSUMPTION_R2.json",
+    "reason": "The consumption record cannot hash its own final bytes; its identity is bound by the authority and manifest instead."
+  },
+  "cohortPathCount": 6,
+  "cohort": [
+    {
+      "path": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_GATE26_ENGINE_CACHE_BOUNDED_R2.json",
+      "sha256": "46667ab0a5efec0097ebfaa110f2e490b85de0c0389a36105f6ec3899843f205",
+      "byteLength": 2073,
+      "operation": "CREATE",
+      "reason": "The Owner-issued LOCAL_EXPLICIT_AUTHORITY document for this causally rebuilt bounded engine-cache maintenance. Bootstrap member: it must be readable to evaluate the program, so it is pre-state self-excluded while remaining inside the authorized set and inside the consumption cohort.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "governance/historical-architecture/GATE26_ENGINE_CACHE_BOUNDED_AUTHORIZED_PATHS_R2.json",
+      "sha256": "8f69bd6e6041ce9f09e7ab18cf1df1335eccc58d22cef8ac51b8fc174e65f9f6",
+      "byteLength": 4613,
+      "operation": "CREATE",
+      "reason": "This authorized-path manifest. Bootstrap member: it must be readable to evaluate the program, so it is pre-state self-excluded while remaining digest-pinned by the authority.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "governance/gates/GATE26/implementation/predictive-ensemble-engine-v1.mjs",
+      "sha256": "ac801f2566bc7904cf6665e7ad84fde9cb45564d3bac99c5b42e65202ef1060b",
+      "byteLength": 19768,
+      "operation": "MODIFY",
+      "reason": "Bound the module-level ensemble CACHE to exactly 128 entries with deterministic FIFO eviction on insertion order. The cached payload is never returned as authoritative output; combineFrozenSelection always recomputes. Selection, scoring, ABSTAIN, horizons, provenance, schemas and output bytes are unchanged. Grants no permission to generate any GATE26 FULL product byte and no Phase D readiness.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "governance/gates/GATE26/tests/gate26-hostiles.test.mjs",
+      "sha256": "78ff45196f680b45b256ab502b4d892fab0a324a84aeacf5874e3e2f27d1b52e",
+      "byteLength": 26807,
+      "operation": "MODIFY",
+      "reason": "Add hostile regression coverage for the bounded cache: exact 128 retention, single deterministic eviction at 129, 20,000 unique identities never exceeding 128, deterministic survivors, existing-key rewrite without growth or FIFO refresh, evicted-identity recomputation byte identity, and preservation of the existing STALE_CACHE_SILENT_HIT_FORBIDDEN refusals. No stale inherited governance assertion is repaired.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "governance/gates/GATE26/tests/gate26-replay.test.mjs",
+      "sha256": "aa84595bf19ff40f2fb10bc689b79dad7ce56c42101f8888325600417a69da4b",
+      "byteLength": 17956,
+      "operation": "MODIFY",
+      "reason": "Assert that forced cache eviction and recomputation reproduce byte-identical MINI product bytes across the serialized replay boundary, so bounding the cache cannot alter replay identity, scoring, selection, ABSTAIN or horizon outputs.",
+      "artifactClass": "MAINTENANCE"
+    }
+  ]
+}

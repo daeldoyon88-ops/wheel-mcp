@@ -117,8 +117,29 @@ async function runChild() {
   const proofsAfterCutoff = diskProvenance.records.flatMap((manifest) => manifest.inputProofs)
     .filter((proof) => Date.parse(proof.availableAt) > Date.parse(proof.knowledgeCutoff)).length;
 
+  /* Bounding the engine cache cannot change replay bytes. The control identity is
+   * evicted by volume and then recomputed in this same child process: the cache is
+   * a stale-identity guard, never an output source, so the bytes must be identical. */
+  const controlWarmDigest = sha256Bytes(Buffer.from(canonicalize(controlCombined), 'utf8'));
+  for (let i = 0; i < engine.ENSEMBLE_CACHE_MAX_ENTRIES * 2; i += 1) {
+    const syntheticId = sha256Bytes(Buffer.from(`REPLAY_CACHE_PRESSURE_${i}`, 'utf8'));
+    engine.writeEnsembleCache(syntheticId, { identity: { ensembleIdentityId: syntheticId } }, syntheticId);
+  }
+  const controlEvicted = engine.readEnsembleCache(controlCombined.identity.ensembleIdentityId) === null;
+  const controlRecombined = engine.combineFrozenSelection({ authority, selection: controlSelection, inputBinding });
+  const cacheBound = {
+    maxEntries: engine.ENSEMBLE_CACHE_MAX_ENTRIES,
+    observedSize: engine.ensembleCacheSize(),
+    controlEvicted,
+    recomputedDigest: sha256Bytes(Buffer.from(canonicalize(controlRecombined), 'utf8')),
+    warmDigest: controlWarmDigest,
+    recomputedDecision: controlRecombined.decision,
+    recomputedHorizons: controlRecombined.horizons.map((horizon) => `${horizon.sessionCount}:${horizon.outcomeAvailability}:${horizon.abstention.decision}`),
+  };
+
   const summary = {
     productSha256,
+    cacheBound,
     networkCalls,
     datasetId: inputBinding.datasetId,
     anchorCausality,
@@ -227,6 +248,15 @@ async function runParent() {
   check(() => assert.equal(summary.control.decision, 'PROCEED'));
   check(() => assert.equal(summary.control.consumerDecision, 'CONSUME'));
   check(() => assert.equal(summary.control.consumerDataset, summary.datasetId));
+  /* Bounded cache: the bound holds in the real replay process, the control identity
+   * was genuinely evicted, and recomputation after eviction is byte-identical. */
+  check(() => assert.equal(summary.cacheBound.maxEntries, 128));
+  check(() => assert.ok(summary.cacheBound.observedSize <= 128));
+  check(() => assert.equal(summary.cacheBound.controlEvicted, true));
+  check(() => assert.equal(summary.cacheBound.recomputedDigest, summary.cacheBound.warmDigest));
+  check(() => assert.equal(summary.cacheBound.recomputedDecision, summary.control.decision));
+  check(() => assert.deepEqual(summary.cacheBound.recomputedHorizons, summary.control.horizonAbstentions));
+
 
   console.log(`GATE26_REPLAY_PASS ${assertions} control=${summary.control.sessionDate} ${summary.control.horizonAbstentions.join(',')}`);
 }

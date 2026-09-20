@@ -1,0 +1,86 @@
+{
+  "documentKind": "POST_FREEZE_MAINTENANCE_AUTHORIZED_PATH_MANIFEST",
+  "schemaVersion": 2,
+  "manifestId": "GATE26_ENGINE_CACHE_BOUNDED_AUTHORIZED_PATHS_R2",
+  "programId": "GATE26_ENGINE_CACHE_BOUNDED_R2",
+  "paths": [
+    {
+      "path": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_GATE26_ENGINE_CACHE_BOUNDED_R2.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "The Owner-issued LOCAL_EXPLICIT_AUTHORITY document for this causally rebuilt bounded engine-cache maintenance. Bootstrap member: it must be readable to evaluate the program, so it is pre-state self-excluded while remaining inside the authorized set and inside the consumption cohort.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "governance/historical-architecture/GATE26_ENGINE_CACHE_BOUNDED_AUTHORIZED_PATHS_R2.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "This authorized-path manifest. Bootstrap member: it must be readable to evaluate the program, so it is pre-state self-excluded while remaining digest-pinned by the authority.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "governance/gates/GATE26/implementation/predictive-ensemble-engine-v1.mjs",
+      "operation": "MODIFY",
+      "phase": "MAINTENANCE",
+      "reason": "Bound the module-level ensemble CACHE to exactly 128 entries with deterministic FIFO eviction on insertion order. The cached payload is never returned as authoritative output; combineFrozenSelection always recomputes. Selection, scoring, ABSTAIN, horizons, provenance, schemas and output bytes are unchanged. Grants no permission to generate any GATE26 FULL product byte and no Phase D readiness.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "PRESENT",
+        "sha256": "e2ec05e0f4083f026f1cbaceb6ee6e50aed6d774eebf0f349ccc4c3d4e2e0f74",
+        "byteLength": 18564
+      }
+    },
+    {
+      "path": "governance/gates/GATE26/tests/gate26-hostiles.test.mjs",
+      "operation": "MODIFY",
+      "phase": "MAINTENANCE",
+      "reason": "Add hostile regression coverage for the bounded cache: exact 128 retention, single deterministic eviction at 129, 20,000 unique identities never exceeding 128, deterministic survivors, existing-key rewrite without growth or FIFO refresh, evicted-identity recomputation byte identity, and preservation of the existing STALE_CACHE_SILENT_HIT_FORBIDDEN refusals. No stale inherited governance assertion is repaired.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "PRESENT",
+        "sha256": "63d34f5d2d12bb6a1289099f2d2e3d8d4506a0ccddb0131d70af6208f636651a",
+        "byteLength": 23399
+      }
+    },
+    {
+      "path": "governance/gates/GATE26/tests/gate26-replay.test.mjs",
+      "operation": "MODIFY",
+      "phase": "MAINTENANCE",
+      "reason": "Assert that forced cache eviction and recomputation reproduce byte-identical MINI product bytes across the serialized replay boundary, so bounding the cache cannot alter replay identity, scoring, selection, ABSTAIN or horizon outputs.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "PRESENT",
+        "sha256": "2fd5023247aea91589d2eaf77414cd07a90021c36249f7881c609bdcdce70f37",
+        "byteLength": 15950
+      }
+    },
+    {
+      "path": "governance/historical-architecture/GATE26_ENGINE_CACHE_BOUNDED_CONSUMPTION_R2.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "Single-use authority consumption receipt for this program. It is deliberately NOT created by this mission: no commit, no push and no closure are authorized here, so the authority remains unconsumed and the receipt absent for the separate owner-run publication step.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    }
+  ],
+  "prestateSelfExclusion": [
+    {
+      "path": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_GATE26_ENGINE_CACHE_BOUNDED_R2.json",
+      "role": "AUTHORITY_DOCUMENT",
+      "reason": "Read by the evaluator to decide the program; unavoidably PRESENT at authorize time while its operation is CREATE."
+    },
+    {
+      "path": "governance/historical-architecture/GATE26_ENGINE_CACHE_BOUNDED_AUTHORIZED_PATHS_R2.json",
+      "role": "AUTHORIZED_PATH_MANIFEST",
+      "reason": "Read by the evaluator to decide the program; unavoidably PRESENT at authorize time while its operation is CREATE."
+    }
+  ]
+}

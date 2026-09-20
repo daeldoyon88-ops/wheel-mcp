@@ -204,7 +204,28 @@ export function deriveSelectionInputBinding({ selection, inputBinding }) {
   return Object.freeze({ datasetIdObservation: identityDataset, inputBinding: binding });
 }
 
+/**
+ * Bounded ensemble cache. The module-level Map retained one entry per unique
+ * ensemble identity for the lifetime of the process and never evicted, so a
+ * FULL-scale run would retain every identity it had ever computed. The bound is
+ * exact and the eviction order is deterministic: a Map iterates in insertion
+ * order, so the evicted entry is always the oldest inserted one, and re-writing
+ * an existing identity does not refresh its position.
+ *
+ * Bounding cannot change what the engine emits. The cached payload is never
+ * returned as an authoritative output: combineFrozenSelection recomputes every
+ * payload from the frozen selection, and readEnsembleCache is consulted only as
+ * a stale-identity guard. Eviction therefore turns a guard hit into a guard
+ * miss and nothing else, so a recomputed identity yields byte-identical bytes.
+ */
+export const ENSEMBLE_CACHE_MAX_ENTRIES = 128;
+
 const CACHE = new Map();
+
+/** Retained entry count. Observation only; it is never an input to a product. */
+export function ensembleCacheSize() {
+  return CACHE.size;
+}
 
 export function readEnsembleCache(identityId) {
   return CACHE.get(identityId) ?? null;
@@ -213,6 +234,11 @@ export function readEnsembleCache(identityId) {
 export function writeEnsembleCache(identityId, payload, currentIdentityId) {
   if (identityId !== currentIdentityId) failClosed('STALE_CACHE_SILENT_HIT_FORBIDDEN', { identityId, currentIdentityId });
   CACHE.set(identityId, payload);
+  while (CACHE.size > ENSEMBLE_CACHE_MAX_ENTRIES) {
+    const oldest = CACHE.keys().next();
+    if (oldest.done) break;
+    CACHE.delete(oldest.value);
+  }
   return payload;
 }
 

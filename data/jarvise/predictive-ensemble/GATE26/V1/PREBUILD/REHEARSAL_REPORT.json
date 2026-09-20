@@ -1,0 +1,306 @@
+{
+  "schema": "GATE26_FULL_PREBUILD_REHEARSAL_REPORT_V1",
+  "authority": {
+    "contractRevision": "R0003",
+    "contractSha256": "dddbc62956eb658b8207126a18edd9c7317e845f4c2b56374a6c05c28e90f381",
+    "productFilesAuthorized": false,
+    "fullProductionAuthorized": false,
+    "fullProductRoot": "data/jarvise/predictive-ensemble/GATE26/V1/FULL",
+    "fullProductBytesCreated": false
+  },
+  "rehearsalInput": {
+    "kind": "BOUNDED_SYNTHETIC_SEEDED_BY_EXISTING_MINI_EVIDENCE",
+    "miniEvidence": [
+      {
+        "path": "data/jarvise/predictive-ensemble/GATE26/V1/MINI/PROVENANCE.json",
+        "sha256": "f01508f16f438fd59cd6e7d5aee758cfac32320d688adcf5829f7738c4053782"
+      },
+      {
+        "path": "data/jarvise/predictive-ensemble/GATE26/V1/MINI/SIZE_MEASUREMENT.json",
+        "sha256": "5f38c56cf9a334b4521aa07da5bdabf068d3806c9e38cad462d3335a03d0ad5d"
+      }
+    ],
+    "horizonContract": {
+      "path": "governance/gates/GATE22/contracts/GATE22_TEMPORAL_HORIZON_V1.json",
+      "sha256": "c53ec179919f90593efdaad625187bc56218a4615bd7d0cecb415a27d4b55783"
+    },
+    "publishedGate25AnalogueIndexRead": false,
+    "yahoo": false,
+    "network": {
+      "trapInstalled": true,
+      "attemptedCalls": []
+    },
+    "producer": {
+      "producerId": "GATE26_PREBUILD_SYNTHETIC_SELECTION_PRODUCER_V1",
+      "pipeline": [
+        "GATE25.freezeSelection",
+        "GATE25.attachPostSelectionOutcomes",
+        "GATE26.combineFrozenSelection",
+        "GATE26.buildEnsembleIndexRecord"
+      ],
+      "syntheticParts": [
+        "ANALOGUE_INDEX_RECORDS",
+        "PREFIX_ANALOGUE_COHORTS",
+        "OUTCOME_SOURCE"
+      ]
+    }
+  },
+  "syntheticCohort": {
+    "sourceLabel": "SYNTHETIC:GATE26_PREBUILD_REHEARSAL_SOURCE_V1",
+    "sourceSha256": "c52a8a0a53e5f361f28ab2689af0a6d6af22118f0934f4d58343b528a5c738ef",
+    "sourceByteLength": 5534180,
+    "queryCount": 2002,
+    "cohortDigest": "0f3fc24ca633e2960d96d1e489e30e2c0036c0e37f59f43e3a8c086891efd19c",
+    "pageSize": 128,
+    "pageCount": 16,
+    "lastPageRecordCount": 82,
+    "groups": {
+      "count": 419,
+      "maxPrefixGroupSize": 128,
+      "sizeCycle": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8
+      ]
+    },
+    "maxAnalogueCount": 127,
+    "meanAnalogueCount": 6.242,
+    "decisions": {
+      "ABSTAIN:PREDICTIVE_FAMILY_MISSING": 962,
+      "PROCEED:NONE": 256,
+      "ABSTAIN:INSUFFICIENT_SUPPORT": 784
+    }
+  },
+  "determinism": {
+    "manifestSha256": "67e50c1e4fe9f8cbf12283751699b29acd6d27b5a5d3c08f2e0cf87563e0440a",
+    "manifestByteLength": 13853,
+    "productFileCount": 33,
+    "crashInjected": {
+      "point": "AFTER_ENSEMBLE_PAGE",
+      "pageNumber": 7
+    },
+    "resumedFromCommittedPairs": 6,
+    "resumedFrontierPageReusedIdentical": 1,
+    "continuousVsResumedByteIdentical": true,
+    "duplicateResume": {
+      "alreadyFinal": true,
+      "fileWrites": 0,
+      "producerCalls": 0,
+      "checkpointRevisionWrites": 0
+    },
+    "codeIdentitySha256": "9b778ef785a711b0ba4c24406c8d430ae465bee78c541e86f12170117d1f0c32"
+  },
+  "consumption": {
+    "pagesVerified": 16,
+    "recordsVerified": 2002,
+    "everyQueryExactlyOnceInCohortOrder": true,
+    "decisions": {
+      "ABSTAIN:PREDICTIVE_FAMILY_MISSING": 962,
+      "CONSUME:NONE": 256,
+      "ABSTAIN:INSUFFICIENT_SUPPORT": 784
+    },
+    "maxBytesHeldAtOnce": 3410082,
+    "largestPagePairBytes": 3396229,
+    "wallMs": 3294
+  },
+  "performance": {
+    "peakRssBytes": 431538176,
+    "rssPeakSampledBytes": 405237760,
+    "heapUsedPeakBytes": 211924656,
+    "externalPeakBytes": 65564251,
+    "arrayBuffersPeakBytes": 53859452,
+    "pagePairTimeMs": {
+      "p50": 587.7552000000014,
+      "p95": 988.0774000000001,
+      "max": 988.0774000000001
+    },
+    "producerTimePerPageMs": {
+      "p50": 299.56899999999405,
+      "p95": 523.8361999999984,
+      "max": 523.8361999999984
+    },
+    "materializationOverheadPerPageMs": {
+      "p50": 295.13980000000265,
+      "p95": 464.24120000000175,
+      "max": 464.24120000000175
+    },
+    "operationCounts": {
+      "continuous": {
+        "producerCalls": 2002,
+        "queriesSkippedAsCommitted": 0,
+        "recordValidations": 2002,
+        "pageSerializations": 32,
+        "manifestSerializations": 1,
+        "sha256Computations": 33,
+        "fileWrites": 33,
+        "existingVerified": 0,
+        "committedPagesReverified": 0,
+        "bytesWritten": 40187995,
+        "scan": {
+          "bytesRead": 5534180,
+          "chunks": 6,
+          "recordsScanned": 2002,
+          "idComparisons": 2001,
+          "recordVerifications": 2002,
+          "digestUpdates": 2002
+        }
+      },
+      "resumed": {
+        "producerCalls": 1234,
+        "queriesSkippedAsCommitted": 768,
+        "recordValidations": 1234,
+        "pageSerializations": 20,
+        "manifestSerializations": 1,
+        "sha256Computations": 34,
+        "fileWrites": 20,
+        "existingVerified": 1,
+        "committedPagesReverified": 6,
+        "bytesWritten": 23146562,
+        "scan": {
+          "bytesRead": 5534180,
+          "chunks": 6,
+          "recordsScanned": 2002,
+          "idComparisons": 2001,
+          "recordVerifications": 2002,
+          "digestUpdates": 2002
+        }
+      },
+      "duplicateResume": {
+        "producerCalls": 0,
+        "queriesSkippedAsCommitted": 0,
+        "recordValidations": 0,
+        "pageSerializations": 0,
+        "manifestSerializations": 0,
+        "sha256Computations": 33,
+        "fileWrites": 0,
+        "existingVerified": 0,
+        "committedPagesReverified": 16,
+        "bytesWritten": 0,
+        "scan": {}
+      }
+    },
+    "temporaryDisk": {
+      "bytes": 85931274,
+      "files": 103
+    },
+    "productBytesForSyntheticCohort": {
+      "bytes": 40187995,
+      "files": 33
+    },
+    "freeDiskBefore": {
+      "temp": 77499170816,
+      "repository": 77499170816
+    },
+    "freeDiskAfter": {
+      "temp": 77500461056,
+      "repository": 77500461056
+    },
+    "rehearsalWallMs": 26948,
+    "engineCacheRetainedPayloads": 2002
+  },
+  "sizeModel": {
+    "method": "CanonicalJSON/1 UTF-8 bytes of every record in the rehearsal pages; least squares on analogue count",
+    "ensembleRecordBytes": {
+      "mean": 6509,
+      "max": 6519,
+      "fit": {
+        "intercept": 6514,
+        "bytesPerAnalogue": -0.8,
+        "maxAbsResidualBytes": 39
+      }
+    },
+    "provenanceRecordBytes": {
+      "intercept": 2976,
+      "bytesPerAnalogue": 1692.94,
+      "maxAbsResidualBytes": 49
+    },
+    "envelopeBytesPerPagePair": 1819,
+    "manifestBytesPerPage": 866
+  },
+  "fullProjection": {
+    "Q": 68562,
+    "P": 536,
+    "basis": "record bytes are linear in the per-query analogue count A; the FULL A distribution is not observable in PREBUILD without the published index",
+    "scenarios": [
+      {
+        "meanAnalogueCount": 0,
+        "ensembleBytes": 447100628,
+        "provenanceBytes": 204528272,
+        "manifestBytes": 464176,
+        "totalBytes": 652093076
+      },
+      {
+        "meanAnalogueCount": 1.5,
+        "ensembleBytes": 447018354,
+        "provenanceBytes": 378635300,
+        "manifestBytes": 464176,
+        "totalBytes": 826117830
+      },
+      {
+        "meanAnalogueCount": 3,
+        "ensembleBytes": 446936079,
+        "provenanceBytes": 552742329,
+        "manifestBytes": 464176,
+        "totalBytes": 1000142584
+      },
+      {
+        "meanAnalogueCount": 10,
+        "ensembleBytes": 446552132,
+        "provenanceBytes": 1365241795,
+        "manifestBytes": 464176,
+        "totalBytes": 1812258103
+      },
+      {
+        "meanAnalogueCount": 32,
+        "ensembleBytes": 445345441,
+        "provenanceBytes": 3918811545,
+        "manifestBytes": 464176,
+        "totalBytes": 4364621162
+      }
+    ],
+    "existingProjection": {
+      "source": "data/jarvise/predictive-ensemble/GATE26/V1/MINI/SIZE_MEASUREMENT.json",
+      "ensembleIndexBytes": 447847286,
+      "provenanceBytesAtMiniMaxAnalogueCount": 684728694,
+      "totalBytes": 1132575980
+    }
+  },
+  "lfs": {
+    "gitLfsVersion": "git-lfs/3.7.1 (GitHub; windows amd64; go 1.25.1; git b84b3384)",
+    "checkAttr": [
+      "data/jarvise/predictive-ensemble/GATE26/V1/FULL/MANIFEST.json: filter: lfs",
+      "data/jarvise/predictive-ensemble/GATE26/V1/FULL/MANIFEST.json: diff: lfs",
+      "data/jarvise/predictive-ensemble/GATE26/V1/FULL/MANIFEST.json: merge: lfs",
+      "data/jarvise/predictive-ensemble/GATE26/V1/FULL/MANIFEST.json: text: unset",
+      "data/jarvise/predictive-ensemble/GATE26/V1/FULL/ENSEMBLE_PAGE_0001.json: filter: lfs",
+      "data/jarvise/predictive-ensemble/GATE26/V1/FULL/ENSEMBLE_PAGE_0001.json: diff: lfs",
+      "data/jarvise/predictive-ensemble/GATE26/V1/FULL/ENSEMBLE_PAGE_0001.json: merge: lfs",
+      "data/jarvise/predictive-ensemble/GATE26/V1/FULL/ENSEMBLE_PAGE_0001.json: text: unset"
+    ],
+    "pointerOidOfRehearsalPage": "5078415381747ac3bc61efb47597a18e0969cbdfaf03888c2ed980dd04009ff3",
+    "rehearsalPageSha256": "5078415381747ac3bc61efb47597a18e0969cbdfaf03888c2ed980dd04009ff3",
+    "pointerOidEqualsContentSha256": true,
+    "pointerWrittenAnywhere": false
+  },
+  "runtimeEstimate": {
+    "materializationOverheadMsForFullPlan": 158195,
+    "rehearsalProducerMsPerQuery": 2.64,
+    "realProducerComputeMeasured": false,
+    "note": "Page, hash, write and checkpoint overhead are measured. The Phase D producer (P3H outcome attachment, O(A x H) per query) is not executed under R0003."
+  },
+  "residue": {
+    "workRootRemoved": true,
+    "checkpointResidueRemovedDuringResume": []
+  },
+  "closure": {
+    "agentClosureExecuted": false,
+    "externalConfirmationExecuted": false,
+    "independentAuditPassAssigned": false,
+    "phaseDAuthorized": false
+  }
+}

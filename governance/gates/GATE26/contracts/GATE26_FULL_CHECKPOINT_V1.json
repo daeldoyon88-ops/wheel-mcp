@@ -1,0 +1,58 @@
+{
+  "document": "GATE26_BINDING_ARTIFACT",
+  "schemaVersion": 1,
+  "gateId": "GATE26",
+  "bindingId": "GATE26_FULL_CHECKPOINT_V1",
+  "requirementIds": [
+    "G26-PREBUILD-07"
+  ],
+  "resolutionStatus": "BOUND_TO_R0003_REQUIREMENTS",
+  "ownerAuthorizationId": "OWNER_AUTHORIZE_GATE26_B1_ATOMIC_INNER_SUCCESSION_TRANSACTION_R1",
+  "authority": {
+    "executionContractPath": "governance/gates/GATE26/contracts/EXECUTION_CONTRACT_R0003.json",
+    "executionContractRevision": "R0003",
+    "executionContractSha256": "dddbc62956eb658b8207126a18edd9c7317e845f4c2b56374a6c05c28e90f381",
+    "requirementBindingSha256Canonical": {},
+    "normativeSource": "governance/gee-v1/recovery/checkpoint-store.mjs"
+  },
+  "binding": {
+    "schema": "GATE26_FULL_CHECKPOINT_V1",
+    "location": "OFF_REPOSITORY_ONLY",
+    "workUnitDirectory": "GATE26_FULL_PAGED_MATERIALIZATION_V1",
+    "runIdentityFile": "RUN_IDENTITY.json",
+    "runIdentityBinds": [
+      "inputIdentity",
+      "codeIdentity",
+      "contractIdentity",
+      "planIdentity",
+      "producerIdentity"
+    ],
+    "runIdentityDrift": "FAIL_CLOSED_NEVER_SILENT_RESTART",
+    "revisionUnit": "ONE_COMMITTED_PAGE_PAIR",
+    "revisionOrdinalEqualsPageNumber": true,
+    "revisionWrite": "TEMP_FSYNC_THEN_EXCLUSIVE_LINK_IMMUTABLE",
+    "revisionFields": [
+      "schema",
+      "runId",
+      "revision",
+      "revisionOrdinal",
+      "previousRevisionSha256",
+      "pair",
+      "revisionSha256"
+    ],
+    "chain": "previousRevisionSha256",
+    "pairFinalization": "ENSEMBLE_PAGE_THEN_PROVENANCE_PAGE_THEN_CHECKPOINT_REVISION",
+    "finalRevisionFile": "FINAL.json",
+    "replay": {
+      "identical": "IDEMPOTENT_ACCEPT",
+      "divergent": "FAIL_CLOSED"
+    },
+    "uncommittedFrontierPage": "RECOMPUTE_AND_ACCEPT_ONLY_IF_BYTE_IDENTICAL",
+    "corruptOrMissingRevision": "FAIL_CLOSED_NO_SILENT_FALLBACK",
+    "concurrentRun": "EXCLUSIVE_LOCK_FAIL_CLOSED",
+    "staleLock": "RECOVERED_ONLY_WHEN_OWNER_PROCESS_ABSENT",
+    "resume": "FROM_LATEST_VALID_REVISION_NEVER_FROM_ZERO",
+    "finalBytes": "BYTE_IDENTICAL_TO_CONTINUOUS_RUN",
+    "residue": "PUBLICATION_TEMP_FILES_SWEPT_AND_REPORTED"
+  }
+}

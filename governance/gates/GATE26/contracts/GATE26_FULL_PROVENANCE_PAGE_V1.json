@@ -1,0 +1,74 @@
+{
+  "document": "GATE26_BINDING_ARTIFACT",
+  "schemaVersion": 1,
+  "gateId": "GATE26",
+  "bindingId": "GATE26_FULL_PROVENANCE_PAGE_V1",
+  "requirementIds": [
+    "G26-PREBUILD-04",
+    "G26-PREBUILD-05"
+  ],
+  "resolutionStatus": "BOUND_TO_R0003_REQUIREMENTS",
+  "ownerAuthorizationId": "OWNER_AUTHORIZE_GATE26_B1_ATOMIC_INNER_SUCCESSION_TRANSACTION_R1",
+  "authority": {
+    "executionContractPath": "governance/gates/GATE26/contracts/EXECUTION_CONTRACT_R0003.json",
+    "executionContractRevision": "R0003",
+    "executionContractSha256": "dddbc62956eb658b8207126a18edd9c7317e845f4c2b56374a6c05c28e90f381",
+    "requirementBindingSha256Canonical": {
+      "G26-PREBUILD-04": "810262a34841fb6ae8cce849b667b0810bf1524a8f7b8703cf03fc788e72d529"
+    },
+    "packagingRequirementsSha256Canonical": "ddf013100ce0d80dbb9711f11e9ee54ee7a924b68d392dc2512eb4d3326a78dd"
+  },
+  "binding": {
+    "schema": "GATE26_FULL_PROVENANCE_PAGE_V1",
+    "productVersion": "GATE26_FULL_PRODUCT_V1",
+    "pathPattern": "PROVENANCE_PAGE_NNNN.json",
+    "pageNumbering": "0001_THROUGH_0536",
+    "pageSize": 128,
+    "fields": [
+      "schema",
+      "productVersion",
+      "engineVersion",
+      "cohortDigest",
+      "queryCount",
+      "inputBindingSha256",
+      "pageNumber",
+      "pageCount",
+      "pageSize",
+      "firstQueryOrdinal",
+      "lastQueryOrdinal",
+      "firstAnalogueIdentityId",
+      "lastAnalogueIdentityId",
+      "recordCount",
+      "pairedEnsemblePage",
+      "records"
+    ],
+    "pairedEnsemblePageFields": [
+      "sha256",
+      "byteLength"
+    ],
+    "recordSchema": "GATE26_ENSEMBLE_PROVENANCE_V1",
+    "recordFields": [
+      "schema",
+      "ensembleIdentityId",
+      "queryIdentityId",
+      "knowledgeCutoff",
+      "analogueIdentityIds",
+      "combinationPolicyVersionId",
+      "engineVersion",
+      "horizonCoverageId",
+      "selectionDigest",
+      "outcomeSetId",
+      "supportReportId",
+      "inputBinding",
+      "regimeBinding",
+      "inputProofs",
+      "provenanceId"
+    ],
+    "pairing": "record i binds ensemble record i of the same-numbered ensemble page by ensembleIdentityId and provenanceId; pairedEnsemblePage binds that page's exact SHA256 and byte length",
+    "causality": "EVERY_INPUT_PROOF_AVAILABLE_BY_ITS_CUTOFF_AND_NO_PROOF_CUTOFF_AFTER_QUERY_CUTOFF",
+    "recordSemantics": "V1_UNCHANGED_BY_PAGINATION",
+    "serialization": "CanonicalJSON/1_PLUS_LF",
+    "contentIdentity": "SHA256_OF_PAGE_BYTES",
+    "productWriteUnderR0003": "FORBIDDEN"
+  }
+}

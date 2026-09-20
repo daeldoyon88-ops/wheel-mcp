@@ -127,6 +127,47 @@ function verifyAbstention(record) {
 }
 
 /**
+ * Record-level identity checks, in the order consumeEnsemble applies them. Shared with the
+ * FULL paged consumer so pagination can never fork V1 record semantics.
+ */
+export function verifyPublishedEnsembleRecord({ record, combinationPolicyVersionId }) {
+  assertClosedKeys(record, ENSEMBLE_INDEX_RECORD_FIELDS_V1, 'INCOMPATIBLE_PUBLISHED_RECORD');
+  verifyEnsembleIdentity({ ensembleIdentityId: record.ensembleIdentityId, orderedMembers: record.orderedMembers });
+  if (member(record, 'CombinationPolicyVersionId') !== combinationPolicyVersionId
+    || member(record, 'HorizonCoverageId') !== horizonCoverageId(ADMISSIBLE_SESSION_COUNTS_V1)) {
+    failClosed('STALE_OR_WRONG_VERSION', { ensembleIdentityId: record.ensembleIdentityId });
+  }
+  return record;
+}
+
+/** Binds one published record to its provenance manifest, then re-derives families, horizons and abstention. */
+export function verifyPublishedRecordProvenance({ record, manifestRecord, productInputBinding }) {
+  const { ensembleIdentityId } = record;
+  const manifest = verifyProvenanceManifest(manifestRecord);
+  if (manifest.provenanceId !== record.provenanceId) failClosed('PROVENANCE_ID_MISMATCH', { ensembleIdentityId });
+  if (canonicalize(manifest.inputBinding) !== canonicalize(productInputBinding)) failClosed('PROVENANCE_BINDING_MISMATCH', { field: 'inputBinding' });
+  if (manifest.inputBinding.datasetId !== member(record, 'DatasetId_observation')) {
+    failClosed('DATASET_IDENTITY_MISMATCH', { declared: member(record, 'DatasetId_observation'), provenance: manifest.inputBinding.datasetId });
+  }
+  for (const [field, memberId] of [
+    ['queryIdentityId', 'QueryAnalogueIdentityId'], ['knowledgeCutoff', 'KnowledgeCutoff'],
+    ['combinationPolicyVersionId', 'CombinationPolicyVersionId'], ['horizonCoverageId', 'HorizonCoverageId'],
+    ['supportReportId', 'AnalogueSupportReportId'], ['outcomeSetId', 'OutcomeSetId'],
+  ]) {
+    if (manifest[field] !== member(record, memberId)) failClosed('PROVENANCE_BINDING_MISMATCH', { field });
+  }
+  if (canonicalize(manifest.regimeBinding.dimensions) !== canonicalize([...CORE_V1_DIMENSIONS_V1])
+    || sha256Canonical(manifest.regimeBinding) !== member(record, 'RegimeBindingDigest')) {
+    failClosed('REGIME_BINDING_INVALID', { ensembleIdentityId });
+  }
+
+  verifyFamilies(record);
+  verifyHorizons(record, manifest);
+  verifyAbstention(record);
+  return manifest;
+}
+
+/**
  * @param indexBytes / provenanceBytes  the serialized MINI products (Buffers)
  * @param expectedIndexSha256 / expectedProvenanceSha256  identities the consumer was told to trust
  * @param ensembleIdentityId  the ensemble question being consumed
@@ -173,35 +214,11 @@ export function consumeEnsemble({
   const matches = index.records.filter((entry) => entry?.ensembleIdentityId === ensembleIdentityId);
   if (matches.length !== 1) failClosed('ENSEMBLE_IDENTITY_NOT_PUBLISHED', { ensembleIdentityId, matches: matches.length });
   const record = matches[0];
-  assertClosedKeys(record, ENSEMBLE_INDEX_RECORD_FIELDS_V1, 'INCOMPATIBLE_PUBLISHED_RECORD');
-  verifyEnsembleIdentity({ ensembleIdentityId: record.ensembleIdentityId, orderedMembers: record.orderedMembers });
-  if (member(record, 'CombinationPolicyVersionId') !== index.combinationPolicyVersionId || member(record, 'HorizonCoverageId') !== coverageId) {
-    failClosed('STALE_OR_WRONG_VERSION', { ensembleIdentityId });
-  }
+  verifyPublishedEnsembleRecord({ record, combinationPolicyVersionId: index.combinationPolicyVersionId });
 
   const manifests = productProvenance.records.filter((entry) => entry?.ensembleIdentityId === ensembleIdentityId);
   if (manifests.length !== 1) failClosed('PROVENANCE_RECORD_ABSENT', { ensembleIdentityId, matches: manifests.length });
-  const manifest = verifyProvenanceManifest(manifests[0]);
-  if (manifest.provenanceId !== record.provenanceId) failClosed('PROVENANCE_ID_MISMATCH', { ensembleIdentityId });
-  if (canonicalize(manifest.inputBinding) !== canonicalize(productInputBinding)) failClosed('PROVENANCE_BINDING_MISMATCH', { field: 'inputBinding' });
-  if (manifest.inputBinding.datasetId !== member(record, 'DatasetId_observation')) {
-    failClosed('DATASET_IDENTITY_MISMATCH', { declared: member(record, 'DatasetId_observation'), provenance: manifest.inputBinding.datasetId });
-  }
-  for (const [field, memberId] of [
-    ['queryIdentityId', 'QueryAnalogueIdentityId'], ['knowledgeCutoff', 'KnowledgeCutoff'],
-    ['combinationPolicyVersionId', 'CombinationPolicyVersionId'], ['horizonCoverageId', 'HorizonCoverageId'],
-    ['supportReportId', 'AnalogueSupportReportId'], ['outcomeSetId', 'OutcomeSetId'],
-  ]) {
-    if (manifest[field] !== member(record, memberId)) failClosed('PROVENANCE_BINDING_MISMATCH', { field });
-  }
-  if (canonicalize(manifest.regimeBinding.dimensions) !== canonicalize([...CORE_V1_DIMENSIONS_V1])
-    || sha256Canonical(manifest.regimeBinding) !== member(record, 'RegimeBindingDigest')) {
-    failClosed('REGIME_BINDING_INVALID', { ensembleIdentityId });
-  }
-
-  verifyFamilies(record);
-  verifyHorizons(record, manifest);
-  verifyAbstention(record);
+  const manifest = verifyPublishedRecordProvenance({ record, manifestRecord: manifests[0], productInputBinding });
 
   const verification = Object.freeze({
     consumerVersion: CONSUMER_VERSION_V1,

@@ -1,0 +1,115 @@
+{
+  "document": "GATE26_BINDING_ARTIFACT",
+  "schemaVersion": 1,
+  "gateId": "GATE26",
+  "bindingId": "GATE26_FULL_MANIFEST_V1",
+  "requirementIds": [
+    "G26-PREBUILD-04",
+    "G26-PREBUILD-05",
+    "G26-PREBUILD-08",
+    "G26-PREBUILD-09"
+  ],
+  "resolutionStatus": "BOUND_TO_R0003_REQUIREMENTS",
+  "ownerAuthorizationId": "OWNER_AUTHORIZE_GATE26_B1_ATOMIC_INNER_SUCCESSION_TRANSACTION_R1",
+  "authority": {
+    "executionContractPath": "governance/gates/GATE26/contracts/EXECUTION_CONTRACT_R0003.json",
+    "executionContractRevision": "R0003",
+    "executionContractSha256": "dddbc62956eb658b8207126a18edd9c7317e845f4c2b56374a6c05c28e90f381",
+    "requirementBindingSha256Canonical": {
+      "G26-PREBUILD-04": "810262a34841fb6ae8cce849b667b0810bf1524a8f7b8703cf03fc788e72d529",
+      "G26-PREBUILD-09": "100b3a86b454fd44ab557416e9b825f500baaf9bd018ba1f4553f5dcd3512356"
+    },
+    "packagingRequirementsSha256Canonical": "ddf013100ce0d80dbb9711f11e9ee54ee7a924b68d392dc2512eb4d3326a78dd"
+  },
+  "binding": {
+    "schema": "GATE26_FULL_MANIFEST_V1",
+    "productVersion": "GATE26_FULL_PRODUCT_V1",
+    "productClass": "OFF_SCAN",
+    "fullProductRoot": "data/jarvise/predictive-ensemble/GATE26/V1/FULL",
+    "manifestFileName": "MANIFEST.json",
+    "futureFullProductFileCount": 1073,
+    "productFilesAuthorizedUnderR0003": false,
+    "fields": [
+      "schema",
+      "productVersion",
+      "gateId",
+      "productClass",
+      "producedUnder",
+      "modelPolicy",
+      "inputBinding",
+      "inputBindingSha256",
+      "cohort",
+      "pageSize",
+      "pageCount",
+      "recordCounts",
+      "pages",
+      "lfs"
+    ],
+    "producedUnderFields": [
+      "contractRevision",
+      "contractSha256",
+      "codeIdentitySha256",
+      "producerId"
+    ],
+    "cohortFields": [
+      "sourcePath",
+      "sourceSha256",
+      "queryCount",
+      "cohortDigest",
+      "canonicalOrder",
+      "firstAnalogueIdentityId",
+      "lastAnalogueIdentityId"
+    ],
+    "pageEntryFields": [
+      "pageNumber",
+      "firstQueryOrdinal",
+      "lastQueryOrdinal",
+      "firstAnalogueIdentityId",
+      "lastAnalogueIdentityId",
+      "recordCount",
+      "ensemble",
+      "provenance"
+    ],
+    "pageFileFields": [
+      "path",
+      "sha256",
+      "byteLength",
+      "lfsOid"
+    ],
+    "lfs": {
+      "rule": "data/jarvise/predictive-ensemble/GATE26/V1/FULL/** filter=lfs diff=lfs merge=lfs -text",
+      "oidAlgorithm": "sha256",
+      "oidEqualsContentSha256": true,
+      "pointerConversion": "GIT_LFS_ONLY",
+      "manualPointer": "FORBIDDEN"
+    },
+    "serialization": "CanonicalJSON/1_PLUS_LF",
+    "consumption": {
+      "order": "MANIFEST_FIRST_THEN_ONE_PAGE_PAIR_AT_A_TIME",
+      "declaredManifestSha256Required": true,
+      "verifies": [
+        "MANIFEST_SHA256",
+        "PAGE_PRESENCE_CONTIGUOUS_1_THROUGH_PAGECOUNT",
+        "PAGE_SHA256",
+        "PAGE_BYTE_LENGTH",
+        "LFS_MATERIALIZED_BYTES_NOT_POINTER",
+        "PRODUCT_VERSION",
+        "COHORT_IDENTITY",
+        "PROVENANCE_PAIRING",
+        "RECORD_IDENTITY"
+      ],
+      "failClosed": [
+        "MISSING_PAGE",
+        "DUPLICATE_PAGE",
+        "CORRUPT_PAGE",
+        "REORDERED_PAGE",
+        "MIXED_COHORT_PAGE",
+        "MIXED_VERSION_PAGE",
+        "PROVENANCE_MISMATCH"
+      ],
+      "consumerVersionMismatch": "ABSTAIN",
+      "wholeProductParse": "FORBIDDEN",
+      "wheelScanHotPathParse": "FORBIDDEN"
+    }
+  }
+}

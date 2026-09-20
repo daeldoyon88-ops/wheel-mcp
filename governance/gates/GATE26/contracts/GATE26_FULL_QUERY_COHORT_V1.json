@@ -1,0 +1,82 @@
+{
+  "document": "GATE26_BINDING_ARTIFACT",
+  "schemaVersion": 1,
+  "gateId": "GATE26",
+  "bindingId": "GATE26_FULL_QUERY_COHORT_V1",
+  "requirementIds": [
+    "G26-PREBUILD-02",
+    "G26-PREBUILD-03",
+    "G26-PREBUILD-04",
+    "G26-PREBUILD-06"
+  ],
+  "resolutionStatus": "BOUND_TO_R0003_REQUIREMENTS",
+  "ownerAuthorizationId": "OWNER_AUTHORIZE_GATE26_B1_ATOMIC_INNER_SUCCESSION_TRANSACTION_R1",
+  "authority": {
+    "executionContractPath": "governance/gates/GATE26/contracts/EXECUTION_CONTRACT_R0003.json",
+    "executionContractRevision": "R0003",
+    "executionContractSha256": "dddbc62956eb658b8207126a18edd9c7317e845f4c2b56374a6c05c28e90f381",
+    "requirementBindingSha256Canonical": {
+      "G26-PREBUILD-02": "581c5e78e80570a55c09e351ef76974135e89a053b125fb54094d820654ba012",
+      "G26-PREBUILD-03": "bc87355577c8b1b565895db22e10c69997388ad4dd464e60144c23b395b18784",
+      "G26-PREBUILD-04": "810262a34841fb6ae8cce849b667b0810bf1524a8f7b8703cf03fc788e72d529",
+      "G26-PREBUILD-06": "ef70cfa25469bf6f97fca09c33b2f78311a50bce0216511a5dae6ff52ce7a283"
+    }
+  },
+  "binding": {
+    "schema": "GATE26_FULL_QUERY_COHORT_V1",
+    "source": {
+      "path": "data/jarvise/historical-analogue/GATE25/V1/ANALOGUE_INDEX.json",
+      "sha256": "e32c2e3de4ee6d88b80ed27fec4f29b930c02ce022477ce084f7ae4c768a4f0b",
+      "schema": "GATE25_ANALOGUE_INDEX_V1",
+      "pageSize": 100,
+      "datasetId": "sha256:cc7bb76f37a97a5673a32c5a8f357088ee94230fefcbef1c19ad16227476488e",
+      "gate25ProvenanceSha256": "14afcaf09ea499edb5a17da7db7e8127e61761854b43c90b828843a08846b692",
+      "serialization": "CanonicalJSON/1_NO_TRAILING_NEWLINE",
+      "access": "READ_ONLY_STREAMING_ONE_RECORD_AT_A_TIME"
+    },
+    "queryUnit": "ONE_CANONICAL_PUBLISHED_G25_ANALOGUE_INDEX_RECORD",
+    "queryUnitFields": [
+      "ordinal",
+      "analogueIdentityId",
+      "sessionDate",
+      "knowledgeCutoff",
+      "p3hKeyId"
+    ],
+    "canonicalOrder": "analogueIdentityId_ASCII_ASCENDING",
+    "orderEnforcement": "VERIFIED_IN_SOURCE_ORDER_NEVER_SORTED",
+    "queryCount": 68562,
+    "skipPolicy": "FORBIDDEN",
+    "invalidRecord": "SOURCE_PRODUCT_CORRUPTION_FAIL_CLOSED",
+    "insufficientEvidence": "EMIT_ABSTAIN",
+    "outputsPerQuery": {
+      "ensembleRecords": 1,
+      "provenanceRecords": 1
+    },
+    "cohortDigest": "SHA256_UTF8(GATE26_FULL_QUERY_COHORT_V1 LF, then analogueIdentityId LF for every query in canonical order)",
+    "pagePlan": {
+      "pageSize": 128,
+      "pageCount": 536,
+      "lastPageRecordCount": 82,
+      "pageNumbering": "0001_THROUGH_0536",
+      "partition": "CONTIGUOUS_ORDINAL_RANGES_COVERING_1_THROUGH_Q_EXACTLY_ONCE"
+    },
+    "horizonSessionCounts": [
+      30,
+      90,
+      180,
+      252
+    ],
+    "p3hDatasetId": "sha256:cc7bb76f37a97a5673a32c5a8f357088ee94230fefcbef1c19ad16227476488e",
+    "complexity": {
+      "Q": 68562,
+      "U": 1750766,
+      "H": 4,
+      "P": 536,
+      "bound": "O(Q x A x H + Q + P)",
+      "cohortDerivation": "ONE_STREAMING_PASS_O(Q)",
+      "wholeUniverseScanPerQuery": false,
+      "repeatedAppendSort": false,
+      "universeLoadedByPrebuildModules": false
+    }
+  }
+}

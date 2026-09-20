@@ -1,0 +1,64 @@
+{
+  "document": "GATE26_BINDING_ARTIFACT",
+  "schemaVersion": 1,
+  "gateId": "GATE26",
+  "bindingId": "GATE26_FULL_ENSEMBLE_PAGE_V1",
+  "requirementIds": [
+    "G26-PREBUILD-04",
+    "G26-PREBUILD-05"
+  ],
+  "resolutionStatus": "BOUND_TO_R0003_REQUIREMENTS",
+  "ownerAuthorizationId": "OWNER_AUTHORIZE_GATE26_B1_ATOMIC_INNER_SUCCESSION_TRANSACTION_R1",
+  "authority": {
+    "executionContractPath": "governance/gates/GATE26/contracts/EXECUTION_CONTRACT_R0003.json",
+    "executionContractRevision": "R0003",
+    "executionContractSha256": "dddbc62956eb658b8207126a18edd9c7317e845f4c2b56374a6c05c28e90f381",
+    "requirementBindingSha256Canonical": {
+      "G26-PREBUILD-04": "810262a34841fb6ae8cce849b667b0810bf1524a8f7b8703cf03fc788e72d529"
+    },
+    "packagingRequirementsSha256Canonical": "ddf013100ce0d80dbb9711f11e9ee54ee7a924b68d392dc2512eb4d3326a78dd"
+  },
+  "binding": {
+    "schema": "GATE26_FULL_ENSEMBLE_PAGE_V1",
+    "productVersion": "GATE26_FULL_PRODUCT_V1",
+    "pathPattern": "ENSEMBLE_PAGE_NNNN.json",
+    "pageNumbering": "0001_THROUGH_0536",
+    "pageSize": 128,
+    "fields": [
+      "schema",
+      "productVersion",
+      "engineVersion",
+      "combinationPolicyVersionId",
+      "horizonCoverageId",
+      "cohortDigest",
+      "queryCount",
+      "inputBindingSha256",
+      "pageNumber",
+      "pageCount",
+      "pageSize",
+      "firstQueryOrdinal",
+      "lastQueryOrdinal",
+      "firstAnalogueIdentityId",
+      "lastAnalogueIdentityId",
+      "recordCount",
+      "records"
+    ],
+    "recordSchema": "GATE26_ENSEMBLE_INDEX_V1_RECORD",
+    "recordFields": [
+      "ensembleIdentityId",
+      "orderedMembers",
+      "decision",
+      "abstention",
+      "families",
+      "provenanceId",
+      "horizons"
+    ],
+    "recordOrder": "QueryAnalogueIdentityId_ASCII_ASCENDING_EQUALS_COHORT_ORDER",
+    "recordToQueryBinding": "orderedMembers.QueryAnalogueIdentityId EQUALS the cohort analogueIdentityId at the same ordinal",
+    "recordSemantics": "V1_UNCHANGED_BY_PAGINATION",
+    "abstainRecords": "RETAINED_ONE_PER_QUERY",
+    "serialization": "CanonicalJSON/1_PLUS_LF",
+    "contentIdentity": "SHA256_OF_PAGE_BYTES",
+    "productWriteUnderR0003": "FORBIDDEN"
+  }
+}

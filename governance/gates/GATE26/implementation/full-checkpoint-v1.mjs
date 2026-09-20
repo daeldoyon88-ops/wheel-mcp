@@ -43,23 +43,45 @@ const DIGEST_FIELDS = Object.freeze(['sha256', 'byteLength']);
 const FINAL_FIELDS = Object.freeze(['schema', 'runId', 'kind', 'committedPairCount', 'lastRevisionSha256', 'manifest', 'finalSha256']);
 const SHA256_HEX = /^[0-9a-f]{64}$/;
 
-/** Every module whose bytes decide FULL page bytes. A different set is a different run. */
+/**
+ * Every artifact whose bytes decide FULL page bytes. A different set is a different run.
+ *
+ * WHY THE REAL PRODUCER AND ITS TWO DOCUMENTS BELONG HERE. Run identity exists so a
+ * resume cannot continue a run that would now produce different bytes. Before Phase D
+ * the only producer that could reach this boundary was the synthetic PREBUILD one,
+ * whose bytes live entirely in modules already listed. The real production producer
+ * changes that: its selection logic lives in its own module, and two versioned
+ * documents decide what it will do — the producer identity binding fixes which
+ * dependency bytes it is allowed to execute over, and the resource budget fixes the
+ * thresholds at which it stops. A run resumed after either document changed is not
+ * the same run, so both are bound here rather than trusted to stay still.
+ */
 export const FULL_CODE_IDENTITY_PATHS_V1 = Object.freeze([
   'governance/gates/GATE26/implementation/full-query-cohort-v1.mjs',
   'governance/gates/GATE26/implementation/full-paged-materializer-v1.mjs',
   'governance/gates/GATE26/implementation/full-checkpoint-v1.mjs',
+  'governance/gates/GATE26/implementation/full-production-producer-v1.mjs',
   'governance/gates/GATE26/implementation/consumption-boundary-v1.mjs',
   'governance/gates/GATE26/implementation/predictive-ensemble-engine-v1.mjs',
   'governance/gates/GATE26/implementation/ensemble-provenance-v1.mjs',
   'governance/gates/GATE26/implementation/ensemble-identity-v1.mjs',
   'governance/gates/GATE26/implementation/ensemble-record-v1.mjs',
   'governance/gates/GATE26/implementation/combination-policy-v1.mjs',
+  'governance/gates/GATE26/contracts/GATE26_FULL_PRODUCTION_PRODUCER_V1.json',
+  'governance/gates/GATE26/contracts/GATE26_FULL_RESOURCE_BUDGET_V1.json',
   'governance/tools/canonical-json.mjs',
   'governance/tools/durable-write.mjs',
 ]);
 
 export function computeCodeIdentity({ root }) {
-  const files = FULL_CODE_IDENTITY_PATHS_V1.map((file) => ({ path: file, sha256: sha256Bytes(fs.readFileSync(path.resolve(root, file))) }));
+  const files = FULL_CODE_IDENTITY_PATHS_V1.map((file) => {
+    // A missing member is a governed failure, not an ENOENT stack: the set is the
+    // run's identity, so an absent member means identity cannot be computed at all.
+    let bytes;
+    try { bytes = fs.readFileSync(path.resolve(root, file)); }
+    catch (cause) { failClosed('FULL_CODE_IDENTITY_MEMBER_ABSENT', { path: file, cause: cause.code ?? cause.message }); }
+    return { path: file, sha256: sha256Bytes(bytes) };
+  });
   return Object.freeze({ sha256: sha256Canonical(files), files: Object.freeze(files) });
 }
 

@@ -284,11 +284,53 @@ export function serializeManifest({ context, cohort, plan, committed }) {
 
 /* ------------------------------------------------------------ materializer */
 
-function assertProducer(producer) {
+/**
+ * WHAT A RUN IS FOR, DECLARED BEFORE IT RUNS.
+ *
+ * Until Phase D the only producer that reached this boundary was the synthetic
+ * PREBUILD one, so "which producer is this" never had to be asked. A real
+ * production producer makes the question load-bearing in both directions, and
+ * the dangerous direction is the quiet one: a synthetic producer accepted under
+ * a real label would manufacture evidence that the real pipeline had run. The
+ * intent is therefore declared by the caller and checked against the producer's
+ * own self-description, and a mismatch either way fails closed.
+ */
+export const PREBUILD_REHEARSAL_INTENT_V1 = 'PREBUILD_REHEARSAL';
+export const REAL_PILOT_INTENT_V1 = 'REAL_PILOT';
+export const EXECUTION_INTENTS_V1 = Object.freeze([PREBUILD_REHEARSAL_INTENT_V1, REAL_PILOT_INTENT_V1]);
+
+function assertProducer(producer, executionIntent) {
   if (!producer || typeof producer.produce !== 'function' || typeof producer.producerId !== 'string' || producer.producerId.length === 0
     || !SHA256_HEX.test(producer.producerCodeSha256 ?? '')) {
     failClosed('PRODUCER_INVALID');
   }
+  if (!EXECUTION_INTENTS_V1.includes(executionIntent)) failClosed('EXECUTION_INTENT_INVALID', { executionIntent: executionIntent ?? null });
+  const declaredReal = producer.synthetic === false && producer.productionClass === 'REAL_PRODUCTION';
+  if (executionIntent === REAL_PILOT_INTENT_V1 && !declaredReal) {
+    failClosed('REAL_EXECUTION_REQUIRES_REAL_PRODUCER', {
+      producerId: producer.producerId,
+      synthetic: producer.synthetic ?? null,
+      productionClass: producer.productionClass ?? null,
+    });
+  }
+  if (executionIntent === PREBUILD_REHEARSAL_INTENT_V1 && declaredReal) {
+    failClosed('REAL_PRODUCER_REQUIRES_REAL_EXECUTION_INTENT', { producerId: producer.producerId });
+  }
+  return executionIntent;
+}
+
+/** The page-boundary guard surface this module drives. A partial guard is refused. */
+function assertResourceGuard(resourceGuard, executionIntent) {
+  if (resourceGuard === null || resourceGuard === undefined) {
+    // A real pilot exists to measure; running one unmeasured would produce exactly
+    // the unprovable budget Phase D is blocked on.
+    if (executionIntent === REAL_PILOT_INTENT_V1) failClosed('REAL_EXECUTION_REQUIRES_RESOURCE_GUARD');
+    return null;
+  }
+  for (const method of ['start', 'beforePair', 'afterPair', 'finalize', 'snapshot']) {
+    if (typeof resourceGuard[method] !== 'function') failClosed('RESOURCE_GUARD_INCOMPLETE', { method });
+  }
+  return resourceGuard;
 }
 
 const OUTPUT_FILE = /^(ENSEMBLE|PROVENANCE)_PAGE_(\d{4})\.json$/;
@@ -301,12 +343,14 @@ const OUTPUT_FILE = /^(ENSEMBLE|PROVENANCE)_PAGE_(\d{4})\.json$/;
 export function runPagedMaterialization({
   root = REPOSITORY_ROOT, sourcePath, cohort, producer, inputBinding, outputRoot, checkpointRoot,
   faultInjector = null, isProcessAlive = undefined, onPage = null,
+  executionIntent = PREBUILD_REHEARSAL_INTENT_V1, resourceGuard = null,
 }) {
   const authority = loadFullPrebuildAuthority({ root });
   assertFullBindingsMatchCode(authority);
   const target = assertOutputRootAuthorized({ root, outputRoot, authority });
   const cohortKind = assertCohortAdmissible({ cohort, authority });
-  assertProducer(producer);
+  const intent = assertProducer(producer, executionIntent);
+  const guard = assertResourceGuard(resourceGuard, intent);
   const binding = validateInputBinding(inputBinding);
   if (binding.datasetId !== cohort.datasetId || binding.selectionPolicyVersionId !== cohort.selectionPolicyVersionId) {
     failClosed('INPUT_BINDING_COHORT_MISMATCH');
@@ -346,6 +390,12 @@ export function runPagedMaterialization({
     const frontier = checkpoint.committed.length;
     if (frontier > plan.pageCount) failClosed('CHECKPOINT_BEYOND_PLAN', { frontier });
     fs.mkdirSync(outputRoot, { recursive: true });
+    // Started only once the directory exists, because the opening sample reads free
+    // disk at the actual output target rather than at a parent that may sit on
+    // another volume. start() is idempotent, so a caller that already started its
+    // own guard across several runs keeps one continuous measurement.
+    const runStartedAt = performance.now();
+    guard?.start({ outputRoot });
     const outputResidue = [];
     for (const entry of fs.readdirSync(outputRoot)) {
       if (!entry.endsWith(PUBLISH_TEMP_SUFFIX)) continue;
@@ -377,10 +427,14 @@ export function runPagedMaterialization({
       target, cohortKind, runId: checkpoint.runId, pageCount: plan.pageCount, queryCount: cohort.queryCount, committedAtStart: frontier,
       codeIdentitySha256: code.sha256, counters, pageTimingsMs, producerTimeMs,
       residueRemoved: [...checkpoint.residueRemoved, ...outputResidue], staleLockRecovered: checkpoint.staleLockRecovered,
-      checkpointRevisionWrites: checkpoint.revisionWrites, ...extra,
+      checkpointRevisionWrites: checkpoint.revisionWrites,
+      executionIntent: intent, resourceSnapshot: guard ? guard.snapshot() : null, ...extra,
     });
     if (checkpoint.final !== null) {
       verifyOnDisk(FULL_MANIFEST_FILE_V1, checkpoint.final.manifest);
+      // A duplicate resume produces no pair, but it still costs a full re-verification
+      // of every committed page, and that cost is part of the restart budget.
+      guard?.finalize({ manifestByteLength: checkpoint.final.manifest.byteLength, totalElapsedMs: performance.now() - runStartedAt });
       return result({ alreadyFinal: true, pagesProduced: 0, manifestSha256: checkpoint.final.manifest.sha256, manifestByteLength: checkpoint.final.manifest.byteLength });
     }
 
@@ -413,8 +467,17 @@ export function runPagedMaterialization({
       const provenanceDigest = digestOf(provenanceBytes);
       writeOrVerify(pageFileName('PROVENANCE', page.pageNumber), provenanceBytes, provenanceDigest);
       fault('AFTER_PROVENANCE_PAGE', page.pageNumber);
+      // THE BUDGET IS TESTED BEFORE THE PAIR IS COMMITTED, NOT AFTER. A breach noticed
+      // after the commit has already spent what the limit existed to bound, and the
+      // next resume would walk straight back into it from a committed frontier.
+      const pairSerializedBytes = ensemble.byteLength + provenanceDigest.byteLength;
+      const pageElapsedMs = performance.now() - startedAt;
+      guard?.beforePair({ pageNumber: page.pageNumber, pairSerializedBytes, pageElapsedMs });
+      const committedAt = performance.now();
       checkpoint.commitPair({ pageNumber: page.pageNumber, ensemble, provenance: provenanceDigest });
+      const checkpointMs = performance.now() - committedAt;
       fault('AFTER_PAIR_COMMIT', page.pageNumber);
+      guard?.afterPair({ pairSerializedBytes, pagePairMs: pageElapsedMs, checkpointMs });
       pagesProduced += 1;
       pageTimingsMs.push(performance.now() - startedAt);
       producerTimeMs.push(current.producerMs);
@@ -463,6 +526,7 @@ export function runPagedMaterialization({
     writeOrVerify(FULL_MANIFEST_FILE_V1, manifestBytes, manifest);
     fault('AFTER_MANIFEST', plan.pageCount);
     checkpoint.finalize({ manifest, pageCount: plan.pageCount });
+    guard?.finalize({ manifestByteLength: manifest.byteLength, totalElapsedMs: performance.now() - runStartedAt });
     return result({ alreadyFinal: false, pagesProduced, manifestSha256: manifest.sha256, manifestByteLength: manifest.byteLength });
   } finally {
     checkpoint.release();
@@ -632,6 +696,11 @@ export function createSyntheticSelectionProducer({ root = REPOSITORY_ROOT, fixtu
   return {
     producerId: REHEARSAL_PRODUCER_ID_V1,
     producerCodeSha256: sha256Canonical({ producerId: REHEARSAL_PRODUCER_ID_V1, sourceSha256: fixture.sourceSha256, outcomeSource: REHEARSAL_OUTCOME_SOURCE_ID_V1 }),
+    // Declared, not inferred. This producer's outcome source is synthetic, and saying
+    // so here is what lets the boundary refuse it under a real execution intent
+    // instead of relying on the absence of a field.
+    synthetic: true,
+    productionClass: 'PREBUILD_SYNTHETIC',
     produce(unit, sourceRecord) {
       const entry = fixture.cohorts.get(unit.analogueIdentityId);
       if (!entry) failClosed('REHEARSAL_COHORT_ENTRY_ABSENT', { ordinal: unit.ordinal });

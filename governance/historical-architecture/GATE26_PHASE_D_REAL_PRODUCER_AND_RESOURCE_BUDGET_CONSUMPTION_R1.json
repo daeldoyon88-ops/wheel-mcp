@@ -1,0 +1,96 @@
+{
+  "documentKind": "POST_FREEZE_MAINTENANCE_AUTHORITY_CONSUMPTION",
+  "schemaVersion": 2,
+  "authorityId": "GATE26_PHASE_D_REAL_PRODUCER_AND_RESOURCE_BUDGET_LOCAL_AUTHORITY_R1",
+  "programId": "GATE26_PHASE_D_REAL_PRODUCER_AND_RESOURCE_BUDGET_R1",
+  "manifestSha256": "bc59e9332218ab0f83f05a5d581d4a8ef36dc33ca8088a9d438a86e80ded7c32",
+  "baseHead": "d3a3263dd44907942157250baa26de4c56851b8e",
+  "consumedUse": 1,
+  "transactionId": "GATE26_PHASE_D_REAL_PRODUCER_AND_RESOURCE_BUDGET_R1_TRANSACTION",
+  "recordedAt": "2026-09-20T21:35:50.308Z",
+  "commitMessage": "feat(gate26): add bounded real production producer",
+  "publicationAdmission": {
+    "admissionId": "GATE26_PHASE_D_REAL_PRODUCER_AND_RESOURCE_BUDGET_PUBLICATION_ADMISSION_R1",
+    "admissionPath": "governance/authority/publication-admissions/GATE26/GATE26_PHASE_D_REAL_PRODUCER_AND_RESOURCE_BUDGET_PUBLICATION_ADMISSION_R1.json",
+    "admissionSha256": "dc05473195f32feb4aec55029699c166c6ec457011012da6a16e2319401e19b6"
+  },
+  "cohortSelfExclusion": {
+    "path": "governance/historical-architecture/GATE26_PHASE_D_REAL_PRODUCER_AND_RESOURCE_BUDGET_CONSUMPTION_R1.json",
+    "reason": "The consumption record cannot hash its own final bytes; its identity is bound by the authority and manifest instead."
+  },
+  "cohortPathCount": 10,
+  "cohort": [
+    {
+      "path": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_GATE26_PHASE_D_REAL_PRODUCER_AND_RESOURCE_BUDGET_R1.json",
+      "sha256": "821f7ee98eccc2f4e3639940a166e19ffd278079f68ffda9af0687aabd4e3c3d",
+      "byteLength": 2176,
+      "operation": "CREATE",
+      "reason": "Owner-issued LOCAL_EXPLICIT_AUTHORITY for the bounded GATE26 Phase D real-producer and resource-budget candidate. Bootstrap member: it must be readable to evaluate the program, so it is pre-state self-excluded while remaining inside the exact authorized set and later consumption cohort.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "governance/historical-architecture/GATE26_PHASE_D_REAL_PRODUCER_AND_RESOURCE_BUDGET_AUTHORIZED_PATHS_R1.json",
+      "sha256": "bc59e9332218ab0f83f05a5d581d4a8ef36dc33ca8088a9d438a86e80ded7c32",
+      "byteLength": 5988,
+      "operation": "CREATE",
+      "reason": "Exact path manifest for this bounded candidate. Bootstrap member: it must be readable to evaluate the program, so it is pre-state self-excluded while remaining digest-pinned by the authority.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "governance/gates/GATE26/implementation/full-production-producer-v1.mjs",
+      "sha256": "383311fc9f4e74ec894169c9b1814502b6b00143fc5944a11dc138bbed9b8ec6",
+      "byteLength": 57896,
+      "operation": "CREATE",
+      "reason": "Implement the one prepared, indexed, deterministic real producer over frozen GATE25, P3H and GATE22 inputs. The production path forbids synthetic selection, per-query universe scans, future leakage, network and Yahoo.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "governance/gates/GATE26/implementation/full-paged-materializer-v1.mjs",
+      "sha256": "0900011648990caa0aceb7eda6ccd63e53903e53238db4fc5e8665f3c809eef2",
+      "byteLength": 61578,
+      "operation": "MODIFY",
+      "reason": "Bind a real-producer execution intent and fail-closed resource guard at the existing paired-page boundary while preserving R0003 prohibition of canonical FULL output and all existing synthetic PREBUILD behavior.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "governance/gates/GATE26/implementation/full-checkpoint-v1.mjs",
+      "sha256": "ce8cda2c66fed93545cd6a6b765a7b1e79221fba780a4714a370acf02ee244d8",
+      "byteLength": 16845,
+      "operation": "MODIFY",
+      "reason": "Extend the existing checkpoint code identity to bind the actual real producer and its versioned producer/resource documents; preserve append-only page-pair revisions and fail-closed stale-lock semantics.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "governance/gates/GATE26/contracts/GATE26_FULL_PRODUCTION_PRODUCER_V1.json",
+      "sha256": "f0d41eef2ec49b3c0598ef9cc00c274c3eec9b9e62c086eca92944796382b454",
+      "byteLength": 10399,
+      "operation": "CREATE",
+      "reason": "Versioned mechanical identity binding for the real producer, every executed selection/outcome dependency and every frozen product input.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "governance/gates/GATE26/contracts/GATE26_FULL_RESOURCE_BUDGET_V1.json",
+      "sha256": "b0e531b992d198bcfde2df43e6ab6e3734bfc313ce37484c3b04b46df9bb1932",
+      "byteLength": 1728,
+      "operation": "CREATE",
+      "reason": "Version the accepted Phase D candidate limits without embedding host observations as truth or silently loosening any threshold.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "governance/gates/GATE26/tests/gate26-full-production-producer.test.mjs",
+      "sha256": "9c301eae2167d10139289a66bfdb8657fa1f0fe5b9890133f51931be8f855ac6",
+      "byteLength": 10303,
+      "operation": "CREATE",
+      "reason": "Targeted positive coverage for bounded slow-oracle equivalence, real producer call-path identity, deterministic output, ABSTAIN retention, complexity counters and representative pilot execution.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "governance/gates/GATE26/tests/gate26-full-production-producer-hostiles.test.mjs",
+      "sha256": "5c8a80a6ea1960cc44c3593556d36b022b3290563a07b1be3ae9e7cb7be7f01b",
+      "byteLength": 27104,
+      "operation": "CREATE",
+      "reason": "Targeted hostiles for synthetic selection, universe-scan amplification, query drift, outcome timing, future leakage, dependency substitution, resource thresholds, recovery corruption, stale locks and network attempts.",
+      "artifactClass": "MAINTENANCE"
+    }
+  ]
+}

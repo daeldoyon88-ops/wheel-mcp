@@ -1,0 +1,25 @@
+{
+  "document": "MAINTENANCE_PUBLICATION_ADMISSION_OWNER_AUTHORIZATION",
+  "schemaVersion": 1,
+  "authorityId": "GATE26_PHASE_D_REAL_PRODUCER_AND_RESOURCE_BUDGET_PUBLICATION_OWNER_AUTHORIZATION_R1",
+  "authorityClass": "PROJECT_OWNER_MAINTENANCE_PUBLICATION_ADMISSION_AUTHORITY",
+  "authorityMode": "LOCAL_EXPLICIT_AUTHORITY",
+  "issuedBy": "PROJECT_OWNER",
+  "issuedAtUtc": "2026-09-20T15:56:35.610Z",
+  "decisionId": "OWNER_ADMIT_GATE26_PHASE_D_REAL_PRODUCER_AND_RESOURCE_BUDGET_R1",
+  "purpose": "MAINTENANCE_PUBLICATION_ADMISSION",
+  "reexecutionAuthorized": false,
+  "grantsFutureBytePermission": false,
+  "genericV1Admission": false,
+  "admittedPublications": [
+    {
+      "admissionId": "GATE26_PHASE_D_REAL_PRODUCER_AND_RESOURCE_BUDGET_PUBLICATION_ADMISSION_R1",
+      "projectId": "WHEEL",
+      "gateId": "GATE26",
+      "programId": "GATE26_PHASE_D_REAL_PRODUCER_AND_RESOURCE_BUDGET_R1",
+      "admissionPath": "governance/authority/publication-admissions/GATE26/GATE26_PHASE_D_REAL_PRODUCER_AND_RESOURCE_BUDGET_PUBLICATION_ADMISSION_R1.json",
+      "admissionDigest": "aeb31956fee6c1692e4bf694283f827a518bc2e4129f89aef4f5fe80bbbc613b"
+    }
+  ],
+  "registryDigest": "46309c5daa8fa410277033366dd3b166e51497e47fb0f28bc8e1f7f804603071"
+}

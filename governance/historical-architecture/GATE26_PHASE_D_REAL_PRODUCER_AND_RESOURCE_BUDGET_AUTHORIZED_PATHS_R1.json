@@ -1,0 +1,124 @@
+{
+  "documentKind": "POST_FREEZE_MAINTENANCE_AUTHORIZED_PATH_MANIFEST",
+  "schemaVersion": 2,
+  "manifestId": "GATE26_PHASE_D_REAL_PRODUCER_AND_RESOURCE_BUDGET_AUTHORIZED_PATHS_R1",
+  "programId": "GATE26_PHASE_D_REAL_PRODUCER_AND_RESOURCE_BUDGET_R1",
+  "paths": [
+    {
+      "path": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_GATE26_PHASE_D_REAL_PRODUCER_AND_RESOURCE_BUDGET_R1.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "Owner-issued LOCAL_EXPLICIT_AUTHORITY for the bounded GATE26 Phase D real-producer and resource-budget candidate. Bootstrap member: it must be readable to evaluate the program, so it is pre-state self-excluded while remaining inside the exact authorized set and later consumption cohort.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "governance/historical-architecture/GATE26_PHASE_D_REAL_PRODUCER_AND_RESOURCE_BUDGET_AUTHORIZED_PATHS_R1.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "Exact path manifest for this bounded candidate. Bootstrap member: it must be readable to evaluate the program, so it is pre-state self-excluded while remaining digest-pinned by the authority.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "governance/gates/GATE26/implementation/full-production-producer-v1.mjs",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "Implement the one prepared, indexed, deterministic real producer over frozen GATE25, P3H and GATE22 inputs. The production path forbids synthetic selection, per-query universe scans, future leakage, network and Yahoo.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "governance/gates/GATE26/implementation/full-paged-materializer-v1.mjs",
+      "operation": "MODIFY",
+      "phase": "MAINTENANCE",
+      "reason": "Bind a real-producer execution intent and fail-closed resource guard at the existing paired-page boundary while preserving R0003 prohibition of canonical FULL output and all existing synthetic PREBUILD behavior.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "PRESENT",
+        "sha256": "71f4898bf9678f08a1f6f9cfc420435b50de2671b8bddd60ab09689f4825235a",
+        "byteLength": 57283
+      }
+    },
+    {
+      "path": "governance/gates/GATE26/implementation/full-checkpoint-v1.mjs",
+      "operation": "MODIFY",
+      "phase": "MAINTENANCE",
+      "reason": "Extend the existing checkpoint code identity to bind the actual real producer and its versioned producer/resource documents; preserve append-only page-pair revisions and fail-closed stale-lock semantics.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "PRESENT",
+        "sha256": "e3f7f86f7e6559ef7ba66af3a1e17166450d019c276ae6631e7a67b2530b1726",
+        "byteLength": 15511
+      }
+    },
+    {
+      "path": "governance/gates/GATE26/contracts/GATE26_FULL_PRODUCTION_PRODUCER_V1.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "Versioned mechanical identity binding for the real producer, every executed selection/outcome dependency and every frozen product input.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "governance/gates/GATE26/contracts/GATE26_FULL_RESOURCE_BUDGET_V1.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "Version the accepted Phase D candidate limits without embedding host observations as truth or silently loosening any threshold.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "governance/gates/GATE26/tests/gate26-full-production-producer.test.mjs",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "Targeted positive coverage for bounded slow-oracle equivalence, real producer call-path identity, deterministic output, ABSTAIN retention, complexity counters and representative pilot execution.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "governance/gates/GATE26/tests/gate26-full-production-producer-hostiles.test.mjs",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "Targeted hostiles for synthetic selection, universe-scan amplification, query drift, outcome timing, future leakage, dependency substitution, resource thresholds, recovery corruption, stale locks and network attempts.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "governance/historical-architecture/GATE26_PHASE_D_REAL_PRODUCER_AND_RESOURCE_BUDGET_CONSUMPTION_R1.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "Single-use authority consumption receipt reserved for the later canonical publisher after independent audit. This Builder mission must leave it absent and must not consume, commit or push the candidate.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    }
+  ],
+  "prestateSelfExclusion": [
+    {
+      "path": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_GATE26_PHASE_D_REAL_PRODUCER_AND_RESOURCE_BUDGET_R1.json",
+      "role": "AUTHORITY_DOCUMENT",
+      "reason": "Read by the evaluator to decide this program; unavoidably PRESENT at authorize time while its operation is CREATE."
+    },
+    {
+      "path": "governance/historical-architecture/GATE26_PHASE_D_REAL_PRODUCER_AND_RESOURCE_BUDGET_AUTHORIZED_PATHS_R1.json",
+      "role": "AUTHORIZED_PATH_MANIFEST",
+      "reason": "Read by the evaluator to decide this program; unavoidably PRESENT at authorize time while its operation is CREATE."
+    }
+  ]
+}

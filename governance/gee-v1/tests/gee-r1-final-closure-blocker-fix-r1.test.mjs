@@ -18,7 +18,11 @@ import { createWheelProjectAdapter, ACTIVATION_LEDGER_TRANSITION_TYPE } from '..
 import { mapLegacyGateContractToExecutionView } from '../adapters/wheel/map-gate-contract.mjs';
 import { WHEEL_EXTERNAL_AUTHORITY_POLICY } from '../adapters/wheel/external-authority-policy.mjs';
 import { validateLedger, validateLedgerPrefix } from '../../tools/validate-status-ledger.mjs';
-import { validateStateRevision } from '../../tools/validate-state-revision.mjs';
+import {
+  HISTORICAL_LEDGER_PREFIX,
+  classifyProtectedHashLiveCheck,
+  validateStateRevision
+} from '../../tools/validate-state-revision.mjs';
 import { validateAgainstJsonSchema } from '../contracts/validate-against-json-schema.mjs';
 import { loadExternalWitnesses, resolveWitnessSourcePath, isWithinGovernedRoots } from '../core/witness-source.mjs';
 import { buildReadinessContext, deriveActivationProof } from '../readiness/build-readiness-context.mjs';
@@ -387,6 +391,16 @@ test('FC02-C / B07: a historical ledger-prefix pin that exactly reproduces a rea
   const canonicalReport = validateStateRevision({ root: tmp, gateId, currentStatePath: fixture.currentStatePath });
   assert.equal(canonicalReport.valid, false, 'canonical validator must still surface the raw mismatch as a finding');
   assert.ok(canonicalReport.findings.some((f) => f.detectorId === 'PROTECTED_HASH_MISMATCH'));
+
+  const sharedClassification = classifyProtectedHashLiveCheck({
+    root: tmp,
+    gateId,
+    stateRevision: 'R0001',
+    protectedHash: { path: LEDGER_REL, sha256: fixture.historicalPrefixSha256AtOrdinal1 },
+    historicalLedgerPrefixProven: true
+  });
+  assert.equal(sharedClassification.classification, HISTORICAL_LEDGER_PREFIX);
+  assert.equal(sharedClassification.blocking, false);
 
   const view = createWheelProjectAdapter(tmp).getWorkUnitView(gateId);
   assert.equal(view.authorityState.canonicalRevisionStructurallyValid, true, 'a proven historical ledger-prefix pin must downgrade to drift');

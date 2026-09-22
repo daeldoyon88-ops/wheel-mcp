@@ -1,0 +1,72 @@
+{
+  "documentKind": "MAINTENANCE_PUBLICATION_ADMISSION",
+  "schemaVersion": 1,
+  "authorityMode": "LOCAL_EXPLICIT_AUTHORITY",
+  "issuedBy": "PROJECT_OWNER",
+  "admissionId": "GATE26_PHASE_D_BYTE_IDENTITY_SUCCESSOR_PUBLICATION_ADMISSION_R1",
+  "decisionId": "OWNER_ADMIT_GATE26_PHASE_D_BYTE_IDENTITY_SUCCESSOR_R1",
+  "issuedAtUtc": "2026-09-21T15:06:57.200Z",
+  "expiresAtUtc": null,
+  "projectId": "WHEEL",
+  "repositoryId": "WHEEL_MCP_CANONICAL",
+  "gateId": "GATE26",
+  "programId": "GATE26_PHASE_D_BYTE_IDENTITY_SUCCESSOR_R1",
+  "purpose": "MAINTENANCE_PUBLICATION_ADMISSION",
+  "publicationClass": "PATH_PRESTATE_PROGRAM_PUBLISHER",
+  "authorityPurpose": "NORMAL_MAINTENANCE",
+  "maxUse": 1,
+  "admissionStatement": "One exact Owner admission for the bounded 26-path C+ GATE26 byte-identity successor. It admits only the future governed publication after independent audit. This Builder does not consume the authority, create the reserved receipt, commit, push, authorize FULL, close GATE26, switch ACTIVE_GATE, introduce R8, use network or self-assign independent confirmation.",
+  "admittedAuthority": {
+    "path": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_GATE26_PHASE_D_BYTE_IDENTITY_SUCCESSOR_R1.json",
+    "sha256": "b1c3088323ad6ac3c3a04510a0596a761f74f0854ae4b466f4d9b4b4e9176280",
+    "byteLength": 2299,
+    "schemaVersion": 2,
+    "documentId": "GATE26_PHASE_D_BYTE_IDENTITY_SUCCESSOR_LOCAL_AUTHORITY_R1"
+  },
+  "admittedManifest": {
+    "path": "governance/historical-architecture/GATE26_PHASE_D_BYTE_IDENTITY_SUCCESSOR_AUTHORIZED_PATHS_R1.json",
+    "sha256": "2463b889f631e46779abade23ee409523c09de251ccb617400bbb0444f32c0a6",
+    "byteLength": 12460,
+    "schemaVersion": 2,
+    "documentId": "GATE26_PHASE_D_BYTE_IDENTITY_SUCCESSOR_AUTHORIZED_PATHS_R1"
+  },
+  "admittedPrestate": {
+    "baseHead": "819987e2a772a3ddd421d6ea9b6bbc1aa1317751",
+    "ledgerEventCount": 114,
+    "ledgerPrefixSha256": "2eb6253d96186235be27e9d4e5c58cc48bcc07fa5973a0438dc5da13916697a1",
+    "gateId": "GATE26",
+    "gateStatus": "IN_PROGRESS",
+    "stateRevision": "R0004",
+    "contractRevision": "R0003",
+    "activeGate": "GATE13",
+    "R8ExpectedAbsent": true
+  },
+  "admittedOperationClasses": [
+    "MAINTENANCE"
+  ],
+  "grantsFutureBytePermission": false,
+  "grantsGateAuthorizationPermission": false,
+  "grantsStartPermission": false,
+  "grantsStatusTransitionPermission": false,
+  "grantsHistoricalAdmissionWidening": false,
+  "genericV1Admission": false,
+  "derivedFromGitDelta": false,
+  "derivedFromFinalGateIntegrityFindings": false,
+  "prohibitedOperations": [
+    "START",
+    "SECOND_START",
+    "GATE_AUTHORIZATION",
+    "STATUS_TRANSITION",
+    "ACTIVE_GATE_SWITCH",
+    "GEE_R8",
+    "GIT_PUSH",
+    "HISTORY_REWRITE",
+    "GENERIC_V1_ADMISSION",
+    "HISTORICAL_ADMISSION_WIDENING",
+    "SELF_ADMISSION"
+  ],
+  "successorRequirement": "A later publication over changed bytes or state requires a new exact Owner admission.",
+  "admissionDigest": "d1920bf6a6d62bfd3fdfeef905b850eeddf97b4d13e0a73466d22b313c3da39d",
+  "ownerAuthorizationPath": "governance/sources/MAINTENANCE_PUBLICATION_ADMISSION_OWNER_AUTHORIZATION_GATE26_PHASE_D_BYTE_IDENTITY_SUCCESSOR_R1.json",
+  "ownerAuthorizationSha256": "5987a5b49cdc158982c4b892823505c6909b589dc39e475ad8967bf02ad330ba"
+}

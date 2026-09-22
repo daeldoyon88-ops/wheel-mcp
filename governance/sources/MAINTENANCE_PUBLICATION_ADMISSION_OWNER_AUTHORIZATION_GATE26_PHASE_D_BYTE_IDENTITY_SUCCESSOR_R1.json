@@ -1,0 +1,25 @@
+{
+  "document": "MAINTENANCE_PUBLICATION_ADMISSION_OWNER_AUTHORIZATION",
+  "schemaVersion": 1,
+  "authorityId": "GATE26_PHASE_D_BYTE_IDENTITY_SUCCESSOR_PUBLICATION_OWNER_AUTHORIZATION_R1",
+  "authorityClass": "PROJECT_OWNER_MAINTENANCE_PUBLICATION_ADMISSION_AUTHORITY",
+  "authorityMode": "LOCAL_EXPLICIT_AUTHORITY",
+  "issuedBy": "PROJECT_OWNER",
+  "issuedAtUtc": "2026-09-21T15:06:57.200Z",
+  "decisionId": "OWNER_ADMIT_GATE26_PHASE_D_BYTE_IDENTITY_SUCCESSOR_R1",
+  "purpose": "MAINTENANCE_PUBLICATION_ADMISSION",
+  "reexecutionAuthorized": false,
+  "grantsFutureBytePermission": false,
+  "genericV1Admission": false,
+  "admittedPublications": [
+    {
+      "admissionId": "GATE26_PHASE_D_BYTE_IDENTITY_SUCCESSOR_PUBLICATION_ADMISSION_R1",
+      "projectId": "WHEEL",
+      "gateId": "GATE26",
+      "programId": "GATE26_PHASE_D_BYTE_IDENTITY_SUCCESSOR_R1",
+      "admissionPath": "governance/authority/publication-admissions/GATE26/GATE26_PHASE_D_BYTE_IDENTITY_SUCCESSOR_PUBLICATION_ADMISSION_R1.json",
+      "admissionDigest": "d1920bf6a6d62bfd3fdfeef905b850eeddf97b4d13e0a73466d22b313c3da39d"
+    }
+  ],
+  "registryDigest": "e51923fb7d0c920be883fe8920c21991955e949f439b81f5cbb52e3e23864341"
+}

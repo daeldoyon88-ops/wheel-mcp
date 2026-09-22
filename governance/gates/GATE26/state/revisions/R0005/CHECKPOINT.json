@@ -1,0 +1,36 @@
+{
+  "gateId": "GATE26",
+  "stateRevision": "R0005",
+  "milestone": "GATE26_CONTRACT_SUCCESSION",
+  "resumePoint": "GATE26_PHASE_D_BYTE_IDENTITY_SUCCESSOR_R1_READY_FOR_INDEPENDENT_AUDIT",
+  "completedTasks": [
+    "GATE26_CONTRACT_SUCCESSION_R0001_TO_R0002",
+    "GATE26_MINI_BUILD_FUNCTIONAL",
+    "GATE26_CONTRACT_SUCCESSION_R0002_TO_R0003",
+    "GATE26_CONTRACT_SUCCESSION_R0003_TO_R0004",
+    "GATE26_FULL_PREBUILD_FUNCTIONAL"
+  ],
+  "openTasks": [
+    "GATE26_PHASE_D_BYTE_IDENTITY_SUCCESSOR_R1_INDEPENDENT_AUDIT"
+  ],
+  "reusableEvidence": [
+    "GATE26_MINI_BUILD_R1",
+    "GATE26_FULL_LFS_TRANSPORT_R1",
+    "B0_BASE_HEAD_CAUSAL_CYCLE_PROOF"
+  ],
+  "invalidatedEvidence": [],
+  "requiredNextActions": [
+    "GATE26_PHASE_D_BYTE_IDENTITY_SUCCESSOR_R1_INDEPENDENT_AUDIT"
+  ],
+  "protectedHashes": [
+    {
+      "path": ".gitattributes",
+      "sha256": "92c5f598025b23c8786e1274b1c9f6866c0d0681de4c23ad03f408b32ea79a7f"
+    },
+    {
+      "path": "governance/gates/GATE26/contracts/EXECUTION_CONTRACT_R0002.json",
+      "sha256": "b0ab114a7a8125d37c871addfc2d795f3900894edac287fd7a1d5a67150a8d93"
+    }
+  ],
+  "createdAt": "2026-09-21T15:06:57.200Z"
+}

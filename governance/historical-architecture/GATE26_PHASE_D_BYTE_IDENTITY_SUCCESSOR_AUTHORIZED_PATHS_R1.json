@@ -1,0 +1,314 @@
+{
+  "documentKind": "POST_FREEZE_MAINTENANCE_AUTHORIZED_PATH_MANIFEST",
+  "schemaVersion": 2,
+  "manifestId": "GATE26_PHASE_D_BYTE_IDENTITY_SUCCESSOR_AUTHORIZED_PATHS_R1",
+  "programId": "GATE26_PHASE_D_BYTE_IDENTITY_SUCCESSOR_R1",
+  "paths": [
+    {
+      "path": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_GATE26_PHASE_D_BYTE_IDENTITY_SUCCESSOR_R1.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "Owner-issued LOCAL_EXPLICIT_AUTHORITY for the bounded C+ byte-identity successor. Bootstrap member: it is pre-state self-excluded while remaining inside the exact authorized set and future consumption cohort.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "governance/historical-architecture/GATE26_PHASE_D_BYTE_IDENTITY_SUCCESSOR_AUTHORIZED_PATHS_R1.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "Exact 26-path C+ manifest. Bootstrap member: it is pre-state self-excluded while remaining digest-pinned by the successor authority.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "governance/historical-architecture/GATE26_PHASE_D_BYTE_IDENTITY_SUCCESSOR_CONSUMPTION_R1.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "RESERVED_RECEIPT: single-use successor consumption receipt reserved for the later canonical publisher after independent audit; the Builder must leave it absent.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "governance/gates/GATE26/contracts/EXECUTION_CONTRACT_R0004.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "Create the R0004 execution contract that lawfully succeeds immutable R0003 and binds the repaired .gitattributes identity.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "governance/authority/authorizations/GATE26/GATE_CONTRACT_SUCCESSION_LOCAL_AUTHORITY_R0004.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "Create the one-use local authority for the R0003 to R0004 contract succession and R0005 state revision.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "governance/gates/GATE26/state/revisions/R0005/CHECKPOINT.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "Create the successor checkpoint carrying forward immutable evidence and the repaired protected hash.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "governance/gates/GATE26/state/revisions/R0005/OPEN_DEFECTS.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "Create the R0005 open-defects member without fabricating a new defect.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "governance/gates/GATE26/state/revisions/R0005/STATE_SEAL.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "Seal the exact R0005 checkpoint and open-defects bytes with the existing state-seal primitive.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "governance/gee-v1/tests/gee-fc02-protected-hash-succession.test.mjs",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "Add generic positive and fail-closed hostile coverage for lawful protected-hash succession.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": ".gitattributes",
+      "operation": "MODIFY",
+      "phase": "MAINTENANCE",
+      "reason": "Append one exact LF attribute rule so the GATE25 historical regime foundation remains byte-faithful across Git materialization.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "PRESENT",
+        "sha256": "62b0f8638dba64da6cf430d30043df3bdf0d32ce480508a77a665910ec729161",
+        "byteLength": 1730
+      }
+    },
+    {
+      "path": "governance/gates/GATE26/contracts/GATE26_FULL_PRODUCTION_PRODUCER_V1.json",
+      "operation": "MODIFY",
+      "phase": "MAINTENANCE",
+      "reason": "Bind the real producer to the correct foundation bytes, R0004 contract and final causal dependency set without changing producer semantics.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "PRESENT",
+        "sha256": "f0d41eef2ec49b3c0598ef9cc00c274c3eec9b9e62c086eca92944796382b454",
+        "byteLength": 10399
+      }
+    },
+    {
+      "path": "governance/gates/GATE26/contracts/CURRENT_CONTRACT.json",
+      "operation": "MODIFY",
+      "phase": "MAINTENANCE",
+      "reason": "Advance the sole GATE26 contract pointer from R0003 to the lawful R0004 successor.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "PRESENT",
+        "sha256": "419d0784381e193136fe5b45a50ecee3e69ff58d23e25773564c564100453d0a",
+        "byteLength": 314
+      }
+    },
+    {
+      "path": "governance/gates/GATE26/state/CURRENT_STATE.json",
+      "operation": "MODIFY",
+      "phase": "MAINTENANCE",
+      "reason": "Advance the sole GATE26 state pointer from immutable R0004 to sealed R0005.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "PRESENT",
+        "sha256": "04a129aaa5c449e10a699433975f8bf1cfacf3bd80867c9be7176ee9dd807578",
+        "byteLength": 312
+      }
+    },
+    {
+      "path": "governance/state/GATE_STATUS_LEDGER.ndjson",
+      "operation": "MODIFY",
+      "phase": "MAINTENANCE",
+      "reason": "Append exactly event 115 for the R0003 to R0004 contract succession without rewriting the first 114 events.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "PRESENT",
+        "sha256": "2eb6253d96186235be27e9d4e5c58cc48bcc07fa5973a0438dc5da13916697a1",
+        "byteLength": 70915
+      }
+    },
+    {
+      "path": "governance/gates/GATE26/implementation/full-query-cohort-v1.mjs",
+      "operation": "MODIFY",
+      "phase": "MAINTENANCE",
+      "reason": "Retarget only the causally invalidated execution-contract binding from R0003 to R0004.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "PRESENT",
+        "sha256": "2675159598b4a22406e0da8655c232ac9cc6b37ed840a24673f8ed810378447e",
+        "byteLength": 25025
+      }
+    },
+    {
+      "path": "governance/gates/GATE26/contracts/GATE26_FULL_MANIFEST_V1.json",
+      "operation": "MODIFY",
+      "phase": "MAINTENANCE",
+      "reason": "Retarget the FULL manifest binding to the lawful R0004 contract only.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "PRESENT",
+        "sha256": "655218e8d8576d00477212dab4936a9f2c77334539b1e471d5c52aba507df6d6",
+        "byteLength": 3419
+      }
+    },
+    {
+      "path": "governance/gates/GATE26/contracts/GATE26_FULL_QUERY_COHORT_V1.json",
+      "operation": "MODIFY",
+      "phase": "MAINTENANCE",
+      "reason": "Retarget the FULL query-cohort binding to the lawful R0004 contract only.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "PRESENT",
+        "sha256": "3454ac8ae02795fd02b23ce8ef2b9ab52d19121812474d204be533b68f6bdb89",
+        "byteLength": 3141
+      }
+    },
+    {
+      "path": "governance/gates/GATE26/contracts/GATE26_FULL_ENSEMBLE_PAGE_V1.json",
+      "operation": "MODIFY",
+      "phase": "MAINTENANCE",
+      "reason": "Retarget the FULL ensemble-page binding to the lawful R0004 contract only.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "PRESENT",
+        "sha256": "d1d205c2941c3998e0475e7ffcd6c3da5cc95861db3ad2bc19089b1dc5a9b343",
+        "byteLength": 2198
+      }
+    },
+    {
+      "path": "governance/gates/GATE26/contracts/GATE26_FULL_PROVENANCE_PAGE_V1.json",
+      "operation": "MODIFY",
+      "phase": "MAINTENANCE",
+      "reason": "Retarget the FULL provenance-page binding to the lawful R0004 contract only.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "PRESENT",
+        "sha256": "579bfc91c234cb843796ce53d4df12517787ba33659e899d6c1b79f3b63961b9",
+        "byteLength": 2500
+      }
+    },
+    {
+      "path": "governance/gates/GATE26/contracts/GATE26_FULL_CHECKPOINT_V1.json",
+      "operation": "MODIFY",
+      "phase": "MAINTENANCE",
+      "reason": "Retarget the FULL checkpoint binding to the lawful R0004 contract only.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "PRESENT",
+        "sha256": "a761b61e5adf90a4efcbf0b92c000e710c8d9bce9f82eab741b17eae5b39e89f",
+        "byteLength": 2148
+      }
+    },
+    {
+      "path": "governance/gates/GATE26/tests/gate26-full-prebuild.test.mjs",
+      "operation": "MODIFY",
+      "phase": "MAINTENANCE",
+      "reason": "Update targeted PREBUILD positives for CURRENT R0004 while preserving refusal of future R0005 contract pointers.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "PRESENT",
+        "sha256": "93bdc60dfd208473f748db446231a67a069fe82af0544bbf265e2ef7fa007573",
+        "byteLength": 20870
+      }
+    },
+    {
+      "path": "governance/gates/GATE26/tests/gate26-full-prebuild-hostiles.test.mjs",
+      "operation": "MODIFY",
+      "phase": "MAINTENANCE",
+      "reason": "Retain fail-closed PREBUILD hostiles under the R0004 contract binding.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "PRESENT",
+        "sha256": "931a22054edf492303b6591d509e6a24f13202b100e33f854a07b799fe77a33c",
+        "byteLength": 35564
+      }
+    },
+    {
+      "path": "governance/tools/validate-state-revision.mjs",
+      "operation": "MODIFY",
+      "phase": "MAINTENANCE",
+      "reason": "Provide the single generic classifyProtectedHashLiveCheck law for historical protected-hash succession.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "PRESENT",
+        "sha256": "69a2f5395c50061625ba60afeb76aa60a7ccad0d3d426699947b31f7a7c0615e",
+        "byteLength": 15491
+      }
+    },
+    {
+      "path": "governance/gee-v1/adapters/wheel/wheel-project-adapter.mjs",
+      "operation": "MODIFY",
+      "phase": "MAINTENANCE",
+      "reason": "Use the shared generic protected-hash classifier in the Wheel adapter without duplicating the predicate.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "PRESENT",
+        "sha256": "77d27408cc97f209b4cc00ec31b71f31b4ba69c61dc221a52564a580d937a8cd",
+        "byteLength": 32236
+      }
+    },
+    {
+      "path": "governance/tools/final-gate-integrity-auditor.mjs",
+      "operation": "MODIFY",
+      "phase": "MAINTENANCE",
+      "reason": "Use the shared generic protected-hash classifier in final integrity checks without duplicating the predicate.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "PRESENT",
+        "sha256": "ff5a9b628662ef9addd2e5d32be16fe57da9b2629b80186fe0387df514e4fb0f",
+        "byteLength": 51447
+      }
+    },
+    {
+      "path": "governance/gee-v1/tests/gee-r1-final-closure-blocker-fix-r1.test.mjs",
+      "operation": "MODIFY",
+      "phase": "MAINTENANCE",
+      "reason": "Extend existing FC-02 coverage to distinguish lawful supersession from match and unresolved mismatch.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "PRESENT",
+        "sha256": "6ed395c6977c215b700e9bfd2e5e913acb2abb20b03c3459c23d65b014b82a94",
+        "byteLength": 41303
+      }
+    }
+  ],
+  "prestateSelfExclusion": [
+    {
+      "path": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_GATE26_PHASE_D_BYTE_IDENTITY_SUCCESSOR_R1.json",
+      "role": "AUTHORITY_DOCUMENT",
+      "reason": "Read by the evaluator to decide this successor program; unavoidably PRESENT at authorize time while its operation is CREATE."
+    },
+    {
+      "path": "governance/historical-architecture/GATE26_PHASE_D_BYTE_IDENTITY_SUCCESSOR_AUTHORIZED_PATHS_R1.json",
+      "role": "AUTHORIZED_PATH_MANIFEST",
+      "reason": "Read by the evaluator to decide this successor program; unavoidably PRESENT at authorize time while its operation is CREATE."
+    }
+  ]
+}

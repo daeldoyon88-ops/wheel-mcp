@@ -7,14 +7,14 @@
     "G26-PREBUILD-04",
     "G26-PREBUILD-05"
   ],
-  "resolutionStatus": "BOUND_TO_R0003_REQUIREMENTS",
+  "resolutionStatus": "BOUND_TO_R0004_REQUIREMENTS",
   "ownerAuthorizationId": "OWNER_AUTHORIZE_GATE26_B1_ATOMIC_INNER_SUCCESSION_TRANSACTION_R1",
   "authority": {
-    "executionContractPath": "governance/gates/GATE26/contracts/EXECUTION_CONTRACT_R0003.json",
-    "executionContractRevision": "R0003",
-    "executionContractSha256": "dddbc62956eb658b8207126a18edd9c7317e845f4c2b56374a6c05c28e90f381",
+    "executionContractPath": "governance/gates/GATE26/contracts/EXECUTION_CONTRACT_R0004.json",
+    "executionContractRevision": "R0004",
+    "executionContractSha256": "eda92933595bc7f517cde4f964201c4f8b8725aa1b9d3f4a66a3ca32af111de4",
     "requirementBindingSha256Canonical": {
-      "G26-PREBUILD-04": "810262a34841fb6ae8cce849b667b0810bf1524a8f7b8703cf03fc788e72d529"
+      "G26-PREBUILD-04": "9823a5d68df2edb1c7f371183e1cbf86a693eae6421f370d41ef21686152ed32"
     },
     "packagingRequirementsSha256Canonical": "ddf013100ce0d80dbb9711f11e9ee54ee7a924b68d392dc2512eb4d3326a78dd"
   },
@@ -69,6 +69,6 @@
     "recordSemantics": "V1_UNCHANGED_BY_PAGINATION",
     "serialization": "CanonicalJSON/1_PLUS_LF",
     "contentIdentity": "SHA256_OF_PAGE_BYTES",
-    "productWriteUnderR0003": "FORBIDDEN"
+    "productWriteUnderR0004": "FORBIDDEN"
   }
 }

@@ -83,7 +83,13 @@ function isAdmittedTransition(event) {
     from === event.fromStatus && to === event.toStatus && type === event.transitionType));
 }
 import { computeSealedMembersDigest, validateStateSeal } from './validate-state-seal.mjs';
-import { validateStateRevision } from './validate-state-revision.mjs';
+import {
+  classifyProtectedHashLiveCheck,
+  HISTORICAL_LEDGER_PREFIX,
+  HISTORICAL_PROTECTED_HASH_SUPERSEDED,
+  PROTECTED_HASH_MATCH,
+  validateStateRevision
+} from './validate-state-revision.mjs';
 import { collectClosedStateSealMembers } from '../gee-v1/core/sealed-state-evidence.mjs';
 import { deriveCanonicalAuthorizedCohort } from '../gee-v1/core/canonical-authorized-cohort.mjs';
 import { deriveCurrentByteAuthorizationProofs, STATUS_AUTHORIZED } from '../gee-v1/core/current-byte-authorization.mjs';
@@ -702,6 +708,7 @@ export function auditFinalGateIntegrity({
   // bytes they name. A claim whose declared input has moved is STALE, and must
   // not still be advertised as currently reusable.
   const staleReuseClaims = [];
+  const protectedHashChecks = [];
   for (const revision of revisionNames) {
     const checkpointRelative = `${revisionsRoot}/${revision}/CHECKPOINT.json`;
     const checkpoint = readJsonOrNull(root, checkpointRelative);
@@ -733,18 +740,23 @@ export function auditFinalGateIntegrity({
         });
       }
     }
-    // protectedHashes are explicit byte claims and are checked directly.
+    // protectedHashes are classified by the same FC-02 law as the canonical
+    // revision validator and Wheel adapter. Historical lawful succession is
+    // disclosed in observations; every incomplete proof remains blocking.
     for (const claim of Array.isArray(checkpoint.protectedHashes) ? checkpoint.protectedHashes : []) {
       if (typeof claim !== 'object' || claim === null || typeof claim.path !== 'string') continue;
-      const identity = actualIdentity(root, claim.path);
-      if (!identity.present) {
+      const check = classifyProtectedHashLiveCheck({ root, gateId, stateRevision: revision, protectedHash: claim });
+      protectedHashChecks.push(check);
+      if ([PROTECTED_HASH_MATCH, HISTORICAL_PROTECTED_HASH_SUPERSEDED, HISTORICAL_LEDGER_PREFIX].includes(check.classification)) continue;
+      if (check.reasonCodes.includes('PROTECTED_HASH_TARGET_ABSENT')) {
         blocking('EVIDENCE', 'PROTECTED_HASH_TARGET_ABSENT', {
           path: claim.path, expected: claim.sha256, actual: 'ABSENT', message: `protected by ${checkpointRelative}`
         });
-      } else if (identity.sha256 !== claim.sha256) {
+      } else {
         blocking('EVIDENCE', 'PROTECTED_HASH_MISMATCH', {
-          path: claim.path, expected: claim.sha256, actual: identity.sha256,
-          message: `protected by ${checkpointRelative}`, affectedFrontier: 'EVIDENCE'
+          path: claim.path, expected: claim.sha256, actual: check.actualSha256,
+          message: `protected by ${checkpointRelative}: ${check.reasonCodes.join(', ') || 'unclassified mismatch'}`,
+          affectedFrontier: 'EVIDENCE'
         });
       }
     }
@@ -1001,7 +1013,7 @@ export function auditFinalGateIntegrity({
     },
     authority: authorityAudits,
     precontractAnchor,
-    evidence: { required: evidenceAudits, staleReuseClaims },
+    evidence: { required: evidenceAudits, staleReuseClaims, protectedHashChecks },
     generated: generatedAudit,
     git: gitAudit,
     temp: tempAudit,

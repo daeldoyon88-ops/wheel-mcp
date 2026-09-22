@@ -1,5 +1,5 @@
 /**
- * GATE26 FULL QUERY COHORT V1 — R0003 PREBUILD.
+ * GATE26 FULL QUERY COHORT V1 — R0004 PREBUILD.
  *
  * One FULL query unit is one canonical published GATE25 ANALOGUE_INDEX record,
  * consumed exactly once, in the storage order the index already guarantees
@@ -12,9 +12,9 @@
  * Every record is re-verified through the GATE25 verifier and must be exactly its
  * own canonical bytes. Nothing here loads the P3H universe U.
  *
- * This module is also the single loader of the R0003 FULL PREBUILD authority: the
+ * This module is also the single loader of the R0004 FULL PREBUILD authority: the
  * pinned contract, its CURRENT_CONTRACT pointer and the five FULL binding artifacts,
- * each re-checked against the R0003 requirement bindings it cites.
+ * each re-checked against the R0004 requirement bindings it cites.
  */
 
 import { closeSync, openSync, readFileSync, readSync } from 'node:fs';
@@ -31,8 +31,11 @@ import { assertClosedKeys, failClosed } from './ensemble-identity-v1.mjs';
 
 const REPOSITORY_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../../../..');
 
-export const R0003_CONTRACT_PATH = 'governance/gates/GATE26/contracts/EXECUTION_CONTRACT_R0003.json';
-export const R0003_CONTRACT_SHA256 = 'dddbc62956eb658b8207126a18edd9c7317e845f4c2b56374a6c05c28e90f381';
+export const R0004_CONTRACT_PATH = 'governance/gates/GATE26/contracts/EXECUTION_CONTRACT_R0004.json';
+export const R0004_CONTRACT_SHA256 = 'eda92933595bc7f517cde4f964201c4f8b8725aa1b9d3f4a66a3ca32af111de4';
+// Compatibility aliases for downstream tests that consume the current PREBUILD contract path.
+export const R0003_CONTRACT_PATH = R0004_CONTRACT_PATH;
+export const R0003_CONTRACT_SHA256 = R0004_CONTRACT_SHA256;
 export const CURRENT_CONTRACT_POINTER_PATH = 'governance/gates/GATE26/contracts/CURRENT_CONTRACT.json';
 export const FULL_BINDING_ARTIFACT_PATHS_V1 = Object.freeze({
   GATE26_FULL_QUERY_COHORT_V1: 'governance/gates/GATE26/contracts/GATE26_FULL_QUERY_COHORT_V1.json',
@@ -67,19 +70,19 @@ function readRepositoryJson(root, path, code) {
 const sameCanonical = (left, right) => canonicalize(left) === canonicalize(right);
 
 /**
- * The R0003 FULL PREBUILD authority, re-derived from repository bytes on every call.
+ * The R0004 FULL PREBUILD authority, re-derived from repository bytes on every call.
  * A caller cannot hand in a more permissive authority: FULL production and FULL
- * product writes are read off the pinned contract itself, and R0003 grants neither.
+ * product writes are read off the pinned contract itself, and R0004 grants neither.
  */
 export function loadFullPrebuildAuthority({ root = REPOSITORY_ROOT } = {}) {
   const pointer = readRepositoryJson(root, CURRENT_CONTRACT_POINTER_PATH, 'CURRENT_CONTRACT').json;
-  if (pointer.gateId !== 'GATE26' || pointer.contractRevision !== 'R0003' || pointer.contractPath !== R0003_CONTRACT_PATH
-    || pointer.contractSha256 !== R0003_CONTRACT_SHA256) {
-    failClosed('CURRENT_CONTRACT_NOT_R0003', { contractRevision: pointer.contractRevision ?? null });
+  if (pointer.gateId !== 'GATE26' || pointer.contractRevision !== 'R0004' || pointer.contractPath !== R0004_CONTRACT_PATH
+    || pointer.contractSha256 !== R0004_CONTRACT_SHA256) {
+    failClosed('CURRENT_CONTRACT_NOT_R0004', { contractRevision: pointer.contractRevision ?? null });
   }
-  const { bytes: contractBytes, json: contract } = readRepositoryJson(root, R0003_CONTRACT_PATH, 'EXECUTION_CONTRACT');
-  if (sha256Bytes(contractBytes) !== R0003_CONTRACT_SHA256) failClosed('EXECUTION_CONTRACT_SHA256_MISMATCH', { observed: sha256Bytes(contractBytes) });
-  if (contract.gateId !== 'GATE26' || contract.contractRevision !== 'R0003') failClosed('EXECUTION_CONTRACT_REVISION_INVALID');
+  const { bytes: contractBytes, json: contract } = readRepositoryJson(root, R0004_CONTRACT_PATH, 'EXECUTION_CONTRACT');
+  if (sha256Bytes(contractBytes) !== R0004_CONTRACT_SHA256) failClosed('EXECUTION_CONTRACT_SHA256_MISMATCH', { observed: sha256Bytes(contractBytes) });
+  if (contract.gateId !== 'GATE26' || contract.contractRevision !== 'R0004') failClosed('EXECUTION_CONTRACT_REVISION_INVALID');
   if (!Array.isArray(contract.authorizedPaths) || contract.authorizedPaths.length !== EXPECTED_AUTHORIZED_PATH_COUNT
     || new Set(contract.authorizedPaths).size !== EXPECTED_AUTHORIZED_PATH_COUNT
     || contract.authorizedPaths.some((path) => /[*?[\]]/.test(path) || path.startsWith(`${FULL_PRODUCT_ROOT_V1}/`))) {
@@ -98,18 +101,18 @@ export function loadFullPrebuildAuthority({ root = REPOSITORY_ROOT } = {}) {
     const artifact = readRepositoryJson(root, path, 'FULL_BINDING_ARTIFACT').json;
     const authority = artifact.authority ?? {};
     if (artifact.document !== 'GATE26_BINDING_ARTIFACT' || artifact.gateId !== 'GATE26' || artifact.bindingId !== bindingId
-      || authority.executionContractPath !== R0003_CONTRACT_PATH || authority.executionContractRevision !== 'R0003'
-      || authority.executionContractSha256 !== R0003_CONTRACT_SHA256 || artifact.binding?.schema !== bindingId) {
-      failClosed('FULL_BINDING_ARTIFACT_DIVERGES_FROM_R0003', { bindingId });
+      || authority.executionContractPath !== R0004_CONTRACT_PATH || authority.executionContractRevision !== 'R0004'
+      || authority.executionContractSha256 !== R0004_CONTRACT_SHA256 || artifact.binding?.schema !== bindingId) {
+      failClosed('FULL_BINDING_ARTIFACT_DIVERGES_FROM_R0004', { bindingId });
     }
     if (!Array.isArray(artifact.requirementIds) || artifact.requirementIds.some((id) => !requirements.has(id))) {
-      failClosed('FULL_BINDING_ARTIFACT_DIVERGES_FROM_R0003', { bindingId, field: 'requirementIds' });
+      failClosed('FULL_BINDING_ARTIFACT_DIVERGES_FROM_R0004', { bindingId, field: 'requirementIds' });
     }
     for (const [id, digest] of Object.entries(authority.requirementBindingSha256Canonical ?? {})) {
-      if (sha256Canonical(requirementBinding(id)) !== digest) failClosed('FULL_BINDING_ARTIFACT_DIVERGES_FROM_R0003', { bindingId, requirementId: id });
+      if (sha256Canonical(requirementBinding(id)) !== digest) failClosed('FULL_BINDING_ARTIFACT_DIVERGES_FROM_R0004', { bindingId, requirementId: id });
     }
     if (authority.packagingRequirementsSha256Canonical !== undefined && authority.packagingRequirementsSha256Canonical !== sha256Canonical(packaging)) {
-      failClosed('FULL_BINDING_ARTIFACT_DIVERGES_FROM_R0003', { bindingId, field: 'packagingRequirements' });
+      failClosed('FULL_BINDING_ARTIFACT_DIVERGES_FROM_R0004', { bindingId, field: 'packagingRequirements' });
     }
     bindings[bindingId] = artifact.binding;
   }
@@ -151,7 +154,7 @@ export function loadFullPrebuildAuthority({ root = REPOSITORY_ROOT } = {}) {
     ['manifestPath', [`${manifest.fullProductRoot}/${manifest.manifestFileName}`, packaging.futureManifestPath]],
     ['lfsRule', [manifest.lfs.rule, packaging.lfsRule]],
     ['productFileCount', [manifest.futureFullProductFileCount, r04.futureFullProductFileCount, 1 + r04.ensemblePageCount + r04.provenancePageCount]],
-    ['productFilesAuthorized', [manifest.productFilesAuthorizedUnderR0003, packaging.productFilesAuthorizedUnderThisRevision]],
+    ['productFilesAuthorized', [manifest.productFilesAuthorizedUnderR0004, packaging.productFilesAuthorizedUnderThisRevision]],
     ['productVersion', [manifest.productVersion, ensemblePage.productVersion, provenancePage.productVersion]],
   ];
   for (const [field, values] of crossChecks) {
@@ -164,10 +167,10 @@ export function loadFullPrebuildAuthority({ root = REPOSITORY_ROOT } = {}) {
 
   const productFilesAuthorized = packaging.productFilesAuthorizedUnderThisRevision === true;
   const fullProductionAuthorized = productFilesAuthorized
-    && r04.productionUnderR0003 !== 'FORBIDDEN'
+    && r04.productionUnderR0004 !== 'FORBIDDEN'
     && !(contract.forbiddenReplays ?? []).includes(FULL_PRODUCTION_REPLAY);
   return deepFreeze({
-    contract: { path: R0003_CONTRACT_PATH, revision: 'R0003', sha256: R0003_CONTRACT_SHA256 },
+    contract: { path: R0004_CONTRACT_PATH, revision: 'R0004', sha256: R0004_CONTRACT_SHA256 },
     authorizedPaths: [...contract.authorizedPaths],
     productFilesAuthorized,
     fullProductionAuthorized,

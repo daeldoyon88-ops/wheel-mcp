@@ -1,5 +1,5 @@
 /**
- * GATE26 FULL PREBUILD — hostile contract tests (R0003 NEG-01..04, CTR-01..03).
+ * GATE26 FULL PREBUILD — hostile contract tests (R0004 NEG-01..04, CTR-01..03).
  *
  * Every attack must fail closed with its exact code, and none may create a FULL
  * product byte. Attacks run against bounded synthetic cohorts and products under the
@@ -20,7 +20,7 @@ import { workUnitDirectoryName } from '../../../gee-v1/recovery/checkpoint-store
 import { installNetworkTrap } from '../implementation/mini-fixture-v1.mjs';
 import { loadGate26MiniBuildAuthority } from '../implementation/predictive-ensemble-engine-v1.mjs';
 import {
-  FULL_BINDING_ARTIFACT_PATHS_V1, CURRENT_CONTRACT_POINTER_PATH, R0003_CONTRACT_PATH, deriveQueryCohort, loadFullPrebuildAuthority, pageFileName,
+  FULL_BINDING_ARTIFACT_PATHS_V1, CURRENT_CONTRACT_POINTER_PATH, R0004_CONTRACT_PATH, deriveQueryCohort, loadFullPrebuildAuthority, pageFileName,
 } from '../implementation/full-query-cohort-v1.mjs';
 import { FULL_CHECKPOINT_WORK_UNIT_V1, openFullCheckpoint } from '../implementation/full-checkpoint-v1.mjs';
 import {
@@ -31,7 +31,7 @@ import { consumeFullProductDirectory } from '../implementation/full-consumer-v1.
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../../..');
 const IMPLEMENTATION = path.join(ROOT, 'governance/gates/GATE26/implementation');
-const CONTRACT = JSON.parse(fs.readFileSync(path.resolve(ROOT, R0003_CONTRACT_PATH), 'utf8'));
+const CONTRACT = JSON.parse(fs.readFileSync(path.resolve(ROOT, R0004_CONTRACT_PATH), 'utf8'));
 const FULL_ROOT = path.resolve(ROOT, CONTRACT.packagingRequirements.fullProductRoot);
 const networkCalls = installNetworkTrap();
 const WORK = path.join(os.tmpdir(), 'wheel-gee', `gate26-full-prebuild-hostiles-${process.pid}`);
@@ -66,7 +66,7 @@ const crashed = (runName, point, pageNumber) => {
   refusesWith(() => materialize(runName, { faultInjector: simulatedCrashAt(point, pageNumber) }), 'SIMULATED_CRASH');
 };
 
-/* ------------------------------------------------ NEG-02 / CTR-03: no FULL under R0003 */
+/* ------------------------------------------------ NEG-02 / CTR-03: no FULL under R0004 */
 
 test('NEG-02: an output root in the FULL product root is refused before any byte exists', () => {
   baseProduct();
@@ -99,7 +99,7 @@ test('NEG-02: a directory link that resolves into the repository or the FULL roo
   noFullRoot();
 });
 
-test('NEG-02 / CTR-03: the canonical cohort and unbounded cohorts cannot be produced under R0003', () => {
+test('NEG-02 / CTR-03: the canonical cohort and unbounded cohorts cannot be produced under R0004', () => {
   const cohort = base();
   const authority = loadFullPrebuildAuthority({ root: ROOT });
   for (const forged of [{ sourceLabel: authority.canonicalSource.path }, { sourceSha256: authority.canonicalSource.sha256 }]) {
@@ -111,10 +111,10 @@ test('NEG-02 / CTR-03: the canonical cohort and unbounded cohorts cannot be prod
   noFullRoot();
 });
 
-test('CTR-03: R0003 cannot be presented as FULL production, closure or confirmation authority', () => {
+test('CTR-03: R0004 cannot be presented as FULL production, closure or confirmation authority', () => {
   const fakeRoot = (name, mutate) => {
     const root = path.join(WORK, 'fake-root', name);
-    for (const file of [CURRENT_CONTRACT_POINTER_PATH, R0003_CONTRACT_PATH, ...Object.values(FULL_BINDING_ARTIFACT_PATHS_V1)]) {
+    for (const file of [CURRENT_CONTRACT_POINTER_PATH, R0004_CONTRACT_PATH, ...Object.values(FULL_BINDING_ARTIFACT_PATHS_V1)]) {
       fs.mkdirSync(path.dirname(path.join(root, file)), { recursive: true });
       fs.copyFileSync(path.join(ROOT, file), path.join(root, file));
     }
@@ -126,12 +126,12 @@ test('CTR-03: R0003 cannot be presented as FULL production, closure or confirmat
     mutate(edit);
     return root;
   };
-  refusesWith(() => loadFullPrebuildAuthority({ root: fakeRoot('pointer', (edit) => edit(CURRENT_CONTRACT_POINTER_PATH, (value) => { value.contractRevision = 'R0004'; })) }), 'CURRENT_CONTRACT_NOT_R0003');
-  refusesWith(() => loadFullPrebuildAuthority({ root: fakeRoot('widened', (edit) => edit(R0003_CONTRACT_PATH, (value) => { value.packagingRequirements.productFilesAuthorizedUnderThisRevision = true; })) }), 'EXECUTION_CONTRACT_SHA256_MISMATCH');
+  refusesWith(() => loadFullPrebuildAuthority({ root: fakeRoot('pointer', (edit) => edit(CURRENT_CONTRACT_POINTER_PATH, (value) => { value.contractRevision = 'R0005'; })) }), 'CURRENT_CONTRACT_NOT_R0004');
+  refusesWith(() => loadFullPrebuildAuthority({ root: fakeRoot('widened', (edit) => edit(R0004_CONTRACT_PATH, (value) => { value.packagingRequirements.productFilesAuthorizedUnderThisRevision = true; })) }), 'EXECUTION_CONTRACT_SHA256_MISMATCH');
   refusesWith(() => loadFullPrebuildAuthority({ root: fakeRoot('page-size', (edit) => edit(FULL_BINDING_ARTIFACT_PATHS_V1.GATE26_FULL_QUERY_COHORT_V1, (value) => { value.binding.pagePlan.pageSize = 64; })) }), 'FULL_BINDING_CROSS_CHECK_FAILED');
-  refusesWith(() => loadFullPrebuildAuthority({ root: fakeRoot('manifest-authorized', (edit) => edit(FULL_BINDING_ARTIFACT_PATHS_V1.GATE26_FULL_MANIFEST_V1, (value) => { value.binding.productFilesAuthorizedUnderR0003 = true; })) }), 'FULL_BINDING_CROSS_CHECK_FAILED');
-  refusesWith(() => loadFullPrebuildAuthority({ root: fakeRoot('binding-authority', (edit) => edit(FULL_BINDING_ARTIFACT_PATHS_V1.GATE26_FULL_CHECKPOINT_V1, (value) => { value.authority.executionContractSha256 = '0'.repeat(64); })) }), 'FULL_BINDING_ARTIFACT_DIVERGES_FROM_R0003');
-  refusesWith(() => loadFullPrebuildAuthority({ root: fakeRoot('requirement-digest', (edit) => edit(FULL_BINDING_ARTIFACT_PATHS_V1.GATE26_FULL_QUERY_COHORT_V1, (value) => { value.authority.requirementBindingSha256Canonical['G26-PREBUILD-02'] = '0'.repeat(64); })) }), 'FULL_BINDING_ARTIFACT_DIVERGES_FROM_R0003');
+  refusesWith(() => loadFullPrebuildAuthority({ root: fakeRoot('manifest-authorized', (edit) => edit(FULL_BINDING_ARTIFACT_PATHS_V1.GATE26_FULL_MANIFEST_V1, (value) => { value.binding.productFilesAuthorizedUnderR0004 = true; })) }), 'FULL_BINDING_CROSS_CHECK_FAILED');
+  refusesWith(() => loadFullPrebuildAuthority({ root: fakeRoot('binding-authority', (edit) => edit(FULL_BINDING_ARTIFACT_PATHS_V1.GATE26_FULL_CHECKPOINT_V1, (value) => { value.authority.executionContractSha256 = '0'.repeat(64); })) }), 'FULL_BINDING_ARTIFACT_DIVERGES_FROM_R0004');
+  refusesWith(() => loadFullPrebuildAuthority({ root: fakeRoot('requirement-digest', (edit) => edit(FULL_BINDING_ARTIFACT_PATHS_V1.GATE26_FULL_QUERY_COHORT_V1, (value) => { value.authority.requirementBindingSha256Canonical['G26-PREBUILD-02'] = '0'.repeat(64); })) }), 'FULL_BINDING_ARTIFACT_DIVERGES_FROM_R0004');
 
   const authority = loadFullPrebuildAuthority({ root: ROOT });
   assert.equal(authority.fullProductionAuthorized, false);
@@ -141,7 +141,7 @@ test('CTR-03: R0003 cannot be presented as FULL production, closure or confirmat
   assert.ok(CONTRACT.nextGateAuthorizationConditions.some((condition) => condition.includes('No GATE27 authority')));
   const state = JSON.parse(fs.readFileSync(path.join(ROOT, 'governance/gates/GATE26/state/CURRENT_STATE.json'), 'utf8'));
   const checkpoint = JSON.parse(fs.readFileSync(path.join(ROOT, state.revisionPath, 'CHECKPOINT.json'), 'utf8'));
-  assert.equal(checkpoint.resumePoint, 'IN_PROGRESS_FULL_PREBUILD_AUTHORIZED');
+  assert.equal(checkpoint.resumePoint, 'GATE26_PHASE_D_BYTE_IDENTITY_SUCCESSOR_R1_READY_FOR_INDEPENDENT_AUDIT');
 });
 
 /* ------------------------------------------------------------ NEG-01: complexity */

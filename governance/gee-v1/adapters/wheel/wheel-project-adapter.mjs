@@ -11,7 +11,10 @@ import { verifyHeadWitness } from '../../core/head-witness.mjs';
 import { deriveAuthoritativeStateFromLedger, hasNonGenesisTransition, deriveActivationLedgerBinding } from '../../core/authority-event-log.mjs';
 import { loadConfiguredExternalWitnesses } from '../../core/witness-source.mjs';
 import { isTrustSufficientFor, minTrustLevelFor } from '../../core/trust-policy.mjs';
-import { validateStateRevision } from '../../../tools/validate-state-revision.mjs';
+import {
+  classifyProtectedHashLiveCheck,
+  validateStateRevision
+} from '../../../tools/validate-state-revision.mjs';
 import { activationIdOf } from '../../contracts/activation-anchor.mjs';
 import { sealExecutionContract } from '../../contracts/seal-execution-contract.mjs';
 import { sha256Bytes } from '../../../tools/canonical-json.mjs';
@@ -231,14 +234,10 @@ function isProvenHistoricalLedgerPrefixDrift(repoRoot, findingRecord) {
  * FINAL-04/FC-02: reach the canonical validate-state-revision.mjs instead of
  * relying only on the adapter's own ad hoc pointer/seal identity checks
  * above. PROTECTED_HASH_MISMATCH is BLOCKING BY DEFAULT, exactly like every
- * other structural/identity finding here — it is downgraded to disclosed,
- * non-blocking drift ONLY per-finding, and ONLY when
- * isProvenHistoricalLedgerPrefixDrift proves that specific pin names a real,
- * chain-verified, reproducible earlier head of the ledger itself. Any other
- * protected-path mismatch, or a ledger pin that fails to reproduce, blocks
- * exactly like an unrelated structural finding — canonicalRevisionStructurally
- * Valid can never read true while a real, unproven PROTECTED_HASH_MISMATCH is
- * present, no matter what its detectorId is.
+ * other structural/identity finding here. The adapter imports the single
+ * classifyProtectedHashLiveCheck law; it supplies the pre-existing exact-ledger
+ * prefix proof only to avoid the ledger-validator recursion documented by that
+ * classifier. No protected-hash successor predicate is duplicated here.
  */
 function checkCanonicalRevisionStructural(repoRoot, gateId) {
   const currentStatePath = path.join(repoRoot, 'governance', 'gates', gateId, 'state', 'CURRENT_STATE.json');
@@ -249,11 +248,22 @@ function checkCanonicalRevisionStructural(repoRoot, gateId) {
   const driftFindings = [];
   const blockingFindings = [];
   for (const findingRecord of report.findings) {
-    if (findingRecord.detectorId === 'PROTECTED_HASH_MISMATCH' && isProvenHistoricalLedgerPrefixDrift(repoRoot, findingRecord)) {
-      driftFindings.push(findingRecord);
-    } else {
-      blockingFindings.push(findingRecord);
+    const protectedCheck = findingRecord?.protectedHashCheck;
+    if (protectedCheck && findingRecord?.actualValue && typeof findingRecord.actualValue === 'object') {
+      const classified = classifyProtectedHashLiveCheck({
+        root: repoRoot,
+        gateId,
+        stateRevision: protectedCheck.stateRevision,
+        protectedHash: findingRecord.actualValue,
+        historicalLedgerPrefixProven: isProvenHistoricalLedgerPrefixDrift(repoRoot, findingRecord)
+      });
+      if (!classified.blocking) {
+        driftFindings.push({ ...findingRecord, detectorId: classified.classification, protectedHashCheck: classified });
+        continue;
+      }
     }
+    if (findingRecord.severity !== 'BLOCKING') driftFindings.push(findingRecord);
+    else blockingFindings.push(findingRecord);
   }
   return { applicable: true, structurallyValid: blockingFindings.length === 0, driftFindings, blockingFindings };
 }

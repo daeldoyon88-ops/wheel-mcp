@@ -1,0 +1,102 @@
+{
+  "documentKind": "POST_FREEZE_MAINTENANCE_AUTHORIZED_PATH_MANIFEST",
+  "schemaVersion": 2,
+  "manifestId": "GATE26_MAINTENANCE_BOOTSTRAP_TRUST_PRIMITIVE_GENESIS_AUTHORIZED_PATHS_R1",
+  "programId": "GATE26_MAINTENANCE_BOOTSTRAP_TRUST_PRIMITIVE_GENESIS_R1",
+  "paths": [
+    {
+      "path": "governance/gee-v1/schemas/maintenance-repair-bootstrap-trust-authority.schema.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "Create the closed MAINTENANCE_REPAIR_BOOTSTRAP_TRUST_AUTHORITY schema (schemaVersion 1, additionalProperties false, maxUse 1, push and genesis denied, ORDINARY_FAST_GATE_PASS closure obligation).",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "governance/gee-v1/schemas/maintenance-repair-bootstrap-trust-consumption.schema.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "Create the closed MAINTENANCE_REPAIR_BOOTSTRAP_TRUST_CONSUMPTION receipt schema, composed before and certified by the V2 receipt, carrying no Fast Gate result.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "governance/gee-v1/core/maintenance-repair-bootstrap-trust.mjs",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "Create the pure bootstrap eligibility evaluator (E1-E9, residual identity, protected control surface, receipt law, closure obligation).",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "governance/gee-v1/tests/maintenance-repair-bootstrap-trust.test.mjs",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "Create the positive and hostile bootstrap battery, including the Genesis anti-reuse proof.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_GATE26_MAINTENANCE_BOOTSTRAP_TRUST_PRIMITIVE_GENESIS_R1.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "Owner-issued LOCAL_EXPLICIT_AUTHORITY for the one Genesis publication. Bootstrap member: it is pre-state self-excluded while remaining inside the exact authorized set and future consumption cohort.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "governance/historical-architecture/GATE26_MAINTENANCE_BOOTSTRAP_TRUST_PRIMITIVE_GENESIS_AUTHORIZED_PATHS_R1.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "Exact 8-path Genesis manifest. Bootstrap member: it is pre-state self-excluded while remaining digest-pinned by the Genesis authority.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "governance/tools/apply-path-prestate-program.mjs",
+      "operation": "MODIFY",
+      "phase": "MAINTENANCE",
+      "reason": "One-time Genesis self-succession of the V2 publisher: install the bootstrap eligibility hook and the bootstrap receipt write. After Genesis the publisher is on the protected control surface and no bootstrap repair may modify it.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "PRESENT",
+        "sha256": "eead182bd18dfb2128f2cab0b809b430f63433f1d62c1fda62b9294eaa737e4c",
+        "byteLength": 19526
+      }
+    },
+    {
+      "path": "governance/historical-architecture/GATE26_MAINTENANCE_BOOTSTRAP_TRUST_PRIMITIVE_GENESIS_CONSUMPTION_R1.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "RESERVED_RECEIPT: single-use Genesis consumption receipt reserved for the later canonical publisher after independent audit; the Builder must leave it absent. No bootstrap receipt exists for Genesis.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    }
+  ],
+  "prestateSelfExclusion": [
+    {
+      "path": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_GATE26_MAINTENANCE_BOOTSTRAP_TRUST_PRIMITIVE_GENESIS_R1.json",
+      "role": "AUTHORITY_DOCUMENT",
+      "reason": "Read by the evaluator to decide the Genesis program; unavoidably PRESENT at authorize time while its operation is CREATE."
+    },
+    {
+      "path": "governance/historical-architecture/GATE26_MAINTENANCE_BOOTSTRAP_TRUST_PRIMITIVE_GENESIS_AUTHORIZED_PATHS_R1.json",
+      "role": "AUTHORIZED_PATH_MANIFEST",
+      "reason": "Read by the evaluator to decide the Genesis program; unavoidably PRESENT at authorize time while its operation is CREATE."
+    }
+  ]
+}

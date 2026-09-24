@@ -1,0 +1,66 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "maintenance-repair-bootstrap-trust-authority.schema.json",
+  "title": "MAINTENANCE_REPAIR_BOOTSTRAP_TRUST_AUTHORITY",
+  "description": "One-use Owner authority admitting exactly one V2 repair program while the ordinary Generic Fast Gate is blocked by exactly one reproduced present-state defect subject. It grants no present-state trust and no Fast Gate exemption; its only closure obligation is an ordinary, unchanged Fast Gate PASS. Instances live at governance/authority/maintenance-repair-bootstrap/PROGRAM_ID_AUTHORITY_R1.json, where PROGRAM_ID is replaced by the exact V2 repair programId.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "document", "schemaVersion", "authorityId", "authorityClass", "authorityMode", "issuedBy",
+    "programId", "maxUse", "pushAuthorized", "genesisAuthorized",
+    "grantsPresentStateTrust", "grantsFastGateExemption", "recursiveBootstrapAuthorized",
+    "derivedFromFinalGateIntegrityFindings", "preState", "defectSubject", "residualIdentitySha256",
+    "repairManifestPath", "repairManifestSha256", "ownerDecisionPath", "ownerDecisionSha256",
+    "receiptPath", "closureObligation"
+  ],
+  "properties": {
+    "document": { "const": "MAINTENANCE_REPAIR_BOOTSTRAP_TRUST_AUTHORITY" },
+    "schemaVersion": { "const": 1 },
+    "authorityId": { "type": "string", "pattern": "^[A-Z][A-Z0-9_-]*_BOOTSTRAP_AUTHORITY_R1$" },
+    "authorityClass": { "const": "PROJECT_OWNER_MAINTENANCE_BOOTSTRAP_AUTHORITY" },
+    "authorityMode": { "const": "LOCAL_EXPLICIT_AUTHORITY" },
+    "issuedBy": { "const": "PROJECT_OWNER" },
+    "programId": { "type": "string", "pattern": "^[A-Z][A-Z0-9_-]*$" },
+    "maxUse": { "const": 1 },
+    "pushAuthorized": { "const": false },
+    "genesisAuthorized": { "const": false },
+    "grantsPresentStateTrust": { "const": false },
+    "grantsFastGateExemption": { "const": false },
+    "recursiveBootstrapAuthorized": { "const": false },
+    "derivedFromFinalGateIntegrityFindings": { "const": false },
+    "preState": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["baseHead", "ledgerEventCount", "ledgerPrefixSha256", "gateId", "gateStatus", "stateRevision", "contractRevision", "activeGate", "R8ExpectedAbsent"],
+      "properties": {
+        "baseHead": { "type": "string", "pattern": "^[a-f0-9]{40}$" },
+        "ledgerEventCount": { "type": "integer", "minimum": 0 },
+        "ledgerPrefixSha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+        "gateId": { "type": ["string", "null"] },
+        "gateStatus": { "type": ["string", "null"] },
+        "stateRevision": { "type": ["string", "null"] },
+        "contractRevision": { "type": ["string", "null"] },
+        "activeGate": { "type": ["string", "null"] },
+        "R8ExpectedAbsent": { "const": true }
+      }
+    },
+    "defectSubject": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["detectorId", "protectedPath", "producerPath", "producerBlobSha256"],
+      "properties": {
+        "detectorId": { "type": "string", "pattern": "^[A-Z][A-Z0-9_]*$" },
+        "protectedPath": { "type": "string", "pattern": "^(?!.*:)(?!.*\\\\)(?![\\/])(?!.*[*?])(?!.*(?:^|[\\/])\\.\\.(?:[\\/]|$))[^\\u0000]+$" },
+        "producerPath": { "type": "string", "pattern": "^governance/(?!.*:)(?!.*\\\\)(?!.*[*?])(?!.*(?:^|[\\/])\\.\\.(?:[\\/]|$))[^\\u0000]+$" },
+        "producerBlobSha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+      }
+    },
+    "residualIdentitySha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "repairManifestPath": { "type": "string", "pattern": "^(?!.*:)(?!.*\\\\)(?![\\/])(?!.*[*?])(?!.*(?:^|[\\/])\\.\\.(?:[\\/]|$))[^\\u0000]+$" },
+    "repairManifestSha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "ownerDecisionPath": { "type": "string", "pattern": "^governance/authority/maintenance-repair-bootstrap/[A-Z][A-Z0-9_-]*_OWNER_DECISION_R1\\.json$" },
+    "ownerDecisionSha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "receiptPath": { "type": "string", "pattern": "^governance/historical-architecture/[A-Z][A-Z0-9_-]*_BOOTSTRAP_CONSUMPTION_R1\\.json$" },
+    "closureObligation": { "const": "ORDINARY_FAST_GATE_PASS" }
+  }
+}

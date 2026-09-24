@@ -31,6 +31,18 @@
  * bytes the consumption record certified. A consumed authority whose cohort has
  * since drifted is a blocked replay, not an idempotent no-op.
  *
+ * THE BOOTSTRAP TRUST BOUNDARY. While the ordinary Fast Gate is blocked by a
+ * present-state defect, a program that touches that defect's closure surface or
+ * the trust-control surface, or that brings bootstrap documents, publishes only
+ * if maintenance-repair-bootstrap-trust.mjs finds it eligible under E1–E9. The
+ * evaluator is consulted after admission and before any write; it never replaces
+ * the V2 law, it is an additional refusal. For an eligible program this publisher
+ * composes the bootstrap receipt first, certifies its digest in the V2 receipt's
+ * cohort, and writes both in the one existing governed transaction. It is the only
+ * writer of either receipt. Publications the boundary does not concern — including
+ * every fixture whose ledger is not an intact canonical history — follow the V2
+ * law exactly as before.
+ *
  * Local, offline, deterministic. Writes only inside the authorized cohort.
  */
 import fs from 'node:fs';
@@ -49,6 +61,14 @@ import { admissionCitation, resolveMaintenancePublicationAdmission } from '../ge
 import { applyCandidate } from './gate-lifecycle-orchestrator.mjs';
 import { MAINTENANCE_PROGRAM_CASE_TYPE } from './transaction-provenance.mjs';
 import { collectPostFreezeMaintenanceObservation, resolveMaintenancePath } from './post-freeze-maintenance-observation.mjs';
+import {
+  BOOTSTRAP_REQUIRED,
+  composeMaintenanceRepairBootstrapConsumption,
+  deriveMaintenanceRepairBootstrapPaths,
+  evaluateMaintenanceRepairBootstrapEligibility,
+  validateMaintenanceRepairBootstrapConsumptionShape,
+  validateMaintenanceRepairBootstrapReceiptPair
+} from '../gee-v1/core/maintenance-repair-bootstrap-trust.mjs';
 
 export const PUBLISHER_DOCUMENT = 'APPLY_PATH_PRESTATE_PROGRAM';
 export const PUBLISHER_VERSION = 'R1';
@@ -131,7 +151,18 @@ export function applyPathPrestateProgram({
   if (!manifestResult.bindsPrestate) return blocked('MANIFEST', [{ code: 'MANIFEST_DOES_NOT_BIND_PRESTATE', detail: 'schemaVersion 2 required' }]);
 
   const consumptionPath = authority.consumptionRecordPath;
-  const targets = manifestResult.authorizedPaths.filter((p) => p !== consumptionPath);
+  // THE BOOTSTRAP RECEIPT IS COMPOSED HERE, NEVER SUPPLIED. Its path is derived from
+  // the programId by literal substitution — no directory is scanned — and, when the
+  // manifest reserves it, it is excluded from the caller's candidates exactly as the
+  // V2 consumption record is. Reserving it is itself a bootstrap signal, so a
+  // reserved receipt always goes through the eligibility gate below.
+  const bootstrapPaths = deriveMaintenanceRepairBootstrapPaths(authority.programId);
+  const bootstrapReceiptPath = bootstrapPaths?.receiptPath ?? null;
+  const bootstrapReceiptReserved = bootstrapReceiptPath !== null && manifestResult.authorizedPaths.includes(bootstrapReceiptPath);
+  const targets = manifestResult.authorizedPaths.filter((p) => p !== consumptionPath && !(bootstrapReceiptReserved && p === bootstrapReceiptPath));
+  if (bootstrapReceiptPath !== null && candidates.has(bootstrapReceiptPath)) {
+    return blocked('CANDIDATE', [{ code: 'BOOTSTRAP_RECEIPT_CANDIDATE_FORBIDDEN', detail: bootstrapReceiptPath }]);
+  }
 
   // Every authorized path must have a candidate, and nothing outside the
   // manifest may be published. Both directions are checked; a missing candidate
@@ -143,6 +174,12 @@ export function applyPathPrestateProgram({
 
   const consumptionFile = resolveMaintenancePath(root, consumptionPath);
   const alreadyConsumed = consumptionFile && fs.existsSync(consumptionFile) ? readJson(consumptionFile) : null;
+  const pathExists = (relativePath) => {
+    const file = relativePath ? resolveMaintenancePath(root, relativePath) : null;
+    return Boolean(file && fs.existsSync(file));
+  };
+  const bootstrapReceiptPresent = pathExists(bootstrapReceiptPath);
+  const bootstrapProgram = bootstrapReceiptReserved || bootstrapReceiptPresent || pathExists(bootstrapPaths?.authorityPath);
 
   // IDEMPOTENCE. A completed publication is recognised by its own receipt plus
   // the exact bytes that receipt certifies, never by the receipt alone.
@@ -153,17 +190,62 @@ export function applyPathPrestateProgram({
       const actual = file && fs.existsSync(file) ? sha256(fs.readFileSync(file)) : null;
       if (actual !== entry.sha256) drift.push({ code: 'CONSUMED_COHORT_DRIFTED', detail: entry.path });
     }
-    if (drift.length === 0) {
+    // A bootstrap publication is complete only as a PAIR: both receipts present and
+    // exactly coherent. Anything less is a consumed authority, reported and never
+    // repaired — the publisher does not rewrite a receipt to make the pair agree.
+    const pair = bootstrapProgram
+      ? validateMaintenanceRepairBootstrapReceiptPair({ root, v2Authority: authority, v2ConsumptionRecord: alreadyConsumed })
+      : { coherent: true, findings: [] };
+    if (drift.length === 0 && pair.coherent) {
       return {
         document: PUBLISHER_DOCUMENT, version: PUBLISHER_VERSION, decision: 'ALREADY_APPLIED',
         stage: 'IDEMPOTENT', findings: [], published: alreadyConsumed.cohort?.map((e) => e.path) ?? []
       };
     }
-    return blocked('REPLAY', [{ code: 'AUTHORITY_ALREADY_CONSUMED' }, ...drift]);
+    return blocked('REPLAY', [{ code: 'AUTHORITY_ALREADY_CONSUMED' }, ...drift, ...pair.findings]);
+  }
+  // A bootstrap receipt without its V2 receipt is a consumed authority in an
+  // inconsistent state. It is never completed, overwritten or cleaned up here.
+  if (bootstrapReceiptPresent) {
+    return blocked('REPLAY', [{ code: 'AUTHORITY_ALREADY_CONSUMED' }, { code: 'BOOTSTRAP_RECEIPT_PRESENT_WITHOUT_V2_RECEIPT', detail: bootstrapReceiptPath }]);
+  }
+
+  /* ---- 0. BOOTSTRAP TRUST BOUNDARY ----------------------------------- */
+  //
+  // After admission, before any byte moves. The evaluator recomputes the residual
+  // itself; nothing here hands it findings, a Fast Gate result or a verdict.
+  const bootstrap = evaluateMaintenanceRepairBootstrapEligibility({
+    root, v2Authority: authority, v2AuthorityPath: authorityDocumentPath,
+    manifest, manifestSha256: sha256(manifestBytes), now
+  });
+  if (bootstrap.applicability === BOOTSTRAP_REQUIRED && bootstrap.eligible !== true) return blocked('BOOTSTRAP', bootstrap.findings);
+  const bootstrapActive = bootstrap.applicability === BOOTSTRAP_REQUIRED;
+  if (bootstrapReceiptReserved && !bootstrapActive) {
+    return blocked('BOOTSTRAP', [{ code: 'BOOTSTRAP_RECEIPT_RESERVED_WITHOUT_ELIGIBLE_BOOTSTRAP', detail: bootstrapReceiptPath }]);
+  }
+
+  // The exact bytes this publication writes for every non-consumption member: the
+  // caller's candidates plus, for a bootstrap repair, the receipt composed here. It
+  // is composed before the V2 receipt and does not hash it, so the V2 receipt can
+  // certify it without a cycle.
+  const publicationBytes = new Map(candidates);
+  if (bootstrapActive) {
+    let bootstrapRecord;
+    try {
+      bootstrapRecord = composeMaintenanceRepairBootstrapConsumption({
+        eligibility: bootstrap, v2Authority: authority, manifestSha256: sha256(manifestBytes),
+        transactionId, recordedAt, publicationAdmission: admissionCitation(publicationAdmission)
+      });
+    } catch (error) {
+      return blocked('BOOTSTRAP', [{ code: error.message }]);
+    }
+    const receiptShape = validateMaintenanceRepairBootstrapConsumptionShape(bootstrapRecord);
+    if (!receiptShape.valid) return blocked('BOOTSTRAP', receiptShape.findings);
+    publicationBytes.set(bootstrapReceiptPath, Buffer.from(`${JSON.stringify(bootstrapRecord, null, 2)}\n`, 'utf8'));
   }
 
   /* ---- 1. PRESTATE VERIFICATION -------------------------------------- */
-  const candidateWrites = [...candidates].map(([p, bytes]) => ({ path: p, bytes }));
+  const candidateWrites = [...publicationBytes].map(([p, bytes]) => ({ path: p, bytes }));
   const observation = collectPostFreezeMaintenanceObservation({ root, authority, authorityDocumentPath, candidateWrites });
   if (!observation.valid) return blocked('PRESTATE', observation.findings);
   const decision = evaluatePostFreezeMaintenanceAuthorityV2({
@@ -176,7 +258,7 @@ export function applyPathPrestateProgram({
   const cohort = [];
   for (const entry of manifest.paths) {
     if (entry.path === consumptionPath) continue;
-    const bytes = candidates.get(entry.path);
+    const bytes = publicationBytes.get(entry.path);
     cohort.push({
       path: entry.path, sha256: sha256(bytes), byteLength: bytes.length,
       operation: entry.operation, reason: entry.reason, artifactClass: entry.artifactClass
@@ -233,8 +315,8 @@ export function applyPathPrestateProgram({
   // the publication order deterministic across platforms, which is what lets the
   // "progress is a prefix of the cohort" recovery rule mean anything.
   const candidateWritesForPublication = [
-    ...targets.map((relativePath) => {
-      const bytes = candidates.get(relativePath);
+    ...[...publicationBytes.keys()].map((relativePath) => {
+      const bytes = publicationBytes.get(relativePath);
       return { path: relativePath, bytes, sha256: sha256(bytes), byteLength: bytes.length };
     }),
     (() => {
@@ -315,7 +397,8 @@ export function applyPathPrestateProgram({
   return {
     document: PUBLISHER_DOCUMENT, version: PUBLISHER_VERSION, decision: 'APPLIED', stage: 'CONSUMED',
     findings: [], published: cohort.map((e) => e.path), consumptionRecordPath: consumptionPath,
-    cohortPathCount: consumptionRecord.cohortPathCount
+    cohortPathCount: consumptionRecord.cohortPathCount,
+    ...(bootstrapActive ? { bootstrapConsumptionRecordPath: bootstrapReceiptPath } : {})
   };
 }
 
@@ -335,8 +418,9 @@ if (process.argv[1] && path.resolve(process.argv[1]) === path.resolve(fileURLToP
     const authority = readJson(path.resolve(root, ...authorityDocumentPath.split('/')));
     const manifest = readJson(path.resolve(root, ...authority.authorizedPathManifestPath.split('/')));
     const candidates = new Map();
+    const bootstrapReceiptPath = deriveMaintenanceRepairBootstrapPaths(authority.programId)?.receiptPath ?? null;
     for (const entry of manifest.paths) {
-      if (entry.path === authority.consumptionRecordPath) continue;
+      if (entry.path === authority.consumptionRecordPath || entry.path === bootstrapReceiptPath) continue;
       const file = path.resolve(candidateRoot, ...entry.path.split('/'));
       if (fs.existsSync(file)) candidates.set(entry.path, fs.readFileSync(file));
     }

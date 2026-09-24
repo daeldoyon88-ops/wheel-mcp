@@ -1,0 +1,42 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "maintenance-repair-bootstrap-trust-consumption.schema.json",
+  "title": "MAINTENANCE_REPAIR_BOOTSTRAP_TRUST_CONSUMPTION",
+  "description": "Single-use receipt of one MAINTENANCE_REPAIR_BOOTSTRAP_TRUST_AUTHORITY, written only by governance/tools/apply-path-prestate-program.mjs in the same governed transaction as the V2 POST_FREEZE_MAINTENANCE_AUTHORITY_CONSUMPTION receipt. It is composed first and does not hash the V2 receipt; the V2 receipt certifies this receipt's digest in its cohort, so the binding is acyclic. It carries no Fast Gate result: the closure obligation stays an ordinary Fast Gate PASS observed later. Instances live at governance/historical-architecture/PROGRAM_ID_BOOTSTRAP_CONSUMPTION_R1.json.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "document", "schemaVersion", "bootstrapAuthorityId", "bootstrapAuthorityPath", "bootstrapAuthoritySha256",
+    "programId", "repairManifestPath", "repairManifestSha256", "baseHead", "residualIdentitySha256",
+    "v2ConsumptionRecordPath", "v2AuthorityId", "transactionId", "publicationAdmission",
+    "recordedAt", "consumedUse", "closureObligation"
+  ],
+  "properties": {
+    "document": { "const": "MAINTENANCE_REPAIR_BOOTSTRAP_TRUST_CONSUMPTION" },
+    "schemaVersion": { "const": 1 },
+    "bootstrapAuthorityId": { "type": "string", "pattern": "^[A-Z][A-Z0-9_-]*_BOOTSTRAP_AUTHORITY_R1$" },
+    "bootstrapAuthorityPath": { "type": "string", "pattern": "^governance/authority/maintenance-repair-bootstrap/[A-Z][A-Z0-9_-]*_AUTHORITY_R1\\.json$" },
+    "bootstrapAuthoritySha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "programId": { "type": "string", "pattern": "^[A-Z][A-Z0-9_-]*$" },
+    "repairManifestPath": { "type": "string", "pattern": "^(?!.*:)(?!.*\\\\)(?![\\/])(?!.*[*?])(?!.*(?:^|[\\/])\\.\\.(?:[\\/]|$))[^\\u0000]+$" },
+    "repairManifestSha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "baseHead": { "type": "string", "pattern": "^[a-f0-9]{40}$" },
+    "residualIdentitySha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "v2ConsumptionRecordPath": { "type": "string", "pattern": "^(?!.*:)(?!.*\\\\)(?![\\/])(?!.*[*?])(?!.*(?:^|[\\/])\\.\\.(?:[\\/]|$))[^\\u0000]+$" },
+    "v2AuthorityId": { "type": "string", "pattern": "^[A-Z][A-Z0-9_-]*$" },
+    "transactionId": { "type": "string", "minLength": 1 },
+    "publicationAdmission": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["admissionId", "admissionPath", "admissionSha256"],
+      "properties": {
+        "admissionId": { "type": "string", "pattern": "^[A-Z][A-Z0-9_-]*$" },
+        "admissionPath": { "type": "string", "pattern": "^governance/(?!.*:)(?!.*\\\\)(?!.*[*?])(?!.*(?:^|[\\/])\\.\\.(?:[\\/]|$))[^\\u0000]+$" },
+        "admissionSha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+      }
+    },
+    "recordedAt": { "type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]{3})?Z$" },
+    "consumedUse": { "const": 1 },
+    "closureObligation": { "const": "ORDINARY_FAST_GATE_PASS" }
+  }
+}

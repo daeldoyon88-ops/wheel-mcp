@@ -1,0 +1,80 @@
+{
+  "documentKind": "POST_FREEZE_MAINTENANCE_AUTHORITY_CONSUMPTION",
+  "schemaVersion": 2,
+  "authorityId": "GATE26_MAINTENANCE_BOOTSTRAP_TRUST_PRIMITIVE_GENESIS_LOCAL_AUTHORITY_R1",
+  "programId": "GATE26_MAINTENANCE_BOOTSTRAP_TRUST_PRIMITIVE_GENESIS_R1",
+  "manifestSha256": "741dd512a2f723132c381c07cf117cfd6aabaf24d37eda04685b652f41d7a1ad",
+  "baseHead": "49dd819f8c1a02671593c90985155b79b9125c1f",
+  "consumedUse": 1,
+  "transactionId": "GATE26_MAINTENANCE_BOOTSTRAP_TRUST_PRIMITIVE_GENESIS_R1_TRANSACTION",
+  "recordedAt": "2026-09-24T10:58:56.330Z",
+  "commitMessage": "feat(governance): publish maintenance bootstrap trust primitive genesis",
+  "publicationAdmission": {
+    "admissionId": "GATE26_MAINTENANCE_BOOTSTRAP_TRUST_PRIMITIVE_GENESIS_PUBLICATION_ADMISSION_R1",
+    "admissionPath": "governance/authority/publication-admissions/GATE26/GATE26_MAINTENANCE_BOOTSTRAP_TRUST_PRIMITIVE_GENESIS_PUBLICATION_ADMISSION_R1.json",
+    "admissionSha256": "1c9093477b10dbd907eef2252ac8b7405ea9efbefec0db27d4a6d9f9316d1726"
+  },
+  "cohortSelfExclusion": {
+    "path": "governance/historical-architecture/GATE26_MAINTENANCE_BOOTSTRAP_TRUST_PRIMITIVE_GENESIS_CONSUMPTION_R1.json",
+    "reason": "The consumption record cannot hash its own final bytes; its identity is bound by the authority and manifest instead."
+  },
+  "cohortPathCount": 8,
+  "cohort": [
+    {
+      "path": "governance/gee-v1/schemas/maintenance-repair-bootstrap-trust-authority.schema.json",
+      "sha256": "ef2b3d3b0eec3745b42b5320548faf1407094c160b43f74bce7126b6c0227907",
+      "byteLength": 4287,
+      "operation": "CREATE",
+      "reason": "Create the closed MAINTENANCE_REPAIR_BOOTSTRAP_TRUST_AUTHORITY schema (schemaVersion 1, additionalProperties false, maxUse 1, push and genesis denied, ORDINARY_FAST_GATE_PASS closure obligation).",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "governance/gee-v1/schemas/maintenance-repair-bootstrap-trust-consumption.schema.json",
+      "sha256": "061e437f9dac3a0e2f602eebfb97fd1bd1625e8936d60671167ddba38cb155ec",
+      "byteLength": 3156,
+      "operation": "CREATE",
+      "reason": "Create the closed MAINTENANCE_REPAIR_BOOTSTRAP_TRUST_CONSUMPTION receipt schema, composed before and certified by the V2 receipt, carrying no Fast Gate result.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "governance/gee-v1/core/maintenance-repair-bootstrap-trust.mjs",
+      "sha256": "13e8e66b3306301c0f733ae846278741e314570be57e8ed31cc87655791272e6",
+      "byteLength": 63057,
+      "operation": "CREATE",
+      "reason": "Create the pure bootstrap eligibility evaluator (E1-E9, residual identity, protected control surface, receipt law, closure obligation).",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "governance/gee-v1/tests/maintenance-repair-bootstrap-trust.test.mjs",
+      "sha256": "07abbb136ee6ad5617c55fc390323c9b604ee073191351cf857891983a832900",
+      "byteLength": 89149,
+      "operation": "CREATE",
+      "reason": "Create the positive and hostile bootstrap battery, including the Genesis anti-reuse proof.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_GATE26_MAINTENANCE_BOOTSTRAP_TRUST_PRIMITIVE_GENESIS_R1.json",
+      "sha256": "3d429c8e7b4b73fe838f45a8e01dc321ae0341e2bd80b94092e1b6373270e55b",
+      "byteLength": 2383,
+      "operation": "CREATE",
+      "reason": "Owner-issued LOCAL_EXPLICIT_AUTHORITY for the one Genesis publication. Bootstrap member: it is pre-state self-excluded while remaining inside the exact authorized set and future consumption cohort.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "governance/historical-architecture/GATE26_MAINTENANCE_BOOTSTRAP_TRUST_PRIMITIVE_GENESIS_AUTHORIZED_PATHS_R1.json",
+      "sha256": "741dd512a2f723132c381c07cf117cfd6aabaf24d37eda04685b652f41d7a1ad",
+      "byteLength": 4713,
+      "operation": "CREATE",
+      "reason": "Exact 8-path Genesis manifest. Bootstrap member: it is pre-state self-excluded while remaining digest-pinned by the Genesis authority.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "governance/tools/apply-path-prestate-program.mjs",
+      "sha256": "7c518c96884f8d7f003971d47ce769a37e2110e9ae43f3989e3fd448bf0ec1a2",
+      "byteLength": 25064,
+      "operation": "MODIFY",
+      "reason": "One-time Genesis self-succession of the V2 publisher: install the bootstrap eligibility hook and the bootstrap receipt write. After Genesis the publisher is on the protected control surface and no bootstrap repair may modify it.",
+      "artifactClass": "MAINTENANCE"
+    }
+  ]
+}

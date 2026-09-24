@@ -1,0 +1,72 @@
+{
+  "documentKind": "MAINTENANCE_PUBLICATION_ADMISSION",
+  "schemaVersion": 1,
+  "authorityMode": "LOCAL_EXPLICIT_AUTHORITY",
+  "issuedBy": "PROJECT_OWNER",
+  "admissionId": "GATE26_MAINTENANCE_BOOTSTRAP_TRUST_PRIMITIVE_GENESIS_PUBLICATION_ADMISSION_R1",
+  "decisionId": "OWNER_AUTHORIZE_MAINTENANCE_BOOTSTRAP_TRUST_PRIMITIVE_IMPLEMENTATION_R1",
+  "issuedAtUtc": "2026-09-24T06:57:03.000Z",
+  "expiresAtUtc": null,
+  "projectId": "WHEEL",
+  "repositoryId": "WHEEL_MCP_CANONICAL",
+  "gateId": "GATE26",
+  "programId": "GATE26_MAINTENANCE_BOOTSTRAP_TRUST_PRIMITIVE_GENESIS_R1",
+  "purpose": "MAINTENANCE_PUBLICATION_ADMISSION",
+  "publicationClass": "PATH_PRESTATE_PROGRAM_PUBLISHER",
+  "authorityPurpose": "NORMAL_MAINTENANCE",
+  "maxUse": 1,
+  "admissionStatement": "One exact Owner admission for the single Genesis publication of the maintenance bootstrap trust primitive, performed later by the PREVIOUS canonical V2 publisher after an independent Mission B audit. It admits no bootstrap authority, no GATE15/GATE16/GATE17 repair, no FC-02 resumption, no Fast Gate change, no ledger change, no GATE26 closure, no GATE27, no R8, no commit or push by the Builder and no network use. The Builder does not consume the authority or create the reserved receipt.",
+  "admittedAuthority": {
+    "path": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_GATE26_MAINTENANCE_BOOTSTRAP_TRUST_PRIMITIVE_GENESIS_R1.json",
+    "sha256": "3d429c8e7b4b73fe838f45a8e01dc321ae0341e2bd80b94092e1b6373270e55b",
+    "byteLength": 2383,
+    "schemaVersion": 2,
+    "documentId": "GATE26_MAINTENANCE_BOOTSTRAP_TRUST_PRIMITIVE_GENESIS_LOCAL_AUTHORITY_R1"
+  },
+  "admittedManifest": {
+    "path": "governance/historical-architecture/GATE26_MAINTENANCE_BOOTSTRAP_TRUST_PRIMITIVE_GENESIS_AUTHORIZED_PATHS_R1.json",
+    "sha256": "741dd512a2f723132c381c07cf117cfd6aabaf24d37eda04685b652f41d7a1ad",
+    "byteLength": 4713,
+    "schemaVersion": 2,
+    "documentId": "GATE26_MAINTENANCE_BOOTSTRAP_TRUST_PRIMITIVE_GENESIS_AUTHORIZED_PATHS_R1"
+  },
+  "admittedPrestate": {
+    "baseHead": "49dd819f8c1a02671593c90985155b79b9125c1f",
+    "ledgerEventCount": 115,
+    "ledgerPrefixSha256": "61f81decc5f3845cecc4fab1906447a3e1036f9a45ca91c471b0ab89c0925738",
+    "gateId": "GATE26",
+    "gateStatus": "IN_PROGRESS",
+    "stateRevision": "R0005",
+    "contractRevision": "R0004",
+    "activeGate": "GATE13",
+    "R8ExpectedAbsent": true
+  },
+  "admittedOperationClasses": [
+    "MAINTENANCE"
+  ],
+  "grantsFutureBytePermission": false,
+  "grantsGateAuthorizationPermission": false,
+  "grantsStartPermission": false,
+  "grantsStatusTransitionPermission": false,
+  "grantsHistoricalAdmissionWidening": false,
+  "genericV1Admission": false,
+  "derivedFromGitDelta": false,
+  "derivedFromFinalGateIntegrityFindings": false,
+  "prohibitedOperations": [
+    "START",
+    "SECOND_START",
+    "GATE_AUTHORIZATION",
+    "STATUS_TRANSITION",
+    "ACTIVE_GATE_SWITCH",
+    "GEE_R8",
+    "GIT_PUSH",
+    "HISTORY_REWRITE",
+    "GENERIC_V1_ADMISSION",
+    "HISTORICAL_ADMISSION_WIDENING",
+    "SELF_ADMISSION"
+  ],
+  "successorRequirement": "A later publication over changed bytes or state requires a new exact Owner admission. A second Genesis is not admissible under any identity.",
+  "admissionDigest": "e76c499708cb3735513fb921fd6223567ad02b2daf7a3db5d0f3530561aa5c99",
+  "ownerAuthorizationPath": "governance/sources/MAINTENANCE_PUBLICATION_ADMISSION_OWNER_AUTHORIZATION_GATE26_MAINTENANCE_BOOTSTRAP_TRUST_PRIMITIVE_GENESIS_R1.json",
+  "ownerAuthorizationSha256": "2d29b3ef0d60b2edac8e598ce15a6b4e48bc6c57350fe16b53f5189a9463ed01"
+}

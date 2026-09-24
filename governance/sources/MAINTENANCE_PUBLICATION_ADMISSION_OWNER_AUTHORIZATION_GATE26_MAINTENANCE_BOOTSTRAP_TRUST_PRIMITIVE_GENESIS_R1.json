@@ -1,0 +1,25 @@
+{
+  "document": "MAINTENANCE_PUBLICATION_ADMISSION_OWNER_AUTHORIZATION",
+  "schemaVersion": 1,
+  "authorityId": "GATE26_MAINTENANCE_BOOTSTRAP_TRUST_PRIMITIVE_GENESIS_PUBLICATION_OWNER_AUTHORIZATION_R1",
+  "authorityClass": "PROJECT_OWNER_MAINTENANCE_PUBLICATION_ADMISSION_AUTHORITY",
+  "authorityMode": "LOCAL_EXPLICIT_AUTHORITY",
+  "issuedBy": "PROJECT_OWNER",
+  "issuedAtUtc": "2026-09-24T06:57:03.000Z",
+  "decisionId": "OWNER_AUTHORIZE_MAINTENANCE_BOOTSTRAP_TRUST_PRIMITIVE_IMPLEMENTATION_R1",
+  "purpose": "MAINTENANCE_PUBLICATION_ADMISSION",
+  "reexecutionAuthorized": false,
+  "grantsFutureBytePermission": false,
+  "genericV1Admission": false,
+  "admittedPublications": [
+    {
+      "admissionId": "GATE26_MAINTENANCE_BOOTSTRAP_TRUST_PRIMITIVE_GENESIS_PUBLICATION_ADMISSION_R1",
+      "projectId": "WHEEL",
+      "gateId": "GATE26",
+      "programId": "GATE26_MAINTENANCE_BOOTSTRAP_TRUST_PRIMITIVE_GENESIS_R1",
+      "admissionPath": "governance/authority/publication-admissions/GATE26/GATE26_MAINTENANCE_BOOTSTRAP_TRUST_PRIMITIVE_GENESIS_PUBLICATION_ADMISSION_R1.json",
+      "admissionDigest": "e76c499708cb3735513fb921fd6223567ad02b2daf7a3db5d0f3530561aa5c99"
+    }
+  ],
+  "registryDigest": "91db420519b589bfaaa9adfc05e77b846569272586e57c0a36c055e1d0e63e45"
+}

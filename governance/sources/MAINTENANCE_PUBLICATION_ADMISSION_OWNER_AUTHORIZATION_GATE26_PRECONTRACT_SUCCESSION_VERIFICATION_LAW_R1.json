@@ -1,0 +1,25 @@
+{
+  "document": "MAINTENANCE_PUBLICATION_ADMISSION_OWNER_AUTHORIZATION",
+  "schemaVersion": 1,
+  "authorityId": "GATE26_PRECONTRACT_SUCCESSION_VERIFICATION_LAW_PUBLICATION_OWNER_AUTHORIZATION_R1",
+  "authorityClass": "PROJECT_OWNER_MAINTENANCE_PUBLICATION_ADMISSION_AUTHORITY",
+  "authorityMode": "LOCAL_EXPLICIT_AUTHORITY",
+  "issuedBy": "PROJECT_OWNER",
+  "issuedAtUtc": "2026-09-25T02:28:50.000Z",
+  "decisionId": "OWNER_AUTHORIZE_GATE26_PRECONTRACT_SUCCESSION_VERIFICATION_LAW_R1",
+  "purpose": "MAINTENANCE_PUBLICATION_ADMISSION",
+  "reexecutionAuthorized": false,
+  "grantsFutureBytePermission": false,
+  "genericV1Admission": false,
+  "admittedPublications": [
+    {
+      "admissionId": "GATE26_PRECONTRACT_SUCCESSION_VERIFICATION_LAW_PUBLICATION_ADMISSION_R1",
+      "projectId": "WHEEL",
+      "gateId": "GATE26",
+      "programId": "GATE26_PRECONTRACT_SUCCESSION_VERIFICATION_LAW_R1",
+      "admissionPath": "governance/authority/publication-admissions/GATE26/GATE26_PRECONTRACT_SUCCESSION_VERIFICATION_LAW_PUBLICATION_ADMISSION_R1.json",
+      "admissionDigest": "5b6ac2d29645127665e0b44d2e5a0454680df4c87bca54df3c8d9dc353acd79d"
+    }
+  ],
+  "registryDigest": "dc573888f813c6942892ff0559dc358782f685707114fb574c0178a473b91efc"
+}

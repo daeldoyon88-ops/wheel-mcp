@@ -1,0 +1,25 @@
+{
+  "document": "MAINTENANCE_PUBLICATION_ADMISSION_OWNER_AUTHORIZATION",
+  "schemaVersion": 1,
+  "authorityId": "GATE26_CROSS_GATE_PROTECTED_HASH_SUCCESSION_LAW_R1_PUBLICATION_OWNER_AUTHORIZATION_R1",
+  "authorityClass": "PROJECT_OWNER_MAINTENANCE_PUBLICATION_ADMISSION_AUTHORITY",
+  "authorityMode": "LOCAL_EXPLICIT_AUTHORITY",
+  "issuedBy": "PROJECT_OWNER",
+  "issuedAtUtc": "2026-09-24T00:01:00.000Z",
+  "decisionId": "OWNER_ADMIT_GATE26_CROSS_GATE_PROTECTED_HASH_SUCCESSION_LAW_R1",
+  "purpose": "MAINTENANCE_PUBLICATION_ADMISSION",
+  "reexecutionAuthorized": false,
+  "grantsFutureBytePermission": false,
+  "genericV1Admission": false,
+  "admittedPublications": [
+    {
+      "admissionId": "GATE26_CROSS_GATE_PROTECTED_HASH_SUCCESSION_LAW_R1_PUBLICATION_ADMISSION_R1",
+      "projectId": "WHEEL",
+      "gateId": "GATE26",
+      "programId": "GATE26_CROSS_GATE_PROTECTED_HASH_SUCCESSION_LAW_R1",
+      "admissionPath": "governance/authority/publication-admissions/GATE26/GATE26_CROSS_GATE_PROTECTED_HASH_SUCCESSION_LAW_R1_PUBLICATION_ADMISSION_R1.json",
+      "admissionDigest": "bccda6405395ddded9ec39886a72b0c5d946095070ff0f7637d9e62bcbe43f3c"
+    }
+  ],
+  "registryDigest": "feada67abe4bdb7b4abecbf4cae95d38be315e890c8969f85083d2af1b6f7ab2"
+}

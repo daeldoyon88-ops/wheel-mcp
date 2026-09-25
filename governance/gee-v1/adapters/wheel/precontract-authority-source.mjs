@@ -34,7 +34,8 @@ import {
   isLocalPrecontractAuthority,
   reconstructLedgerPrefix,
   PRECONTRACT_OPERATION,
-  PRECONTRACT_CONSUMPTION_ANCHOR_TRANSITION_TYPE
+  PRECONTRACT_CONSUMPTION_ANCHOR_TRANSITION_TYPE,
+  PRECONTRACT_CONTRACT_SUCCESSION_TRANSITION_TYPE
 } from '../../core/precontract-authority.mjs';
 import { loadOwnerReleaseKey, loadReleaseAuthorization } from '../../core/release-authorization-source.mjs';
 import { isWithinGovernedRoots } from '../../core/witness-source.mjs';
@@ -93,7 +94,7 @@ function gitCommitFacts(repoRoot, commit) {
 function currentContractLink(currentContractPath, overlayBytes) {
   try {
     const document = overlayBytes ? JSON.parse(overlayBytes.toString('utf8')) : readJson(currentContractPath);
-    return { gateId: document.gateId, contractPath: document.contractPath, contractSha256: document.contractSha256 };
+    return { gateId: document.gateId, contractRevision: document.contractRevision, contractPath: document.contractPath, contractSha256: document.contractSha256 };
   } catch { return null; }
 }
 function ledgerEvents(repoRoot) {
@@ -146,24 +147,51 @@ function loadGoverned(filePath, root) {
  * forged citation cannot reach a document the audit never sees. Every anchor of
  * the Gate is resolved, not just the first: choosing one here would hand the
  * selection to the adapter, and the core refuses ambiguity itself.
+ *
+ * The same reader serves the Gate's CONTRACT_SUCCESSION events, whose cited
+ * authorities are the links of the succession chain the core verifies.
  */
-function anchorAuthorityObservations(root, events, gateId) {
+function governedRelativePath(value) {
+  return typeof value === 'string' && value && !value.split('/').includes('..') && !path.isAbsolute(value);
+}
+function readGovernedFile(root, relative) {
+  if (!governedRelativePath(relative)) return null;
+  try {
+    const real = fs.realpathSync(path.join(root, ...relative.split('/')));
+    if (!isWithinGovernedRoots(real, [root]) || !fs.statSync(real).isFile()) return null;
+    return fs.readFileSync(real);
+  } catch { return null; }
+}
+function citedAuthorityObservations(root, events, gateId, transitionType = PRECONTRACT_CONSUMPTION_ANCHOR_TRANSITION_TYPE) {
   const observations = {};
   for (const event of Array.isArray(events) ? events : []) {
-    if (event?.gateId !== gateId || event?.transitionType !== PRECONTRACT_CONSUMPTION_ANCHOR_TRANSITION_TYPE) continue;
+    if (event?.gateId !== gateId || event?.transitionType !== transitionType) continue;
     const cited = event.authorityPath;
-    if (typeof cited !== 'string' || !cited || cited.split('/').includes('..') || path.isAbsolute(cited)) continue;
-    const absent = { present: false, sha256: null, record: null };
-    try {
-      const real = fs.realpathSync(path.join(root, ...cited.split('/')));
-      if (!isWithinGovernedRoots(real, [root]) || !fs.statSync(real).isFile()) { observations[cited] = absent; continue; }
-      const bytes = fs.readFileSync(real);
-      let record = null;
-      try { record = JSON.parse(bytes.toString('utf8')); } catch { record = null; }
-      observations[cited] = { present: true, sha256: sha256(bytes), record };
-    } catch { observations[cited] = absent; }
+    if (!governedRelativePath(cited)) continue;
+    const bytes = readGovernedFile(root, cited);
+    if (!bytes) { observations[cited] = { present: false, sha256: null, record: null }; continue; }
+    let record = null;
+    try { record = JSON.parse(bytes.toString('utf8')); } catch { record = null; }
+    observations[cited] = { present: true, sha256: sha256(bytes), record };
   }
   return observations;
+}
+
+/**
+ * Live bytes of every contract a succession link names, as digests. Raw material
+ * only: the core decides whether each still holds the bytes its link pinned. A
+ * path escaping the governed tree is observed as absent (null), never resolved.
+ */
+function successionContractObservations(root, successionAuthorities) {
+  const values = {};
+  for (const cited of Object.values(successionAuthorities)) {
+    for (const relative of [cited?.record?.predecessorContractPath, cited?.record?.successorContractPath]) {
+      if (typeof relative !== 'string' || Object.hasOwn(values, relative)) continue;
+      const bytes = readGovernedFile(root, relative);
+      values[relative] = bytes ? sha256(bytes) : null;
+    }
+  }
+  return values;
 }
 
 function targetHashes(root, bindings, overlay) {
@@ -293,6 +321,9 @@ export function createWheelPrecontractAuthoritySource(repoRoot, { authorityPath 
         consumptionRecord = readJson(consumptionAbsolute);
       } catch { findings.push({ code: 'CONSUMPTION_RECORD_MALFORMED' }); }
     }
+    const successionAuthorities = historicalPhase
+      ? citedAuthorityObservations(root, events, workUnitId, PRECONTRACT_CONTRACT_SUCCESSION_TRANSITION_TYPE)
+      : null;
     const ownerKey = local ? null : loadOwnerReleaseKey(keyPath).ownerKey;
     const bindings = (local ? authority?.artifactBindings : request?.artifactBindings) || [];
     const observed = {
@@ -311,7 +342,9 @@ export function createWheelPrecontractAuthoritySource(repoRoot, { authorityPath 
       // parsed events serve the consumption-time bracket.
       ledgerText,
       ledgerEvents: events,
-      anchorAuthorities: anchorAuthorityObservations(root, events, workUnitId),
+      anchorAuthorities: citedAuthorityObservations(root, events, workUnitId),
+      successionAuthorities,
+      successionContractSha256: successionAuthorities ? successionContractObservations(root, successionAuthorities) : null,
       historicalCommit: historicalPhase ? gitCommitFacts(root, authority?.preState?.baseCommit) : null,
       currentContractRelativePath,
       currentContractLink: historicalPhase ? currentContractLink(currentContractPath, overlayCurrentContract) : null

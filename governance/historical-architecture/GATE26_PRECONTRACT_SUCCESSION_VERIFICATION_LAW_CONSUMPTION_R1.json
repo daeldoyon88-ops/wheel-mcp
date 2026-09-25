@@ -1,0 +1,64 @@
+{
+  "documentKind": "POST_FREEZE_MAINTENANCE_AUTHORITY_CONSUMPTION",
+  "schemaVersion": 2,
+  "authorityId": "GATE26_PRECONTRACT_SUCCESSION_VERIFICATION_LAW_LOCAL_AUTHORITY_R1",
+  "programId": "GATE26_PRECONTRACT_SUCCESSION_VERIFICATION_LAW_R1",
+  "manifestSha256": "1fa3ca5c31adf8b9280114bb2577870757eff39e0967b99f638890b8318c88f2",
+  "baseHead": "5f897eb8d95ba16aeb955b4f53f156d0dd31385d",
+  "consumedUse": 1,
+  "transactionId": "GATE26_TRUST_REPAIRS_INTEGRATION_B_PUBLICATION_R1",
+  "recordedAt": "2026-09-25T02:57:42.803Z",
+  "commitMessage": "fix(gate26): verify precontract consumption across contract succession",
+  "publicationAdmission": {
+    "admissionId": "GATE26_PRECONTRACT_SUCCESSION_VERIFICATION_LAW_PUBLICATION_ADMISSION_R1",
+    "admissionPath": "governance/authority/publication-admissions/GATE26/GATE26_PRECONTRACT_SUCCESSION_VERIFICATION_LAW_PUBLICATION_ADMISSION_R1.json",
+    "admissionSha256": "51da5e2bc8616fd017a00d28a040a7f35c0d291d605765cffad27f968b74e62e"
+  },
+  "cohortSelfExclusion": {
+    "path": "governance/historical-architecture/GATE26_PRECONTRACT_SUCCESSION_VERIFICATION_LAW_CONSUMPTION_R1.json",
+    "reason": "The consumption record cannot hash its own final bytes; its identity is bound by the authority and manifest instead."
+  },
+  "cohortPathCount": 6,
+  "cohort": [
+    {
+      "path": "governance/gee-v1/core/precontract-authority.mjs",
+      "sha256": "ff52d6534182dc82e19f78ac638176b406129f0fa46ca1b213f6dcca53725089",
+      "byteLength": 71982,
+      "operation": "MODIFY",
+      "reason": "Add the ledger-anchored CONTRACT_SUCCESSION verification law to VERIFY_CONSUMPTION: after a lawful succession the CURRENT_CONTRACT pointer is judged against the terminal of the unique, gap-free, bootstrap-rooted succession chain instead of its bootstrap bytes. Reuses the succession primitive's ledger-bound shape validator; names no revision.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "governance/gee-v1/adapters/wheel/precontract-authority-source.mjs",
+      "sha256": "e27633b6d541e6d1dcfcd00c88a7b2aa7e9312513abc09debcc4d8d63a66315e",
+      "byteLength": 21693,
+      "operation": "MODIFY",
+      "reason": "Supply the raw material for the succession law: the authorities cited by the Gate's CONTRACT_SUCCESSION events (governed paths only), the live digests of the contracts they name, and the pointer's contractRevision.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "governance/tests/precontract-consumption-permanence.test.mjs",
+      "sha256": "bfa2a72fb1696f7fe8aebf7aa28d7e8827f4048037d0e0dda5649b8f04c9636e",
+      "byteLength": 69947,
+      "operation": "MODIFY",
+      "reason": "Add S1-S17: the positive 113->114->115 chain proof on the live GATE26 bytes and the fail-closed hostile battery for the succession law.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_GATE26_PRECONTRACT_SUCCESSION_VERIFICATION_LAW_R1.json",
+      "sha256": "f16260efc32f9afaa377c861ef6f943060aabef6cd05ea0bb22f95d4ae0a579f",
+      "byteLength": 2366,
+      "operation": "CREATE",
+      "reason": "Owner-issued LOCAL_EXPLICIT_AUTHORITY for this one publication. Bootstrap member: pre-state self-excluded while remaining inside the exact authorized set and future consumption cohort.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "governance/historical-architecture/GATE26_PRECONTRACT_SUCCESSION_VERIFICATION_LAW_AUTHORIZED_PATHS_R1.json",
+      "sha256": "1fa3ca5c31adf8b9280114bb2577870757eff39e0967b99f638890b8318c88f2",
+      "byteLength": 4109,
+      "operation": "CREATE",
+      "reason": "Exact 6-path manifest. Bootstrap member: pre-state self-excluded while remaining digest-pinned by the authority.",
+      "artifactClass": "MAINTENANCE"
+    }
+  ]
+}

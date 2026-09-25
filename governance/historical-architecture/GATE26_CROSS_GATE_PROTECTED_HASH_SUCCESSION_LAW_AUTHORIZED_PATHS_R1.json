@@ -1,0 +1,76 @@
+{
+  "documentKind": "POST_FREEZE_MAINTENANCE_AUTHORIZED_PATH_MANIFEST",
+  "schemaVersion": 2,
+  "manifestId": "GATE26_CROSS_GATE_PROTECTED_HASH_SUCCESSION_LAW_AUTHORIZED_PATHS_R1",
+  "programId": "GATE26_CROSS_GATE_PROTECTED_HASH_SUCCESSION_LAW_R1",
+  "paths": [
+    {
+      "path": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_GATE26_CROSS_GATE_PROTECTED_HASH_SUCCESSION_LAW_R1.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "Owner-issued V2 authority for the exact cross-gate protected-hash succession law repair.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": { "state": "ABSENT" }
+    },
+    {
+      "path": "governance/historical-architecture/GATE26_CROSS_GATE_PROTECTED_HASH_SUCCESSION_LAW_AUTHORIZED_PATHS_R1.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "Exact closed six-path V2 publication cohort.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": { "state": "ABSENT" }
+    },
+    {
+      "path": "governance/historical-architecture/GATE26_CROSS_GATE_PROTECTED_HASH_SUCCESSION_LAW_CONSUMPTION_R1.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "RESERVED_RECEIPT: canonical V2 single-use consumption record written only by the publisher.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": { "state": "ABSENT" }
+    },
+    {
+      "path": "governance/historical-architecture/GATE26_CROSS_GATE_PROTECTED_HASH_SUCCESSION_LAW_R1_BOOTSTRAP_CONSUMPTION_R1.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "RESERVED_RECEIPT: bootstrap trust consumption record composed and written only by the publisher.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": { "state": "ABSENT" }
+    },
+    {
+      "path": "governance/tools/validate-state-revision.mjs",
+      "operation": "MODIFY",
+      "phase": "MAINTENANCE",
+      "reason": "Implement the generic ledger-anchored cross-gate protected-hash succession law.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "PRESENT",
+        "sha256": "b818c571e4abd468e23e263cd6b375a745f2daee32804e29bd54069e41a9c326",
+        "byteLength": 40292
+      }
+    },
+    {
+      "path": "governance/gee-v1/tests/gee-fc02-protected-hash-succession.test.mjs",
+      "operation": "MODIFY",
+      "phase": "MAINTENANCE",
+      "reason": "Add the cross-gate positive proof and the required fail-closed hostile battery.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "PRESENT",
+        "sha256": "31b9ba81b0469500bb2229e9ed464e02535742469ee7357d4903f166c2bd3b78",
+        "byteLength": 17846
+      }
+    }
+  ],
+  "prestateSelfExclusion": [
+    {
+      "path": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_GATE26_CROSS_GATE_PROTECTED_HASH_SUCCESSION_LAW_R1.json",
+      "role": "AUTHORITY_DOCUMENT",
+      "reason": "Read by the evaluator before publication while its declared base prestate is ABSENT."
+    },
+    {
+      "path": "governance/historical-architecture/GATE26_CROSS_GATE_PROTECTED_HASH_SUCCESSION_LAW_AUTHORIZED_PATHS_R1.json",
+      "role": "AUTHORIZED_PATH_MANIFEST",
+      "reason": "Read by the evaluator before publication while its declared base prestate is ABSENT."
+    }
+  ]
+}

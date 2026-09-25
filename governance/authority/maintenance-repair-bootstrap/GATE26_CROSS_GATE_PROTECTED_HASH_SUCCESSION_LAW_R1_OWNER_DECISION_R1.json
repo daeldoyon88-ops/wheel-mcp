@@ -1,0 +1,20 @@
+{
+  "document": "MAINTENANCE_REPAIR_BOOTSTRAP_OWNER_DECISION",
+  "schemaVersion": 1,
+  "decisionId": "OWNER_AUTHORIZE_GATE26_CROSS_GATE_PROTECTED_HASH_SUCCESSION_LAW_R1",
+  "issuedBy": "PROJECT_OWNER",
+  "authorityMode": "LOCAL_EXPLICIT_AUTHORITY",
+  "decidedAt": "2026-09-24T00:00:00.000Z",
+  "programId": "GATE26_CROSS_GATE_PROTECTED_HASH_SUCCESSION_LAW_R1",
+  "bootstrapAuthorityId": "GATE26_CROSS_GATE_PROTECTED_HASH_SUCCESSION_LAW_R1_BOOTSTRAP_AUTHORITY_R1",
+  "defectSubject": {
+    "detectorId": "PROTECTED_HASH_MISMATCH",
+    "protectedPath": "governance/GATE_REGISTRY_00_40.json",
+    "producerPath": "governance/tools/validate-state-revision.mjs",
+    "producerBlobSha256": "b818c571e4abd468e23e263cd6b375a745f2daee32804e29bd54069e41a9c326"
+  },
+  "residualIdentitySha256": "bc2378052781bdbc0066259f4debda835bc127c137de2f71264e475ead21fdda",
+  "repairManifestPath": "governance/historical-architecture/GATE26_CROSS_GATE_PROTECTED_HASH_SUCCESSION_LAW_AUTHORIZED_PATHS_R1.json",
+  "repairManifestSha256": "f49aecd88144ac16a5b9a28e3d4ab47f368ef5e5959126142f89543c36cbe4fe",
+  "decisionStatement": "Authorize exactly the ledger-anchored cross-gate protected-hash succession law repair for the single reproduced GATE_REGISTRY_00_40.json residual subject, with ordinary Generic Fast Gate PASS required after consumption."
+}

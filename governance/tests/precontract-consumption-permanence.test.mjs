@@ -1072,6 +1072,236 @@ test('X8 the anchor tool refuses a second anchor and an unbound receipt', () => 
   assert.ok(second.findings.some((item) => item.code === 'ANCHOR_ALREADY_PRESENT'), JSON.stringify(second.findings));
 });
 
+// ---------------------------------------------------------------------------
+// S: the ledger-anchored CONTRACT_SUCCESSION law, on the live GATE26 bytes.
+//
+// GATE26 was bootstrapped at R0001 and then lawfully succeeded its contract under
+// canonical CONTRACT_SUCCESSION events. Its receipt reported the pointer as
+// drifted (ARTIFACT_BYTES_MISMATCH, CURRENT_CONTRACT_LINK_NOT_AUTHORIZED) for
+// doing the lawful thing. S1 proves the chain now verifies; every other case is
+// one forgery of that chain, judged against the same live bytes and restored.
+// ---------------------------------------------------------------------------
+
+const SUCCESSION_GATE = 'GATE26';
+const S_AUTHORITY = `governance/authority/precontract/${SUCCESSION_GATE}/PROJECT_OWNER_LOCAL_PRECONTRACT_AUTHORITY.json`;
+const S_POINTER = `governance/gates/${SUCCESSION_GATE}/contracts/CURRENT_CONTRACT.json`;
+const S_CONSUMPTION = `governance/gates/${SUCCESSION_GATE}/contracts/PRECONTRACT_AUTHORITY_CONSUMPTION_R1.json`;
+const S_BOOTSTRAP_CONTRACT = `governance/gates/${SUCCESSION_GATE}/contracts/EXECUTION_CONTRACT_R0001.json`;
+
+function verifySuccessionGate(root = live) {
+  return createWheelPrecontractAuthoritySource(root, {
+    authorityPath: absolute(root, S_AUTHORITY), now: NOW
+  }).verifyPrecontractConsumption(SUCCESSION_GATE);
+}
+const ledgerLines = (root = live) => fs.readFileSync(absolute(root, LEDGER), 'utf8').split(/\r?\n/).filter(Boolean);
+const rewriteLedger = (mutateLines) => (target) => {
+  const lines = fs.readFileSync(target, 'utf8').split(/\r?\n/).filter(Boolean);
+  fs.writeFileSync(target, `${mutateLines(lines).join('\n')}\n`);
+};
+const rewriteEvent = (position, mutateEvent) => rewriteLedger((lines) => lines.map((line, index) => {
+  if (index !== position - 1) return line;
+  const event = JSON.parse(line);
+  mutateEvent(event);
+  return JSON.stringify(event);
+}));
+
+/** The Gate's succession links, derived from the live ledger and the authorities it cites. */
+function successionLinks(root = live) {
+  return ledgerLines(root)
+    .map((line, index) => ({ event: JSON.parse(line), position: index + 1 }))
+    .filter(({ event }) => event.gateId === SUCCESSION_GATE && event.transitionType === 'CONTRACT_SUCCESSION')
+    .map((link) => ({ ...link, authority: readJson(root, link.event.authorityPath) }));
+}
+const linkAt = (position) => successionLinks().find((link) => link.position === position);
+
+/**
+ * Rewrite a link's authority AND re-pin its ledger event to the new bytes, so the
+ * forgery gets past the digest check and is judged by the chain law itself.
+ */
+function withRepinnedLink(position, mutateRecord, assertions) {
+  const { event } = linkAt(position);
+  withTamper(event.authorityPath, tamperJson(mutateRecord), () => {
+    const digest = sha256(fs.readFileSync(absolute(live, event.authorityPath)));
+    withTamper(LEDGER, rewriteEvent(position, (item) => { item.authoritySha256 = digest; }), assertions);
+  });
+}
+function assertBlockedWith(expected, message = '') {
+  const result = verifySuccessionGate();
+  assert.equal(result.decision, 'BLOCKED', message);
+  assert.equal(result.consumed, false, message);
+  assert.ok(codes(result).includes(expected), `${message} ${JSON.stringify(result.findings)}`);
+  return result;
+}
+
+test('S1 MANDATORY: the 113->114->115 succession chain verifies R0001->R0002->R0003->R0004', () => {
+  const links = successionLinks();
+  const authority = readJson(live, S_AUTHORITY);
+  const pointer = readJson(live, S_POINTER);
+  const boundPointer = authority.artifactBindings.find((item) => item.path === S_POINTER);
+  const boundContract = authority.artifactBindings.find((item) => item.path === S_BOOTSTRAP_CONTRACT);
+
+  // The chain the law derives, stated as evidence rather than wired into the law.
+  assert.deepEqual(links.slice(0, 3).map((link) => link.position), [113, 114, 115]);
+  assert.deepEqual(links.slice(0, 3).map((link) => `${link.authority.predecessorContractRevision}->${link.authority.successorContractRevision}`),
+    ['R0001->R0002', 'R0002->R0003', 'R0003->R0004']);
+  // Starts at the bootstrap: bound contract bytes and bound pointer bytes.
+  assert.equal(links[0].authority.predecessorContractPath, S_BOOTSTRAP_CONTRACT);
+  assert.equal(links[0].authority.predecessorContractSha256, boundContract.sha256);
+  assert.equal(links[0].authority.predecessorCurrentContractSha256, boundPointer.sha256);
+  // Each link is ledger-anchored to exactly the prefix before its own event.
+  for (const link of links) {
+    assert.equal(link.authority.preLedgerEventCount, link.position - 1);
+    assert.equal(sha256(fs.readFileSync(absolute(live, link.event.authorityPath))), link.event.authoritySha256);
+  }
+  // Ends at the live pointer.
+  const terminal = links.at(-1).authority;
+  assert.equal(pointer.contractPath, terminal.successorContractPath);
+  assert.equal(pointer.contractSha256, terminal.successorContractSha256);
+  assert.equal(sha256(fs.readFileSync(absolute(live, S_POINTER))), terminal.successorCurrentContractSha256);
+  // Not vacuous: the pointer has genuinely left its bootstrap bytes.
+  assert.notEqual(sha256(fs.readFileSync(absolute(live, S_POINTER))), boundPointer.sha256);
+
+  const result = verifySuccessionGate();
+  assert.deepEqual(codes(result), [], JSON.stringify(result.findings));
+  assert.equal(result.decision, 'AUTHORIZED');
+  assert.equal(result.consumed, true);
+});
+
+test('S2 no chain: without the succession events the stale-bootstrap findings return', () => {
+  const first = successionLinks()[0].position;
+  withTamper(LEDGER, rewriteLedger((lines) => lines.slice(0, first - 1)), () => {
+    const result = assertBlockedWith('ARTIFACT_BYTES_MISMATCH');
+    assert.ok(codes(result).includes('CURRENT_CONTRACT_LINK_NOT_AUTHORIZED'), JSON.stringify(result.findings));
+    assert.ok(!codes(result).some((code) => code.startsWith('PRECONTRACT_SUCCESSION_')), JSON.stringify(result.findings));
+  });
+});
+
+test('S3 a first link that does not start at the bootstrap is BLOCKED', () => {
+  const first = successionLinks()[0].position;
+  withRepinnedLink(first, (record) => { record.predecessorCurrentContractSha256 = 'a'.repeat(64); },
+    () => assertBlockedWith('PRECONTRACT_SUCCESSION_BOOTSTRAP_PREDECESSOR_MISMATCH', 'pointer'));
+  withRepinnedLink(first, (record) => { record.predecessorContractSha256 = 'b'.repeat(64); },
+    () => assertBlockedWith('PRECONTRACT_SUCCESSION_BOOTSTRAP_PREDECESSOR_MISMATCH', 'contract bytes'));
+  const foreign = 'governance/gates/GATE25/contracts/EXECUTION_CONTRACT_R0001.json';
+  withRepinnedLink(first, (record) => {
+    record.predecessorContractPath = foreign;
+    record.predecessorContractSha256 = sha256(fs.readFileSync(absolute(live, foreign)));
+  }, () => assertBlockedWith('PRECONTRACT_SUCCESSION_BOOTSTRAP_PREDECESSOR_MISMATCH', 'unbound contract'));
+});
+
+test('S4 a fork (one predecessor succeeded twice) is BLOCKED', () => {
+  const [, middle, last] = successionLinks();
+  withRepinnedLink(last.position, (record) => {
+    for (const field of ['predecessorContractPath', 'predecessorContractSha256', 'predecessorContractRevision', 'predecessorCurrentContractSha256']) {
+      record[field] = middle.authority[field];
+    }
+    record.successorContractRevision = middle.authority.successorContractRevision;
+  }, () => assertBlockedWith('PRECONTRACT_SUCCESSION_FORK'));
+});
+
+test('S5 a gap is BLOCKED: a skipped revision, and a removed link', () => {
+  const [, middle, last] = successionLinks();
+  withRepinnedLink(last.position, (record) => {
+    for (const field of ['predecessorContractPath', 'predecessorContractSha256', 'predecessorContractRevision', 'predecessorCurrentContractSha256']) {
+      record[field] = middle.authority[field];
+    }
+  }, () => assertBlockedWith('PRECONTRACT_SUCCESSION_SUCCESSOR_REVISION_LINEAGE_GAP', 'skipped revision'));
+  withTamper(LEDGER, rewriteLedger((lines) => lines.filter((_, index) => index !== middle.position - 1)),
+    () => assertBlockedWith('PRECONTRACT_SUCCESSION_LEDGER_POSITION_MISMATCH', 'removed link'));
+});
+
+test('S6 a duplicated event or a re-cited authority is BLOCKED', () => {
+  const last = successionLinks().at(-1);
+  const line = ledgerLines()[last.position - 1];
+  withTamper(LEDGER, rewriteLedger((lines) => [...lines, line]),
+    () => assertBlockedWith('PRECONTRACT_SUCCESSION_DUPLICATE', 'event'));
+  withTamper(LEDGER, rewriteLedger((lines) => [...lines, JSON.stringify({ ...JSON.parse(line), eventId: 'GATE26_CONTRACT_SUCCESSION_REPLAY' })]),
+    () => assertBlockedWith('PRECONTRACT_SUCCESSION_DUPLICATE', 'authority'));
+});
+
+test('S7 an authority whose bytes are not the digest its event pinned is BLOCKED', () => {
+  const { event } = successionLinks()[1];
+  withTamper(event.authorityPath, (target) => fs.appendFileSync(target, ' '),
+    () => assertBlockedWith('PRECONTRACT_SUCCESSION_AUTHORITY_DIGEST_MISMATCH'));
+});
+
+test('S8 an authority cited outside the governed tree is never resolved', () => {
+  const { position } = successionLinks()[1];
+  for (const escaping of ['../outside/GATE_CONTRACT_SUCCESSION_LOCAL_AUTHORITY.json', path.resolve(live, '..', 'outside.json').split(path.sep).join('/')]) {
+    withTamper(LEDGER, rewriteEvent(position, (event) => { event.authorityPath = escaping; }),
+      () => assertBlockedWith('PRECONTRACT_SUCCESSION_AUTHORITY_UNAVAILABLE', escaping));
+  }
+});
+
+test('S9 a pointer whose bytes are not the terminal successor pointer is BLOCKED', () => {
+  withTamper(S_POINTER, (target) => fs.writeFileSync(target, JSON.stringify(JSON.parse(fs.readFileSync(target, 'utf8')))), () => {
+    const result = assertBlockedWith('PRECONTRACT_SUCCESSION_TERMINAL_POINTER_MISMATCH');
+    // Same link, different bytes: only the byte half of the terminal proof fires.
+    assert.ok(!codes(result).includes('PRECONTRACT_SUCCESSION_LIVE_LINK_MISMATCH'), JSON.stringify(result.findings));
+  });
+});
+
+test('S10 a live link that is not the chain terminal is BLOCKED', () => {
+  const [, middle] = successionLinks();
+  withTamper(S_POINTER, tamperJson((document) => {
+    document.contractRevision = middle.authority.successorContractRevision;
+    document.contractPath = middle.authority.successorContractPath;
+    document.contractSha256 = middle.authority.successorContractSha256;
+  }), () => assertBlockedWith('PRECONTRACT_SUCCESSION_LIVE_LINK_MISMATCH'));
+});
+
+test('S11 altered R0001 bytes are still BLOCKED: only the pointer follows the chain', () => {
+  withTamper(S_BOOTSTRAP_CONTRACT, tamperJson((document) => { document.injectedByAttacker = true; }), () => {
+    const result = assertBlockedWith('ARTIFACT_BYTES_MISMATCH');
+    assert.ok(result.findings.some((item) => item.code === 'ARTIFACT_BYTES_MISMATCH' && item.detail === S_BOOTSTRAP_CONTRACT), JSON.stringify(result.findings));
+  });
+  const [, middle] = successionLinks();
+  withTamper(middle.authority.successorContractPath, tamperJson((document) => { document.injectedByAttacker = true; }),
+    () => assertBlockedWith('PRECONTRACT_SUCCESSION_CONTRACT_BYTES_MISMATCH', 'intermediate contract'));
+});
+
+test('S12 an altered original receipt is still BLOCKED by its anchor', () => {
+  withTamper(S_CONSUMPTION, tamperJson((document) => { document.recordedAt = '2026-09-16T13:01:30.000Z'; }),
+    () => assertBlockedWith('CONSUMPTION_RECEIPT_ANCHOR_MISMATCH'));
+});
+
+test('S13 a second precontract anchor leaves the chain unanchored', () => {
+  withTamper(LEDGER, rewriteLedger((lines) => [...lines, lines.find((line) => line.includes(`"${SUCCESSION_GATE}_PRECONTRACT_CONSUMPTION_ANCHOR_R1"`))]), () => {
+    const result = assertBlockedWith('PRECONTRACT_SUCCESSION_NOT_ANCHORED');
+    assert.ok(codes(result).includes('CONSUMPTION_RECEIPT_ANCHOR_AMBIGUOUS'), JSON.stringify(result.findings));
+  });
+});
+
+test('S14 a self-referencing link or pointer is BLOCKED', () => {
+  withRepinnedLink(successionLinks().at(-1).position, (record) => { record.successorContractPath = S_POINTER; },
+    () => assertBlockedWith('PRECONTRACT_SUCCESSION_SELF_REFERENCE', 'link'));
+  withTamper(S_POINTER, tamperJson((document) => { document.contractPath = S_POINTER; }),
+    () => assertBlockedWith('CURRENT_CONTRACT_LINK_SELF_REFERENCE', 'pointer'));
+});
+
+test('S15 a successor equal to its predecessor is BLOCKED', () => {
+  withRepinnedLink(successionLinks().at(-1).position, (record) => {
+    record.successorContractPath = record.predecessorContractPath;
+    record.successorContractSha256 = record.predecessorContractSha256;
+  }, () => assertBlockedWith('PRECONTRACT_SUCCESSION_PREDECESSOR_MUTATION_FORBIDDEN'));
+});
+
+test('S16 another Gate\'s succession cannot stand in for this Gate\'s', () => {
+  const [, middle] = successionLinks();
+  withRepinnedLink(middle.position, (record) => { record.gateId = 'GATE25'; },
+    () => assertBlockedWith('PRECONTRACT_SUCCESSION_GATE_MISMATCH', 'foreign authority'));
+  withTamper(LEDGER, rewriteEvent(middle.position, (event) => { event.gateId = 'GATE25'; }),
+    () => assertBlockedWith('PRECONTRACT_SUCCESSION_LEDGER_PREFIX_MISMATCH', 'event moved to another Gate'));
+});
+
+test('S17 the law names no revision: the chain is derived, never hard-coded', () => {
+  const source = fs.readFileSync(path.join(REPO_ROOT, 'governance/gee-v1/core/precontract-authority.mjs'), 'utf8');
+  const start = source.indexOf('function verifyPrecontractContractSuccession(');
+  assert.notEqual(start, -1);
+  const body = source.slice(start, source.indexOf('\n}\n', start));
+  assert.doesNotMatch(body, /R\d{4}|EXECUTION_CONTRACT_|GATE\d{2}/);
+});
+
 test.after(() => {
   for (const directory of [fixture.root, staged, live, ...disposable]) fs.rmSync(directory, { recursive: true, force: true });
 });

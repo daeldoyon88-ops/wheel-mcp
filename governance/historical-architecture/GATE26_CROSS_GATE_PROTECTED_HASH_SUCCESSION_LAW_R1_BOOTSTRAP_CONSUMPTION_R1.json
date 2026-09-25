@@ -1,0 +1,23 @@
+{
+  "document": "MAINTENANCE_REPAIR_BOOTSTRAP_TRUST_CONSUMPTION",
+  "schemaVersion": 1,
+  "bootstrapAuthorityId": "GATE26_CROSS_GATE_PROTECTED_HASH_SUCCESSION_LAW_R1_BOOTSTRAP_AUTHORITY_R1",
+  "bootstrapAuthorityPath": "governance/authority/maintenance-repair-bootstrap/GATE26_CROSS_GATE_PROTECTED_HASH_SUCCESSION_LAW_R1_AUTHORITY_R1.json",
+  "bootstrapAuthoritySha256": "885328b090ee825a2990f91f146dc7907628940988e80bfc90c781347fc6df95",
+  "programId": "GATE26_CROSS_GATE_PROTECTED_HASH_SUCCESSION_LAW_R1",
+  "repairManifestPath": "governance/historical-architecture/GATE26_CROSS_GATE_PROTECTED_HASH_SUCCESSION_LAW_AUTHORIZED_PATHS_R1.json",
+  "repairManifestSha256": "f49aecd88144ac16a5b9a28e3d4ab47f368ef5e5959126142f89543c36cbe4fe",
+  "baseHead": "5f897eb8d95ba16aeb955b4f53f156d0dd31385d",
+  "residualIdentitySha256": "bc2378052781bdbc0066259f4debda835bc127c137de2f71264e475ead21fdda",
+  "v2ConsumptionRecordPath": "governance/historical-architecture/GATE26_CROSS_GATE_PROTECTED_HASH_SUCCESSION_LAW_CONSUMPTION_R1.json",
+  "v2AuthorityId": "GATE26_CROSS_GATE_PROTECTED_HASH_SUCCESSION_LAW_LOCAL_AUTHORITY_R1",
+  "transactionId": "GATE26_CROSS_GATE_PROTECTED_HASH_SUCCESSION_LAW_R1_TRANSACTION",
+  "publicationAdmission": {
+    "admissionId": "GATE26_CROSS_GATE_PROTECTED_HASH_SUCCESSION_LAW_R1_PUBLICATION_ADMISSION_R1",
+    "admissionPath": "governance/authority/publication-admissions/GATE26/GATE26_CROSS_GATE_PROTECTED_HASH_SUCCESSION_LAW_R1_PUBLICATION_ADMISSION_R1.json",
+    "admissionSha256": "38eda53ba89d6936566857ec9fd5dedc3273fbc77d9540d9ab3e48827a09367b"
+  },
+  "recordedAt": "2026-09-25T00:07:31.145Z",
+  "consumedUse": 1,
+  "closureObligation": "ORDINARY_FAST_GATE_PASS"
+}

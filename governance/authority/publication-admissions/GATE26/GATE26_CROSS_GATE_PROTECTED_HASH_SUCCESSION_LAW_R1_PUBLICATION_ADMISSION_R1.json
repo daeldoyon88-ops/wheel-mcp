@@ -1,0 +1,72 @@
+{
+  "documentKind": "MAINTENANCE_PUBLICATION_ADMISSION",
+  "schemaVersion": 1,
+  "authorityMode": "LOCAL_EXPLICIT_AUTHORITY",
+  "issuedBy": "PROJECT_OWNER",
+  "admissionId": "GATE26_CROSS_GATE_PROTECTED_HASH_SUCCESSION_LAW_R1_PUBLICATION_ADMISSION_R1",
+  "decisionId": "OWNER_ADMIT_GATE26_CROSS_GATE_PROTECTED_HASH_SUCCESSION_LAW_R1",
+  "issuedAtUtc": "2026-09-24T00:01:00.000Z",
+  "expiresAtUtc": null,
+  "projectId": "WHEEL",
+  "repositoryId": "WHEEL_MCP_CANONICAL",
+  "gateId": "GATE26",
+  "programId": "GATE26_CROSS_GATE_PROTECTED_HASH_SUCCESSION_LAW_R1",
+  "purpose": "MAINTENANCE_PUBLICATION_ADMISSION",
+  "publicationClass": "PATH_PRESTATE_PROGRAM_PUBLISHER",
+  "authorityPurpose": "NORMAL_MAINTENANCE",
+  "maxUse": 1,
+  "admissionStatement": "Admit exactly one local V2 publication of the six-path cross-gate protected-hash succession repair under the installed maintenance bootstrap trust primitive.",
+  "admittedAuthority": {
+    "path": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_GATE26_CROSS_GATE_PROTECTED_HASH_SUCCESSION_LAW_R1.json",
+    "sha256": "1b4dd5c5ca81cc7083b5e95bca90b32c93de0672c6213071c5ff21956cbe5c00",
+    "byteLength": 2362,
+    "schemaVersion": 2,
+    "documentId": "GATE26_CROSS_GATE_PROTECTED_HASH_SUCCESSION_LAW_LOCAL_AUTHORITY_R1"
+  },
+  "admittedManifest": {
+    "path": "governance/historical-architecture/GATE26_CROSS_GATE_PROTECTED_HASH_SUCCESSION_LAW_AUTHORIZED_PATHS_R1.json",
+    "sha256": "f49aecd88144ac16a5b9a28e3d4ab47f368ef5e5959126142f89543c36cbe4fe",
+    "byteLength": 3284,
+    "schemaVersion": 2,
+    "documentId": "GATE26_CROSS_GATE_PROTECTED_HASH_SUCCESSION_LAW_AUTHORIZED_PATHS_R1"
+  },
+  "admittedPrestate": {
+    "baseHead": "5f897eb8d95ba16aeb955b4f53f156d0dd31385d",
+    "ledgerEventCount": 115,
+    "ledgerPrefixSha256": "61f81decc5f3845cecc4fab1906447a3e1036f9a45ca91c471b0ab89c0925738",
+    "gateId": "GATE26",
+    "gateStatus": "IN_PROGRESS",
+    "stateRevision": "R0005",
+    "contractRevision": "R0004",
+    "activeGate": "GATE13",
+    "R8ExpectedAbsent": true
+  },
+  "admittedOperationClasses": [
+    "MAINTENANCE"
+  ],
+  "grantsFutureBytePermission": false,
+  "grantsGateAuthorizationPermission": false,
+  "grantsStartPermission": false,
+  "grantsStatusTransitionPermission": false,
+  "grantsHistoricalAdmissionWidening": false,
+  "genericV1Admission": false,
+  "derivedFromGitDelta": false,
+  "derivedFromFinalGateIntegrityFindings": false,
+  "prohibitedOperations": [
+    "START",
+    "SECOND_START",
+    "GATE_AUTHORIZATION",
+    "STATUS_TRANSITION",
+    "ACTIVE_GATE_SWITCH",
+    "GEE_R8",
+    "GIT_PUSH",
+    "HISTORY_REWRITE",
+    "GENERIC_V1_ADMISSION",
+    "HISTORICAL_ADMISSION_WIDENING",
+    "SELF_ADMISSION"
+  ],
+  "successorRequirement": "A later publication over changed bytes or state requires a new exact Owner admission.",
+  "admissionDigest": "bccda6405395ddded9ec39886a72b0c5d946095070ff0f7637d9e62bcbe43f3c",
+  "ownerAuthorizationPath": "governance/sources/MAINTENANCE_PUBLICATION_ADMISSION_OWNER_AUTHORIZATION_GATE26_CROSS_GATE_PROTECTED_HASH_SUCCESSION_LAW_R1.json",
+  "ownerAuthorizationSha256": "b9002a1909fdcd2e96ac8074a9dcdd7f5be923f512c9ea74e9a3dd2f89691ab9"
+}

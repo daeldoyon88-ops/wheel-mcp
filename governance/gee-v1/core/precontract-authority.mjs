@@ -79,6 +79,10 @@ import {
   resolveAuthorityMode,
   validateAuthorityMode
 } from './post-freeze-maintenance-authority.mjs';
+import {
+  isLedgerBoundGateContractSuccessionAuthority,
+  validateGateContractSuccessionLedgerBoundAuthorityShape
+} from './gate-contract-succession-authority.mjs';
 
 export const PRECONTRACT_SCHEMA_VERSION = 1;
 export const PRECONTRACT_REQUEST_KIND = 'PRECONTRACT_AUTHORITY_REQUEST';
@@ -103,6 +107,8 @@ export const PRECONTRACT_CONSUMPTION_ANCHOR_TRANSITION_TYPE = 'PRECONTRACT_CONSU
 export const PRECONTRACT_CONSUMPTION_ANCHOR_AUTHORITY_KIND = 'GATE_PRECONTRACT_CONSUMPTION_ANCHOR_LOCAL_AUTHORITY';
 export const PRECONTRACT_CONSUMPTION_ANCHOR_AUTHORITY_MODE = POST_FREEZE_MAINTENANCE_AUTHORITY_MODE;
 export const PRECONTRACT_CONSUMPTION_ANCHOR_AUTHORITY_MAX_USE = 1;
+/** The ledger transition that moves CURRENT_CONTRACT after a bootstrap. */
+export const PRECONTRACT_CONTRACT_SUCCESSION_TRANSITION_TYPE = 'CONTRACT_SUCCESSION';
 
 export const PRECONTRACT_AUTHORITY_ROOT = 'governance/authority/precontract';
 
@@ -503,15 +509,159 @@ function verifyHistoricalPrestate(authority, observed, findings) {
  * another Gate's contract and then re-pinned would satisfy a hash check on its
  * own bytes, so the link itself is verified — bound path, exact revision digest,
  * own Gate, and never a self-reference.
+ *
+ * Once the Gate has lawfully succeeded its contract, the link no longer names a
+ * bootstrap artifact; it names the terminal of the succession chain, and
+ * verifyPrecontractContractSuccession is what judges it against that terminal.
  */
-function verifyCurrentContractLink(authority, observed, findings) {
+function verifyCurrentContractLink(authority, observed, findings, succession = { applicable: false }) {
   const link = observed.currentContractLink;
   if (!link || typeof link !== 'object' || Array.isArray(link)) { finding(findings, 'CURRENT_CONTRACT_LINK_UNREADABLE'); return; }
   if (link.gateId !== authority?.gateId) finding(findings, 'CURRENT_CONTRACT_LINK_GATE_MISMATCH', link.gateId);
   if (link.contractPath === observed.currentContractRelativePath) { finding(findings, 'CURRENT_CONTRACT_LINK_SELF_REFERENCE', link.contractPath); return; }
+  if (succession.applicable) return;
   const bound = (Array.isArray(authority?.artifactBindings) ? authority.artifactBindings : []).find((item) => item?.path === link.contractPath) || null;
   if (!bound) { finding(findings, 'CURRENT_CONTRACT_LINK_NOT_AUTHORIZED', link.contractPath); return; }
   if (link.contractSha256 !== bound.sha256) finding(findings, 'CURRENT_CONTRACT_LINK_SHA_MISMATCH', link.contractPath);
+}
+
+/**
+ * THE SUCCESSION LAW — why a consumed bootstrap must survive CURRENT_CONTRACT
+ * moving on.
+ *
+ * The bootstrap binds the bytes of CURRENT_CONTRACT it wrote. A Gate whose
+ * contract is later succeeded under a canonical CONTRACT_SUCCESSION event has a
+ * pointer that lawfully no longer holds those bytes, and the receipt reported
+ * ARTIFACT_BYTES_MISMATCH and CURRENT_CONTRACT_LINK_NOT_AUTHORIZED for doing the
+ * lawful thing — the same decay the historical pre-state proof removed, one
+ * artifact over.
+ *
+ * The exemption is not a relaxation. The pointer stops being compared to its
+ * bootstrap bytes ONLY when the Gate's own CONTRACT_SUCCESSION events form one
+ * unique, gap-free chain that:
+ *
+ *   starts at the bootstrap      the first predecessor is a contract this
+ *                                authority bound, with its bound bytes, and the
+ *                                pointer it succeeded is the bound pointer;
+ *   is ledger-anchored           every event follows the single consumption
+ *                                anchor, cites a governed authority whose bytes
+ *                                are the digest the event pinned, and that
+ *                                authority was issued against exactly the ledger
+ *                                prefix that precedes its own event;
+ *   is linked, never forked      each link's predecessor is the previous link's
+ *                                successor (path, bytes, revision, pointer), no
+ *                                contract is succeeded twice, none is revisited;
+ *   ends at the live pointer     the pointer's bytes are the last successor
+ *                                pointer bytes, and the link it declares is the
+ *                                last successor contract, whose bytes still hold.
+ *
+ * Each authority is validated by the succession primitive's own closed-shape
+ * validator, reused rather than restated, so this law cannot accept a document
+ * the succession law itself would refuse. No revision is named here: the chain
+ * is derived, so the same rule serves R0002 or R0040.
+ *
+ * With no CONTRACT_SUCCESSION event for the Gate the law is not applicable and
+ * the bootstrap bindings are enforced exactly as before. Any finding blocks.
+ */
+function verifyPrecontractContractSuccession(authority, observed, findings) {
+  const gateId = authority?.gateId;
+  const pointerPath = observed.currentContractRelativePath;
+  const events = Array.isArray(observed.ledgerEvents) ? observed.ledgerEvents : [];
+  const successions = [];
+  const anchorPositions = [];
+  events.forEach((event, index) => {
+    if (event?.gateId !== gateId) return;
+    if (event.transitionType === PRECONTRACT_CONTRACT_SUCCESSION_TRANSITION_TYPE) successions.push({ event, position: index + 1 });
+    if (event.transitionType === PRECONTRACT_CONSUMPTION_ANCHOR_TRANSITION_TYPE) anchorPositions.push(index + 1);
+  });
+  if (successions.length === 0) return { applicable: false };
+
+  const blocked = (code, detail) => { finding(findings, code, detail); return { applicable: true }; };
+  // More than one anchor is refused by validateReceiptAnchor; here it only means
+  // there is no single point the chain can be proven to follow.
+  if (anchorPositions.length !== 1) return blocked('PRECONTRACT_SUCCESSION_NOT_ANCHORED', anchorPositions.length);
+  const floor = Math.max(anchorPositions[0], authority?.preState?.ledgerEventCount ?? Infinity);
+
+  const bindings = Array.isArray(authority?.artifactBindings) ? authority.artifactBindings : [];
+  const boundPointer = bindings.find((item) => item?.path === pointerPath) || null;
+  if (!boundPointer) return blocked('PRECONTRACT_SUCCESSION_BOOTSTRAP_POINTER_UNBOUND', pointerPath);
+
+  const authorities = observed.successionAuthorities && typeof observed.successionAuthorities === 'object' ? observed.successionAuthorities : {};
+  const contractBytes = observed.successionContractSha256 && typeof observed.successionContractSha256 === 'object' ? observed.successionContractSha256 : {};
+  const seen = { eventIds: new Set(), paths: new Set(), digests: new Set(), predecessors: new Set(), contracts: new Set() };
+  let previous = null;
+
+  for (const { event, position } of successions) {
+    const at = event.eventId ?? position;
+    if (seen.eventIds.has(event.eventId) || seen.paths.has(event.authorityPath) || seen.digests.has(event.authoritySha256)) {
+      return blocked('PRECONTRACT_SUCCESSION_DUPLICATE', at);
+    }
+    seen.eventIds.add(event.eventId); seen.paths.add(event.authorityPath); seen.digests.add(event.authoritySha256);
+    if (position <= floor) return blocked('PRECONTRACT_SUCCESSION_PRECEDES_ANCHOR', at);
+
+    const cited = authorities[event.authorityPath];
+    if (!cited || cited.present !== true) return blocked('PRECONTRACT_SUCCESSION_AUTHORITY_UNAVAILABLE', event.authorityPath);
+    if (!SHA256_RE.test(event.authoritySha256 || '') || cited.sha256 !== event.authoritySha256) {
+      return blocked('PRECONTRACT_SUCCESSION_AUTHORITY_DIGEST_MISMATCH', at);
+    }
+    const record = cited.record;
+    if (!isLedgerBoundGateContractSuccessionAuthority(record)) return blocked('PRECONTRACT_SUCCESSION_AUTHORITY_FAMILY_INVALID', at);
+    const shape = validateGateContractSuccessionLedgerBoundAuthorityShape(record);
+    for (const item of shape.findings) finding(findings, `PRECONTRACT_SUCCESSION_${item.code}`, item.detail ?? at);
+    if (!shape.valid) return { applicable: true };
+
+    if (record.gateId !== gateId || record.projectId !== authority?.projectId) return blocked('PRECONTRACT_SUCCESSION_GATE_MISMATCH', at);
+    if (record.currentContractPointerPath !== pointerPath) return blocked('PRECONTRACT_SUCCESSION_POINTER_PATH_MISMATCH', at);
+    if (record.predecessorContractPath === pointerPath || record.successorContractPath === pointerPath) {
+      return blocked('PRECONTRACT_SUCCESSION_SELF_REFERENCE', at);
+    }
+    if (record.successorContractPath === record.predecessorContractPath || record.successorContractSha256 === record.predecessorContractSha256) {
+      return blocked('PRECONTRACT_SUCCESSION_SUCCESSOR_IS_PREDECESSOR', at);
+    }
+
+    // Ledger anchoring of the authority itself: issued against exactly the
+    // prefix that precedes its event, re-proven from the raw ledger text.
+    if (record.preLedgerEventCount !== position - 1) return blocked('PRECONTRACT_SUCCESSION_LEDGER_POSITION_MISMATCH', at);
+    const prefix = reconstructLedgerPrefix(observed.ledgerText, record.preLedgerEventCount);
+    if (!prefix.valid || prefix.sha256 !== record.preLedgerPrefixSha256) return blocked('PRECONTRACT_SUCCESSION_LEDGER_PREFIX_MISMATCH', at);
+    if (Object.hasOwn(record, 'ledgerHeadEventId')) {
+      const head = prefix.events.at(-1);
+      if (head?.eventId !== record.ledgerHeadEventId || head?.eventPayloadSha256 !== record.ledgerHeadEventPayloadSha256) {
+        return blocked('PRECONTRACT_SUCCESSION_LEDGER_HEAD_MISMATCH', at);
+      }
+    }
+
+    if (seen.predecessors.has(record.predecessorContractPath)) return blocked('PRECONTRACT_SUCCESSION_FORK', at);
+    if (seen.contracts.has(record.successorContractPath)) return blocked('PRECONTRACT_SUCCESSION_REVISITS_CONTRACT', at);
+    if (previous === null) {
+      const boundPredecessor = bindings.find((item) => item?.path === record.predecessorContractPath) || null;
+      if (!boundPredecessor || boundPredecessor.path === authority?.consumptionRecordPath
+        || boundPredecessor.sha256 !== record.predecessorContractSha256
+        || record.predecessorCurrentContractSha256 !== boundPointer.sha256) {
+        return blocked('PRECONTRACT_SUCCESSION_BOOTSTRAP_PREDECESSOR_MISMATCH', at);
+      }
+      seen.contracts.add(record.predecessorContractPath);
+    } else if (record.predecessorContractPath !== previous.path || record.predecessorContractSha256 !== previous.sha256
+      || record.predecessorContractRevision !== previous.revision || record.predecessorCurrentContractSha256 !== previous.pointerSha256) {
+      return blocked('PRECONTRACT_SUCCESSION_CHAIN_BROKEN', at);
+    }
+    if (contractBytes[record.successorContractPath] !== record.successorContractSha256) {
+      return blocked('PRECONTRACT_SUCCESSION_CONTRACT_BYTES_MISMATCH', record.successorContractPath);
+    }
+    seen.predecessors.add(record.predecessorContractPath);
+    seen.contracts.add(record.successorContractPath);
+    previous = {
+      path: record.successorContractPath, sha256: record.successorContractSha256,
+      revision: record.successorContractRevision, pointerSha256: record.successorCurrentContractSha256
+    };
+  }
+
+  if (observed.targetFileSha256?.[pointerPath] !== previous.pointerSha256) finding(findings, 'PRECONTRACT_SUCCESSION_TERMINAL_POINTER_MISMATCH', pointerPath);
+  const link = observed.currentContractLink;
+  if (!link || link.contractPath !== previous.path || link.contractSha256 !== previous.sha256 || link.contractRevision !== previous.revision) {
+    finding(findings, 'PRECONTRACT_SUCCESSION_LIVE_LINK_MISMATCH', link?.contractPath ?? null);
+  }
+  return { applicable: true, terminal: previous };
 }
 
 /**
@@ -986,9 +1136,16 @@ export function evaluatePrecontractAuthority({
     if (local && observed.consumptionRecordPresent === true) finding(findings, 'AUTHORITY_ALREADY_CONSUMED', 'consumptionRecord');
   } else if (phase === 'VERIFY_CONSUMPTION') {
     if (observed.currentContractPresent !== true) finding(findings, 'CURRENT_CONTRACT_NOT_CREATED');
-    for (const item of binding.artifactBindings || []) if (observed.targetFileSha256?.[item.path] !== item.sha256) finding(findings, 'ARTIFACT_BYTES_MISMATCH', item.path);
+    // Local mode only, like every historical proof: after a lawful succession the
+    // pointer is judged by the chain terminal instead of its bootstrap bytes.
+    // Every other bound artifact keeps exact byte equality.
+    const succession = local ? verifyPrecontractContractSuccession(authority, observed, findings) : { applicable: false };
+    for (const item of binding.artifactBindings || []) {
+      if (succession.applicable && item.path === observed.currentContractRelativePath) continue;
+      if (observed.targetFileSha256?.[item.path] !== item.sha256) finding(findings, 'ARTIFACT_BYTES_MISMATCH', item.path);
+    }
     if (local) {
-      verifyCurrentContractLink(authority, observed, findings);
+      verifyCurrentContractLink(authority, observed, findings, succession);
       // Asserting both marks positively is also the proof that no second use is
       // reachable: each of them is an AUTHORIZE_WRITE blocker, so an authority
       // that verifies as consumed can no longer authorize a write.

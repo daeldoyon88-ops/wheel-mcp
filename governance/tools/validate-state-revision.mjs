@@ -153,6 +153,128 @@ function protectedResult(classification, {
   };
 }
 
+function inspectLedgerSealedContract({ root, event, protectedPath }) {
+  const reasons = [];
+  if (!event?.gateId || !REVISION_RE.test(String(event.stateRevision || '')) || !SHA256_RE.test(String(event.stateRevisionSealSha256 || ''))) {
+    return { valid: false, reasons: ['CROSS_GATE_EVENT_STATE_PROOF_INVALID'], pins: [] };
+  }
+  const gateRoot = path.join(root, 'governance', 'gates', event.gateId);
+  const sealPath = path.join(gateRoot, 'state', 'revisions', event.stateRevision, 'STATE_SEAL.json');
+  const sealIdentity = exactFileIdentity(sealPath);
+  const seal = sealIdentity ? readJsonQuiet(sealPath) : null;
+  if (!sealIdentity || !seal || sealIdentity.sha256 !== event.stateRevisionSealSha256) reasons.push('CROSS_GATE_EVENT_SEAL_MISSING_OR_MISMATCH');
+  const currentState = readJsonQuiet(path.join(gateRoot, 'state', 'CURRENT_STATE.json'));
+  const sealReport = sealIdentity
+    ? validateStateSeal({ root, sealPath, currentRevision: currentState?.stateRevision })
+    : { valid: false };
+  if (!sealReport.valid) reasons.push('CROSS_GATE_EVENT_SEAL_INVALID');
+
+  const contractSha256 = seal?.payload?.contractSha256;
+  if (!SHA256_RE.test(String(contractSha256 || ''))) reasons.push('CROSS_GATE_EVENT_CONTRACT_BINDING_INVALID');
+  const contractsRoot = path.join(gateRoot, 'contracts');
+  const allContracts = fs.existsSync(contractsRoot)
+    ? fs.readdirSync(contractsRoot, { withFileTypes: true })
+      .filter((entry) => entry.isFile() && EXECUTION_CONTRACT_RE.test(entry.name))
+      .map((entry) => {
+        const absolute = path.join(contractsRoot, entry.name);
+        return { absolute, identity: exactFileIdentity(absolute), json: readJsonQuiet(absolute) };
+      })
+    : [];
+  const contracts = allContracts.filter((entry) => entry.identity?.sha256 === contractSha256);
+  if (contracts.length !== 1) reasons.push('CROSS_GATE_EVENT_CONTRACT_IDENTITY_AMBIGUOUS');
+  const contract = contracts[0]?.json ?? null;
+  if (contract?.gateId !== event.gateId) reasons.push('CROSS_GATE_EVENT_CONTRACT_GATE_MISMATCH');
+  // Discovery remains fail-closed when the event seal is absent: an unsealed
+  // gate that visibly contains a contract pin is still the earliest attempted
+  // proof and may not be skipped in favour of a later, healthier gate.
+  const discoveryContracts = contract
+    ? [contract]
+    : allContracts.map((entry) => entry.json).filter(Boolean)
+      .filter((candidate) => collectContractPins(candidate, protectedPath).length > 0);
+  const pins = [...new Set(discoveryContracts.flatMap((candidate) => collectContractPins(candidate, protectedPath)))];
+  return { valid: reasons.length === 0, reasons, pins };
+}
+
+/**
+ * Cross-gate protected-hash succession law. The first later ledger-anchored gate
+ * whose sealed contract pins the protected path is the only possible successor
+ * gate. That gate must have exactly one later COMPLETE_CONFIRMED proof, and the
+ * contract sealed by that proof must pin the live identity. Later gates that
+ * merely carry the already-succeeded identity do not create competing proofs.
+ */
+export function classifyCrossGateProtectedHashSuccession({
+  root,
+  gateId,
+  stateRevision,
+  protectedPath,
+  expectedSha256,
+  actualSha256,
+  ledgerPath = null
+} = {}) {
+  const rootResolved = path.resolve(root || '.');
+  const reasons = [];
+  const resolvedLedgerPath = ledgerPath
+    ? (path.isAbsolute(ledgerPath) ? ledgerPath : path.resolve(rootResolved, ledgerPath))
+    : path.join(rootResolved, ...DEFAULT_LEDGER_PATH.split('/'));
+  const ledger = readLedgerDocument(resolvedLedgerPath);
+  if (!ledger.valid) return { proven: false, reasonCodes: ['CROSS_GATE_LEDGER_INVALID', ...ledger.reasons] };
+
+  const sourceGateRoot = path.join(rootResolved, 'governance', 'gates', gateId);
+  const sourceSealPath = path.join(sourceGateRoot, 'state', 'revisions', stateRevision, 'STATE_SEAL.json');
+  const sourceSealIdentity = exactFileIdentity(sourceSealPath);
+  const sourceCurrentState = readJsonQuiet(path.join(sourceGateRoot, 'state', 'CURRENT_STATE.json'));
+  const sourceSealReport = sourceSealIdentity
+    ? validateStateSeal({ root: rootResolved, sealPath: sourceSealPath, currentRevision: sourceCurrentState?.stateRevision })
+    : { valid: false };
+  if (!sourceSealIdentity || !sourceSealReport.valid) reasons.push('CROSS_GATE_SOURCE_REVISION_UNSEALED');
+  const sourceAnchors = sourceSealIdentity
+    ? ledger.events.filter((event) => event?.gateId === gateId
+      && event?.stateRevision === stateRevision
+      && event?.stateRevisionSealSha256 === sourceSealIdentity.sha256)
+    : [];
+  if (sourceAnchors.length !== 1) reasons.push('CROSS_GATE_SOURCE_LEDGER_ANCHOR_MISSING_OR_AMBIGUOUS');
+  const sourceAnchor = sourceAnchors[0] ?? null;
+  const sourceGateEvents = ledger.events.filter((event) => event?.gateId === gateId);
+  if (sourceGateEvents.at(-1)?.toStatus !== 'COMPLETE_CONFIRMED') reasons.push('CROSS_GATE_SOURCE_GATE_NOT_COMPLETE_CONFIRMED');
+  if (reasons.length > 0) return { proven: false, reasonCodes: reasons };
+
+  const inspected = ledger.events
+    .filter((event) => event?.gateId !== gateId && event?.stateRevision && event?.stateRevisionSealSha256)
+    .map((event) => ({ event, proof: inspectLedgerSealedContract({ root: rootResolved, event, protectedPath }) }))
+    .filter(({ proof }) => proof.pins.includes(actualSha256));
+  const laterPins = inspected.filter(({ event }) => event.ordinal > sourceAnchor.ordinal);
+  if (laterPins.length === 0) {
+    reasons.push(inspected.length > 0 ? 'CROSS_GATE_PROOF_NOT_LATER' : 'CROSS_GATE_LATER_PROOF_ABSENT');
+    return { proven: false, reasonCodes: reasons };
+  }
+
+  const firstPin = laterPins[0];
+  if (!firstPin.proof.valid) reasons.push(...firstPin.proof.reasons);
+  if (firstPin.proof.pins.length !== 1 || firstPin.proof.pins[0] !== actualSha256) reasons.push('CROSS_GATE_LATER_CONTRACT_LIVE_PIN_MISMATCH');
+  const pinningGateId = firstPin.event.gateId;
+  const laterProofs = ledger.events.filter((event) => event?.gateId === pinningGateId
+    && event?.toStatus === 'COMPLETE_CONFIRMED'
+    && event?.ordinal > sourceAnchor.ordinal);
+  if (laterProofs.length !== 1) reasons.push(laterProofs.length === 0 ? 'CROSS_GATE_LATER_PROOF_ABSENT' : 'CROSS_GATE_LATER_PROOF_AMBIGUOUS');
+  const laterProofEvent = laterProofs[0] ?? null;
+  if (laterProofEvent && laterProofEvent.ordinal <= sourceAnchor.ordinal) reasons.push('CROSS_GATE_PROOF_NOT_LATER');
+  if (laterProofEvent) {
+    const completionProof = inspectLedgerSealedContract({ root: rootResolved, event: laterProofEvent, protectedPath });
+    if (!completionProof.valid) reasons.push(...completionProof.reasons);
+    if (completionProof.pins.length !== 1 || completionProof.pins[0] !== actualSha256) reasons.push('CROSS_GATE_LATER_CONTRACT_LIVE_PIN_MISMATCH');
+  }
+  const pinningGateEvents = ledger.events.filter((event) => event?.gateId === pinningGateId);
+  if (pinningGateEvents.at(-1)?.toStatus !== 'COMPLETE_CONFIRMED') reasons.push('CROSS_GATE_PINNING_GATE_NOT_COMPLETE_CONFIRMED');
+  if (!SHA256_RE.test(String(expectedSha256 || '')) || !SHA256_RE.test(String(actualSha256 || '')) || expectedSha256 === actualSha256) {
+    reasons.push('CROSS_GATE_HASH_TRANSITION_INVALID');
+  }
+  return {
+    proven: reasons.length === 0,
+    reasonCodes: [...new Set(reasons)],
+    ...(reasons.length === 0 ? { sourceEventId: sourceAnchor.eventId, pinningGateId, proofEventId: laterProofEvent.eventId } : {})
+  };
+}
+
 /**
  * FC-02 shared law. A stale protected hash is disclosed as historical succession
  * only when the complete successor chain is reproduced from live bytes. Every
@@ -208,6 +330,19 @@ export function classifyProtectedHashLiveCheck({
       && REVISION_RE.test(String(currentRevision || ''))
       && early.length === 0) {
     return protectedResult(HISTORICAL_LEDGER_PREFIX, { ...base, actualSha256 });
+  }
+
+  const crossGate = classifyCrossGateProtectedHashSuccession({
+    root: rootResolved,
+    gateId,
+    stateRevision,
+    protectedPath,
+    expectedSha256,
+    actualSha256,
+    ledgerPath
+  });
+  if (crossGate.proven) {
+    return protectedResult(HISTORICAL_PROTECTED_HASH_SUPERSEDED, { ...base, actualSha256 });
   }
 
   const reasons = [...early];
@@ -398,7 +533,7 @@ export function classifyProtectedHashLiveCheck({
   return protectedResult(reasons.length === 0 ? HISTORICAL_PROTECTED_HASH_SUPERSEDED : PROTECTED_HASH_MISMATCH, {
     ...base,
     actualSha256,
-    reasonCodes: reasons
+    reasonCodes: [...reasons, ...crossGate.reasonCodes]
   });
 }
 

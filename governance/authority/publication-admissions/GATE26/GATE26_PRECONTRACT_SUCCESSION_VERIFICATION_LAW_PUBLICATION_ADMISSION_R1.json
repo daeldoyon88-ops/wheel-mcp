@@ -1,0 +1,72 @@
+{
+  "documentKind": "MAINTENANCE_PUBLICATION_ADMISSION",
+  "schemaVersion": 1,
+  "authorityMode": "LOCAL_EXPLICIT_AUTHORITY",
+  "issuedBy": "PROJECT_OWNER",
+  "admissionId": "GATE26_PRECONTRACT_SUCCESSION_VERIFICATION_LAW_PUBLICATION_ADMISSION_R1",
+  "decisionId": "OWNER_AUTHORIZE_GATE26_PRECONTRACT_SUCCESSION_VERIFICATION_LAW_R1",
+  "issuedAtUtc": "2026-09-25T02:28:50.000Z",
+  "expiresAtUtc": null,
+  "projectId": "WHEEL",
+  "repositoryId": "WHEEL_MCP_CANONICAL",
+  "gateId": "GATE26",
+  "programId": "GATE26_PRECONTRACT_SUCCESSION_VERIFICATION_LAW_R1",
+  "purpose": "MAINTENANCE_PUBLICATION_ADMISSION",
+  "publicationClass": "PATH_PRESTATE_PROGRAM_PUBLISHER",
+  "authorityPurpose": "NORMAL_MAINTENANCE",
+  "maxUse": 1,
+  "admissionStatement": "One exact Owner admission (OWNER_AUTHORIZE_GATE26_PRECONTRACT_SUCCESSION_VERIFICATION_LAW_R1, amended by OWNER_AMEND_GATE26_PRECONTRACT_SUCCESSION_VERIFICATION_LAW_R1_TERMINAL_R0004) for the single publication of the ledger-anchored precontract CONTRACT_SUCCESSION verification law, performed later by the canonical V2 publisher after an independent audit. It admits no change to the Generic Fast Gate, the ledger, the original precontract receipt or anchor, CURRENT_CONTRACT, EXECUTION_CONTRACT_R0001-R0004 or the bootstrap primitive; no GATE15/GATE16/GATE17 repair, no GATE26 completion, no GATE27, no R8, no commit or push by the Builder and no network use. The Builder does not consume the authority or create the reserved receipt.",
+  "admittedAuthority": {
+    "path": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_GATE26_PRECONTRACT_SUCCESSION_VERIFICATION_LAW_R1.json",
+    "sha256": "f16260efc32f9afaa377c861ef6f943060aabef6cd05ea0bb22f95d4ae0a579f",
+    "byteLength": 2366,
+    "schemaVersion": 2,
+    "documentId": "GATE26_PRECONTRACT_SUCCESSION_VERIFICATION_LAW_LOCAL_AUTHORITY_R1"
+  },
+  "admittedManifest": {
+    "path": "governance/historical-architecture/GATE26_PRECONTRACT_SUCCESSION_VERIFICATION_LAW_AUTHORIZED_PATHS_R1.json",
+    "sha256": "1fa3ca5c31adf8b9280114bb2577870757eff39e0967b99f638890b8318c88f2",
+    "byteLength": 4109,
+    "schemaVersion": 2,
+    "documentId": "GATE26_PRECONTRACT_SUCCESSION_VERIFICATION_LAW_AUTHORIZED_PATHS_R1"
+  },
+  "admittedPrestate": {
+    "baseHead": "5f897eb8d95ba16aeb955b4f53f156d0dd31385d",
+    "ledgerEventCount": 115,
+    "ledgerPrefixSha256": "61f81decc5f3845cecc4fab1906447a3e1036f9a45ca91c471b0ab89c0925738",
+    "gateId": "GATE26",
+    "gateStatus": "IN_PROGRESS",
+    "stateRevision": "R0005",
+    "contractRevision": "R0004",
+    "activeGate": "GATE13",
+    "R8ExpectedAbsent": true
+  },
+  "admittedOperationClasses": [
+    "MAINTENANCE"
+  ],
+  "grantsFutureBytePermission": false,
+  "grantsGateAuthorizationPermission": false,
+  "grantsStartPermission": false,
+  "grantsStatusTransitionPermission": false,
+  "grantsHistoricalAdmissionWidening": false,
+  "genericV1Admission": false,
+  "derivedFromGitDelta": false,
+  "derivedFromFinalGateIntegrityFindings": false,
+  "prohibitedOperations": [
+    "START",
+    "SECOND_START",
+    "GATE_AUTHORIZATION",
+    "STATUS_TRANSITION",
+    "ACTIVE_GATE_SWITCH",
+    "GEE_R8",
+    "GIT_PUSH",
+    "HISTORY_REWRITE",
+    "GENERIC_V1_ADMISSION",
+    "HISTORICAL_ADMISSION_WIDENING",
+    "SELF_ADMISSION"
+  ],
+  "successorRequirement": "A later publication over changed bytes or state requires a new exact Owner admission.",
+  "admissionDigest": "5b6ac2d29645127665e0b44d2e5a0454680df4c87bca54df3c8d9dc353acd79d",
+  "ownerAuthorizationPath": "governance/sources/MAINTENANCE_PUBLICATION_ADMISSION_OWNER_AUTHORIZATION_GATE26_PRECONTRACT_SUCCESSION_VERIFICATION_LAW_R1.json",
+  "ownerAuthorizationSha256": "28d7dc4206b003166fc5d6e2fba77d6f3d245460df642d4acdfaca4c11dd5ac5"
+}

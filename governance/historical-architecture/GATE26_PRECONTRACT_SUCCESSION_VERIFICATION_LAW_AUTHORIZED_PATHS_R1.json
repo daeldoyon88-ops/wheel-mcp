@@ -1,0 +1,86 @@
+{
+  "documentKind": "POST_FREEZE_MAINTENANCE_AUTHORIZED_PATH_MANIFEST",
+  "schemaVersion": 2,
+  "manifestId": "GATE26_PRECONTRACT_SUCCESSION_VERIFICATION_LAW_AUTHORIZED_PATHS_R1",
+  "programId": "GATE26_PRECONTRACT_SUCCESSION_VERIFICATION_LAW_R1",
+  "paths": [
+    {
+      "path": "governance/gee-v1/core/precontract-authority.mjs",
+      "operation": "MODIFY",
+      "phase": "MAINTENANCE",
+      "reason": "Add the ledger-anchored CONTRACT_SUCCESSION verification law to VERIFY_CONSUMPTION: after a lawful succession the CURRENT_CONTRACT pointer is judged against the terminal of the unique, gap-free, bootstrap-rooted succession chain instead of its bootstrap bytes. Reuses the succession primitive's ledger-bound shape validator; names no revision.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "PRESENT",
+        "sha256": "95ec33c57d7052e1072edaf43c61d1679055482e55e43f07ebc4d821ec2e4670",
+        "byteLength": 61799
+      }
+    },
+    {
+      "path": "governance/gee-v1/adapters/wheel/precontract-authority-source.mjs",
+      "operation": "MODIFY",
+      "phase": "MAINTENANCE",
+      "reason": "Supply the raw material for the succession law: the authorities cited by the Gate's CONTRACT_SUCCESSION events (governed paths only), the live digests of the contracts they name, and the pointer's contractRevision.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "PRESENT",
+        "sha256": "d6be3c24319f21b7d9a5be325ec5e92831aae376cdd4fa5237807040fb74305b",
+        "byteLength": 20156
+      }
+    },
+    {
+      "path": "governance/tests/precontract-consumption-permanence.test.mjs",
+      "operation": "MODIFY",
+      "phase": "MAINTENANCE",
+      "reason": "Add S1-S17: the positive 113->114->115 chain proof on the live GATE26 bytes and the fail-closed hostile battery for the succession law.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "PRESENT",
+        "sha256": "2748709b3bd12077b0cb403b5d636d157fd7e896e06b1424ebdce0dd581d0836",
+        "byteLength": 56479
+      }
+    },
+    {
+      "path": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_GATE26_PRECONTRACT_SUCCESSION_VERIFICATION_LAW_R1.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "Owner-issued LOCAL_EXPLICIT_AUTHORITY for this one publication. Bootstrap member: pre-state self-excluded while remaining inside the exact authorized set and future consumption cohort.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "governance/historical-architecture/GATE26_PRECONTRACT_SUCCESSION_VERIFICATION_LAW_AUTHORIZED_PATHS_R1.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "Exact 6-path manifest. Bootstrap member: pre-state self-excluded while remaining digest-pinned by the authority.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "governance/historical-architecture/GATE26_PRECONTRACT_SUCCESSION_VERIFICATION_LAW_CONSUMPTION_R1.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "RESERVED_RECEIPT: single-use consumption receipt reserved for the canonical publisher after independent audit; the Builder must leave it absent.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    }
+  ],
+  "prestateSelfExclusion": [
+    {
+      "path": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_GATE26_PRECONTRACT_SUCCESSION_VERIFICATION_LAW_R1.json",
+      "role": "AUTHORITY_DOCUMENT",
+      "reason": "Read by the evaluator to decide the program; unavoidably PRESENT at authorize time while its operation is CREATE."
+    },
+    {
+      "path": "governance/historical-architecture/GATE26_PRECONTRACT_SUCCESSION_VERIFICATION_LAW_AUTHORIZED_PATHS_R1.json",
+      "role": "AUTHORIZED_PATH_MANIFEST",
+      "reason": "Read by the evaluator to decide the program; unavoidably PRESENT at authorize time while its operation is CREATE."
+    }
+  ]
+}

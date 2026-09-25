@@ -1,0 +1,64 @@
+{
+  "documentKind": "POST_FREEZE_MAINTENANCE_AUTHORITY_CONSUMPTION",
+  "schemaVersion": 2,
+  "authorityId": "GATE26_CROSS_GATE_PROTECTED_HASH_SUCCESSION_LAW_LOCAL_AUTHORITY_R1",
+  "programId": "GATE26_CROSS_GATE_PROTECTED_HASH_SUCCESSION_LAW_R1",
+  "manifestSha256": "f49aecd88144ac16a5b9a28e3d4ab47f368ef5e5959126142f89543c36cbe4fe",
+  "baseHead": "5f897eb8d95ba16aeb955b4f53f156d0dd31385d",
+  "consumedUse": 1,
+  "transactionId": "GATE26_CROSS_GATE_PROTECTED_HASH_SUCCESSION_LAW_R1_TRANSACTION",
+  "recordedAt": "2026-09-25T00:07:31.145Z",
+  "commitMessage": "fix(governance): add cross-gate protected hash succession law",
+  "publicationAdmission": {
+    "admissionId": "GATE26_CROSS_GATE_PROTECTED_HASH_SUCCESSION_LAW_R1_PUBLICATION_ADMISSION_R1",
+    "admissionPath": "governance/authority/publication-admissions/GATE26/GATE26_CROSS_GATE_PROTECTED_HASH_SUCCESSION_LAW_R1_PUBLICATION_ADMISSION_R1.json",
+    "admissionSha256": "38eda53ba89d6936566857ec9fd5dedc3273fbc77d9540d9ab3e48827a09367b"
+  },
+  "cohortSelfExclusion": {
+    "path": "governance/historical-architecture/GATE26_CROSS_GATE_PROTECTED_HASH_SUCCESSION_LAW_CONSUMPTION_R1.json",
+    "reason": "The consumption record cannot hash its own final bytes; its identity is bound by the authority and manifest instead."
+  },
+  "cohortPathCount": 6,
+  "cohort": [
+    {
+      "path": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_GATE26_CROSS_GATE_PROTECTED_HASH_SUCCESSION_LAW_R1.json",
+      "sha256": "1b4dd5c5ca81cc7083b5e95bca90b32c93de0672c6213071c5ff21956cbe5c00",
+      "byteLength": 2362,
+      "operation": "CREATE",
+      "reason": "Owner-issued V2 authority for the exact cross-gate protected-hash succession law repair.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "governance/historical-architecture/GATE26_CROSS_GATE_PROTECTED_HASH_SUCCESSION_LAW_AUTHORIZED_PATHS_R1.json",
+      "sha256": "f49aecd88144ac16a5b9a28e3d4ab47f368ef5e5959126142f89543c36cbe4fe",
+      "byteLength": 3284,
+      "operation": "CREATE",
+      "reason": "Exact closed six-path V2 publication cohort.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "governance/historical-architecture/GATE26_CROSS_GATE_PROTECTED_HASH_SUCCESSION_LAW_R1_BOOTSTRAP_CONSUMPTION_R1.json",
+      "sha256": "3e6fa09b658c26f333364a2b0da4253d6beda42c21945ebc56d527c4ee4b61bf",
+      "byteLength": 1692,
+      "operation": "CREATE",
+      "reason": "RESERVED_RECEIPT: bootstrap trust consumption record composed and written only by the publisher.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "governance/tools/validate-state-revision.mjs",
+      "sha256": "339d5b17381a2fd3a12e5519a05154979ff788ef0cfd91107fe64cef4fc4483b",
+      "byteLength": 48054,
+      "operation": "MODIFY",
+      "reason": "Implement the generic ledger-anchored cross-gate protected-hash succession law.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "governance/gee-v1/tests/gee-fc02-protected-hash-succession.test.mjs",
+      "sha256": "3012fb3053a2aeac37cade1269b1190c69474083a06f584738f37f35fa2ddef4",
+      "byteLength": 26180,
+      "operation": "MODIFY",
+      "reason": "Add the cross-gate positive proof and the required fail-closed hostile battery.",
+      "artifactClass": "MAINTENANCE"
+    }
+  ]
+}

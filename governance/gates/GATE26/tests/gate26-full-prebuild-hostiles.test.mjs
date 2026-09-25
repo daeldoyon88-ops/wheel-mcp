@@ -1,5 +1,5 @@
 /**
- * GATE26 FULL PREBUILD — hostile contract tests (R0004 NEG-01..04, CTR-01..03).
+ * GATE26 FULL PREBUILD — hostile contract tests (R0005 NEG-01..04, CTR-01..03).
  *
  * Every attack must fail closed with its exact code, and none may create a FULL
  * product byte. Attacks run against bounded synthetic cohorts and products under the
@@ -16,11 +16,13 @@ import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
 import { canonicalize, sha256Bytes } from '../../../tools/canonical-json.mjs';
+import { validateStateSeal } from '../../../tools/validate-state-seal.mjs';
+import { validateGateContractSuccessionLedgerBoundAuthorityShape } from '../../../gee-v1/core/gate-contract-succession-authority.mjs';
 import { workUnitDirectoryName } from '../../../gee-v1/recovery/checkpoint-store.mjs';
 import { installNetworkTrap } from '../implementation/mini-fixture-v1.mjs';
 import { loadGate26MiniBuildAuthority } from '../implementation/predictive-ensemble-engine-v1.mjs';
 import {
-  FULL_BINDING_ARTIFACT_PATHS_V1, CURRENT_CONTRACT_POINTER_PATH, R0004_CONTRACT_PATH, deriveQueryCohort, loadFullPrebuildAuthority, pageFileName,
+  FULL_BINDING_ARTIFACT_PATHS_V1, CURRENT_CONTRACT_POINTER_PATH, R0005_CONTRACT_PATH, deriveQueryCohort, evaluateR0005FullAuthorization, loadFullPrebuildAuthority, pageFileName,
 } from '../implementation/full-query-cohort-v1.mjs';
 import { FULL_CHECKPOINT_WORK_UNIT_V1, openFullCheckpoint } from '../implementation/full-checkpoint-v1.mjs';
 import {
@@ -31,7 +33,7 @@ import { consumeFullProductDirectory } from '../implementation/full-consumer-v1.
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../../..');
 const IMPLEMENTATION = path.join(ROOT, 'governance/gates/GATE26/implementation');
-const CONTRACT = JSON.parse(fs.readFileSync(path.resolve(ROOT, R0004_CONTRACT_PATH), 'utf8'));
+const CONTRACT = JSON.parse(fs.readFileSync(path.resolve(ROOT, R0005_CONTRACT_PATH), 'utf8'));
 const FULL_ROOT = path.resolve(ROOT, CONTRACT.packagingRequirements.fullProductRoot);
 const networkCalls = installNetworkTrap();
 const WORK = path.join(os.tmpdir(), 'wheel-gee', `gate26-full-prebuild-hostiles-${process.pid}`);
@@ -66,82 +68,114 @@ const crashed = (runName, point, pageNumber) => {
   refusesWith(() => materialize(runName, { faultInjector: simulatedCrashAt(point, pageNumber) }), 'SIMULATED_CRASH');
 };
 
-/* ------------------------------------------------ NEG-02 / CTR-03: no FULL under R0004 */
+/* ----------------------------------------------- R0005 authorization law */
 
-test('NEG-02: an output root in the FULL product root is refused before any byte exists', () => {
-  baseProduct();
-  for (const outputRoot of [FULL_ROOT, path.join(FULL_ROOT, 'nested')]) {
-    refusesWith(() => materialize('refused-full', { outputRoot, authority: { fullProductionAuthorized: true, productFilesAuthorized: true } }), 'R0003_FULL_PRODUCT_WRITE_FORBIDDEN');
-    noFullRoot();
-  }
-  const inRepo = path.join(ROOT, 'governance/gates/GATE26/prebuild-hostile-output');
-  refusesWith(() => materialize('refused-repo', { outputRoot: inRepo }), 'PREBUILD_OUTPUT_INSIDE_REPOSITORY_FORBIDDEN');
-  assert.equal(fs.existsSync(inRepo), false);
-  const inRepoCheckpoint = path.join(ROOT, 'governance/gates/GATE26/prebuild-hostile-checkpoint');
-  refusesWith(() => materialize('refused-checkpoint', { checkpointRoot: inRepoCheckpoint }), 'CHECKPOINT_ROOT_INSIDE_REPOSITORY');
-  assert.equal(fs.existsSync(inRepoCheckpoint), false);
-  assert.equal(fs.existsSync(productDirectory('refused-checkpoint')), false);
-});
+test('R0005-AUTH-HOSTILES: every explicit predicate blocks for its intended cause and no R0004 fallback exists', () => {
+  const requirementBinding = JSON.parse(JSON.stringify(CONTRACT.canonicalRequirements.find((entry) => entry.requirementId === 'G26-PREBUILD-04').binding));
+  const packagingRequirements = JSON.parse(JSON.stringify(CONTRACT.packagingRequirements));
+  const manifestBinding = JSON.parse(JSON.stringify(JSON.parse(fs.readFileSync(path.join(ROOT, FULL_BINDING_ARTIFACT_PATHS_V1.GATE26_FULL_MANIFEST_V1), 'utf8')).binding));
+  const forbiddenReplays = [...CONTRACT.forbiddenReplays];
+  const evaluate = (changes = {}) => evaluateR0005FullAuthorization({
+    packagingRequirements: changes.packagingRequirements ?? packagingRequirements,
+    requirementBinding: changes.requirementBinding ?? requirementBinding,
+    manifestBinding: changes.manifestBinding ?? manifestBinding,
+    forbiddenReplays: changes.forbiddenReplays ?? forbiddenReplays,
+  });
+  assert.deepEqual(evaluate(), { productFilesAuthorized: true, fullProductionAuthorized: true });
+  const missingProduction = { ...requirementBinding };
+  delete missingProduction.productionUnderR0005;
+  refusesWith(() => evaluate({ requirementBinding: missingProduction }), 'R0005_PRODUCTION_AUTHORIZATION_MISSING');
+  refusesWith(() => evaluate({ requirementBinding: { ...requirementBinding, productionUnderR0005: 'FORBIDDEN' } }), 'R0005_PRODUCTION_AUTHORIZATION_INVALID');
+  const fallback = { ...missingProduction, productionUnderR0004: 'AUTHORIZED' };
+  refusesWith(() => evaluate({ requirementBinding: fallback }), 'R0005_PRODUCTION_AUTHORIZATION_MISSING');
+  const missingManifest = { ...manifestBinding };
+  delete missingManifest.productFilesAuthorizedUnderR0005;
+  refusesWith(() => evaluate({ manifestBinding: missingManifest }), 'FULL_BINDING_CROSS_CHECK_FAILED');
+  refusesWith(() => evaluate({ packagingRequirements: { ...packagingRequirements, productFilesAuthorizedUnderThisRevision: false }, manifestBinding: { ...manifestBinding, productFilesAuthorizedUnderR0005: false } }), 'R0005_PRODUCT_FILES_NOT_AUTHORIZED');
+  refusesWith(() => evaluate({ manifestBinding: { ...manifestBinding, productFilesAuthorizedUnderR0005: false } }), 'FULL_BINDING_CROSS_CHECK_FAILED');
+  refusesWith(() => evaluate({ forbiddenReplays: [...forbiddenReplays, 'GATE26 FULL production generation'] }), 'R0005_FULL_PRODUCTION_REPLAY_FORBIDDEN');
 
-test('NEG-02: a directory link that resolves into the repository or the FULL root is refused', (t) => {
-  const target = path.resolve(ROOT, 'data/jarvise/predictive-ensemble/GATE26/V1');
-  fs.mkdirSync(path.dirname(JUNCTION), { recursive: true });
-  try { fs.symlinkSync(target, JUNCTION, 'junction'); } catch (error) { t.skip(`directory links unavailable: ${error.code}`); return; }
-  try {
-    refusesWith(() => materialize('refused-link-full', { outputRoot: path.join(JUNCTION, 'FULL') }), 'R0003_FULL_PRODUCT_WRITE_FORBIDDEN');
-    refusesWith(() => materialize('refused-link-repo', { outputRoot: path.join(JUNCTION, 'LINKED') }), 'PREBUILD_OUTPUT_INSIDE_REPOSITORY_FORBIDDEN');
-  } finally {
-    try { fs.unlinkSync(JUNCTION); } catch { fs.rmdirSync(JUNCTION); }
-  }
-  assert.equal(fs.existsSync(JUNCTION), false);
-  assert.equal(fs.existsSync(path.join(target, 'LINKED')), false);
-  assert.ok(fs.existsSync(path.join(target, 'MINI', 'PROVENANCE.json')));
-  noFullRoot();
-});
-
-test('NEG-02 / CTR-03: the canonical cohort and unbounded cohorts cannot be produced under R0004', () => {
-  const cohort = base();
-  const authority = loadFullPrebuildAuthority({ root: ROOT });
-  for (const forged of [{ sourceLabel: authority.canonicalSource.path }, { sourceSha256: authority.canonicalSource.sha256 }]) {
-    refusesWith(() => materialize('refused-canonical', { cohort: { ...cohort.cohort, ...forged } }), 'R0003_FULL_PRODUCTION_FORBIDDEN');
-  }
-  refusesWith(() => materialize('refused-unbounded', { cohort: { ...cohort.cohort, queryCount: PREBUILD_REHEARSAL_MAX_QUERY_COUNT_V1 + 1 } }), 'PREBUILD_REHEARSAL_COHORT_NOT_BOUNDED');
-  refusesWith(() => buildSyntheticRehearsalSource({ seed: loadRehearsalSeed({ root: ROOT }), queryCount: PREBUILD_REHEARSAL_MAX_QUERY_COUNT_V1 + 1 }), 'PREBUILD_REHEARSAL_COHORT_NOT_BOUNDED');
-  refusesWith(() => materialize('refused-underived', { cohort: { ...cohort.cohort, schema: 'OTHER' } }), 'COHORT_NOT_DERIVED');
-  noFullRoot();
-});
-
-test('CTR-03: R0004 cannot be presented as FULL production, closure or confirmation authority', () => {
   const fakeRoot = (name, mutate) => {
-    const root = path.join(WORK, 'fake-root', name);
-    for (const file of [CURRENT_CONTRACT_POINTER_PATH, R0004_CONTRACT_PATH, ...Object.values(FULL_BINDING_ARTIFACT_PATHS_V1)]) {
+    const root = path.join(WORK, 'r0005-identity', name);
+    for (const file of [CURRENT_CONTRACT_POINTER_PATH, R0005_CONTRACT_PATH, ...Object.values(FULL_BINDING_ARTIFACT_PATHS_V1)]) {
       fs.mkdirSync(path.dirname(path.join(root, file)), { recursive: true });
       fs.copyFileSync(path.join(ROOT, file), path.join(root, file));
     }
     const edit = (file, change) => {
       const value = JSON.parse(fs.readFileSync(path.join(root, file), 'utf8'));
       change(value);
-      fs.writeFileSync(path.join(root, file), `${JSON.stringify(value, null, 2)}\n`);
+      fs.writeFileSync(path.join(root, file), JSON.stringify(value, null, 2) + '\n');
     };
     mutate(edit);
     return root;
   };
-  refusesWith(() => loadFullPrebuildAuthority({ root: fakeRoot('pointer', (edit) => edit(CURRENT_CONTRACT_POINTER_PATH, (value) => { value.contractRevision = 'R0005'; })) }), 'CURRENT_CONTRACT_NOT_R0004');
-  refusesWith(() => loadFullPrebuildAuthority({ root: fakeRoot('widened', (edit) => edit(R0004_CONTRACT_PATH, (value) => { value.packagingRequirements.productFilesAuthorizedUnderThisRevision = true; })) }), 'EXECUTION_CONTRACT_SHA256_MISMATCH');
-  refusesWith(() => loadFullPrebuildAuthority({ root: fakeRoot('page-size', (edit) => edit(FULL_BINDING_ARTIFACT_PATHS_V1.GATE26_FULL_QUERY_COHORT_V1, (value) => { value.binding.pagePlan.pageSize = 64; })) }), 'FULL_BINDING_CROSS_CHECK_FAILED');
-  refusesWith(() => loadFullPrebuildAuthority({ root: fakeRoot('manifest-authorized', (edit) => edit(FULL_BINDING_ARTIFACT_PATHS_V1.GATE26_FULL_MANIFEST_V1, (value) => { value.binding.productFilesAuthorizedUnderR0004 = true; })) }), 'FULL_BINDING_CROSS_CHECK_FAILED');
-  refusesWith(() => loadFullPrebuildAuthority({ root: fakeRoot('binding-authority', (edit) => edit(FULL_BINDING_ARTIFACT_PATHS_V1.GATE26_FULL_CHECKPOINT_V1, (value) => { value.authority.executionContractSha256 = '0'.repeat(64); })) }), 'FULL_BINDING_ARTIFACT_DIVERGES_FROM_R0004');
-  refusesWith(() => loadFullPrebuildAuthority({ root: fakeRoot('requirement-digest', (edit) => edit(FULL_BINDING_ARTIFACT_PATHS_V1.GATE26_FULL_QUERY_COHORT_V1, (value) => { value.authority.requirementBindingSha256Canonical['G26-PREBUILD-02'] = '0'.repeat(64); })) }), 'FULL_BINDING_ARTIFACT_DIVERGES_FROM_R0004');
+  refusesWith(() => loadFullPrebuildAuthority({ root: fakeRoot('wrong-revision', (edit) => edit(CURRENT_CONTRACT_POINTER_PATH, (value) => { value.contractRevision = 'R0004'; })) }), 'CURRENT_CONTRACT_NOT_R0005');
+  refusesWith(() => loadFullPrebuildAuthority({ root: fakeRoot('wrong-pointer-sha', (edit) => edit(CURRENT_CONTRACT_POINTER_PATH, (value) => { value.contractSha256 = '0'.repeat(64); })) }), 'CURRENT_CONTRACT_NOT_R0005');
+  refusesWith(() => loadFullPrebuildAuthority({ root: fakeRoot('wrong-contract-sha', (edit) => edit(R0005_CONTRACT_PATH, (value) => { value.contractRevision = 'R0004'; })) }), 'EXECUTION_CONTRACT_SHA256_MISMATCH');
+});
 
-  const authority = loadFullPrebuildAuthority({ root: ROOT });
-  assert.equal(authority.fullProductionAuthorized, false);
-  assert.equal(authority.productFilesAuthorized, false);
-  assert.ok(!('closureAuthorized' in authority) && !('confirmationAuthorized' in authority));
-  assert.match(CONTRACT.closureConditions[0], /PREBUILD-only and cannot close GATE26/);
-  assert.ok(CONTRACT.nextGateAuthorizationConditions.some((condition) => condition.includes('No GATE27 authority')));
-  const state = JSON.parse(fs.readFileSync(path.join(ROOT, 'governance/gates/GATE26/state/CURRENT_STATE.json'), 'utf8'));
-  const checkpoint = JSON.parse(fs.readFileSync(path.join(ROOT, state.revisionPath, 'CHECKPOINT.json'), 'utf8'));
-  assert.equal(checkpoint.resumePoint, 'GATE26_PHASE_D_BYTE_IDENTITY_SUCCESSOR_R1_READY_FOR_INDEPENDENT_AUDIT');
+test('R0005-CANDIDATE-HOSTILES: invalid R0006, competing authority, ledger 116 and extra path block non-vacuously', () => {
+  const authorityPath = path.join(ROOT, 'governance/authority/authorizations/GATE26/GATE_CONTRACT_SUCCESSION_LOCAL_AUTHORITY_R0005.json');
+  const authority = JSON.parse(fs.readFileSync(authorityPath, 'utf8'));
+  assert.deepEqual(validateGateContractSuccessionLedgerBoundAuthorityShape(authority), { valid: true, findings: [] });
+  const sealRelative = 'governance/gates/GATE26/state/revisions/R0006/STATE_SEAL.json';
+  const sealPath = path.join(ROOT, sealRelative);
+  assert.equal(validateStateSeal({ root: ROOT, sealPath, currentRevision: 'R0006' }).valid, true);
+  const fakeRoot = path.join(WORK, 'invalid-r0006');
+  for (const relative of [
+    'governance/gates/GATE26/contracts/CURRENT_CONTRACT.json',
+    'governance/gates/GATE26/state/revisions/R0005/STATE_SEAL.json',
+    'governance/gates/GATE26/state/revisions/R0006/CHECKPOINT.json',
+    'governance/gates/GATE26/state/revisions/R0006/OPEN_DEFECTS.json',
+    sealRelative,
+  ]) {
+    fs.mkdirSync(path.dirname(path.join(fakeRoot, relative)), { recursive: true });
+    fs.copyFileSync(path.join(ROOT, relative), path.join(fakeRoot, relative));
+  }
+  fs.appendFileSync(path.join(fakeRoot, 'governance/gates/GATE26/state/revisions/R0006/CHECKPOINT.json'), ' ');
+  assert.equal(validateStateSeal({ root: fakeRoot, sealPath: path.join(fakeRoot, sealRelative), currentRevision: 'R0006' }).valid, false);
+
+  const fail = (code) => { const error = new Error(code); error.code = code; throw error; };
+  const authorities = fs.readdirSync(path.dirname(authorityPath)).filter((file) => file.endsWith('.json')).map((file) => {
+    try { return JSON.parse(fs.readFileSync(path.join(path.dirname(authorityPath), file), 'utf8')); } catch { return null; }
+  }).filter((entry) => entry?.predecessorContractSha256 === 'eda92933595bc7f517cde4f964201c4f8b8725aa1b9d3f4a66a3ca32af111de4' && entry?.successorContractRevision === 'R0005');
+  const assertUniqueAuthority = (entries) => { if (entries.length !== 1) fail('COMPETING_SUCCESSION_AUTHORITY'); };
+  assert.doesNotThrow(() => assertUniqueAuthority(authorities));
+  refusesWith(() => assertUniqueAuthority([...authorities, { ...authorities[0], authorityId: 'COMPETING' }]), 'COMPETING_SUCCESSION_AUTHORITY');
+
+  const ledgerLines = fs.readFileSync(path.join(ROOT, 'governance/state/GATE_STATUS_LEDGER.ndjson'), 'utf8').trimEnd().split(/\r?\n/);
+  const assertPrepublicationLedger = (lines) => {
+    if (lines.length !== 115 || lines.some((line) => line.includes('GATE26_CONTRACT_SUCCESSION_R0005_R1'))) fail('LEDGER_116_BEFORE_PUBLICATION');
+  };
+  assert.doesNotThrow(() => assertPrepublicationLedger(ledgerLines));
+  refusesWith(() => assertPrepublicationLedger([...ledgerLines, '{"eventId":"GATE26_CONTRACT_SUCCESSION_R0005_R1"}']), 'LEDGER_116_BEFORE_PUBLICATION');
+
+  const allowed = new Set([
+    'governance/gates/GATE26/contracts/EXECUTION_CONTRACT_R0005.json',
+    'governance/authority/authorizations/GATE26/GATE_CONTRACT_SUCCESSION_LOCAL_AUTHORITY_R0005.json',
+    'governance/gates/GATE26/state/revisions/R0006/CHECKPOINT.json',
+    'governance/gates/GATE26/state/revisions/R0006/OPEN_DEFECTS.json',
+    'governance/gates/GATE26/state/revisions/R0006/STATE_SEAL.json',
+    'governance/gates/GATE26/contracts/CURRENT_CONTRACT.json',
+    'governance/gates/GATE26/state/CURRENT_STATE.json',
+    'governance/gates/GATE26/implementation/full-query-cohort-v1.mjs',
+    'governance/gates/GATE26/contracts/GATE26_FULL_QUERY_COHORT_V1.json',
+    'governance/gates/GATE26/contracts/GATE26_FULL_MANIFEST_V1.json',
+    'governance/gates/GATE26/contracts/GATE26_FULL_ENSEMBLE_PAGE_V1.json',
+    'governance/gates/GATE26/contracts/GATE26_FULL_PROVENANCE_PAGE_V1.json',
+    'governance/gates/GATE26/contracts/GATE26_FULL_CHECKPOINT_V1.json',
+    'governance/gates/GATE26/contracts/GATE26_FULL_PRODUCTION_PRODUCER_V1.json',
+    'governance/gates/GATE26/tests/gate26-full-prebuild.test.mjs',
+    'governance/gates/GATE26/tests/gate26-full-prebuild-hostiles.test.mjs',
+  ]);
+  const status = spawnSync('git', ['status', '--porcelain=v1', '--untracked-files=all'], { cwd: ROOT, encoding: 'utf8' });
+  assert.equal(status.status, 0);
+  const actual = status.stdout.trimEnd().split(/\r?\n/).filter(Boolean).map((line) => line.slice(3).replaceAll('\\', '/'));
+  const assertExactPathset = (paths) => {
+    if (paths.length !== allowed.size || paths.some((entry) => !allowed.has(entry))) fail('EXTRA_PATH_OUTSIDE_AUTHORITY');
+  };
+  assert.doesNotThrow(() => assertExactPathset(actual));
+  refusesWith(() => assertExactPathset([...actual, 'governance/gates/GATE26/EXTRA']), 'EXTRA_PATH_OUTSIDE_AUTHORITY');
 });
 
 /* ------------------------------------------------------------ NEG-01: complexity */

@@ -130,8 +130,8 @@
     },
     {
       "path": "governance/gates/GATE26/implementation/full-query-cohort-v1.mjs",
-      "sha256": "26835a954d29f9d8ceab309bebf52c14c4f3a932a137843b11b9bdc06d6a73d2",
-      "byteLength": 25236,
+      "sha256": "996558db10081e292970010e93331f7801d1f8e27fca4440bcc2b733005253ee",
+      "byteLength": 26637,
       "role": "QUERY_COHORT"
     },
     {
@@ -179,39 +179,39 @@
       "role": "HORIZON_CONTRACT"
     },
     {
-      "path": "governance/gates/GATE26/contracts/EXECUTION_CONTRACT_R0004.json",
-      "sha256": "eda92933595bc7f517cde4f964201c4f8b8725aa1b9d3f4a66a3ca32af111de4",
-      "byteLength": 18203,
+      "path": "governance/gates/GATE26/contracts/EXECUTION_CONTRACT_R0005.json",
+      "sha256": "0a88436681b7decbec4d321024dbcb9886cc6025e5798e81a11e3103ada0c2f4",
+      "byteLength": 18693,
       "role": "EXECUTION_CONTRACT"
     },
     {
       "path": "governance/gates/GATE26/contracts/GATE26_FULL_CHECKPOINT_V1.json",
-      "sha256": "164311a70a28393aad1e77aeb3e25d5d6045d87398a1e9585bc0ad6be415e8fa",
-      "byteLength": 2148,
+      "sha256": "14d14de1e49d99d6a7b9d9d705ec4e6eebcc233d46daef39f77c13226fb314c2",
+      "byteLength": 2150,
       "role": "CHECKPOINT_BINDING"
     },
     {
       "path": "governance/gates/GATE26/contracts/GATE26_FULL_ENSEMBLE_PAGE_V1.json",
-      "sha256": "115875b885d05905f47d2bdbfc94245bd8404b3daf1403aeb65b4da4a400dccf",
-      "byteLength": 2198,
+      "sha256": "2a52188e11ce5b0bc8d163e6030d38de4d107ab27fc79488132b869172a163c8",
+      "byteLength": 2201,
       "role": "ENSEMBLE_PAGE_BINDING"
     },
     {
       "path": "governance/gates/GATE26/contracts/GATE26_FULL_MANIFEST_V1.json",
-      "sha256": "100a2e76bba2589716d28995d2aa68dcf63121fe34e575175df9e97c292a194c",
-      "byteLength": 3419,
+      "sha256": "114ef279e93f2dfe510ef2c7ad9647152d9fdf67f71734a96c8713437e977ce8",
+      "byteLength": 3420,
       "role": "MANIFEST_BINDING"
     },
     {
       "path": "governance/gates/GATE26/contracts/GATE26_FULL_PROVENANCE_PAGE_V1.json",
-      "sha256": "edea927ad90bcbdfabf3011e23305767e620a83b93f011a43a5a17265e03c1d4",
-      "byteLength": 2500,
+      "sha256": "ef63054ff204235c36a1dc90562eee16f3278b32d8f541854cb29c43d7b3b4ba",
+      "byteLength": 2503,
       "role": "PROVENANCE_PAGE_BINDING"
     },
     {
       "path": "governance/gates/GATE26/contracts/GATE26_FULL_QUERY_COHORT_V1.json",
-      "sha256": "246f565dccbdaee06d20412172a3089e95ad34877c0e13432b141d4c10200f5d",
-      "byteLength": 3141,
+      "sha256": "f3a4cdd220365896a210d6a1c71edd178061010a41326faa6924d6619b69ce4e",
+      "byteLength": 3143,
       "role": "QUERY_COHORT_BINDING"
     },
     {
@@ -245,5 +245,5 @@
     "networkAuthorized": false,
     "yahooAuthorized": false
   },
-  "producerIdentitySha256": "7fa46120abd67a119066378dfb403032bc7e158d34c6c950c25056e7e9f75b03"
+  "producerIdentitySha256": "852e1932d4f98e2a04d6eadf0605c64ea9fe072ffd6b91dc3e0ee4f6cca69fa2"
 }

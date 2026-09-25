@@ -6,12 +6,12 @@
   "requirementIds": [
     "G26-PREBUILD-07"
   ],
-  "resolutionStatus": "BOUND_TO_R0004_REQUIREMENTS",
-  "ownerAuthorizationId": "OWNER_AUTHORIZE_GATE26_B1_ATOMIC_INNER_SUCCESSION_TRANSACTION_R1",
+  "resolutionStatus": "BOUND_TO_R0005_REQUIREMENTS",
+  "ownerAuthorizationId": "OWNER_AUTHORIZE_GATE26_FULL_CONTRACT_SUCCESSION_R0005_CANDIDATE_R2",
   "authority": {
-    "executionContractPath": "governance/gates/GATE26/contracts/EXECUTION_CONTRACT_R0004.json",
-    "executionContractRevision": "R0004",
-    "executionContractSha256": "eda92933595bc7f517cde4f964201c4f8b8725aa1b9d3f4a66a3ca32af111de4",
+    "executionContractPath": "governance/gates/GATE26/contracts/EXECUTION_CONTRACT_R0005.json",
+    "executionContractRevision": "R0005",
+    "executionContractSha256": "0a88436681b7decbec4d321024dbcb9886cc6025e5798e81a11e3103ada0c2f4",
     "requirementBindingSha256Canonical": {},
     "normativeSource": "governance/gee-v1/recovery/checkpoint-store.mjs"
   },

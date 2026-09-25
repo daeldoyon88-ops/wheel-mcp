@@ -1,0 +1,370 @@
+{
+  "gateId": "GATE26",
+  "contractRevision": "R0005",
+  "previousContractPath": "governance/gates/GATE26/contracts/EXECUTION_CONTRACT_R0004.json",
+  "previousContractSha256": "eda92933595bc7f517cde4f964201c4f8b8725aa1b9d3f4a66a3ca32af111de4",
+  "strategicRegistryReference": {
+    "registryPath": "governance/GATE_REGISTRY_00_40.json",
+    "registrySha256": "76d5f9ff0a21f8c1eadaf9ccd9e48c9087d12655fac6a5c9215584053652a56b",
+    "gateId": "GATE26",
+    "canonicalObjectiveSha256": "80e822991ab213f2d054f4b62e8897f06c7528f9cb3a20e68030fe19cde7d662"
+  },
+  "canonicalRequirements": [
+    {
+      "requirementId": "G26-PREBUILD-01",
+      "statement": "Activate the exact R0005 FULL production authorization law while preserving R0004 and all published MINI bytes unchanged. R0005 authorizes FULL generation only when productFilesAuthorizedUnderThisRevision is true, productionUnderR0005 is AUTHORIZED, and forbiddenReplays omits GATE26 FULL production generation; it does not authorize closure, confirmation, GATE27, commit or push.",
+      "normativeSource": "governance/gates/GATE26/contracts/EXECUTION_CONTRACT_R0002.json",
+      "ownerAuthorizationIds": [
+        "OWNER_AUTHORIZE_GATE26_FULL_CONTRACT_SUCCESSION_R0005_CANDIDATE_R2"
+      ]
+    },
+    {
+      "requirementId": "G26-PREBUILD-02",
+      "statement": "One FULL query unit is one canonical published GATE25 ANALOGUE_INDEX record, consumed exactly once in ascending analogueIdentityId order. The frozen query count is exactly 68562. A valid query with insufficient predictive evidence emits ABSTAIN and is never omitted; a structurally invalid source record fails closed.",
+      "normativeSource": "data/jarvise/historical-analogue/GATE25/V1/ANALOGUE_INDEX.json",
+      "binding": {
+        "queryUnit": "ONE_CANONICAL_PUBLISHED_G25_ANALOGUE_INDEX_RECORD",
+        "canonicalOrder": "analogueIdentityId_ASCII_ASCENDING",
+        "queryCount": 68562,
+        "skipPolicy": "FORBIDDEN",
+        "invalidRecord": "SOURCE_PRODUCT_CORRUPTION_FAIL_CLOSED",
+        "insufficientEvidence": "EMIT_ABSTAIN"
+      }
+    },
+    {
+      "requirementId": "G26-PREBUILD-03",
+      "statement": "Bind the already-published GATE25 analogue cohort and provenance, P3H dataset identity, and GATE22 horizons 30/90/180/252 read-only. No Yahoo refetch, P3H regeneration, GATE25 regeneration, or GATE21 through GATE25 mutation.",
+      "normativeSource": "governance/sources/GATE26_CANONICAL_MANDATE_R0.json",
+      "binding": {
+        "analogueIndexSha256": "e32c2e3de4ee6d88b80ed27fec4f29b930c02ce022477ce084f7ae4c768a4f0b",
+        "gate25ProvenanceSha256": "14afcaf09ea499edb5a17da7db7e8127e61761854b43c90b828843a08846b692",
+        "p3hDatasetId": "sha256:cc7bb76f37a97a5673a32c5a8f357088ee94230fefcbef1c19ad16227476488e",
+        "horizonSessionCounts": [
+          30,
+          90,
+          180,
+          252
+        ]
+      }
+    },
+    {
+      "requirementId": "G26-PREBUILD-04",
+      "statement": "FULL cardinality remains exact: 68562 ensemble records and 68562 provenance records. Page size is 128 records, yielding 536 ensemble pages and 536 provenance pages. The FULL cohort is one manifest plus 1072 pages, exactly 1073 product files; R0005 authorizes those product files only through the explicit three-predicate FULL authorization law.",
+      "normativeSource": "data/jarvise/predictive-ensemble/GATE26/V1/MINI/SIZE_MEASUREMENT.json",
+      "binding": {
+        "ensembleRecordCount": 68562,
+        "provenanceRecordCount": 68562,
+        "pageSize": 128,
+        "ensemblePageCount": 536,
+        "provenancePageCount": 536,
+        "futureFullProductFileCount": 1073,
+        "productionUnderR0005": "AUTHORIZED"
+      }
+    },
+    {
+      "requirementId": "G26-PREBUILD-05",
+      "statement": "Freeze the paged envelope identities GATE26_FULL_MANIFEST_V1, GATE26_FULL_ENSEMBLE_PAGE_V1 and GATE26_FULL_PROVENANCE_PAGE_V1. The manifest binds ordered page number, first and last analogueIdentityId, record count, content SHA256, byte length, LFS OID, product version, input cohort identity and paired provenance identity. Pagination never changes V1 record semantics.",
+      "normativeSource": "governance/sources/GATE26_CANONICAL_MANDATE_R0.json"
+    },
+    {
+      "requirementId": "G26-PREBUILD-06",
+      "statement": "The FULL design reuses each published GATE25 selected analogue cohort and attaches only its P3H outcomes over four horizons. Complexity is O(Q x A x H + Q + P) record work, serialization and hashing. O(Q x U), a whole-universe scan per query, and repeated O(n^2) append or sort are forbidden.",
+      "normativeSource": "data/jarvise/historical-analogue/GATE25/V1/ANALOGUE_INDEX.json",
+      "binding": {
+        "Q": 68562,
+        "U": 1750766,
+        "H": 4,
+        "P": 536,
+        "wholeUniverseScanPerQuery": false,
+        "repeatedAppendSort": false
+      }
+    },
+    {
+      "requirementId": "G26-PREBUILD-07",
+      "statement": "Freeze deterministic checkpoint and resume semantics before FULL generation: off-repo durable checkpoints bind exact input, code, contract and completed paired-page identities; ensemble and provenance pages finalize as one pair; duplicate or divergent replay fails closed; restart after process or machine failure resumes without restart from zero and yields byte-identical final product.",
+      "normativeSource": "governance/gee-v1/recovery/checkpoint-store.mjs"
+    },
+    {
+      "requirementId": "G26-PREBUILD-08",
+      "statement": "Freeze a bounded-memory FULL consumer that verifies the manifest first, then exact ordered page presence, SHA256, byte length, LFS materialized bytes, product version, provenance pairing and record identity. Missing, duplicate, corrupt, reordered or mixed-cohort pages fail closed. No FULL parse occurs in the Wheel scan hot path.",
+      "normativeSource": "governance/gates/GATE26/implementation/consumption-boundary-v1.mjs"
+    },
+    {
+      "requirementId": "G26-PREBUILD-09",
+      "statement": "The exact FULL LFS transport rule is a consumed prerequisite and must remain present exactly once: data/jarvise/predictive-ensemble/GATE26/V1/FULL/** filter=lfs diff=lfs merge=lfs -text. Builders emit canonical content bytes; Git LFS alone owns pointer conversion. Manual LFS pointers are forbidden.",
+      "normativeSource": "governance/historical-architecture/GATE26_FULL_LFS_TRANSPORT_CONSUMPTION_R1.json",
+      "binding": {
+        "gitattributesSha256": "92c5f598025b23c8786e1274b1c9f6866c0d0681de4c23ad03f408b32ea79a7f",
+        "transportRuleCount": 1
+      }
+    },
+    {
+      "requirementId": "G26-PREBUILD-10",
+      "statement": "R0005 authorizes deterministic FULL production only through the explicit three-predicate law, while preserving the frozen implementation, schemas, V1 record semantics, targeted hostiles and recovery/resource limits. No product-semantic expansion, closure, confirmation, GATE27, commit or push is authorized.",
+      "normativeSource": "governance/sources/GATE26_CANONICAL_MANDATE_R0.json"
+    },
+    {
+      "requirementId": "G26-PREBUILD-11",
+      "statement": "This is a ledger-bound IN_PROGRESS to IN_PROGRESS CONTRACT_SUCCESSION from R0004 to R0005 under the distinct single-use authority GATE_CONTRACT_SUCCESSION_LOCAL_AUTHORITY_R0005.json. State advances to R0006 and future event 116 consumes the authority. No START replay, status change, closure or ACTIVE_GATE mutation.",
+      "normativeSource": "governance/tools/validate-status-ledger.mjs",
+      "successionPublicationPaths": [
+        "governance/authority/authorizations/GATE26/GATE_CONTRACT_SUCCESSION_LOCAL_AUTHORITY_R0005.json",
+        "governance/gates/GATE26/contracts/EXECUTION_CONTRACT_R0005.json",
+        "governance/gates/GATE26/contracts/CURRENT_CONTRACT.json",
+        "governance/gates/GATE26/state/revisions/R0006/CHECKPOINT.json",
+        "governance/gates/GATE26/state/revisions/R0006/OPEN_DEFECTS.json",
+        "governance/gates/GATE26/state/revisions/R0006/STATE_SEAL.json",
+        "governance/gates/GATE26/state/CURRENT_STATE.json",
+        "governance/state/GATE_STATUS_LEDGER.ndjson"
+      ],
+      "successionLedgerEventId": "GATE26_CONTRACT_SUCCESSION_R0005_R1",
+      "successorStateRevision": "R0006"
+    }
+  ],
+  "requiredInputs": [
+    {
+      "path": "governance/gates/GATE26/contracts/EXECUTION_CONTRACT_R0004.json",
+      "sha256": "eda92933595bc7f517cde4f964201c4f8b8725aa1b9d3f4a66a3ca32af111de4",
+      "role": "IMMUTABLE_PREDECESSOR_CONTRACT"
+    },
+    {
+      "path": "data/jarvise/historical-analogue/GATE25/V1/ANALOGUE_INDEX.json",
+      "sha256": "e32c2e3de4ee6d88b80ed27fec4f29b930c02ce022477ce084f7ae4c768a4f0b",
+      "role": "CANONICAL_G25_QUERY_COHORT_LFS_CONTENT"
+    },
+    {
+      "path": "data/jarvise/historical-analogue/GATE25/V1/PROVENANCE.json",
+      "sha256": "14afcaf09ea499edb5a17da7db7e8127e61761854b43c90b828843a08846b692",
+      "role": "GATE25_PROVENANCE_READ_ONLY"
+    },
+    {
+      "path": "governance/gates/GATE22/contracts/GATE22_TEMPORAL_HORIZON_V1.json",
+      "sha256": "c53ec179919f90593efdaad625187bc56218a4615bd7d0cecb415a27d4b55783",
+      "role": "HORIZONS_ALL_AND_ONLY_30_90_180_252"
+    },
+    {
+      "path": "governance/sources/GATE26_CANONICAL_MANDATE_R0.json",
+      "sha256": "5b02dc6628ca1874e0f60cbdf44823a1adc4b7c63d0428dfb78f3de16902b8b7",
+      "role": "OWNER_RATIFIED_MANDATE"
+    },
+    {
+      "path": ".gitattributes",
+      "sha256": "92c5f598025b23c8786e1274b1c9f6866c0d0681de4c23ad03f408b32ea79a7f",
+      "role": "FULL_LFS_TRANSPORT_PREREQUISITE"
+    },
+    {
+      "identity": "sha256:cc7bb76f37a97a5673a32c5a8f357088ee94230fefcbef1c19ad16227476488e",
+      "role": "P3H_DATASET_IDENTITY_READ_ONLY"
+    }
+  ],
+  "requiredOutputs": [
+    {
+      "ordinal": 1,
+      "path": "governance/gates/GATE26/contracts/EXECUTION_CONTRACT_R0005.json",
+      "role": "Versioned FULL production-authorizing execution contract"
+    },
+    {
+      "ordinal": 2,
+      "path": "governance/gates/GATE26/contracts/CURRENT_CONTRACT.json",
+      "role": "Pointer to exact R0005 successor contract"
+    },
+    {
+      "ordinal": 3,
+      "path": "governance/authority/authorizations/GATE26/GATE_CONTRACT_SUCCESSION_LOCAL_AUTHORITY_R0005.json",
+      "role": "Distinct single-use ledger-bound succession authority"
+    }
+  ],
+  "validators": [
+    "node governance/tools/validate-gate-contract.mjs --contract governance/gates/GATE26/contracts/EXECUTION_CONTRACT_R0005.json --pointer governance/gates/GATE26/contracts/CURRENT_CONTRACT.json",
+    "node governance/tools/validate-status-ledger.mjs",
+    "node --test governance/gates/GATE26/tests/gate26-full-prebuild.test.mjs governance/gates/GATE26/tests/gate26-full-prebuild-hostiles.test.mjs"
+  ],
+  "positiveTests": [
+    {
+      "testId": "G26-PREBUILD-POS-01",
+      "case": "exact 68562-query cohort and 68562 paired outputs derive from canonical ordered GATE25 records",
+      "expected": "PASS"
+    },
+    {
+      "testId": "G26-PREBUILD-POS-02",
+      "case": "536 paired pages at size 128 cover every query exactly once and resume byte-identically",
+      "expected": "PASS"
+    },
+    {
+      "testId": "G26-PREBUILD-POS-03",
+      "case": "bounded-memory consumer verifies manifest, materialized LFS bytes and paired provenance",
+      "expected": "PASS"
+    }
+  ],
+  "negativeTests": [
+    {
+      "testId": "G26-PREBUILD-NEG-01",
+      "case": "any O(Q x U) path or repeated O(n^2) append-sort",
+      "expected": "BLOCKED"
+    },
+    {
+      "testId": "G26-PREBUILD-NEG-02",
+      "case": "missing or invalid R0005 FULL authorization predicate, or any FULL production attempt outside the exact authorized product root",
+      "expected": "BLOCKED"
+    },
+    {
+      "testId": "G26-PREBUILD-NEG-03",
+      "case": "missing, duplicate, reordered, corrupt or mixed-cohort page",
+      "expected": "BLOCKED"
+    },
+    {
+      "testId": "G26-PREBUILD-NEG-04",
+      "case": "Yahoo refetch, P3H regeneration, GATE25 regeneration or network during compute",
+      "expected": "BLOCKED"
+    }
+  ],
+  "countertests": [
+    {
+      "testId": "G26-PREBUILD-CTR-01",
+      "case": "ABSTAIN query silently omitted",
+      "expected": "BLOCKED"
+    },
+    {
+      "testId": "G26-PREBUILD-CTR-02",
+      "case": "manual LFS pointer or pointer without materialized object",
+      "expected": "BLOCKED"
+    },
+    {
+      "testId": "G26-PREBUILD-CTR-03",
+      "case": "R0005 presented as closure, confirmation or GATE27 authority, or R0004 used as a fallback production key",
+      "expected": "BLOCKED"
+    }
+  ],
+  "reuseRules": [
+    "Reuse published GATE25 analogue selections and provenance read-only.",
+    "Reuse GATE26 V1 MINI record semantics and hostile evidence unless causally invalidated.",
+    "Reuse GATE22 horizons 30/90/180/252 ALL_AND_ONLY.",
+    "Reuse the consumed FULL LFS transport prerequisite; do not republish it."
+  ],
+  "invalidationRules": [
+    "Any drift in a pinned input blocks PREBUILD.",
+    "Any query omission or duplicate invalidates cardinality proof.",
+    "Any FULL production attempt that does not satisfy all three explicit R0005 predicates is unauthorized.",
+    "Any network access during compute invalidates the rehearsal.",
+    "Any baseHead drift before succession consumption stops the transaction."
+  ],
+  "forbiddenReplays": [
+    "GATE26 START replay",
+    "Yahoo refetch",
+    "P3H regeneration",
+    "GATE25 regeneration",
+    "GATE21 through GATE25 mutation",
+    "ACTIVE_GATE mutation",
+    "AGENT_CLOSURE",
+    "EXTERNAL_CONFIRMATION",
+    "COMPLETE_AGENT",
+    "COMPLETE_CONFIRMED",
+    "GATE27",
+    "git commit",
+    "git push",
+    "GEE R8",
+    "new PKI",
+    "manual LFS pointer"
+  ],
+  "packagingRequirements": {
+    "fullProductRoot": "data/jarvise/predictive-ensemble/GATE26/V1/FULL",
+    "futureManifestPath": "data/jarvise/predictive-ensemble/GATE26/V1/FULL/MANIFEST.json",
+    "pageSize": 128,
+    "pageNumbering": "0001_THROUGH_0536",
+    "ensemblePagePattern": "ENSEMBLE_PAGE_NNNN.json",
+    "provenancePagePattern": "PROVENANCE_PAGE_NNNN.json",
+    "manifestSchema": "GATE26_FULL_MANIFEST_V1",
+    "ensemblePageSchema": "GATE26_FULL_ENSEMBLE_PAGE_V1",
+    "provenancePageSchema": "GATE26_FULL_PROVENANCE_PAGE_V1",
+    "lfsRule": "data/jarvise/predictive-ensemble/GATE26/V1/FULL/** filter=lfs diff=lfs merge=lfs -text",
+    "productFilesAuthorizedUnderThisRevision": true
+  },
+  "closureConditions": [
+    "R0005 authorizes FULL production only through the explicit three-predicate law and cannot close GATE26.",
+    "FULL production does not imply AGENT_CLOSURE, COMPLETE_AGENT, COMPLETE_CONFIRMED or independent audit PASS.",
+    "Closure must later prove the exact FULL cohort, fresh-clone LFS materialization, bounded consumption and no future leakage."
+  ],
+  "nextGateAuthorizationConditions": [
+    "No GATE27 authority is created by R0004.",
+    "No AGENT_CLOSURE or EXTERNAL_CONFIRMATION authority is created by R0004."
+  ],
+  "performanceBudget": {
+    "targetMinutes": 45,
+    "expectedMaximumMinutes": 90,
+    "closeoutStartMinutes": 25,
+    "absoluteMaximumMinutes": 180
+  },
+  "checkpointPolicy": {
+    "resume": "GATE26 IN_PROGRESS R0006 candidate after CONTRACT_SUCCESSION R0004 to R0005; FULL production explicitly authorized only by the three-predicate R0005 law; MINI and LFS prerequisite already consumed",
+    "reuse": "GATE25 published cohort, GATE22 horizons, GATE26 MINI proofs, Phase D resource pilot and recovery evidence",
+    "independentConfirmation": "required separately; not authorized here",
+    "deferred": "AGENT_CLOSURE; EXTERNAL_CONFIRMATION; GATE27"
+  },
+  "authorizedPaths": [
+    "governance/gates/GATE26/implementation/full-query-cohort-v1.mjs",
+    "governance/gates/GATE26/implementation/full-paged-materializer-v1.mjs",
+    "governance/gates/GATE26/implementation/full-checkpoint-v1.mjs",
+    "governance/gates/GATE26/implementation/full-consumer-v1.mjs",
+    "governance/gates/GATE26/implementation/consumption-boundary-v1.mjs",
+    "governance/gates/GATE26/contracts/GATE26_FULL_QUERY_COHORT_V1.json",
+    "governance/gates/GATE26/contracts/GATE26_FULL_MANIFEST_V1.json",
+    "governance/gates/GATE26/contracts/GATE26_FULL_ENSEMBLE_PAGE_V1.json",
+    "governance/gates/GATE26/contracts/GATE26_FULL_PROVENANCE_PAGE_V1.json",
+    "governance/gates/GATE26/contracts/GATE26_FULL_CHECKPOINT_V1.json",
+    "governance/gates/GATE26/tests/gate26-full-prebuild.test.mjs",
+    "governance/gates/GATE26/tests/gate26-full-prebuild-hostiles.test.mjs",
+    "data/jarvise/predictive-ensemble/GATE26/V1/PREBUILD/REHEARSAL_REPORT.json"
+  ],
+  "requiredPolicyIds": [
+    "MAIN_AGENT_ONLY",
+    "SUBAGENTS_FORBIDDEN_BY_DEFAULT",
+    "NETWORK_FORBIDDEN_BY_DEFAULT",
+    "GIT_WRITES_FORBIDDEN_BY_DEFAULT",
+    "DANGEROUS_GIT_COMMANDS_FORBIDDEN",
+    "AUTHORIZED_PATHS_ONLY",
+    "NO_RESTART_FROM_ZERO",
+    "RESUME_FROM_CHECKPOINT",
+    "NO_HARDCODED_PASS",
+    "NO_CIRCULAR_VALIDATION",
+    "NO_FUTURE_LEAKAGE",
+    "NO_GATE_MANDATE_REDEFINITION",
+    "BLOCK_ON_AUTHORITY_CONFLICT",
+    "DETERMINISTIC_OPERATIONS_LOCAL",
+    "SEPARATE_SESSION_REINSPECTION",
+    "GENERATED_FILES_NON_CANONICAL",
+    "HISTORICAL_REJECTED_NOT_ACTIVE",
+    "DEFERRED_CAPABILITY_MUST_BE_DURABLY_REGISTERED"
+  ],
+  "sourceReferences": [
+    {
+      "sourcePath": "governance/gates/GATE26/contracts/EXECUTION_CONTRACT_R0004.json",
+      "sourceSha256": "eda92933595bc7f517cde4f964201c4f8b8725aa1b9d3f4a66a3ca32af111de4",
+      "field": "successor lineage and frozen V1 semantics"
+    },
+    {
+      "sourcePath": "governance/sources/GATE26_CANONICAL_MANDATE_R0.json",
+      "sourceSha256": "5b02dc6628ca1874e0f60cbdf44823a1adc4b7c63d0428dfb78f3de16902b8b7",
+      "field": "canonical identity and V1 definition freeze"
+    },
+    {
+      "sourcePath": "data/jarvise/predictive-ensemble/GATE26/V1/MINI/SIZE_MEASUREMENT.json",
+      "sourceSha256": "5f38c56cf9a334b4521aa07da5bdabf068d3806c9e38cad462d3335a03d0ad5d",
+      "field": "68562 record projection and LFS requirement"
+    },
+    {
+      "sourcePath": "governance/historical-architecture/GATE26_FULL_LFS_TRANSPORT_CONSUMPTION_R1.json",
+      "sourceSha256": "e19de410fde762736174b3c639546aedd70b7f8201ca4d87199dbc5cb59a3250",
+      "field": "consumed FULL LFS transport prerequisite"
+    },
+    {
+      "sourcePath": "governance/gates/GATE22/contracts/GATE22_TEMPORAL_HORIZON_V1.json",
+      "sourceSha256": "c53ec179919f90593efdaad625187bc56218a4615bd7d0cecb415a27d4b55783",
+      "field": "horizons 30 90 180 252"
+    },
+    {
+      "sourcePath": "governance/tools/validate-status-ledger.mjs",
+      "sourceSha256": "5265bb88491641b66db926404d7a686f9583f4bc20dcddae095ed3b533c91af1",
+      "field": "CONTRACT_SUCCESSION consumption"
+    }
+  ]
+}

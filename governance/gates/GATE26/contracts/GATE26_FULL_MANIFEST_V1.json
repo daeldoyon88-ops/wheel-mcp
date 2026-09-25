@@ -9,17 +9,17 @@
     "G26-PREBUILD-08",
     "G26-PREBUILD-09"
   ],
-  "resolutionStatus": "BOUND_TO_R0004_REQUIREMENTS",
-  "ownerAuthorizationId": "OWNER_AUTHORIZE_GATE26_B1_ATOMIC_INNER_SUCCESSION_TRANSACTION_R1",
+  "resolutionStatus": "BOUND_TO_R0005_REQUIREMENTS",
+  "ownerAuthorizationId": "OWNER_AUTHORIZE_GATE26_FULL_CONTRACT_SUCCESSION_R0005_CANDIDATE_R2",
   "authority": {
-    "executionContractPath": "governance/gates/GATE26/contracts/EXECUTION_CONTRACT_R0004.json",
-    "executionContractRevision": "R0004",
-    "executionContractSha256": "eda92933595bc7f517cde4f964201c4f8b8725aa1b9d3f4a66a3ca32af111de4",
+    "executionContractPath": "governance/gates/GATE26/contracts/EXECUTION_CONTRACT_R0005.json",
+    "executionContractRevision": "R0005",
+    "executionContractSha256": "0a88436681b7decbec4d321024dbcb9886cc6025e5798e81a11e3103ada0c2f4",
     "requirementBindingSha256Canonical": {
-      "G26-PREBUILD-04": "9823a5d68df2edb1c7f371183e1cbf86a693eae6421f370d41ef21686152ed32",
+      "G26-PREBUILD-04": "042499ad6ec5ed949cf08f85b3e12289ae41af9120628c5d08d428f3d0b6a873",
       "G26-PREBUILD-09": "68785318bc93bc620d1f9a38e3a77bba47d7f8c8a3e7a769a128cfb847fc89ce"
     },
-    "packagingRequirementsSha256Canonical": "ddf013100ce0d80dbb9711f11e9ee54ee7a924b68d392dc2512eb4d3326a78dd"
+    "packagingRequirementsSha256Canonical": "fc9e739206001bcdae6eb7d8c7d777b891991a6b424c58461eccd442f2dedae1"
   },
   "binding": {
     "schema": "GATE26_FULL_MANIFEST_V1",
@@ -28,7 +28,7 @@
     "fullProductRoot": "data/jarvise/predictive-ensemble/GATE26/V1/FULL",
     "manifestFileName": "MANIFEST.json",
     "futureFullProductFileCount": 1073,
-    "productFilesAuthorizedUnderR0004": false,
+    "productFilesAuthorizedUnderR0005": true,
     "fields": [
       "schema",
       "productVersion",

@@ -1,7 +1,7 @@
 /**
- * GATE26 FULL PREBUILD — positive contract tests (R0004 G26-PREBUILD-POS-01..03).
+ * GATE26 FULL PREBUILD — positive contract tests (R0005 G26-PREBUILD-POS-01..03).
  *
- * Expectations are read from independent sources: the R0004 contract bytes, the pinned
+ * Expectations are read from independent sources: the R0005 contract bytes, the pinned
  * GATE25 index parsed here without the module under test, .gitattributes and the
  * published MINI report. Materialization runs only on bounded synthetic cohorts under
  * the OS temp directory. Nothing here writes inside the repository, no FULL product
@@ -22,7 +22,7 @@ import { installNetworkTrap } from '../implementation/mini-fixture-v1.mjs';
 import { loadGate26MiniBuildAuthority } from '../implementation/predictive-ensemble-engine-v1.mjs';
 import { consumePublishedEnsemble } from '../implementation/consumption-boundary-v1.mjs';
 import {
-  CURRENT_CONTRACT_POINTER_PATH, FULL_BINDING_ARTIFACT_PATHS_V1, PREBUILD_REHEARSAL_REPORT_PATH_V1, R0004_CONTRACT_PATH, SOURCE_CHUNK_BYTES_V1,
+  CURRENT_CONTRACT_POINTER_PATH, FULL_BINDING_ARTIFACT_PATHS_V1, PREBUILD_REHEARSAL_REPORT_PATH_V1, R0005_CONTRACT_PATH, SOURCE_CHUNK_BYTES_V1,
   deriveCanonicalFullQueryCohort, loadFullPrebuildAuthority, pageFileName,
 } from '../implementation/full-query-cohort-v1.mjs';
 import {
@@ -35,7 +35,7 @@ import {
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../../..');
 const readJson = (file) => JSON.parse(fs.readFileSync(path.resolve(ROOT, file), 'utf8'));
-const CONTRACT_BYTES = fs.readFileSync(path.resolve(ROOT, R0004_CONTRACT_PATH));
+const CONTRACT_BYTES = fs.readFileSync(path.resolve(ROOT, R0005_CONTRACT_PATH));
 const CONTRACT = JSON.parse(CONTRACT_BYTES.toString('utf8'));
 const requirement = (id) => CONTRACT.canonicalRequirements.find((entry) => entry.requirementId === id).binding;
 const FULL_ROOT = path.resolve(ROOT, CONTRACT.packagingRequirements.fullProductRoot);
@@ -111,17 +111,19 @@ test('POS-01: the exact 68562-query cohort derives from the canonical ordered GA
   assert.equal(fs.existsSync(FULL_ROOT), false);
 });
 
-test('R0004 is the read authority: PREBUILD-only, 13 exact paths, bindings bound to its bytes', () => {
+test('R0005-AUTH-POS: the explicit three-predicate law authorizes FULL while closure remains forbidden', () => {
   const authority = loadFullPrebuildAuthority({ root: ROOT });
   assert.equal(authority.contract.sha256, sha256Bytes(CONTRACT_BYTES));
   assert.equal(readJson(CURRENT_CONTRACT_POINTER_PATH).contractSha256, sha256Bytes(CONTRACT_BYTES));
   assert.deepEqual([...authority.authorizedPaths], CONTRACT.authorizedPaths);
   assert.equal(CONTRACT.authorizedPaths.length, 13);
-  assert.equal(authority.productFilesAuthorized, false);
+  assert.equal(authority.productFilesAuthorized, true);
   assert.equal(authority.productFilesAuthorized, CONTRACT.packagingRequirements.productFilesAuthorizedUnderThisRevision);
-  assert.equal(authority.fullProductionAuthorized, false);
-  assert.ok(CONTRACT.forbiddenReplays.includes('GATE26 FULL production generation'));
-  assert.equal(requirement('G26-PREBUILD-04').productionUnderR0004, 'FORBIDDEN');
+  assert.equal(authority.fullProductionAuthorized, true);
+  assert.ok(!CONTRACT.forbiddenReplays.includes('GATE26 FULL production generation'));
+  assert.equal(requirement('G26-PREBUILD-04').productionUnderR0005, 'AUTHORIZED');
+  assert.equal(readJson(FULL_BINDING_ARTIFACT_PATHS_V1.GATE26_FULL_MANIFEST_V1).binding.productFilesAuthorizedUnderR0005, true);
+  assert.equal(readJson('governance/gates/GATE26/contracts/GATE26_FULL_PRODUCTION_PRODUCER_V1.json').bindings.fullGenerationAuthorized, false);
   assert.ok(assertFullBindingsMatchCode(authority));
   for (const file of Object.values(FULL_BINDING_ARTIFACT_PATHS_V1)) {
     assert.ok(CONTRACT.authorizedPaths.includes(file), file);
@@ -165,7 +167,7 @@ test('POS-02: paired pages cover every query exactly once, ABSTAIN retained, ide
   assert.equal(Object.values(consumed.decisions).reduce((sum, count) => sum + count, 0), prepared.cohort.queryCount);
 
   const manifest = JSON.parse(fs.readFileSync(path.join(WORK, 'continuous', 'product', FULL_MANIFEST_FILE_V1), 'utf8'));
-  assert.equal(manifest.producedUnder.contractRevision, 'R0004');
+  assert.equal(manifest.producedUnder.contractRevision, 'R0005');
   assert.equal(manifest.producedUnder.contractSha256, sha256Bytes(CONTRACT_BYTES));
   for (const entry of manifest.pages) {
     assert.equal(files[entry.ensemble.path], entry.ensemble.sha256);

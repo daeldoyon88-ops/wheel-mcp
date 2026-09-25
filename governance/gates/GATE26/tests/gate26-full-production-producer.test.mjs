@@ -26,21 +26,33 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { canonicalize } from '../../../tools/canonical-json.mjs';
+import { canonicalize, sha256Bytes } from '../../../tools/canonical-json.mjs';
+import { computeCodeIdentity } from '../implementation/full-checkpoint-v1.mjs';
 import { installNetworkTrap } from '../implementation/mini-fixture-v1.mjs';
 import { R0003_CONTRACT_PATH } from '../implementation/full-query-cohort-v1.mjs';
 import { ensembleCacheSize } from '../implementation/predictive-ensemble-engine-v1.mjs';
 import {
   EXPECTED_SUPPORT_DISTRIBUTION_V1, REAL_PRODUCER_CLASS_V1, REAL_PRODUCER_ID_V1,
-  fullStartRamPreconditionState, loadResourceBudget, prepareRealProductionProducer, verifyProducerIdentity,
+  fullStartRamPreconditionState, loadResourceBudget, prepareRealProductionProducer, runCanonicalFullBuild, verifyProducerIdentity,
 } from '../implementation/full-production-producer-v1.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../../..');
 const CONTRACT = JSON.parse(fs.readFileSync(path.resolve(ROOT, R0003_CONTRACT_PATH), 'utf8'));
 const FULL_ROOT = path.resolve(ROOT, CONTRACT.packagingRequirements.fullProductRoot);
+// R0006: the FULL root may hold only the exact enumerated canonical pathset; nothing a test runs may add to it.
+const CANONICAL_FULL_NAMES = new Set(CONTRACT.authorizedPaths
+  .filter((file) => file.startsWith(`${CONTRACT.packagingRequirements.fullProductRoot}/`))
+  .map((file) => file.slice(CONTRACT.packagingRequirements.fullProductRoot.length + 1)));
+const assertNoNonCanonicalFullBytes = () => {
+  if (!fs.existsSync(FULL_ROOT)) return;
+  for (const entry of fs.readdirSync(FULL_ROOT, { withFileTypes: true })) {
+    assert.ok(entry.isFile() && CANONICAL_FULL_NAMES.has(entry.name), `no non-canonical FULL product path may exist: ${entry.name}`);
+  }
+};
 const networkCalls = installNetworkTrap();
 const LIMITS = loadResourceBudget({ root: ROOT }).limits;
 
@@ -74,7 +86,9 @@ test('the producer is the real one, and its published binding verifies against t
   assert.equal(identity.verified, true);
   assert.ok(identity.dependencies.length > 0);
   assert.ok(identity.frozenInputs.length > 0);
-  assert.equal(identity.bindings.fullGenerationAuthorized, false);
+  // R0006 V2 successor: the same real producer, now bound to the CANONICAL_FULL intent.
+  assert.equal(identity.bindings.fullGenerationAuthorized, true);
+  assert.equal(identity.bindings.executionIntent, 'CANONICAL_FULL');
   assert.equal(identity.bindings.networkAuthorized, false);
   assert.equal(identity.bindings.yahooAuthorized, false);
 
@@ -175,8 +189,36 @@ test('the indexed producer is semantically identical to the canonical GATE25 slo
   assert.equal(p.counters.perQueryUniverseFullScanCount, 0);
 });
 
-test('no canonical FULL byte exists and no network or Yahoo call was attempted', () => {
-  assert.equal(fs.existsSync(FULL_ROOT), false, 'no FULL product path may exist');
+test('G26-POSTBUILD-NEG-01: the consumed R0006 authority admits no second canonical FULL build; the unchanged producer refuses it before writing', async () => {
+  const pointer = JSON.parse(fs.readFileSync(path.resolve(ROOT, 'governance/gates/GATE26/contracts/CURRENT_CONTRACT.json'), 'utf8'));
+  const postbuild = JSON.parse(fs.readFileSync(path.resolve(ROOT, pointer.contractPath), 'utf8'))
+    .canonicalRequirements.find((entry) => entry.requirementId === 'G26-POSTBUILD-01').binding;
+  assert.equal(pointer.contractRevision, 'R0007');
+  assert.deepEqual([postbuild.canonicalFullBuildsConsumed, postbuild.remainingCanonicalFullBuilds, postbuild.fullGenerationAuthorized], [1, 0, false]);
+  const manifestBefore = sha256Bytes(fs.readFileSync(path.resolve(ROOT, postbuild.manifestPath)));
+  const namesBefore = fs.readdirSync(FULL_ROOT).sort();
+  const work = path.join(os.tmpdir(), 'wheel-gee', `gate26-postbuild-second-build-${process.pid}`);
+  const roots = { checkpointRoot: path.join(work, 'checkpoint'), evidenceRoot: path.join(work, 'evidence') };
+  for (const resume of [false, true]) {
+    await assert.rejects(runCanonicalFullBuild({ root: ROOT, ...roots, resume }), (error) => error?.code === postbuild.expectedReplayRefusalCode, `resume=${resume}`);
+  }
+  assert.ok(!fs.existsSync(work), 'a refused second build writes no checkpoint or evidence');
+  assert.equal(manifestBefore, postbuild.manifestSha256);
+  assert.equal(sha256Bytes(fs.readFileSync(path.resolve(ROOT, postbuild.manifestPath))), manifestBefore);
+  assert.deepEqual(fs.readdirSync(FULL_ROOT).sort(), namesBefore);
+  assert.equal(namesBefore.length, postbuild.fullProductPathCount);
+  // The audited code identity is still the one that produced the product.
+  assert.equal(computeCodeIdentity({ root: ROOT }).sha256, postbuild.auditedCodeIdentitySha256);
+  assert.equal(JSON.parse(fs.readFileSync(path.resolve(ROOT, postbuild.manifestPath), 'utf8')).producedUnder.codeIdentitySha256, postbuild.auditedCodeIdentitySha256);
+});
+
+test('no non-canonical FULL byte exists and no network or Yahoo call was attempted', () => {
+  assertNoNonCanonicalFullBytes();
   assert.deepEqual(networkCalls, []);
-  assert.equal(loadResourceBudget({ root: ROOT }).fullGenerationAuthorized, false);
+  const budget = loadResourceBudget({ root: ROOT });
+  assert.equal(budget.fullGenerationAuthorized, true);
+  // Authorizing FULL loosened nothing: every limit is the byte-immutable V1 value.
+  const v1 = JSON.parse(fs.readFileSync(path.resolve(ROOT, 'governance/gates/GATE26/contracts/GATE26_FULL_RESOURCE_BUDGET_V1.json'), 'utf8'));
+  assert.deepEqual(budget.limits, v1.limits);
+  assert.equal(v1.fullGenerationAuthorized, false);
 });

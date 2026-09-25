@@ -1,0 +1,55 @@
+{
+  "document": "GATE26_FULL_RESOURCE_BUDGET_BINDING",
+  "schemaVersion": 1,
+  "bindingId": "GATE26_FULL_RESOURCE_BUDGET_V2",
+  "gateId": "GATE26",
+  "status": "LIMITS_ACCEPTED_FOR_CANONICAL_FULL_R0006",
+  "source": "ACCEPTED_PHASE_D_PRELAUNCH_AUDIT",
+  "supersedes": {
+    "path": "governance/gates/GATE26/contracts/GATE26_FULL_RESOURCE_BUDGET_V1.json",
+    "sha256": "b0e531b992d198bcfde2df43e6ab6e3734bfc313ce37484c3b04b46df9bb1932"
+  },
+  "limits": {
+    "minimumRamFreeAtFullStartBytes": 4294967296,
+    "maximumRssBeforeNextPairBytes": 1610612736,
+    "maximumHeapUsedBytes": 1073741824,
+    "maximumExternalBytes": 268435456,
+    "maximumEngineCacheEntries": 128,
+    "maximumSerializedPagePairBytes": 3145728,
+    "maximumProjectedTotalProductBytes": 1200000000,
+    "minimumDiskFreeAtFullStartBytes": 8589934592,
+    "maximumProjectedRuntimeAfterPilotMs": 5400000,
+    "absoluteMaximumRuntimeMs": 10800000,
+    "maximumSinglePagePairMs": 60000,
+    "maximumUniverseFullScanCount": 3
+  },
+  "projection": {
+    "fullQueryCount": 68562,
+    "fullPageCount": 536,
+    "pageSize": 128,
+    "horizonSessionCounts": [
+      30,
+      90,
+      180,
+      252
+    ],
+    "runtimeMethod": "PREPARATION_ONCE_PLUS_MAX_OBSERVED_PAGE_PAIR_MS_TIMES_536",
+    "productBytesMethod": "MAX_OBSERVED_PAGE_PAIR_BYTES_TIMES_536_PLUS_SCALED_MANIFEST_BYTES",
+    "restartCostMethod": "MAX_OBSERVED_REHASH_AND_CHECKPOINT_RESUME_MS"
+  },
+  "measurementPolicy": {
+    "hostObservationsAreAuthority": false,
+    "stopBeforeNextPair": true,
+    "measureRss": true,
+    "measureHeapUsed": true,
+    "measureExternal": true,
+    "measureEngineCache": true,
+    "measureDiskFree": true,
+    "measurePairSerializedBytes": true,
+    "measurePageExecutionTime": true,
+    "measureCumulativeRuntime": true,
+    "measureRestartRecoveryCost": true,
+    "thresholdLooseningInThisMission": "FORBIDDEN"
+  },
+  "fullGenerationAuthorized": true
+}

@@ -18,6 +18,11 @@
  * hashes. Pages are filled into preallocated slots in cohort order; nothing is sorted
  * and nothing is re-copied per append. The P3H universe is never loaded here.
  *
+ * R0006 lifts the FULL prohibition for exactly one declared intent: CANONICAL_FULL, which
+ * must pair the real producer, the canonical cohort, the exact FULL root and an
+ * off-repository checkpoint (assertCanonicalFullCoupling). Every other intent keeps the
+ * R0003 refusals above, so a pilot or rehearsal can never write the FULL product.
+ *
  * The PREBUILD rehearsal (CLI --rehearse) runs on a BOUNDED SYNTHETIC cohort seeded
  * from existing MINI evidence, never on the published GATE25 index. Its producer is
  * the real V1 pipeline tail: GATE25 freezeSelection -> attachPostSelectionOutcomes ->
@@ -49,6 +54,7 @@ import {
 import { combineFrozenSelection, loadGate26MiniBuildAuthority, readEnsembleCache } from './predictive-ensemble-engine-v1.mjs';
 import { verifyPublishedEnsembleRecord, verifyPublishedRecordProvenance } from './consumption-boundary-v1.mjs';
 import {
+  CANONICAL_FULL_INTENT_V1 as CANONICAL_FULL_INTENT,
   FULL_QUERY_COHORT_SCHEMA_V1, QUERY_UNIT_FIELDS_V1, deriveQueryCohort, loadFullPrebuildAuthority, pageFileName, streamVerifiedIndexRecords,
 } from './full-query-cohort-v1.mjs';
 import {
@@ -297,7 +303,35 @@ export function serializeManifest({ context, cohort, plan, committed }) {
  */
 export const PREBUILD_REHEARSAL_INTENT_V1 = 'PREBUILD_REHEARSAL';
 export const REAL_PILOT_INTENT_V1 = 'REAL_PILOT';
-export const EXECUTION_INTENTS_V1 = Object.freeze([PREBUILD_REHEARSAL_INTENT_V1, REAL_PILOT_INTENT_V1]);
+// R0006: the one intent that may write the canonical FULL product. It is never inferred
+// from a producer, a cohort or a target; the caller declares it and all three must agree.
+export const CANONICAL_FULL_INTENT_V1 = CANONICAL_FULL_INTENT;
+export const EXECUTION_INTENTS_V1 = Object.freeze([PREBUILD_REHEARSAL_INTENT_V1, REAL_PILOT_INTENT_V1, CANONICAL_FULL_INTENT_V1]);
+const REAL_EXECUTION_INTENTS = Object.freeze([REAL_PILOT_INTENT_V1, CANONICAL_FULL_INTENT_V1]);
+
+/**
+ * R0006 couples intent, cohort and target. Only CANONICAL_FULL may write into the FULL
+ * product root, and CANONICAL_FULL may only write the exact root, over the exact canonical
+ * cohort, with its checkpoints kept off-repository.
+ */
+export function assertCanonicalFullCoupling({ root, outputRoot, checkpointRoot, authority, target, cohortKind, intent }) {
+  if (target === 'FULL_PRODUCT_ROOT' && intent !== CANONICAL_FULL_INTENT_V1) {
+    failClosed('R0003_FULL_PRODUCT_WRITE_FORBIDDEN', { contractRevision: authority.contract.revision, executionIntent: intent });
+  }
+  if (cohortKind === 'CANONICAL_FULL' && intent !== CANONICAL_FULL_INTENT_V1) {
+    failClosed('CANONICAL_COHORT_REQUIRES_CANONICAL_FULL_INTENT', { executionIntent: intent });
+  }
+  if (intent !== CANONICAL_FULL_INTENT_V1) return false;
+  if (!authority.canonicalFull?.authorized) failClosed('CANONICAL_FULL_NOT_AUTHORIZED', { contractRevision: authority.contract.revision });
+  if (cohortKind !== 'CANONICAL_FULL') failClosed('CANONICAL_FULL_REQUIRES_CANONICAL_COHORT');
+  if (target !== 'FULL_PRODUCT_ROOT' || path.resolve(outputRoot) !== path.resolve(root, authority.fullProductRoot)) {
+    failClosed('CANONICAL_FULL_REQUIRES_EXACT_FULL_ROOT', { outputRoot });
+  }
+  if (typeof checkpointRoot !== 'string' || checkpointRoot.length === 0 || resolvesInside(root, checkpointRoot)) {
+    failClosed('CANONICAL_FULL_CHECKPOINT_MUST_BE_OFF_REPOSITORY', { checkpointRoot: checkpointRoot ?? null });
+  }
+  return true;
+}
 
 function assertProducer(producer, executionIntent) {
   if (!producer || typeof producer.produce !== 'function' || typeof producer.producerId !== 'string' || producer.producerId.length === 0
@@ -306,7 +340,7 @@ function assertProducer(producer, executionIntent) {
   }
   if (!EXECUTION_INTENTS_V1.includes(executionIntent)) failClosed('EXECUTION_INTENT_INVALID', { executionIntent: executionIntent ?? null });
   const declaredReal = producer.synthetic === false && producer.productionClass === 'REAL_PRODUCTION';
-  if (executionIntent === REAL_PILOT_INTENT_V1 && !declaredReal) {
+  if (REAL_EXECUTION_INTENTS.includes(executionIntent) && !declaredReal) {
     failClosed('REAL_EXECUTION_REQUIRES_REAL_PRODUCER', {
       producerId: producer.producerId,
       synthetic: producer.synthetic ?? null,
@@ -324,7 +358,7 @@ function assertResourceGuard(resourceGuard, executionIntent) {
   if (resourceGuard === null || resourceGuard === undefined) {
     // A real pilot exists to measure; running one unmeasured would produce exactly
     // the unprovable budget Phase D is blocked on.
-    if (executionIntent === REAL_PILOT_INTENT_V1) failClosed('REAL_EXECUTION_REQUIRES_RESOURCE_GUARD');
+    if (REAL_EXECUTION_INTENTS.includes(executionIntent)) failClosed('REAL_EXECUTION_REQUIRES_RESOURCE_GUARD');
     return null;
   }
   for (const method of ['start', 'beforePair', 'afterPair', 'finalize', 'snapshot']) {
@@ -350,6 +384,7 @@ export function runPagedMaterialization({
   const target = assertOutputRootAuthorized({ root, outputRoot, authority });
   const cohortKind = assertCohortAdmissible({ cohort, authority });
   const intent = assertProducer(producer, executionIntent);
+  assertCanonicalFullCoupling({ root, outputRoot, checkpointRoot, authority, target, cohortKind, intent });
   const guard = assertResourceGuard(resourceGuard, intent);
   const binding = validateInputBinding(inputBinding);
   if (binding.datasetId !== cohort.datasetId || binding.selectionPolicyVersionId !== cohort.selectionPolicyVersionId) {

@@ -5,8 +5,9 @@
  * the published GATE25 index grouped by the exact eligibility keys, attaches P3H
  * outcomes only after the selection is frozen, and delegates the final record to
  * combineFrozenSelection.  This module has no network, Yahoo or broker adapter.
- * R0003 still forbids canonical FULL output; runRealBoundedPilot writes only to an
- * explicitly supplied off-repository evidence root.
+ * runRealBoundedPilot writes only to an explicitly supplied off-repository evidence
+ * root. Under R0006, runCanonicalFullBuild is the single entry point that may write
+ * the canonical FULL product, under the CANONICAL_FULL intent and the V2 documents.
  */
 
 import fs from 'node:fs';
@@ -81,6 +82,11 @@ export const REAL_PRODUCER_ID_V1 = 'GATE26_FULL_REAL_PRODUCTION_PRODUCER_V1';
 export const REAL_PRODUCER_CLASS_V1 = 'REAL_PRODUCTION';
 export const PRODUCER_BINDING_PATH_V1 = 'governance/gates/GATE26/contracts/GATE26_FULL_PRODUCTION_PRODUCER_V1.json';
 export const RESOURCE_BUDGET_PATH_V1 = 'governance/gates/GATE26/contracts/GATE26_FULL_RESOURCE_BUDGET_V1.json';
+// R0006 successors. V1 stays byte-immutable as the pilot-era predecessor; V2 is what the producer executes under.
+export const PRODUCER_BINDING_PATH_V2 = 'governance/gates/GATE26/contracts/GATE26_FULL_PRODUCTION_PRODUCER_V2.json';
+export const RESOURCE_BUDGET_PATH_V2 = 'governance/gates/GATE26/contracts/GATE26_FULL_RESOURCE_BUDGET_V2.json';
+export const RESOURCE_BUDGET_V1_SHA256 = 'b0e531b992d198bcfde2df43e6ab6e3734bfc313ce37484c3b04b46df9bb1932';
+export const CANONICAL_FULL_BUILD_REPORT_DOCUMENT = 'GATE26_CANONICAL_FULL_BUILD_REPORT_R1';
 export const CANONICAL_ANALOGUE_INDEX_PATH_V1 = 'data/jarvise/historical-analogue/GATE25/V1/ANALOGUE_INDEX.json';
 export const MINI_PROVENANCE_PATH_V1 = 'data/jarvise/predictive-ensemble/GATE26/V1/MINI/PROVENANCE.json';
 export const REAL_PILOT_SOURCE_LABEL_V1 = 'EXTERNAL:GATE26_PHASE_D_REAL_PRODUCER_PILOT_R1';
@@ -104,7 +110,7 @@ const PRODUCER_BINDING_FIELDS = Object.freeze([
 const IDENTITY_ENTRY_FIELDS = Object.freeze(['path', 'sha256', 'byteLength', 'role']);
 const RESOURCE_BINDING_FIELDS = Object.freeze([
   'document', 'schemaVersion', 'bindingId', 'gateId', 'status', 'source', 'limits', 'projection',
-  'measurementPolicy', 'fullGenerationAuthorized',
+  'measurementPolicy', 'fullGenerationAuthorized', 'supersedes',
 ]);
 const RESOURCE_LIMIT_FIELDS = Object.freeze([
   'minimumRamFreeAtFullStartBytes', 'maximumRssBeforeNextPairBytes', 'maximumHeapUsedBytes',
@@ -141,12 +147,19 @@ function validateIdentityEntries(entries, code) {
   }
 }
 
+/**
+ * The R0006 V2 resource budget. It may differ from V1 only in identity, status, lineage and
+ * fullGenerationAuthorized: every limit, the projection and the measurement policy must equal
+ * the byte-immutable V1 predecessor, so authorizing FULL can never loosen a threshold.
+ */
 export function loadResourceBudget({ root = REPOSITORY_ROOT } = {}) {
-  const binding = readJson(root, RESOURCE_BUDGET_PATH_V1, 'RESOURCE_BUDGET_BINDING_ABSENT_OR_INVALID');
+  const binding = readJson(root, RESOURCE_BUDGET_PATH_V2, 'RESOURCE_BUDGET_BINDING_ABSENT_OR_INVALID');
   assertClosedKeys(binding, RESOURCE_BINDING_FIELDS, 'RESOURCE_BUDGET_BINDING_NOT_CLOSED');
   if (binding.document !== 'GATE26_FULL_RESOURCE_BUDGET_BINDING' || binding.schemaVersion !== 1
-    || binding.bindingId !== 'GATE26_FULL_RESOURCE_BUDGET_V1' || binding.gateId !== 'GATE26'
-    || binding.source !== 'ACCEPTED_PHASE_D_PRELAUNCH_AUDIT' || binding.fullGenerationAuthorized !== false) {
+    || binding.bindingId !== 'GATE26_FULL_RESOURCE_BUDGET_V2' || binding.gateId !== 'GATE26'
+    || binding.status !== 'LIMITS_ACCEPTED_FOR_CANONICAL_FULL_R0006'
+    || binding.source !== 'ACCEPTED_PHASE_D_PRELAUNCH_AUDIT' || binding.fullGenerationAuthorized !== true
+    || binding.supersedes?.path !== RESOURCE_BUDGET_PATH_V1 || binding.supersedes?.sha256 !== RESOURCE_BUDGET_V1_SHA256) {
     failClosed('RESOURCE_BUDGET_BINDING_INVALID');
   }
   assertClosedKeys(binding.limits, RESOURCE_LIMIT_FIELDS, 'RESOURCE_BUDGET_LIMITS_NOT_CLOSED');
@@ -163,14 +176,26 @@ export function loadResourceBudget({ root = REPOSITORY_ROOT } = {}) {
     || binding.measurementPolicy?.thresholdLooseningInThisMission !== 'FORBIDDEN') {
     failClosed('RESOURCE_BUDGET_MEASUREMENT_POLICY_INVALID');
   }
+  // Last, so each structural refusal above stays reachable on its own: a well-formed V2 that
+  // differs from V1 in any limit, the projection or the measurement policy is still refused.
+  let predecessorBytes;
+  try { predecessorBytes = fs.readFileSync(path.resolve(root, RESOURCE_BUDGET_PATH_V1)); }
+  catch (cause) { failClosed('RESOURCE_BUDGET_PREDECESSOR_ABSENT', { cause: cause.code }); }
+  if (sha256Bytes(predecessorBytes) !== RESOURCE_BUDGET_V1_SHA256) failClosed('RESOURCE_BUDGET_PREDECESSOR_DRIFT');
+  const predecessor = JSON.parse(predecessorBytes.toString('utf8'));
+  for (const field of ['limits', 'projection', 'measurementPolicy']) {
+    if (canonicalize(binding[field]) !== canonicalize(predecessor[field])) failClosed('RESOURCE_BUDGET_THRESHOLD_LOOSENING_FORBIDDEN', { field });
+  }
   return Object.freeze(binding);
 }
 
 export function verifyProducerIdentity({ root = REPOSITORY_ROOT, binding = null } = {}) {
-  const document = binding ?? readJson(root, PRODUCER_BINDING_PATH_V1, 'REAL_PRODUCER_BINDING_ABSENT_OR_INVALID');
+  const document = binding ?? readJson(root, PRODUCER_BINDING_PATH_V2, 'REAL_PRODUCER_BINDING_ABSENT_OR_INVALID');
   assertClosedKeys(document, PRODUCER_BINDING_FIELDS, 'REAL_PRODUCER_BINDING_NOT_CLOSED');
   if (document.document !== 'GATE26_FULL_PRODUCTION_PRODUCER_BINDING' || document.schemaVersion !== 1
-    || document.bindingId !== 'GATE26_FULL_PRODUCTION_PRODUCER_V1' || document.gateId !== 'GATE26'
+    || document.bindingId !== 'GATE26_FULL_PRODUCTION_PRODUCER_V2' || document.gateId !== 'GATE26'
+    || document.bindings?.executionIntent !== 'CANONICAL_FULL' || document.bindings?.fullGenerationAuthorized !== true
+    || document.bindings?.resourceBudgetPath !== RESOURCE_BUDGET_PATH_V2
     || document.producerId !== REAL_PRODUCER_ID_V1 || document.productionClass !== REAL_PRODUCER_CLASS_V1
     || document.synthetic !== false || document.identityAlgorithm !== 'SHA256_CANONICAL_DEPENDENCY_SET_V1') {
     failClosed('REAL_PRODUCER_BINDING_INVALID');
@@ -1125,6 +1150,91 @@ export async function runRealBoundedPilot({ root = REPOSITORY_ROOT, evidenceRoot
     independentAuditAssigned: false,
   };
   const reportPath = path.join(resolvedEvidence, 'PILOT_REPORT.json');
+  durableReplaceFileSync(reportPath, Buffer.from(`${JSON.stringify(report, null, 2)}\n`, 'utf8'));
+  return { reportPath, reportSha256: sha256Bytes(fs.readFileSync(reportPath)), report };
+}
+
+/**
+ * R0006: THE ONE CANONICAL FULL BUILD.
+ *
+ * The only caller that may write the canonical FULL product. It declares CANONICAL_FULL,
+ * runs the real producer over the exact canonical cohort into the exact FULL root, and
+ * keeps its durable checkpoint and report off-repository. A fresh build requires both the
+ * FULL root and the checkpoint root to be absent, so a second build fails closed; an
+ * interrupted build resumes only from its own checkpoint (resume: true), never from zero.
+ * After the run, the FULL root must hold exactly the enumerated pathset and nothing else.
+ */
+export async function runCanonicalFullBuild({ root = REPOSITORY_ROOT, checkpointRoot, evidenceRoot, resume = false } = {}) {
+  for (const [name, value] of [['checkpointRoot', checkpointRoot], ['evidenceRoot', evidenceRoot]]) {
+    if (typeof value !== 'string' || value.length === 0) failClosed('CANONICAL_FULL_ROOT_REQUIRED', { name });
+    const relative = path.relative(root, path.resolve(value));
+    if (relative === '' || (!relative.startsWith('..') && !path.isAbsolute(relative))) failClosed('CANONICAL_FULL_EVIDENCE_INSIDE_REPOSITORY_FORBIDDEN', { name });
+  }
+  const { deriveCanonicalFullQueryCohort, loadFullPrebuildAuthority } = await import('./full-query-cohort-v1.mjs');
+  const authority = loadFullPrebuildAuthority({ root });
+  if (!authority.canonicalFull?.authorized || authority.canonicalFull.maxBuilds !== 1) failClosed('CANONICAL_FULL_NOT_AUTHORIZED');
+  const fullRoot = path.resolve(root, authority.fullProductRoot);
+  const checkpointPresent = fs.existsSync(checkpointRoot);
+  if (!resume && (fs.existsSync(fullRoot) || checkpointPresent)) {
+    failClosed('CANONICAL_FULL_SECOND_BUILD_FORBIDDEN', { fullRootPresent: fs.existsSync(fullRoot), checkpointPresent });
+  }
+  if (resume && !checkpointPresent) failClosed('CANONICAL_FULL_RESUME_WITHOUT_CHECKPOINT');
+  fs.mkdirSync(evidenceRoot, { recursive: true });
+  const { installNetworkTrap } = await import('./mini-fixture-v1.mjs');
+  const networkCalls = installNetworkTrap();
+  const startedAt = performance.now();
+  const guard = createResourceBudgetGuard({ root });
+  guard.start({ outputRoot: fullRoot });
+  const producer = prepareRealProductionProducer({ root, resourceGuard: guard });
+  guard.observePreparation({ elapsedMs: producer.counters.preparationMs });
+  const cohort = deriveCanonicalFullQueryCohort({ root, authority });
+  const { runPagedMaterialization } = await import('./full-paged-materializer-v1.mjs');
+  const run = runPagedMaterialization({
+    root,
+    sourcePath: path.resolve(root, authority.canonicalSource.path),
+    cohort,
+    producer,
+    inputBinding: producer.inputBinding,
+    outputRoot: fullRoot,
+    checkpointRoot,
+    executionIntent: 'CANONICAL_FULL',
+    resourceGuard: guard,
+  });
+  if (networkCalls.length > 0) failClosed('CANONICAL_FULL_NETWORK_ATTEMPT', { networkCalls });
+  const expectedNames = authority.fullProductPaths.map((file) => file.slice(authority.fullProductRoot.length + 1)).sort(compareCodeUnits);
+  const producedNames = fs.readdirSync(fullRoot).sort(compareCodeUnits);
+  if (canonicalize(producedNames) !== canonicalize(expectedNames)) {
+    failClosed('CANONICAL_FULL_OUTPUT_PATHSET_MISMATCH', {
+      produced: producedNames.length,
+      expected: expectedNames.length,
+      extra: producedNames.filter((name) => !expectedNames.includes(name)).slice(0, 10),
+      missing: expectedNames.filter((name) => !producedNames.includes(name)).slice(0, 10),
+    });
+  }
+  const report = {
+    document: CANONICAL_FULL_BUILD_REPORT_DOCUMENT,
+    contract: authority.contract,
+    executionIntent: run.executionIntent,
+    producerIdentitySha256: producer.identity.producerIdentitySha256,
+    codeIdentitySha256: run.codeIdentitySha256,
+    cohort: { sourceSha256: cohort.sourceSha256, queryCount: cohort.queryCount, cohortDigest: cohort.cohortDigest, pageCount: cohort.plan.pageCount },
+    target: run.target,
+    cohortKind: run.cohortKind,
+    runId: run.runId,
+    resumed: resume,
+    committedAtStart: run.committedAtStart,
+    pagesProduced: run.pagesProduced ?? null,
+    manifestSha256: run.manifestSha256,
+    outputFileCount: producedNames.length,
+    expectedOutputFileCount: expectedNames.length,
+    supportDistribution: producer.supportDistribution,
+    complexity: producer.counters,
+    resourceSnapshot: guard.snapshot(),
+    elapsedMs: performance.now() - startedAt,
+    networkCalls,
+    yahoo: false,
+  };
+  const reportPath = path.join(evidenceRoot, 'CANONICAL_FULL_BUILD_REPORT.json');
   durableReplaceFileSync(reportPath, Buffer.from(`${JSON.stringify(report, null, 2)}\n`, 'utf8'));
   return { reportPath, reportSha256: sha256Bytes(fs.readFileSync(reportPath)), report };
 }

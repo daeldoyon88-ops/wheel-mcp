@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "gateId": "GATE26",
-  "contractRevision": "R0005",
-  "contractPath": "governance/gates/GATE26/contracts/EXECUTION_CONTRACT_R0005.json",
-  "contractSha256": "0a88436681b7decbec4d321024dbcb9886cc6025e5798e81a11e3103ada0c2f4",
-  "activatedByEventId": "GATE26_CONTRACT_SUCCESSION_R0005_R1"
+  "contractRevision": "R0007",
+  "contractPath": "governance/gates/GATE26/contracts/EXECUTION_CONTRACT_R0007.json",
+  "contractSha256": "812ddd84c97a70a856c71a63f40382e52d822428d02168bdb607757d7a9ba379",
+  "activatedByEventId": "GATE26_CONTRACT_SUCCESSION_R0007_R1"
 }

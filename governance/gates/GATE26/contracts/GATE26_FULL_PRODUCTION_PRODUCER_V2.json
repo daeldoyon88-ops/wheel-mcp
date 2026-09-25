@@ -1,0 +1,249 @@
+{
+  "document": "GATE26_FULL_PRODUCTION_PRODUCER_BINDING",
+  "schemaVersion": 1,
+  "bindingId": "GATE26_FULL_PRODUCTION_PRODUCER_V2",
+  "gateId": "GATE26",
+  "producerId": "GATE26_FULL_REAL_PRODUCTION_PRODUCER_V1",
+  "productionClass": "REAL_PRODUCTION",
+  "synthetic": false,
+  "identityAlgorithm": "SHA256_CANONICAL_DEPENDENCY_SET_V1",
+  "dependencies": [
+    {
+      "path": "app/jarvise/jarviseG25HistoricalRegimeFoundationR1.mjs",
+      "sha256": "c62b31d446999295aebd71db9217e4f61293134321abe1834b7f33ef5ba6ed72",
+      "byteLength": 34007,
+      "role": "FOUNDATION_PROJECTION_PRIMITIVES"
+    },
+    {
+      "path": "governance/gates/GATE22/implementation/temporal-horizon-v1.mjs",
+      "sha256": "80d07930f4f74b4a729af88960ce1e4d1df4e94889b090ac78043aa7571e8a57",
+      "byteLength": 1336,
+      "role": "HORIZON_SESSION_KINDS"
+    },
+    {
+      "path": "governance/gates/GATE23/implementation/feature-families-v1.mjs",
+      "sha256": "08af2e9a97407261a64550bf29d70bc7fd923a83cced8c368992bcbab8aec21e",
+      "byteLength": 5225,
+      "role": "OUTCOME_SIMPLE_RETURN"
+    },
+    {
+      "path": "governance/gates/GATE24/implementation/regime-taxonomy-v1.mjs",
+      "sha256": "29521d9397491cf75a98eca418795951426b1961dc32764dd82f1d26451d2ceb",
+      "byteLength": 12441,
+      "role": "REGIME_CLASSIFICATION"
+    },
+    {
+      "path": "governance/gates/GATE25/implementation/analogue-distance-v1.mjs",
+      "sha256": "97d6210bb7df06efd5087ae366c0c9fc6649391f1b290fe3e3854618f78b3559",
+      "byteLength": 7036,
+      "role": "SELECTION_DISTANCE"
+    },
+    {
+      "path": "governance/gates/GATE25/implementation/analogue-eligibility-v1.mjs",
+      "sha256": "838ba488b43ce47c404111aa86c363dd649bdddecb408292a7156492ddd37424",
+      "byteLength": 28234,
+      "role": "SELECTION_ELIGIBILITY"
+    },
+    {
+      "path": "governance/gates/GATE25/implementation/analogue-identity-v1.mjs",
+      "sha256": "48447b1f862518657c4883e23b6c39c78841c39a1bce1734d5ba00d568ecb902",
+      "byteLength": 10683,
+      "role": "SELECTION_IDENTITY"
+    },
+    {
+      "path": "governance/gates/GATE25/implementation/analogue-index-v1.mjs",
+      "sha256": "000fe094f591794d92b8e8ad7048ce829801b581bcd2733fcaeb129f88b0df8d",
+      "byteLength": 12095,
+      "role": "SELECTION_INDEX_AND_RANKING"
+    },
+    {
+      "path": "governance/gates/GATE25/implementation/analogue-outcome-v1.mjs",
+      "sha256": "1cd96dd8617ee3ab249c191927e8dd3ee826b471797aa241b0ae61452dab6fdd",
+      "byteLength": 8314,
+      "role": "POST_SELECTION_OUTCOME"
+    },
+    {
+      "path": "governance/gates/GATE25/implementation/analogue-provenance-v1.mjs",
+      "sha256": "7a5382dd508fc8daea1ae5d028ef2370b4bd15a4010b6d2c5f27d32c9ff9e4bc",
+      "byteLength": 7275,
+      "role": "SELECTION_PROVENANCE"
+    },
+    {
+      "path": "governance/gates/GATE25/implementation/analogue-report-v1.mjs",
+      "sha256": "58287cdbb0f73c0ae993964425b518916f04f145e7c102beed19cfaa3894a75c",
+      "byteLength": 10799,
+      "role": "SUPPORT_AND_COMPARISON_REPORTS"
+    },
+    {
+      "path": "governance/gates/GATE25/implementation/historical-analogue-engine-v1.mjs",
+      "sha256": "68872785c900dc7760ca4f6d5cd8b2f7379743339d96f7bbaf739433ff857a43",
+      "byteLength": 57872,
+      "role": "FROZEN_GATE25_SELECTION_ENGINE"
+    },
+    {
+      "path": "governance/gates/GATE26/implementation/combination-policy-v1.mjs",
+      "sha256": "8d05e9e9eb8335179930812efc9081ae7b265229c32628d40995e77775cbef84",
+      "byteLength": 3019,
+      "role": "COMBINATION_POLICY"
+    },
+    {
+      "path": "governance/gates/GATE26/implementation/consumption-boundary-v1.mjs",
+      "sha256": "65ec884a4381cbf0ca53b670fd092c33d0217b3563a1d552141d5d6c47843d5e",
+      "byteLength": 15736,
+      "role": "CONSUMPTION_BOUNDARY"
+    },
+    {
+      "path": "governance/gates/GATE26/implementation/ensemble-identity-v1.mjs",
+      "sha256": "0353fac64ce1fb64199905ee8c09e9d2d7dc4210b9520912ac2d86a146875b09",
+      "byteLength": 4922,
+      "role": "ENSEMBLE_IDENTITY"
+    },
+    {
+      "path": "governance/gates/GATE26/implementation/ensemble-provenance-v1.mjs",
+      "sha256": "307ca2507b85daf609255bcae94d4c7c76f6cc550b1cb688e954a4782bbd2376",
+      "byteLength": 13540,
+      "role": "ENSEMBLE_PROVENANCE"
+    },
+    {
+      "path": "governance/gates/GATE26/implementation/ensemble-record-v1.mjs",
+      "sha256": "ded0573ca8d5190ba080cda743b2ec25cf081050e659c17eff56bb989dcd5e53",
+      "byteLength": 2033,
+      "role": "ENSEMBLE_RECORD"
+    },
+    {
+      "path": "governance/gates/GATE26/implementation/full-checkpoint-v1.mjs",
+      "sha256": "cbf777088aae841ad8536e7fdbd159d137bf186ab59b103d14cf29261435173b",
+      "byteLength": 16931,
+      "role": "PAGED_CHECKPOINT"
+    },
+    {
+      "path": "governance/gates/GATE26/implementation/full-paged-materializer-v1.mjs",
+      "sha256": "75ad669dd7cdb35189afb0e57c81527e0d15030148d32904b1b67dc9681a6320",
+      "byteLength": 63962,
+      "role": "PAGED_MATERIALIZER"
+    },
+    {
+      "path": "governance/gates/GATE26/implementation/full-production-producer-v1.mjs",
+      "sha256": "4a1d8f7992beb377aa107c17e9b66a0a9603b7a0e135d5e0ed8e100316b8341e",
+      "byteLength": 64764,
+      "role": "REAL_PRODUCER"
+    },
+    {
+      "path": "governance/gates/GATE26/implementation/full-query-cohort-v1.mjs",
+      "sha256": "7e65a715ed5248bbdf33a44ad3c81bcfb7b30fee56886227a99d266feea257fc",
+      "byteLength": 31896,
+      "role": "QUERY_COHORT"
+    },
+    {
+      "path": "governance/gates/GATE26/implementation/mini-fixture-v1.mjs",
+      "sha256": "ea627dbb899c9346e6af4d80c5881cbc41ac130c5a6bc421a8604a141edb9bb1",
+      "byteLength": 26943,
+      "role": "NETWORK_TRAP"
+    },
+    {
+      "path": "governance/gates/GATE26/implementation/predictive-ensemble-engine-v1.mjs",
+      "sha256": "ac801f2566bc7904cf6665e7ad84fde9cb45564d3bac99c5b42e65202ef1060b",
+      "byteLength": 19768,
+      "role": "PREDICTIVE_ENSEMBLE_ENGINE"
+    },
+    {
+      "path": "governance/tools/canonical-json.mjs",
+      "sha256": "c48a0c999ab05c06da45e9963cae95f3801789f08609f50dd5b3c5649b728b32",
+      "byteLength": 1102,
+      "role": "CANONICAL_SERIALIZATION"
+    },
+    {
+      "path": "governance/tools/durable-write.mjs",
+      "sha256": "886fd7dba12b6b4573ca55796b7d7e0853a60fa78a12f270d769e992e3f725f6",
+      "byteLength": 5242,
+      "role": "DURABLE_WRITE"
+    }
+  ],
+  "frozenInputs": [
+    {
+      "path": "data/jarvise/historical-analogue/GATE25/V1/PROVENANCE.json",
+      "sha256": "14afcaf09ea499edb5a17da7db7e8127e61761854b43c90b828843a08846b692",
+      "byteLength": 10850,
+      "role": "GATE25_PROVENANCE"
+    },
+    {
+      "path": "data/jarvise/predictive-ensemble/GATE26/V1/MINI/PROVENANCE.json",
+      "sha256": "f01508f16f438fd59cd6e7d5aee758cfac32320d688adcf5829f7738c4053782",
+      "byteLength": 24433,
+      "role": "PRODUCT_INPUT_BINDING"
+    },
+    {
+      "path": "governance/gates/GATE22/contracts/GATE22_TEMPORAL_HORIZON_V1.json",
+      "sha256": "c53ec179919f90593efdaad625187bc56218a4615bd7d0cecb415a27d4b55783",
+      "byteLength": 3998,
+      "role": "HORIZON_CONTRACT"
+    },
+    {
+      "path": "governance/gates/GATE26/contracts/EXECUTION_CONTRACT_R0006.json",
+      "sha256": "765392a0ac2b79e9b71db158bdd9a7660790a48d825de2c361fc4fb6bb3aae18",
+      "byteLength": 109234,
+      "role": "EXECUTION_CONTRACT"
+    },
+    {
+      "path": "governance/gates/GATE26/contracts/GATE26_FULL_CHECKPOINT_V1.json",
+      "sha256": "14d14de1e49d99d6a7b9d9d705ec4e6eebcc233d46daef39f77c13226fb314c2",
+      "byteLength": 2150,
+      "role": "CHECKPOINT_BINDING"
+    },
+    {
+      "path": "governance/gates/GATE26/contracts/GATE26_FULL_ENSEMBLE_PAGE_V1.json",
+      "sha256": "2a52188e11ce5b0bc8d163e6030d38de4d107ab27fc79488132b869172a163c8",
+      "byteLength": 2201,
+      "role": "ENSEMBLE_PAGE_BINDING"
+    },
+    {
+      "path": "governance/gates/GATE26/contracts/GATE26_FULL_MANIFEST_V1.json",
+      "sha256": "114ef279e93f2dfe510ef2c7ad9647152d9fdf67f71734a96c8713437e977ce8",
+      "byteLength": 3420,
+      "role": "MANIFEST_BINDING"
+    },
+    {
+      "path": "governance/gates/GATE26/contracts/GATE26_FULL_PROVENANCE_PAGE_V1.json",
+      "sha256": "ef63054ff204235c36a1dc90562eee16f3278b32d8f541854cb29c43d7b3b4ba",
+      "byteLength": 2503,
+      "role": "PROVENANCE_PAGE_BINDING"
+    },
+    {
+      "path": "governance/gates/GATE26/contracts/GATE26_FULL_QUERY_COHORT_V1.json",
+      "sha256": "f3a4cdd220365896a210d6a1c71edd178061010a41326faa6924d6619b69ce4e",
+      "byteLength": 3143,
+      "role": "QUERY_COHORT_BINDING"
+    },
+    {
+      "path": "governance/gates/GATE26/contracts/GATE26_FULL_RESOURCE_BUDGET_V2.json",
+      "sha256": "92d62812f4524a19a817fa93e2e3f39debed644f626d6964886828ded7ed1fae",
+      "byteLength": 1915,
+      "role": "RESOURCE_BUDGET_BINDING"
+    }
+  ],
+  "bindings": {
+    "productionClassStatement": "Selection is executed by the frozen GATE25 engine over the published GATE25 index; no analogue, support count or outcome is fabricated.",
+    "canonicalAnalogueIndexPath": "data/jarvise/historical-analogue/GATE25/V1/ANALOGUE_INDEX.json",
+    "canonicalAnalogueIndexSha256": "e32c2e3de4ee6d88b80ed27fec4f29b930c02ce022477ce084f7ae4c768a4f0b",
+    "canonicalAnalogueIndexVerification": "SINGLE_STREAMING_PASS_AGAINST_PRODUCT_INPUT_BINDING",
+    "p3hDatasetSha256": "cc7bb76f37a97a5673a32c5a8f357088ee94230fefcbef1c19ad16227476488e",
+    "p3hDatasetVerification": "PINNED_BY_PRODUCT_INPUT_BINDING_AND_GATE25_BUILD_AUTHORITY",
+    "datasetId": "sha256:cc7bb76f37a97a5673a32c5a8f357088ee94230fefcbef1c19ad16227476488e",
+    "selectionPolicyVersionId": "e8ebc0313dfa3be27710663fa13f9b8cf7854417aad3d13639325e6ea6c2b2fc",
+    "calendarRegistryManifestId": "sha256:3df426b405f9ae43cb996b14f310d8efed55ce9f6377ed68dea4cd6ef939883f",
+    "gate25ExecutionContractSha256": "f369ce7844167a5ae46940dcd1e2edd61f1b92327893723cd6953d8fafa0578f",
+    "horizonContractSha256": "c53ec179919f90593efdaad625187bc56218a4615bd7d0cecb415a27d4b55783",
+    "horizonSessionCounts": [
+      30,
+      90,
+      180,
+      252
+    ],
+    "resourceBudgetPath": "governance/gates/GATE26/contracts/GATE26_FULL_RESOURCE_BUDGET_V2.json",
+    "executionIntent": "CANONICAL_FULL",
+    "fullGenerationAuthorized": true,
+    "networkAuthorized": false,
+    "yahooAuthorized": false
+  },
+  "producerIdentitySha256": "bc874c669e6cae7cae9360cae182d5fdd4d8f649767d49a371200c096ea75d22"
+}

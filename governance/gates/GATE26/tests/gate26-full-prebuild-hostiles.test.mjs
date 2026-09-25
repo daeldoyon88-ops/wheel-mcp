@@ -1,5 +1,6 @@
 /**
- * GATE26 FULL PREBUILD — hostile contract tests (R0005 NEG-01..04, CTR-01..03).
+ * GATE26 FULL PREBUILD — hostile contract tests (R0005 NEG-01..04, CTR-01..03, carried by R0006,
+ * plus the R0006 succession and FULL-enablement hostiles).
  *
  * Every attack must fail closed with its exact code, and none may create a FULL
  * product byte. Attacks run against bounded synthetic cohorts and products under the
@@ -22,7 +23,7 @@ import { workUnitDirectoryName } from '../../../gee-v1/recovery/checkpoint-store
 import { installNetworkTrap } from '../implementation/mini-fixture-v1.mjs';
 import { loadGate26MiniBuildAuthority } from '../implementation/predictive-ensemble-engine-v1.mjs';
 import {
-  FULL_BINDING_ARTIFACT_PATHS_V1, CURRENT_CONTRACT_POINTER_PATH, R0005_CONTRACT_PATH, deriveQueryCohort, evaluateR0005FullAuthorization, loadFullPrebuildAuthority, pageFileName,
+  FULL_BINDING_ARTIFACT_PATHS_V1, CURRENT_CONTRACT_POINTER_PATH, R0005_CONTRACT_PATH, R0006_CONTRACT_PATH, deriveQueryCohort, evaluateR0005FullAuthorization, loadFullPrebuildAuthority, pageFileName,
 } from '../implementation/full-query-cohort-v1.mjs';
 import { FULL_CHECKPOINT_WORK_UNIT_V1, openFullCheckpoint } from '../implementation/full-checkpoint-v1.mjs';
 import {
@@ -33,7 +34,7 @@ import { consumeFullProductDirectory } from '../implementation/full-consumer-v1.
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../../..');
 const IMPLEMENTATION = path.join(ROOT, 'governance/gates/GATE26/implementation');
-const CONTRACT = JSON.parse(fs.readFileSync(path.resolve(ROOT, R0005_CONTRACT_PATH), 'utf8'));
+const CONTRACT = JSON.parse(fs.readFileSync(path.resolve(ROOT, R0006_CONTRACT_PATH), 'utf8'));
 const FULL_ROOT = path.resolve(ROOT, CONTRACT.packagingRequirements.fullProductRoot);
 const networkCalls = installNetworkTrap();
 const WORK = path.join(os.tmpdir(), 'wheel-gee', `gate26-full-prebuild-hostiles-${process.pid}`);
@@ -42,21 +43,78 @@ const refusesWith = (fn, code, reason = undefined) => assert.throws(fn, (error) 
   if (error?.code !== code) return false;
   return reason === undefined || error.details?.reason === reason;
 }, `expected ${code}${reason ? `/${reason}` : ''}`);
-const noFullRoot = () => assert.equal(fs.existsSync(FULL_ROOT), false, 'no FULL product path may exist');
+// R0006: the FULL root may hold only the exact enumerated canonical pathset; no attack may add anything to it.
+const CANONICAL_FULL_NAMES = new Set(CONTRACT.authorizedPaths
+  .filter((file) => file.startsWith(`${CONTRACT.packagingRequirements.fullProductRoot}/`))
+  .map((file) => file.slice(CONTRACT.packagingRequirements.fullProductRoot.length + 1)));
+const noFullRoot = () => {
+  if (!fs.existsSync(FULL_ROOT)) return;
+  for (const entry of fs.readdirSync(FULL_ROOT, { withFileTypes: true })) {
+    assert.ok(entry.isFile() && CANONICAL_FULL_NAMES.has(entry.name), `no non-canonical FULL product path may exist: ${entry.name}`);
+  }
+};
+
+/**
+ * R0007 consumed the single R0006 canonical FULL build authority. The unchanged, audited production code
+ * pins R0006 and therefore refuses the live repository (CURRENT_CONTRACT_NOT_R0006): that refusal is the
+ * expected post-build behaviour. The historical R0006 behaviour is still exercised, on a read-only view of
+ * the repository that differs only by its CURRENT_CONTRACT pointer. That pointer is rebuilt from the R0006
+ * contract and ledger event 117 and accepted only if it equals the pointer sealed in state R0007. The FULL
+ * product root and .git are never linked into the view, so nothing run against it can reach the audited
+ * product or the index; links are removed one by one before the view directory itself is deleted.
+ */
+function openSealedR0006AuthorityView(liveRoot, viewRoot) {
+  const fullProductRoot = 'data/jarvise/predictive-ensemble/GATE26/V1/FULL';
+  const read = (relative) => fs.readFileSync(path.resolve(liveRoot, relative));
+  const sealed = JSON.parse(read('governance/gates/GATE26/state/revisions/R0007/STATE_SEAL.json').toString('utf8'))
+    .sealedMembers.find((member) => member.repoRelativePath === CURRENT_CONTRACT_POINTER_PATH);
+  const event117 = read('governance/state/GATE_STATUS_LEDGER.ndjson').toString('utf8').trimEnd().split('\n')
+    .map((line) => JSON.parse(line)).find((event) => event.eventId === 'GATE26_CONTRACT_SUCCESSION_R0006_R1');
+  assert.equal(event117.ordinal, 117);
+  const pointerBytes = Buffer.from(`${JSON.stringify({
+    schemaVersion: 1, gateId: 'GATE26', contractRevision: 'R0006', contractPath: R0006_CONTRACT_PATH,
+    contractSha256: sha256Bytes(read(R0006_CONTRACT_PATH)), activatedByEventId: event117.eventId,
+  }, null, 2)}\n`, 'utf8');
+  assert.equal(sha256Bytes(pointerBytes), sealed.sha256, 'the view pointer is exactly the CURRENT_CONTRACT sealed in state R0007');
+  const links = [];
+  const onPath = (relative) => [CURRENT_CONTRACT_POINTER_PATH, fullProductRoot].some((target) => target.startsWith(`${relative}/`));
+  const mirror = (relative) => {
+    fs.mkdirSync(path.join(viewRoot, relative), { recursive: true });
+    for (const entry of fs.readdirSync(path.join(liveRoot, relative), { withFileTypes: true })) {
+      const child = relative ? `${relative}/${entry.name}` : entry.name;
+      if (child === '.git' || child === CURRENT_CONTRACT_POINTER_PATH || child === fullProductRoot) continue;
+      const source = path.join(liveRoot, child);
+      const target = path.join(viewRoot, child);
+      if (entry.isDirectory() && onPath(child)) mirror(child);
+      else if (entry.isDirectory()) { fs.symlinkSync(source, target, 'junction'); links.push(target); }
+      else if (entry.isFile()) fs.copyFileSync(source, target);
+    }
+  };
+  mirror('');
+  fs.writeFileSync(path.join(viewRoot, CURRENT_CONTRACT_POINTER_PATH), pointerBytes);
+  const close = () => {
+    for (const link of links) { try { fs.unlinkSync(link); } catch { fs.rmdirSync(link); } }
+    if (links.every((link) => !fs.existsSync(link))) fs.rmSync(viewRoot, { recursive: true, force: true });
+  };
+  return { root: viewRoot, close };
+}
+const R0006_VIEW = openSealedR0006AuthorityView(ROOT, path.join(os.tmpdir(), 'wheel-gee', `gate26-r0006-authority-view-prebuild-hostiles-${process.pid}`));
+const R0006_ROOT = R0006_VIEW.root;
 
 test.after(() => {
   if (fs.existsSync(JUNCTION)) { try { fs.unlinkSync(JUNCTION); } catch { fs.rmdirSync(JUNCTION); } }
   if (!fs.existsSync(JUNCTION)) fs.rmSync(WORK, { recursive: true, force: true });
+  R0006_VIEW.close();
 });
 
 const prepared = {};
 const cohortOf = (name, queryCount = 300) => {
-  prepared[name] ??= prepareRehearsalCohort({ root: ROOT, workRoot: path.join(WORK, `cohort-${name}`), queryCount, maxPrefixGroupSize: 16, retainUnits: true });
+  prepared[name] ??= prepareRehearsalCohort({ root: R0006_ROOT, workRoot: path.join(WORK, `cohort-${name}`), queryCount, maxPrefixGroupSize: 16, retainUnits: true });
   return prepared[name];
 };
 const base = () => cohortOf('base');
 const materialize = (runName, extra = {}, cohort = base()) => runPagedMaterialization({
-  root: ROOT, sourcePath: cohort.sourcePath, cohort: cohort.cohort, producer: cohort.producer, inputBinding: cohort.seed.inputBinding,
+  root: R0006_ROOT, sourcePath: cohort.sourcePath, cohort: cohort.cohort, producer: cohort.producer, inputBinding: cohort.seed.inputBinding,
   outputRoot: path.join(WORK, runName, 'product'), checkpointRoot: path.join(WORK, runName, 'checkpoint'), ...extra,
 });
 let baseRun = null;
@@ -97,9 +155,9 @@ test('R0005-AUTH-HOSTILES: every explicit predicate blocks for its intended caus
 
   const fakeRoot = (name, mutate) => {
     const root = path.join(WORK, 'r0005-identity', name);
-    for (const file of [CURRENT_CONTRACT_POINTER_PATH, R0005_CONTRACT_PATH, ...Object.values(FULL_BINDING_ARTIFACT_PATHS_V1)]) {
+    for (const file of [CURRENT_CONTRACT_POINTER_PATH, R0005_CONTRACT_PATH, R0006_CONTRACT_PATH, ...Object.values(FULL_BINDING_ARTIFACT_PATHS_V1)]) {
       fs.mkdirSync(path.dirname(path.join(root, file)), { recursive: true });
-      fs.copyFileSync(path.join(ROOT, file), path.join(root, file));
+      fs.copyFileSync(path.join(R0006_ROOT, file), path.join(root, file));
     }
     const edit = (file, change) => {
       const value = JSON.parse(fs.readFileSync(path.join(root, file), 'utf8'));
@@ -109,73 +167,118 @@ test('R0005-AUTH-HOSTILES: every explicit predicate blocks for its intended caus
     mutate(edit);
     return root;
   };
-  refusesWith(() => loadFullPrebuildAuthority({ root: fakeRoot('wrong-revision', (edit) => edit(CURRENT_CONTRACT_POINTER_PATH, (value) => { value.contractRevision = 'R0004'; })) }), 'CURRENT_CONTRACT_NOT_R0005');
-  refusesWith(() => loadFullPrebuildAuthority({ root: fakeRoot('wrong-pointer-sha', (edit) => edit(CURRENT_CONTRACT_POINTER_PATH, (value) => { value.contractSha256 = '0'.repeat(64); })) }), 'CURRENT_CONTRACT_NOT_R0005');
-  refusesWith(() => loadFullPrebuildAuthority({ root: fakeRoot('wrong-contract-sha', (edit) => edit(R0005_CONTRACT_PATH, (value) => { value.contractRevision = 'R0004'; })) }), 'EXECUTION_CONTRACT_SHA256_MISMATCH');
+  refusesWith(() => loadFullPrebuildAuthority({ root: fakeRoot('wrong-revision', (edit) => edit(CURRENT_CONTRACT_POINTER_PATH, (value) => { value.contractRevision = 'R0004'; })) }), 'CURRENT_CONTRACT_NOT_R0006');
+  refusesWith(() => loadFullPrebuildAuthority({ root: fakeRoot('wrong-pointer-sha', (edit) => edit(CURRENT_CONTRACT_POINTER_PATH, (value) => { value.contractSha256 = '0'.repeat(64); })) }), 'CURRENT_CONTRACT_NOT_R0006');
+  // G26-FULL-ENABLE-CTR-01: the exact R0005 pointer is no longer a current FULL write authority.
+  refusesWith(() => loadFullPrebuildAuthority({ root: fakeRoot('r0005-fallback', (edit) => edit(CURRENT_CONTRACT_POINTER_PATH, (value) => {
+    Object.assign(value, { contractRevision: 'R0005', contractPath: R0005_CONTRACT_PATH, contractSha256: sha256Bytes(fs.readFileSync(path.join(ROOT, R0005_CONTRACT_PATH))) });
+  })) }), 'CURRENT_CONTRACT_NOT_R0006');
+  refusesWith(() => loadFullPrebuildAuthority({ root: fakeRoot('wrong-contract-sha', (edit) => edit(R0006_CONTRACT_PATH, (value) => { value.contractRevision = 'R0004'; })) }), 'EXECUTION_CONTRACT_SHA256_MISMATCH');
+  refusesWith(() => loadFullPrebuildAuthority({ root: fakeRoot('drifted-predecessor', (edit) => edit(R0005_CONTRACT_PATH, (value) => { value.forbiddenReplays = []; })) }), 'PREDECESSOR_CONTRACT_SHA256_MISMATCH');
+  assert.equal(loadFullPrebuildAuthority({ root: fakeRoot('intact', () => {}) }).contract.revision, 'R0006');
 });
 
-test('R0005-CANDIDATE-HOSTILES: invalid R0006, competing authority, ledger 116 and extra path block non-vacuously', () => {
-  const authorityPath = path.join(ROOT, 'governance/authority/authorizations/GATE26/GATE_CONTRACT_SUCCESSION_LOCAL_AUTHORITY_R0005.json');
+test('G26-FULL-ENABLE-NEG-01: the exact FULL pathset is re-derived and only CANONICAL_FULL may couple to the FULL root', async () => {
+  const { assertCanonicalFullCoupling, CANONICAL_FULL_INTENT_V1, REAL_PILOT_INTENT_V1, PREBUILD_REHEARSAL_INTENT_V1 } = await import('../implementation/full-paged-materializer-v1.mjs');
+  const { fullProductPathset } = await import('../implementation/full-query-cohort-v1.mjs');
+  const authority = loadFullPrebuildAuthority({ root: R0006_ROOT });
+  assert.deepEqual([...authority.fullProductPaths], fullProductPathset({ pageCount: 536 }));
+  assert.equal(new Set(authority.fullProductPaths).size, 1073);
+  assert.equal(authority.fullProductPaths.filter((file) => file.endsWith('/MANIFEST.json')).length, 1);
+  assert.equal(authority.fullProductPaths.filter((file) => file.includes('/ENSEMBLE_PAGE_')).length, 536);
+  assert.equal(authority.fullProductPaths.filter((file) => file.includes('/PROVENANCE_PAGE_')).length, 536);
+
+  const fullRoot = path.resolve(R0006_ROOT, authority.fullProductRoot);
+  const offRepo = path.join(WORK, 'coupling', 'checkpoint');
+  const couple = (overrides) => () => assertCanonicalFullCoupling({
+    root: R0006_ROOT, outputRoot: fullRoot, checkpointRoot: offRepo, authority, target: 'FULL_PRODUCT_ROOT', cohortKind: 'CANONICAL_FULL', intent: CANONICAL_FULL_INTENT_V1, ...overrides,
+  });
+  assert.equal(couple({})(), true);
+  refusesWith(couple({ intent: REAL_PILOT_INTENT_V1 }), 'R0003_FULL_PRODUCT_WRITE_FORBIDDEN');
+  refusesWith(couple({ intent: PREBUILD_REHEARSAL_INTENT_V1 }), 'R0003_FULL_PRODUCT_WRITE_FORBIDDEN');
+  refusesWith(couple({ intent: REAL_PILOT_INTENT_V1, target: 'OFF_REPOSITORY_REHEARSAL', outputRoot: path.join(WORK, 'coupling', 'out') }), 'CANONICAL_COHORT_REQUIRES_CANONICAL_FULL_INTENT');
+  refusesWith(couple({ cohortKind: 'PREBUILD_REHEARSAL' }), 'CANONICAL_FULL_REQUIRES_CANONICAL_COHORT');
+  refusesWith(couple({ outputRoot: path.join(fullRoot, 'attack') }), 'CANONICAL_FULL_REQUIRES_EXACT_FULL_ROOT');
+  refusesWith(couple({ target: 'OFF_REPOSITORY_REHEARSAL', outputRoot: path.join(WORK, 'coupling', 'out') }), 'CANONICAL_FULL_REQUIRES_EXACT_FULL_ROOT');
+  refusesWith(couple({ checkpointRoot: path.join(R0006_ROOT, 'governance', 'checkpoint') }), 'CANONICAL_FULL_CHECKPOINT_MUST_BE_OFF_REPOSITORY');
+  refusesWith(couple({ authority: { ...authority, canonicalFull: { ...authority.canonicalFull, authorized: false } } }), 'CANONICAL_FULL_NOT_AUTHORIZED');
+  noFullRoot();
+});
+
+test('R0006-SUCCESSION-HOSTILES: invalid R0007, competing authority, replayed event 117 and extra path block non-vacuously', () => {
+  const authorityPath = path.join(ROOT, 'governance/authority/authorizations/GATE26/GATE_CONTRACT_SUCCESSION_LOCAL_AUTHORITY_R0006.json');
   const authority = JSON.parse(fs.readFileSync(authorityPath, 'utf8'));
   assert.deepEqual(validateGateContractSuccessionLedgerBoundAuthorityShape(authority), { valid: true, findings: [] });
-  const sealRelative = 'governance/gates/GATE26/state/revisions/R0006/STATE_SEAL.json';
-  const sealPath = path.join(ROOT, sealRelative);
-  assert.equal(validateStateSeal({ root: ROOT, sealPath, currentRevision: 'R0006' }).valid, true);
-  const fakeRoot = path.join(WORK, 'invalid-r0006');
+  assert.equal(authority.predecessorContractSha256, sha256Bytes(fs.readFileSync(path.join(ROOT, R0005_CONTRACT_PATH))));
+  assert.equal(authority.successorContractSha256, sha256Bytes(fs.readFileSync(path.join(ROOT, R0006_CONTRACT_PATH))));
+  const sealRelative = 'governance/gates/GATE26/state/revisions/R0007/STATE_SEAL.json';
+  // R0007 is historical since the R0006 -> R0007 succession made R0008 current.
+  assert.equal(validateStateSeal({ root: ROOT, sealPath: path.join(ROOT, sealRelative), currentRevision: 'R0008' }).valid, true);
+  const checkpoint = JSON.parse(fs.readFileSync(path.join(ROOT, 'governance/gates/GATE26/state/revisions/R0007/CHECKPOINT.json'), 'utf8'));
+  assert.ok(checkpoint.completedTasks.includes('GATE26_FULL_CONTRACT_SUCCESSION_R0005_CANDIDATE_R2_INDEPENDENT_AUDIT'), 'R0007 records the closed R3 audit');
+  const fakeRoot = path.join(WORK, 'invalid-r0007');
   for (const relative of [
     'governance/gates/GATE26/contracts/CURRENT_CONTRACT.json',
-    'governance/gates/GATE26/state/revisions/R0005/STATE_SEAL.json',
-    'governance/gates/GATE26/state/revisions/R0006/CHECKPOINT.json',
-    'governance/gates/GATE26/state/revisions/R0006/OPEN_DEFECTS.json',
+    'governance/gates/GATE26/state/revisions/R0006/STATE_SEAL.json',
+    'governance/gates/GATE26/state/revisions/R0007/CHECKPOINT.json',
+    'governance/gates/GATE26/state/revisions/R0007/OPEN_DEFECTS.json',
     sealRelative,
   ]) {
     fs.mkdirSync(path.dirname(path.join(fakeRoot, relative)), { recursive: true });
-    fs.copyFileSync(path.join(ROOT, relative), path.join(fakeRoot, relative));
+    fs.copyFileSync(path.join(R0006_ROOT, relative), path.join(fakeRoot, relative));
   }
-  fs.appendFileSync(path.join(fakeRoot, 'governance/gates/GATE26/state/revisions/R0006/CHECKPOINT.json'), ' ');
-  assert.equal(validateStateSeal({ root: fakeRoot, sealPath: path.join(fakeRoot, sealRelative), currentRevision: 'R0006' }).valid, false);
+  assert.equal(validateStateSeal({ root: fakeRoot, sealPath: path.join(fakeRoot, sealRelative), currentRevision: 'R0007' }).valid, true, 'intact R0007 cohort seals');
+  fs.appendFileSync(path.join(fakeRoot, 'governance/gates/GATE26/state/revisions/R0007/CHECKPOINT.json'), ' ');
+  assert.equal(validateStateSeal({ root: fakeRoot, sealPath: path.join(fakeRoot, sealRelative), currentRevision: 'R0007' }).valid, false);
 
   const fail = (code) => { const error = new Error(code); error.code = code; throw error; };
   const authorities = fs.readdirSync(path.dirname(authorityPath)).filter((file) => file.endsWith('.json')).map((file) => {
     try { return JSON.parse(fs.readFileSync(path.join(path.dirname(authorityPath), file), 'utf8')); } catch { return null; }
-  }).filter((entry) => entry?.predecessorContractSha256 === 'eda92933595bc7f517cde4f964201c4f8b8725aa1b9d3f4a66a3ca32af111de4' && entry?.successorContractRevision === 'R0005');
+  }).filter((entry) => entry?.predecessorContractSha256 === authority.predecessorContractSha256 && entry?.successorContractRevision === 'R0006');
   const assertUniqueAuthority = (entries) => { if (entries.length !== 1) fail('COMPETING_SUCCESSION_AUTHORITY'); };
   assert.doesNotThrow(() => assertUniqueAuthority(authorities));
   refusesWith(() => assertUniqueAuthority([...authorities, { ...authorities[0], authorityId: 'COMPETING' }]), 'COMPETING_SUCCESSION_AUTHORITY');
 
   const ledgerLines = fs.readFileSync(path.join(ROOT, 'governance/state/GATE_STATUS_LEDGER.ndjson'), 'utf8').trimEnd().split(/\r?\n/);
-  const assertPrepublicationLedger = (lines) => {
-    if (lines.length !== 115 || lines.some((line) => line.includes('GATE26_CONTRACT_SUCCESSION_R0005_R1'))) fail('LEDGER_116_BEFORE_PUBLICATION');
+  const assertSingleSuccessionEvent = (lines) => {
+    const events = lines.map((line) => JSON.parse(line)).filter((event) => event.eventId === 'GATE26_CONTRACT_SUCCESSION_R0006_R1'
+      || (event.transitionType === 'CONTRACT_SUCCESSION' && event.authorityPath === 'governance/authority/authorizations/GATE26/GATE_CONTRACT_SUCCESSION_LOCAL_AUTHORITY_R0006.json'));
+    if (events.length !== 1 || events[0].ordinal !== 117 || events[0].stateRevision !== 'R0007') fail('LEDGER_117_NOT_UNIQUE');
   };
-  assert.doesNotThrow(() => assertPrepublicationLedger(ledgerLines));
-  refusesWith(() => assertPrepublicationLedger([...ledgerLines, '{"eventId":"GATE26_CONTRACT_SUCCESSION_R0005_R1"}']), 'LEDGER_116_BEFORE_PUBLICATION');
+  assert.doesNotThrow(() => assertSingleSuccessionEvent(ledgerLines));
+  refusesWith(() => assertSingleSuccessionEvent([...ledgerLines, ledgerLines.find((line) => line.includes('GATE26_CONTRACT_SUCCESSION_R0006_R1'))]), 'LEDGER_117_NOT_UNIQUE');
 
+  // R0007: the post-build succession consumes its own single-use authority as event 118 and seals state R0008.
+  const r0007AuthorityPath = path.join(ROOT, 'governance/authority/authorizations/GATE26/GATE_CONTRACT_SUCCESSION_LOCAL_AUTHORITY_R0007.json');
+  const r0007Authority = JSON.parse(fs.readFileSync(r0007AuthorityPath, 'utf8'));
+  assert.deepEqual(validateGateContractSuccessionLedgerBoundAuthorityShape(r0007Authority), { valid: true, findings: [] });
+  const r0007Pointer = JSON.parse(fs.readFileSync(path.join(ROOT, CURRENT_CONTRACT_POINTER_PATH), 'utf8'));
+  const r0007Bytes = fs.readFileSync(path.join(ROOT, r0007Pointer.contractPath));
+  const R0007 = JSON.parse(r0007Bytes.toString('utf8'));
+  assert.equal(r0007Authority.predecessorContractSha256, sha256Bytes(fs.readFileSync(path.join(ROOT, R0006_CONTRACT_PATH))));
+  assert.equal(r0007Authority.successorContractSha256, sha256Bytes(r0007Bytes));
+  assert.equal(r0007Authority.functionalBuildAuthorized, false);
+  assert.ok(r0007Authority.prohibitedOperations.includes('SECOND_CANONICAL_FULL_BUILD') && r0007Authority.prohibitedOperations.includes('GEE_R8'));
+  assert.equal(validateStateSeal({ root: ROOT, sealPath: path.join(ROOT, 'governance/gates/GATE26/state/revisions/R0008/STATE_SEAL.json'), currentRevision: 'R0008' }).valid, true);
+  const r0008 = JSON.parse(fs.readFileSync(path.join(ROOT, 'governance/gates/GATE26/state/revisions/R0008/CHECKPOINT.json'), 'utf8'));
+  assert.ok(r0008.completedTasks.includes('GATE26_CANONICAL_FULL_BUILD_R1') && !r0008.openTasks.includes('GATE26_CANONICAL_FULL_BUILD_R1'), 'R0008 records FULL BUILD R1 complete');
+  const r0007Events = ledgerLines.map((line) => JSON.parse(line)).filter((event) => event.authorityPath === path.relative(ROOT, r0007AuthorityPath).replaceAll('\\', '/'));
+  assert.equal(r0007Events.length, 1);
+  assert.deepEqual([r0007Events[0].ordinal, r0007Events[0].stateRevision, r0007Events[0].fromStatus, r0007Events[0].toStatus], [118, 'R0008', 'IN_PROGRESS', 'IN_PROGRESS']);
+
+  // Every uncommitted path must sit inside the R0006 or R0007 authority: authorized paths plus succession publication paths.
   const allowed = new Set([
-    'governance/gates/GATE26/contracts/EXECUTION_CONTRACT_R0005.json',
-    'governance/authority/authorizations/GATE26/GATE_CONTRACT_SUCCESSION_LOCAL_AUTHORITY_R0005.json',
-    'governance/gates/GATE26/state/revisions/R0006/CHECKPOINT.json',
-    'governance/gates/GATE26/state/revisions/R0006/OPEN_DEFECTS.json',
-    'governance/gates/GATE26/state/revisions/R0006/STATE_SEAL.json',
-    'governance/gates/GATE26/contracts/CURRENT_CONTRACT.json',
-    'governance/gates/GATE26/state/CURRENT_STATE.json',
-    'governance/gates/GATE26/implementation/full-query-cohort-v1.mjs',
-    'governance/gates/GATE26/contracts/GATE26_FULL_QUERY_COHORT_V1.json',
-    'governance/gates/GATE26/contracts/GATE26_FULL_MANIFEST_V1.json',
-    'governance/gates/GATE26/contracts/GATE26_FULL_ENSEMBLE_PAGE_V1.json',
-    'governance/gates/GATE26/contracts/GATE26_FULL_PROVENANCE_PAGE_V1.json',
-    'governance/gates/GATE26/contracts/GATE26_FULL_CHECKPOINT_V1.json',
-    'governance/gates/GATE26/contracts/GATE26_FULL_PRODUCTION_PRODUCER_V1.json',
-    'governance/gates/GATE26/tests/gate26-full-prebuild.test.mjs',
-    'governance/gates/GATE26/tests/gate26-full-prebuild-hostiles.test.mjs',
+    ...CONTRACT.authorizedPaths,
+    ...CONTRACT.canonicalRequirements.find((entry) => entry.requirementId === 'G26-PREBUILD-11').successionPublicationPaths,
+    ...R0007.authorizedPaths,
+    ...R0007.canonicalRequirements.find((entry) => entry.requirementId === 'G26-PREBUILD-11').successionPublicationPaths,
   ]);
   const status = spawnSync('git', ['status', '--porcelain=v1', '--untracked-files=all'], { cwd: ROOT, encoding: 'utf8' });
   assert.equal(status.status, 0);
   const actual = status.stdout.trimEnd().split(/\r?\n/).filter(Boolean).map((line) => line.slice(3).replaceAll('\\', '/'));
-  const assertExactPathset = (paths) => {
-    if (paths.length !== allowed.size || paths.some((entry) => !allowed.has(entry))) fail('EXTRA_PATH_OUTSIDE_AUTHORITY');
-  };
-  assert.doesNotThrow(() => assertExactPathset(actual));
-  refusesWith(() => assertExactPathset([...actual, 'governance/gates/GATE26/EXTRA']), 'EXTRA_PATH_OUTSIDE_AUTHORITY');
+  const assertInsideAuthority = (paths) => { if (paths.some((entry) => !allowed.has(entry))) fail('EXTRA_PATH_OUTSIDE_AUTHORITY'); };
+  assert.doesNotThrow(() => assertInsideAuthority(actual));
+  refusesWith(() => assertInsideAuthority([...actual, 'governance/gates/GATE26/EXTRA']), 'EXTRA_PATH_OUTSIDE_AUTHORITY');
 });
 
 /* ------------------------------------------------------------ NEG-01: complexity */

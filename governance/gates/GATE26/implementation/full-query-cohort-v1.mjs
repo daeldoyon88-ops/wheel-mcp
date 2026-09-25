@@ -12,9 +12,10 @@
  * Every record is re-verified through the GATE25 verifier and must be exactly its
  * own canonical bytes. Nothing here loads the P3H universe U.
  *
- * This module is also the single loader of the R0005 FULL PREBUILD authority: the
- * pinned contract, its CURRENT_CONTRACT pointer and the five FULL binding artifacts,
- * each re-checked against the R0005 requirement bindings it cites.
+ * This module is also the single loader of the R0006 FULL authority: the pinned
+ * contract, its CURRENT_CONTRACT pointer, its R0005 predecessor and the five FULL
+ * binding artifacts, each re-checked against the requirement bindings it cites,
+ * which R0006 carries forward from R0005 byte-identically.
  */
 
 import { closeSync, openSync, readFileSync, readSync } from 'node:fs';
@@ -33,9 +34,13 @@ const REPOSITORY_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../../
 
 export const R0005_CONTRACT_PATH = 'governance/gates/GATE26/contracts/EXECUTION_CONTRACT_R0005.json';
 export const R0005_CONTRACT_SHA256 = '0a88436681b7decbec4d321024dbcb9886cc6025e5798e81a11e3103ada0c2f4';
-// Compatibility aliases for downstream tests that consume the current PREBUILD contract path.
-export const R0003_CONTRACT_PATH = R0005_CONTRACT_PATH;
-export const R0003_CONTRACT_SHA256 = R0005_CONTRACT_SHA256;
+// R0006 is the current contract. It carries R0005 requirements G26-PREBUILD-02..10 and packagingRequirements
+// byte-identically, so the five FULL binding artifacts keep citing R0005 as the contract that defined them.
+export const R0006_CONTRACT_PATH = 'governance/gates/GATE26/contracts/EXECUTION_CONTRACT_R0006.json';
+export const R0006_CONTRACT_SHA256 = '765392a0ac2b79e9b71db158bdd9a7660790a48d825de2c361fc4fb6bb3aae18';
+// Compatibility aliases for downstream tests that consume the current contract path.
+export const R0003_CONTRACT_PATH = R0006_CONTRACT_PATH;
+export const R0003_CONTRACT_SHA256 = R0006_CONTRACT_SHA256;
 export const CURRENT_CONTRACT_POINTER_PATH = 'governance/gates/GATE26/contracts/CURRENT_CONTRACT.json';
 export const FULL_BINDING_ARTIFACT_PATHS_V1 = Object.freeze({
   GATE26_FULL_QUERY_COHORT_V1: 'governance/gates/GATE26/contracts/GATE26_FULL_QUERY_COHORT_V1.json',
@@ -50,8 +55,37 @@ export const PREBUILD_REHEARSAL_REPORT_PATH_V1 = 'data/jarvise/predictive-ensemb
 export const QUERY_UNIT_FIELDS_V1 = Object.freeze(['ordinal', 'analogueIdentityId', 'sessionDate', 'knowledgeCutoff', 'p3hKeyId']);
 export const SOURCE_CHUNK_BYTES_V1 = 1 << 20;
 
-const EXPECTED_AUTHORIZED_PATH_COUNT = 13;
 const FULL_PRODUCTION_REPLAY = 'GATE26 FULL production generation';
+export const CANONICAL_FULL_INTENT_V1 = 'CANONICAL_FULL';
+export const FULL_ENABLEMENT_REQUIREMENT_ID = 'G26-FULL-ENABLE-01';
+export const PRODUCER_BINDING_PATH_V2 = 'governance/gates/GATE26/contracts/GATE26_FULL_PRODUCTION_PRODUCER_V2.json';
+export const RESOURCE_BUDGET_PATH_V2 = 'governance/gates/GATE26/contracts/GATE26_FULL_RESOURCE_BUDGET_V2.json';
+/** R0006 authorizes exactly these non-product writes; every other authorized path is an enumerated FULL product path. */
+export const R0006_ENABLEMENT_PATHS = Object.freeze([
+  'governance/gates/GATE26/implementation/full-query-cohort-v1.mjs',
+  'governance/gates/GATE26/implementation/full-paged-materializer-v1.mjs',
+  'governance/gates/GATE26/implementation/full-checkpoint-v1.mjs',
+  'governance/gates/GATE26/implementation/full-production-producer-v1.mjs',
+  PRODUCER_BINDING_PATH_V2,
+  RESOURCE_BUDGET_PATH_V2,
+  'governance/gates/GATE26/tests/gate26-full-prebuild.test.mjs',
+  'governance/gates/GATE26/tests/gate26-full-prebuild-hostiles.test.mjs',
+  'governance/gates/GATE26/tests/gate26-full-production-producer.test.mjs',
+  'governance/gates/GATE26/tests/gate26-full-production-producer-hostiles.test.mjs',
+]);
+const CARRIED_REQUIREMENT_IDS = Object.freeze([
+  'G26-PREBUILD-02', 'G26-PREBUILD-03', 'G26-PREBUILD-04', 'G26-PREBUILD-05', 'G26-PREBUILD-06',
+  'G26-PREBUILD-07', 'G26-PREBUILD-08', 'G26-PREBUILD-09', 'G26-PREBUILD-10',
+]);
+
+/** The exact FULL product pathset: one manifest, then every ensemble page, then every provenance page. */
+export function fullProductPathset({ pageCount, fullProductRoot = FULL_PRODUCT_ROOT_V1, manifestFileName = 'MANIFEST.json' }) {
+  if (!Number.isInteger(pageCount) || pageCount < 1) failClosed('FULL_PATHSET_PAGE_COUNT_INVALID', { pageCount: pageCount ?? null });
+  const paths = [`${fullProductRoot}/${manifestFileName}`];
+  for (let page = 1; page <= pageCount; page += 1) paths.push(`${fullProductRoot}/${pageFileName('ENSEMBLE', page)}`);
+  for (let page = 1; page <= pageCount; page += 1) paths.push(`${fullProductRoot}/${pageFileName('PROVENANCE', page)}`);
+  return paths;
+}
 
 export const R0005_PRODUCTION_AUTHORIZATION_VALUE = 'AUTHORIZED';
 
@@ -97,25 +131,31 @@ function readRepositoryJson(root, path, code) {
 const sameCanonical = (left, right) => canonicalize(left) === canonicalize(right);
 
 /**
- * The R0005 FULL PREBUILD authority, re-derived from repository bytes on every call.
- * A caller cannot hand in a more permissive authority: FULL production and FULL
- * product writes are read off the pinned contract itself, and R0005 grants neither.
+ * The R0006 FULL authority, re-derived from repository bytes on every call.
+ * A caller cannot hand in a more permissive authority: FULL production, the exact
+ * FULL write pathset and the CANONICAL_FULL intent are read off the pinned contract
+ * itself. R0006 succeeds R0005 and carries its FULL definition byte-identically.
  */
 export function loadFullPrebuildAuthority({ root = REPOSITORY_ROOT } = {}) {
   const pointer = readRepositoryJson(root, CURRENT_CONTRACT_POINTER_PATH, 'CURRENT_CONTRACT').json;
-  if (pointer.gateId !== 'GATE26' || pointer.contractRevision !== 'R0005' || pointer.contractPath !== R0005_CONTRACT_PATH
-    || pointer.contractSha256 !== R0005_CONTRACT_SHA256) {
-    failClosed('CURRENT_CONTRACT_NOT_R0005', { contractRevision: pointer.contractRevision ?? null });
+  if (pointer.gateId !== 'GATE26' || pointer.contractRevision !== 'R0006' || pointer.contractPath !== R0006_CONTRACT_PATH
+    || pointer.contractSha256 !== R0006_CONTRACT_SHA256) {
+    failClosed('CURRENT_CONTRACT_NOT_R0006', { contractRevision: pointer.contractRevision ?? null });
   }
-  const { bytes: contractBytes, json: contract } = readRepositoryJson(root, R0005_CONTRACT_PATH, 'EXECUTION_CONTRACT');
-  if (sha256Bytes(contractBytes) !== R0005_CONTRACT_SHA256) failClosed('EXECUTION_CONTRACT_SHA256_MISMATCH', { observed: sha256Bytes(contractBytes) });
-  if (contract.gateId !== 'GATE26' || contract.contractRevision !== 'R0005') failClosed('EXECUTION_CONTRACT_REVISION_INVALID');
-  if (!Array.isArray(contract.authorizedPaths) || contract.authorizedPaths.length !== EXPECTED_AUTHORIZED_PATH_COUNT
-    || new Set(contract.authorizedPaths).size !== EXPECTED_AUTHORIZED_PATH_COUNT
-    || contract.authorizedPaths.some((path) => /[*?[\]]/.test(path) || path.startsWith(`${FULL_PRODUCT_ROOT_V1}/`))) {
-    failClosed('AUTHORIZED_PATHS_NOT_EXACT');
+  const { bytes: contractBytes, json: contract } = readRepositoryJson(root, R0006_CONTRACT_PATH, 'EXECUTION_CONTRACT');
+  if (sha256Bytes(contractBytes) !== R0006_CONTRACT_SHA256) failClosed('EXECUTION_CONTRACT_SHA256_MISMATCH', { observed: sha256Bytes(contractBytes) });
+  if (contract.gateId !== 'GATE26' || contract.contractRevision !== 'R0006'
+    || contract.previousContractPath !== R0005_CONTRACT_PATH || contract.previousContractSha256 !== R0005_CONTRACT_SHA256) {
+    failClosed('EXECUTION_CONTRACT_REVISION_INVALID');
   }
+  const { bytes: predecessorBytes, json: predecessor } = readRepositoryJson(root, R0005_CONTRACT_PATH, 'PREDECESSOR_CONTRACT');
+  if (sha256Bytes(predecessorBytes) !== R0005_CONTRACT_SHA256) failClosed('PREDECESSOR_CONTRACT_SHA256_MISMATCH', { observed: sha256Bytes(predecessorBytes) });
   const requirements = new Map(contract.canonicalRequirements.map((requirement) => [requirement.requirementId, requirement]));
+  const predecessorRequirements = new Map(predecessor.canonicalRequirements.map((requirement) => [requirement.requirementId, requirement]));
+  for (const id of CARRIED_REQUIREMENT_IDS) {
+    if (!requirements.has(id) || !sameCanonical(requirements.get(id), predecessorRequirements.get(id))) failClosed('CARRIED_REQUIREMENT_DIVERGES_FROM_R0005', { requirementId: id });
+  }
+  if (!sameCanonical(contract.packagingRequirements, predecessor.packagingRequirements)) failClosed('CARRIED_REQUIREMENT_DIVERGES_FROM_R0005', { field: 'packagingRequirements' });
   const requirementBinding = (id) => {
     const binding = requirements.get(id)?.binding;
     if (!binding) failClosed('CONTRACT_REQUIREMENT_BINDING_ABSENT', { requirementId: id });
@@ -198,9 +238,37 @@ export function loadFullPrebuildAuthority({ root = REPOSITORY_ROOT } = {}) {
     manifestBinding: manifest,
     forbiddenReplays: contract.forbiddenReplays,
   });
+
+  // R0006 write authority: the exact enablement paths followed by the exact enumerated FULL pathset. No glob,
+  // no duplicate, nothing else under the FULL product root, and the pathset is derived here, never trusted.
+  const fullPaths = fullProductPathset({ pageCount: r04.ensemblePageCount, fullProductRoot: manifest.fullProductRoot, manifestFileName: manifest.manifestFileName });
+  const expectedAuthorizedPaths = [...R0006_ENABLEMENT_PATHS, ...fullPaths];
+  if (!Array.isArray(contract.authorizedPaths) || contract.authorizedPaths.some((path) => typeof path !== 'string' || /[*?[\]]/.test(path))
+    || new Set(contract.authorizedPaths).size !== contract.authorizedPaths.length || !sameCanonical(contract.authorizedPaths, expectedAuthorizedPaths)
+    || fullPaths.length !== r04.futureFullProductFileCount) {
+    failClosed('AUTHORIZED_PATHS_NOT_EXACT');
+  }
+  const enablement = requirementBinding(FULL_ENABLEMENT_REQUIREMENT_ID);
+  if (enablement.canonicalFullIntent !== CANONICAL_FULL_INTENT_V1
+    || !sameCanonical(enablement.distinctFromIntents, ['PREBUILD_REHEARSAL', 'REAL_PILOT'])
+    || enablement.fullProductRoot !== FULL_PRODUCT_ROOT_V1 || enablement.fullProductPathCount !== fullPaths.length
+    || enablement.producerBindingPath !== PRODUCER_BINDING_PATH_V2 || enablement.resourceBudgetPath !== RESOURCE_BUDGET_PATH_V2
+    || enablement.fullGenerationAuthorized !== true || enablement.maxCanonicalFullBuilds !== 1
+    || enablement.checkpointRootPolicy !== 'OFF_REPOSITORY_DURABLE' || enablement.nonCanonicalIntentFullRootWrite !== 'FORBIDDEN'
+    || enablement.resourceThresholdLoosening !== 'FORBIDDEN') {
+    failClosed('R0006_FULL_ENABLEMENT_INVALID');
+  }
   return deepFreeze({
-    contract: { path: R0005_CONTRACT_PATH, revision: 'R0005', sha256: R0005_CONTRACT_SHA256 },
+    contract: { path: R0006_CONTRACT_PATH, revision: 'R0006', sha256: R0006_CONTRACT_SHA256 },
     authorizedPaths: [...contract.authorizedPaths],
+    fullProductPaths: fullPaths,
+    canonicalFull: {
+      intent: CANONICAL_FULL_INTENT_V1,
+      authorized: fullProductionAuthorized && enablement.fullGenerationAuthorized === true,
+      producerBindingPath: enablement.producerBindingPath,
+      resourceBudgetPath: enablement.resourceBudgetPath,
+      maxBuilds: enablement.maxCanonicalFullBuilds,
+    },
     productFilesAuthorized,
     fullProductionAuthorized,
     fullProductRoot: FULL_PRODUCT_ROOT_V1,

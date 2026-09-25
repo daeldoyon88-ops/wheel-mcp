@@ -67,8 +67,9 @@ export const FULL_CODE_IDENTITY_PATHS_V1 = Object.freeze([
   'governance/gates/GATE26/implementation/ensemble-identity-v1.mjs',
   'governance/gates/GATE26/implementation/ensemble-record-v1.mjs',
   'governance/gates/GATE26/implementation/combination-policy-v1.mjs',
-  'governance/gates/GATE26/contracts/GATE26_FULL_PRODUCTION_PRODUCER_V1.json',
-  'governance/gates/GATE26/contracts/GATE26_FULL_RESOURCE_BUDGET_V1.json',
+  // R0006: the V2 successors are the documents the real producer now executes under.
+  'governance/gates/GATE26/contracts/GATE26_FULL_PRODUCTION_PRODUCER_V2.json',
+  'governance/gates/GATE26/contracts/GATE26_FULL_RESOURCE_BUDGET_V2.json',
   'governance/tools/canonical-json.mjs',
   'governance/tools/durable-write.mjs',
 ]);

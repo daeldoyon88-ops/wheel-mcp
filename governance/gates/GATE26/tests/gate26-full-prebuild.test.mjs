@@ -1,7 +1,7 @@
 /**
- * GATE26 FULL PREBUILD — positive contract tests (R0005 G26-PREBUILD-POS-01..03).
+ * GATE26 FULL PREBUILD — positive contract tests (R0006, carrying R0005 G26-PREBUILD-POS-01..03).
  *
- * Expectations are read from independent sources: the R0005 contract bytes, the pinned
+ * Expectations are read from independent sources: the R0006 contract bytes, the pinned
  * GATE25 index parsed here without the module under test, .gitattributes and the
  * published MINI report. Materialization runs only on bounded synthetic cohorts under
  * the OS temp directory. Nothing here writes inside the repository, no FULL product
@@ -22,9 +22,10 @@ import { installNetworkTrap } from '../implementation/mini-fixture-v1.mjs';
 import { loadGate26MiniBuildAuthority } from '../implementation/predictive-ensemble-engine-v1.mjs';
 import { consumePublishedEnsemble } from '../implementation/consumption-boundary-v1.mjs';
 import {
-  CURRENT_CONTRACT_POINTER_PATH, FULL_BINDING_ARTIFACT_PATHS_V1, PREBUILD_REHEARSAL_REPORT_PATH_V1, R0005_CONTRACT_PATH, SOURCE_CHUNK_BYTES_V1,
-  deriveCanonicalFullQueryCohort, loadFullPrebuildAuthority, pageFileName,
+  CURRENT_CONTRACT_POINTER_PATH, FULL_BINDING_ARTIFACT_PATHS_V1, PREBUILD_REHEARSAL_REPORT_PATH_V1, R0005_CONTRACT_PATH, R0006_CONTRACT_PATH, SOURCE_CHUNK_BYTES_V1,
+  deriveCanonicalFullQueryCohort, evaluateR0005FullAuthorization, loadFullPrebuildAuthority, pageFileName,
 } from '../implementation/full-query-cohort-v1.mjs';
+import { computeCodeIdentity } from '../implementation/full-checkpoint-v1.mjs';
 import {
   FAULT_POINTS_V1, FULL_LFS_RULE_V1, FULL_MANIFEST_FILE_V1, PREBUILD_REHEARSAL_MAX_QUERY_COUNT_V1, assertFullBindingsMatchCode,
   prepareRehearsalCohort, runPagedMaterialization, simulatedCrashAt,
@@ -35,23 +36,81 @@ import {
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../../..');
 const readJson = (file) => JSON.parse(fs.readFileSync(path.resolve(ROOT, file), 'utf8'));
-const CONTRACT_BYTES = fs.readFileSync(path.resolve(ROOT, R0005_CONTRACT_PATH));
+const CONTRACT_BYTES = fs.readFileSync(path.resolve(ROOT, R0006_CONTRACT_PATH));
+const R0005_BYTES = fs.readFileSync(path.resolve(ROOT, R0005_CONTRACT_PATH));
 const CONTRACT = JSON.parse(CONTRACT_BYTES.toString('utf8'));
 const requirement = (id) => CONTRACT.canonicalRequirements.find((entry) => entry.requirementId === id).binding;
 const FULL_ROOT = path.resolve(ROOT, CONTRACT.packagingRequirements.fullProductRoot);
+// R0006: the FULL root may only ever hold the exact enumerated canonical pathset; nothing a test runs may add to it.
+const CANONICAL_FULL_NAMES = new Set(CONTRACT.authorizedPaths
+  .filter((file) => file.startsWith(`${CONTRACT.packagingRequirements.fullProductRoot}/`))
+  .map((file) => file.slice(CONTRACT.packagingRequirements.fullProductRoot.length + 1)));
+const assertNoNonCanonicalFullBytes = () => {
+  if (!fs.existsSync(FULL_ROOT)) return;
+  for (const entry of fs.readdirSync(FULL_ROOT, { withFileTypes: true })) {
+    assert.ok(entry.isFile() && CANONICAL_FULL_NAMES.has(entry.name), `non-canonical FULL entry ${entry.name}`);
+  }
+};
 const networkCalls = installNetworkTrap();
 const WORK = path.join(os.tmpdir(), 'wheel-gee', `gate26-full-prebuild-test-${process.pid}`);
 const refusesWith = (fn, code) => assert.throws(fn, (error) => error?.code === code, `expected ${code}`);
 
-test.after(() => fs.rmSync(WORK, { recursive: true, force: true }));
+/**
+ * R0007 consumed the single R0006 canonical FULL build authority. The unchanged, audited production code
+ * pins R0006 and therefore refuses the live repository (CURRENT_CONTRACT_NOT_R0006): that refusal is the
+ * expected post-build behaviour. The historical R0006 behaviour is still exercised, on a read-only view of
+ * the repository that differs only by its CURRENT_CONTRACT pointer. That pointer is rebuilt from the R0006
+ * contract and ledger event 117 and accepted only if it equals the pointer sealed in state R0007. The FULL
+ * product root and .git are never linked into the view, so nothing run against it can reach the audited
+ * product or the index; links are removed one by one before the view directory itself is deleted.
+ */
+function openSealedR0006AuthorityView(liveRoot, viewRoot) {
+  const fullProductRoot = 'data/jarvise/predictive-ensemble/GATE26/V1/FULL';
+  const read = (relative) => fs.readFileSync(path.resolve(liveRoot, relative));
+  const sealed = JSON.parse(read('governance/gates/GATE26/state/revisions/R0007/STATE_SEAL.json').toString('utf8'))
+    .sealedMembers.find((member) => member.repoRelativePath === CURRENT_CONTRACT_POINTER_PATH);
+  const event117 = read('governance/state/GATE_STATUS_LEDGER.ndjson').toString('utf8').trimEnd().split('\n')
+    .map((line) => JSON.parse(line)).find((event) => event.eventId === 'GATE26_CONTRACT_SUCCESSION_R0006_R1');
+  assert.equal(event117.ordinal, 117);
+  const pointerBytes = Buffer.from(`${JSON.stringify({
+    schemaVersion: 1, gateId: 'GATE26', contractRevision: 'R0006', contractPath: R0006_CONTRACT_PATH,
+    contractSha256: sha256Bytes(read(R0006_CONTRACT_PATH)), activatedByEventId: event117.eventId,
+  }, null, 2)}\n`, 'utf8');
+  assert.equal(sha256Bytes(pointerBytes), sealed.sha256, 'the view pointer is exactly the CURRENT_CONTRACT sealed in state R0007');
+  const links = [];
+  const onPath = (relative) => [CURRENT_CONTRACT_POINTER_PATH, fullProductRoot].some((target) => target.startsWith(`${relative}/`));
+  const mirror = (relative) => {
+    fs.mkdirSync(path.join(viewRoot, relative), { recursive: true });
+    for (const entry of fs.readdirSync(path.join(liveRoot, relative), { withFileTypes: true })) {
+      const child = relative ? `${relative}/${entry.name}` : entry.name;
+      if (child === '.git' || child === CURRENT_CONTRACT_POINTER_PATH || child === fullProductRoot) continue;
+      const source = path.join(liveRoot, child);
+      const target = path.join(viewRoot, child);
+      if (entry.isDirectory() && onPath(child)) mirror(child);
+      else if (entry.isDirectory()) { fs.symlinkSync(source, target, 'junction'); links.push(target); }
+      else if (entry.isFile()) fs.copyFileSync(source, target);
+    }
+  };
+  mirror('');
+  fs.writeFileSync(path.join(viewRoot, CURRENT_CONTRACT_POINTER_PATH), pointerBytes);
+  const close = () => {
+    for (const link of links) { try { fs.unlinkSync(link); } catch { fs.rmdirSync(link); } }
+    if (links.every((link) => !fs.existsSync(link))) fs.rmSync(viewRoot, { recursive: true, force: true });
+  };
+  return { root: viewRoot, close };
+}
+const R0006_VIEW = openSealedR0006AuthorityView(ROOT, path.join(os.tmpdir(), 'wheel-gee', `gate26-r0006-authority-view-prebuild-${process.pid}`));
+const R0006_ROOT = R0006_VIEW.root;
+
+test.after(() => { fs.rmSync(WORK, { recursive: true, force: true }); R0006_VIEW.close(); });
 
 let shared = null;
 const cohort = () => {
-  shared ??= prepareRehearsalCohort({ root: ROOT, workRoot: path.join(WORK, 'cohort'), queryCount: 300, maxPrefixGroupSize: 16, retainUnits: true });
+  shared ??= prepareRehearsalCohort({ root: R0006_ROOT, workRoot: path.join(WORK, 'cohort'), queryCount: 300, maxPrefixGroupSize: 16, retainUnits: true });
   return shared;
 };
 const materialize = (runName, extra = {}, prepared = cohort()) => runPagedMaterialization({
-  root: ROOT, sourcePath: prepared.sourcePath, cohort: prepared.cohort, producer: prepared.producer, inputBinding: prepared.seed.inputBinding,
+  root: R0006_ROOT, sourcePath: prepared.sourcePath, cohort: prepared.cohort, producer: prepared.producer, inputBinding: prepared.seed.inputBinding,
   outputRoot: path.join(WORK, runName, 'product'), checkpointRoot: path.join(WORK, runName, 'checkpoint'), ...extra,
 });
 const productDigests = (runName) => {
@@ -67,7 +126,7 @@ test('POS-01: the exact 68562-query cohort derives from the canonical ordered GA
   const r04 = requirement('G26-PREBUILD-04');
   const indexInput = CONTRACT.requiredInputs.find((input) => input.role === 'CANONICAL_G25_QUERY_COHORT_LFS_CONTENT');
   const counters = {};
-  const derived = deriveCanonicalFullQueryCohort({ root: ROOT, counters });
+  const derived = deriveCanonicalFullQueryCohort({ root: R0006_ROOT, counters });
   const peakRssBytes = process.resourceUsage().maxRSS * 1024;
   assert.ok(peakRssBytes < derived.sourceByteLength, `streaming derivation peak RSS ${peakRssBytes} must stay below the ${derived.sourceByteLength}-byte source`);
 
@@ -108,35 +167,48 @@ test('POS-01: the exact 68562-query cohort derives from the canonical ordered GA
     bytesRead: bytes.length, chunks: Math.ceil(bytes.length / SOURCE_CHUNK_BYTES_V1), recordsScanned: r02.queryCount,
     idComparisons: r02.queryCount - 1, recordVerifications: r02.queryCount, digestUpdates: r02.queryCount,
   });
-  assert.equal(fs.existsSync(FULL_ROOT), false);
+  assertNoNonCanonicalFullBytes();
 });
 
-test('R0005-AUTH-POS: the explicit three-predicate law authorizes FULL while closure remains forbidden', () => {
-  const authority = loadFullPrebuildAuthority({ root: ROOT });
+test('R0005-AUTH-POS: the explicit three-predicate law, carried by R0006, authorizes FULL while closure remains forbidden', () => {
+  // Historical R0006 authority, on the sealed view: the live pointer has moved to R0007 (see G26-POSTBUILD-01).
+  const authority = loadFullPrebuildAuthority({ root: R0006_ROOT });
   assert.equal(authority.contract.sha256, sha256Bytes(CONTRACT_BYTES));
-  assert.equal(readJson(CURRENT_CONTRACT_POINTER_PATH).contractSha256, sha256Bytes(CONTRACT_BYTES));
+  assert.equal(authority.contract.revision, 'R0006');
+  assert.equal(JSON.parse(fs.readFileSync(path.resolve(R0006_ROOT, CURRENT_CONTRACT_POINTER_PATH), 'utf8')).contractSha256, sha256Bytes(CONTRACT_BYTES));
+  assert.equal(CONTRACT.previousContractSha256, sha256Bytes(R0005_BYTES));
   assert.deepEqual([...authority.authorizedPaths], CONTRACT.authorizedPaths);
-  assert.equal(CONTRACT.authorizedPaths.length, 13);
+  assert.equal(CONTRACT.authorizedPaths.length, 10 + 1073);
   assert.equal(authority.productFilesAuthorized, true);
   assert.equal(authority.productFilesAuthorized, CONTRACT.packagingRequirements.productFilesAuthorizedUnderThisRevision);
   assert.equal(authority.fullProductionAuthorized, true);
   assert.ok(!CONTRACT.forbiddenReplays.includes('GATE26 FULL production generation'));
   assert.equal(requirement('G26-PREBUILD-04').productionUnderR0005, 'AUTHORIZED');
   assert.equal(readJson(FULL_BINDING_ARTIFACT_PATHS_V1.GATE26_FULL_MANIFEST_V1).binding.productFilesAuthorizedUnderR0005, true);
+  // The pilot-era V1 producer binding stays byte-immutable and pilot-only; the V2 successor authorizes FULL.
   assert.equal(readJson('governance/gates/GATE26/contracts/GATE26_FULL_PRODUCTION_PRODUCER_V1.json').bindings.fullGenerationAuthorized, false);
+  assert.equal(readJson('governance/gates/GATE26/contracts/GATE26_FULL_PRODUCTION_PRODUCER_V2.json').bindings.fullGenerationAuthorized, true);
   assert.ok(assertFullBindingsMatchCode(authority));
   for (const file of Object.values(FULL_BINDING_ARTIFACT_PATHS_V1)) {
-    assert.ok(CONTRACT.authorizedPaths.includes(file), file);
-    assert.equal(readJson(file).authority.executionContractSha256, sha256Bytes(CONTRACT_BYTES));
+    // Carried unchanged: never re-authorized for writing, still bound to the R0005 contract that defined them.
+    assert.ok(!CONTRACT.authorizedPaths.includes(file), file);
+    assert.equal(readJson(file).authority.executionContractSha256, sha256Bytes(R0005_BYTES));
   }
   for (const file of [
     'governance/gates/GATE26/implementation/full-query-cohort-v1.mjs', 'governance/gates/GATE26/implementation/full-paged-materializer-v1.mjs',
-    'governance/gates/GATE26/implementation/full-checkpoint-v1.mjs', 'governance/gates/GATE26/implementation/full-consumer-v1.mjs',
+    'governance/gates/GATE26/implementation/full-checkpoint-v1.mjs',
     'governance/gates/GATE26/tests/gate26-full-prebuild.test.mjs', 'governance/gates/GATE26/tests/gate26-full-prebuild-hostiles.test.mjs',
-    PREBUILD_REHEARSAL_REPORT_PATH_V1,
   ]) {
     assert.ok(CONTRACT.authorizedPaths.includes(file), file);
   }
+  for (const file of ['governance/gates/GATE26/implementation/full-consumer-v1.mjs', PREBUILD_REHEARSAL_REPORT_PATH_V1]) {
+    assert.ok(!CONTRACT.authorizedPaths.includes(file), file);
+  }
+  assert.equal(authority.fullProductPaths.length, 1073);
+  assert.deepEqual([...authority.fullProductPaths], CONTRACT.authorizedPaths.slice(10));
+  assert.equal(authority.canonicalFull.intent, 'CANONICAL_FULL');
+  assert.equal(authority.canonicalFull.authorized, true);
+  assert.equal(authority.canonicalFull.maxBuilds, 1);
   assert.ok(CONTRACT.validators.some((command) => command.includes('gate26-full-prebuild.test.mjs') && command.includes('gate26-full-prebuild-hostiles.test.mjs')));
   assert.equal(FULL_LFS_RULE_V1, CONTRACT.packagingRequirements.lfsRule);
 });
@@ -167,7 +239,7 @@ test('POS-02: paired pages cover every query exactly once, ABSTAIN retained, ide
   assert.equal(Object.values(consumed.decisions).reduce((sum, count) => sum + count, 0), prepared.cohort.queryCount);
 
   const manifest = JSON.parse(fs.readFileSync(path.join(WORK, 'continuous', 'product', FULL_MANIFEST_FILE_V1), 'utf8'));
-  assert.equal(manifest.producedUnder.contractRevision, 'R0005');
+  assert.equal(manifest.producedUnder.contractRevision, 'R0006');
   assert.equal(manifest.producedUnder.contractSha256, sha256Bytes(CONTRACT_BYTES));
   for (const entry of manifest.pages) {
     assert.equal(files[entry.ensemble.path], entry.ensemble.sha256);
@@ -212,7 +284,7 @@ test('POS-02: a killed process (reboot) resumes in a new process from its durabl
     'const p = m.prepareRehearsalCohort({ root, workRoot, queryCount: 300, maxPrefixGroupSize: 16 });',
     "m.runPagedMaterialization({ root, sourcePath: p.sourcePath, cohort: p.cohort, producer: p.producer, inputBinding: p.seed.inputBinding, outputRoot: path.join(runRoot, 'product'), checkpointRoot: path.join(runRoot, 'checkpoint'), faultInjector: (point, page) => { if (point === 'AFTER_ENSEMBLE_PAGE' && page === 2) process.exit(137); } });",
   ].join('\n'));
-  const killed = spawnSync(process.execPath, [child, ROOT, path.join(WORK, 'reboot-cohort'), path.join(WORK, 'reboot')], { encoding: 'utf8' });
+  const killed = spawnSync(process.execPath, [child, R0006_ROOT, path.join(WORK, 'reboot-cohort'), path.join(WORK, 'reboot')], { encoding: 'utf8' });
   assert.equal(killed.status, 137, killed.stderr);
   const resumed = materialize('reboot');
   assert.equal(resumed.staleLockRecovered?.pid, killed.pid);
@@ -294,7 +366,9 @@ test('consumption-boundary extraction preserves the published MINI consumption r
 test('the PREBUILD rehearsal report is bounded, synthetic, resumable and PREBUILD-only', () => {
   const report = readJson(PREBUILD_REHEARSAL_REPORT_PATH_V1);
   assert.equal(report.schema, 'GATE26_FULL_PREBUILD_REHEARSAL_REPORT_V1');
-  assert.equal(report.authority.contractSha256, sha256Bytes(CONTRACT_BYTES));
+  // A historical R0003 rehearsal record: it binds the contract it ran under, never the current one.
+  assert.equal(report.authority.contractRevision, 'R0003');
+  assert.equal(report.authority.contractSha256, sha256Bytes(fs.readFileSync(path.resolve(ROOT, 'governance/gates/GATE26/contracts/EXECUTION_CONTRACT_R0003.json'))));
   assert.equal(report.authority.productFilesAuthorized, false);
   assert.equal(report.authority.fullProductionAuthorized, false);
   assert.equal(report.authority.fullProductBytesCreated, false);
@@ -319,7 +393,74 @@ test('the PREBUILD rehearsal report is bounded, synthetic, resumable and PREBUIL
   assert.deepEqual(report.closure, { agentClosureExecuted: false, externalConfirmationExecuted: false, independentAuditPassAssigned: false, phaseDAuthorized: false });
 });
 
-test('no FULL product path exists and no network call was attempted', () => {
-  assert.equal(fs.existsSync(FULL_ROOT), false);
+test('G26-POSTBUILD-01: R0007 consumed the R0006 FULL authority; the unchanged code refuses every live build, and the audited product, code identity and LFS transport are unchanged', () => {
+  const pointer = readJson(CURRENT_CONTRACT_POINTER_PATH);
+  const r0007Bytes = fs.readFileSync(path.resolve(ROOT, pointer.contractPath));
+  const r0007 = JSON.parse(r0007Bytes.toString('utf8'));
+  assert.equal(pointer.contractRevision, 'R0007');
+  assert.equal(pointer.contractSha256, sha256Bytes(r0007Bytes));
+  assert.equal(r0007.previousContractSha256, sha256Bytes(CONTRACT_BYTES));
+  const postbuild = r0007.canonicalRequirements.find((entry) => entry.requirementId === 'G26-POSTBUILD-01').binding;
+  assert.equal(postbuild.consumedAuthorityContractSha256, sha256Bytes(CONTRACT_BYTES));
+  assert.equal(postbuild.canonicalFullBuildsConsumed, requirement('G26-FULL-ENABLE-01').maxCanonicalFullBuilds);
+  assert.equal(postbuild.remainingCanonicalFullBuilds, 0);
+  assert.equal(postbuild.fullGenerationAuthorized, false);
+  assert.ok(!r0007.canonicalRequirements.some((entry) => entry.binding?.fullGenerationAuthorized === true), 'no R0007 requirement re-authorizes FULL generation');
+
+  // The existing R0005 law, read over R0007, refuses production: the consumed authority cannot be replayed.
+  const r0007Requirement = (id) => r0007.canonicalRequirements.find((entry) => entry.requirementId === id).binding;
+  refusesWith(() => evaluateR0005FullAuthorization({
+    packagingRequirements: r0007.packagingRequirements, requirementBinding: r0007Requirement('G26-PREBUILD-04'),
+    manifestBinding: readJson(FULL_BINDING_ARTIFACT_PATHS_V1.GATE26_FULL_MANIFEST_V1).binding, forbiddenReplays: r0007.forbiddenReplays,
+  }), 'R0005_FULL_PRODUCTION_REPLAY_FORBIDDEN');
+  // The unchanged production code refuses the live repository before reading or writing anything else.
+  refusesWith(() => loadFullPrebuildAuthority({ root: ROOT }), postbuild.expectedReplayRefusalCode);
+  refusesWith(() => deriveCanonicalFullQueryCohort({ root: ROOT }), postbuild.expectedReplayRefusalCode);
+  refusesWith(() => prepareRehearsalCohort({ root: ROOT, workRoot: path.join(WORK, 'live-refused'), queryCount: 300, maxPrefixGroupSize: 16 }), postbuild.expectedReplayRefusalCode);
+  const prepared = cohort();
+  refusesWith(() => runPagedMaterialization({
+    root: ROOT, sourcePath: prepared.sourcePath, cohort: prepared.cohort, producer: prepared.producer, inputBinding: prepared.seed.inputBinding,
+    outputRoot: path.join(WORK, 'live-refused', 'product'), checkpointRoot: path.join(WORK, 'live-refused', 'checkpoint'),
+  }), postbuild.expectedReplayRefusalCode);
+  assert.ok(!fs.existsSync(path.join(WORK, 'live-refused')), 'a refused live run leaves nothing behind');
+
+  // Audited code identity and product: byte-identical to the manifest the independent audit passed.
+  assert.equal(computeCodeIdentity({ root: ROOT }).sha256, postbuild.auditedCodeIdentitySha256);
+  const manifestBytes = fs.readFileSync(path.resolve(ROOT, postbuild.manifestPath));
+  assert.equal(sha256Bytes(manifestBytes), postbuild.manifestSha256);
+  const manifest = JSON.parse(manifestBytes.toString('utf8'));
+  assert.deepEqual(manifest.producedUnder, {
+    codeIdentitySha256: postbuild.auditedCodeIdentitySha256, contractRevision: 'R0006', contractSha256: sha256Bytes(CONTRACT_BYTES),
+    producerId: manifest.producedUnder.producerId,
+  });
+  const fullPaths = r0007.authorizedPaths.filter((file) => file.startsWith(`${postbuild.fullProductRoot}/`));
+  assert.equal(fullPaths.length, postbuild.fullProductPathCount);
+  assert.deepEqual(fs.readdirSync(FULL_ROOT).sort(), fullPaths.map((file) => file.slice(postbuild.fullProductRoot.length + 1)).sort());
+  let verifiedPages = 0;
+  for (const page of manifest.pages) {
+    for (const entry of [page.ensemble, page.provenance]) {
+      const bytes = fs.readFileSync(path.join(FULL_ROOT, entry.path));
+      assert.equal(bytes.length, entry.byteLength, entry.path);
+      assert.equal(sha256Bytes(bytes), entry.sha256, entry.path);
+      assert.equal(entry.lfsOid, entry.sha256, entry.path);
+      assert.ok(!bytes.subarray(0, 40).toString('utf8').startsWith('version https://git-lfs'), entry.path);
+      verifiedPages += 1;
+    }
+  }
+  assert.equal(1 + verifiedPages, postbuild.fullProductPathCount);
+
+  // Publication preparation reuses the existing FULL LFS rule: every audited path, and only those, resolves to it.
+  assert.equal(postbuild.lfsRule, FULL_LFS_RULE_V1);
+  const attributes = spawnSync('git', ['-C', ROOT, 'check-attr', '--stdin', 'filter'], { input: `${fullPaths.join('\n')}\n`, encoding: 'utf8' });
+  assert.equal(attributes.status, 0, attributes.stderr);
+  const filters = attributes.stdout.trimEnd().split(/\r?\n/);
+  assert.equal(filters.length, fullPaths.length);
+  assert.ok(filters.every((line) => line.endsWith(': filter: lfs')), 'every audited FULL path is LFS-tracked');
+  const ignored = spawnSync('git', ['-C', ROOT, 'check-ignore', '--stdin'], { input: `${fullPaths.join('\n')}\n`, encoding: 'utf8' });
+  assert.equal(ignored.stdout.trim(), '', 'no audited FULL path is ignored');
+});
+
+test('no non-canonical FULL product path exists and no network call was attempted', () => {
+  assertNoNonCanonicalFullBytes();
   assert.deepEqual(networkCalls, []);
 });

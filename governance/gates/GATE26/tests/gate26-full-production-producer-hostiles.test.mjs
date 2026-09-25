@@ -27,17 +27,19 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { createHash } from 'node:crypto';
+import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
+import { sha256Bytes } from '../../../tools/canonical-json.mjs';
 import { installNetworkTrap } from '../implementation/mini-fixture-v1.mjs';
-import { R0003_CONTRACT_PATH } from '../implementation/full-query-cohort-v1.mjs';
+import { CURRENT_CONTRACT_POINTER_PATH, R0003_CONTRACT_PATH, R0006_CONTRACT_PATH } from '../implementation/full-query-cohort-v1.mjs';
 import { FULL_CODE_IDENTITY_PATHS_V1, computeCodeIdentity } from '../implementation/full-checkpoint-v1.mjs';
 import {
-  EXECUTION_INTENTS_V1, PREBUILD_REHEARSAL_INTENT_V1, REAL_PILOT_INTENT_V1,
+  CANONICAL_FULL_INTENT_V1, EXECUTION_INTENTS_V1, PREBUILD_REHEARSAL_INTENT_V1, REAL_PILOT_INTENT_V1,
   prepareRehearsalCohort, runPagedMaterialization,
 } from '../implementation/full-paged-materializer-v1.mjs';
 import {
-  PRODUCER_BINDING_PATH_V1, RESOURCE_BUDGET_PATH_V1, REAL_PRODUCER_ID_V1,
+  PRODUCER_BINDING_PATH_V1, PRODUCER_BINDING_PATH_V2, RESOURCE_BUDGET_PATH_V1, RESOURCE_BUDGET_PATH_V2, REAL_PRODUCER_ID_V1,
   createResourceBudgetGuard, fullStartRamPreconditionState, loadResourceBudget,
   resetFullStartRamPrecondition, verifyProducerIdentity,
 } from '../implementation/full-production-producer-v1.mjs';
@@ -45,22 +47,79 @@ import {
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../../..');
 const CONTRACT = JSON.parse(fs.readFileSync(path.resolve(ROOT, R0003_CONTRACT_PATH), 'utf8'));
 const FULL_ROOT = path.resolve(ROOT, CONTRACT.packagingRequirements.fullProductRoot);
+// R0006: the FULL root may hold only the exact enumerated canonical pathset; nothing a test runs may add to it.
+const CANONICAL_FULL_NAMES = new Set(CONTRACT.authorizedPaths
+  .filter((file) => file.startsWith(`${CONTRACT.packagingRequirements.fullProductRoot}/`))
+  .map((file) => file.slice(CONTRACT.packagingRequirements.fullProductRoot.length + 1)));
+const assertNoNonCanonicalFullBytes = () => {
+  if (!fs.existsSync(FULL_ROOT)) return;
+  for (const entry of fs.readdirSync(FULL_ROOT, { withFileTypes: true })) {
+    assert.ok(entry.isFile() && CANONICAL_FULL_NAMES.has(entry.name), `no non-canonical FULL product path may exist: ${entry.name}`);
+  }
+};
 const networkCalls = installNetworkTrap();
 const WORK = path.join(os.tmpdir(), 'wheel-gee', `gate26-real-producer-hostiles-${process.pid}`);
 
 const refusesWith = (fn, code) => assert.throws(fn, (error) => error?.code === code, `expected ${code}`);
-const noFullRoot = () => assert.equal(fs.existsSync(FULL_ROOT), false, 'no FULL product path may exist');
+const noFullRoot = assertNoNonCanonicalFullBytes;
 const readJson = (relative) => JSON.parse(fs.readFileSync(path.resolve(ROOT, relative), 'utf8'));
 const sha256OfFile = (relative) => createHash('sha256').update(fs.readFileSync(path.resolve(ROOT, relative))).digest('hex');
 
-test.after(() => { fs.rmSync(WORK, { recursive: true, force: true }); });
+/**
+ * R0007 consumed the single R0006 canonical FULL build authority. The unchanged, audited production code
+ * pins R0006 and therefore refuses the live repository (CURRENT_CONTRACT_NOT_R0006): that refusal is the
+ * expected post-build behaviour. The historical R0006 behaviour is still exercised, on a read-only view of
+ * the repository that differs only by its CURRENT_CONTRACT pointer. That pointer is rebuilt from the R0006
+ * contract and ledger event 117 and accepted only if it equals the pointer sealed in state R0007. The FULL
+ * product root and .git are never linked into the view, so nothing run against it can reach the audited
+ * product or the index; links are removed one by one before the view directory itself is deleted.
+ */
+function openSealedR0006AuthorityView(liveRoot, viewRoot) {
+  const fullProductRoot = 'data/jarvise/predictive-ensemble/GATE26/V1/FULL';
+  const read = (relative) => fs.readFileSync(path.resolve(liveRoot, relative));
+  const sealed = JSON.parse(read('governance/gates/GATE26/state/revisions/R0007/STATE_SEAL.json').toString('utf8'))
+    .sealedMembers.find((member) => member.repoRelativePath === CURRENT_CONTRACT_POINTER_PATH);
+  const event117 = read('governance/state/GATE_STATUS_LEDGER.ndjson').toString('utf8').trimEnd().split('\n')
+    .map((line) => JSON.parse(line)).find((event) => event.eventId === 'GATE26_CONTRACT_SUCCESSION_R0006_R1');
+  assert.equal(event117.ordinal, 117);
+  const pointerBytes = Buffer.from(`${JSON.stringify({
+    schemaVersion: 1, gateId: 'GATE26', contractRevision: 'R0006', contractPath: R0006_CONTRACT_PATH,
+    contractSha256: sha256Bytes(read(R0006_CONTRACT_PATH)), activatedByEventId: event117.eventId,
+  }, null, 2)}\n`, 'utf8');
+  assert.equal(sha256Bytes(pointerBytes), sealed.sha256, 'the view pointer is exactly the CURRENT_CONTRACT sealed in state R0007');
+  const links = [];
+  const onPath = (relative) => [CURRENT_CONTRACT_POINTER_PATH, fullProductRoot].some((target) => target.startsWith(`${relative}/`));
+  const mirror = (relative) => {
+    fs.mkdirSync(path.join(viewRoot, relative), { recursive: true });
+    for (const entry of fs.readdirSync(path.join(liveRoot, relative), { withFileTypes: true })) {
+      const child = relative ? `${relative}/${entry.name}` : entry.name;
+      if (child === '.git' || child === CURRENT_CONTRACT_POINTER_PATH || child === fullProductRoot) continue;
+      const source = path.join(liveRoot, child);
+      const target = path.join(viewRoot, child);
+      if (entry.isDirectory() && onPath(child)) mirror(child);
+      else if (entry.isDirectory()) { fs.symlinkSync(source, target, 'junction'); links.push(target); }
+      else if (entry.isFile()) fs.copyFileSync(source, target);
+    }
+  };
+  mirror('');
+  fs.writeFileSync(path.join(viewRoot, CURRENT_CONTRACT_POINTER_PATH), pointerBytes);
+  const close = () => {
+    for (const link of links) { try { fs.unlinkSync(link); } catch { fs.rmdirSync(link); } }
+    if (links.every((link) => !fs.existsSync(link))) fs.rmSync(viewRoot, { recursive: true, force: true });
+  };
+  return { root: viewRoot, close };
+}
+const R0006_VIEW = openSealedR0006AuthorityView(ROOT, path.join(os.tmpdir(), 'wheel-gee', `gate26-r0006-authority-view-producer-hostiles-${process.pid}`));
+const R0006_ROOT = R0006_VIEW.root;
+
+test.after(() => { fs.rmSync(WORK, { recursive: true, force: true }); R0006_VIEW.close(); });
 
 /* ------------------------------------------------------------------ fixtures */
 
 let cohortCache = null;
 const cohort = () => {
   cohortCache ??= prepareRehearsalCohort({
-    root: ROOT, workRoot: path.join(WORK, 'cohort'), queryCount: 300, maxPrefixGroupSize: 16, retainUnits: true,
+    root: R0006_ROOT, workRoot: path.join(WORK, 'cohort'), queryCount: 300, maxPrefixGroupSize: 16, retainUnits: true,
   });
   return cohortCache;
 };
@@ -68,7 +127,7 @@ const cohort = () => {
 const materialize = (runName, extra = {}) => {
   const prepared = cohort();
   return runPagedMaterialization({
-    root: ROOT, sourcePath: prepared.sourcePath, cohort: prepared.cohort, producer: prepared.producer,
+    root: R0006_ROOT, sourcePath: prepared.sourcePath, cohort: prepared.cohort, producer: prepared.producer,
     inputBinding: prepared.seed.inputBinding,
     outputRoot: path.join(WORK, runName, 'product'), checkpointRoot: path.join(WORK, runName, 'checkpoint'),
     ...extra,
@@ -114,7 +173,7 @@ test('H3: an unknown or absent execution intent fails closed and is never defaul
   for (const intent of ['REAL', 'real_pilot', '', null, 'FULL_PRODUCTION']) {
     refusesWith(() => materialize('h3', { executionIntent: intent }), 'EXECUTION_INTENT_INVALID');
   }
-  assert.deepEqual([...EXECUTION_INTENTS_V1], [PREBUILD_REHEARSAL_INTENT_V1, REAL_PILOT_INTENT_V1]);
+  assert.deepEqual([...EXECUTION_INTENTS_V1], [PREBUILD_REHEARSAL_INTENT_V1, REAL_PILOT_INTENT_V1, CANONICAL_FULL_INTENT_V1]);
   noFullRoot();
 });
 
@@ -122,6 +181,15 @@ test('H4: the default intent stays PREBUILD_REHEARSAL, so an omitted intent cann
   const run = materialize('h4');
   assert.equal(run.executionIntent, PREBUILD_REHEARSAL_INTENT_V1);
   assert.equal(run.resourceSnapshot, null);
+  noFullRoot();
+});
+
+test('H4b: CANONICAL_FULL cannot be bluffed by a synthetic producer or pointed at a non-canonical cohort', () => {
+  refusesWith(() => materialize('h4b-synthetic', { executionIntent: CANONICAL_FULL_INTENT_V1, resourceGuard: guardWith({}) }),
+    'REAL_EXECUTION_REQUIRES_REAL_PRODUCER');
+  refusesWith(() => materialize('h4b-cohort', { executionIntent: CANONICAL_FULL_INTENT_V1, producer: impersonatingProducer(), resourceGuard: guardWith({}) }),
+    'CANONICAL_FULL_REQUIRES_CANONICAL_COHORT');
+  for (const runName of ['h4b-synthetic', 'h4b-cohort']) assert.equal(fs.existsSync(path.join(WORK, runName, 'product')), false);
   noFullRoot();
 });
 
@@ -254,25 +322,33 @@ test('H12: an unavailable or malformed measurement is refused, never treated as 
 /* ------------------------------- H13: the accepted budget document cannot be softened */
 
 test('H13: a loosened, reshaped or re-sourced resource budget fails closed', () => {
-  const budget = readJson(RESOURCE_BUDGET_PATH_V1);
+  const budget = readJson(RESOURCE_BUDGET_PATH_V2);
   const withBinding = (mutate) => {
     const copy = JSON.parse(JSON.stringify(budget));
     mutate(copy);
-    const file = path.join(WORK, 'budget', 'GATE26_FULL_RESOURCE_BUDGET_V1.json');
+    const file = path.join(WORK, 'budget', 'GATE26_FULL_RESOURCE_BUDGET_V2.json');
     fs.mkdirSync(path.dirname(file), { recursive: true });
     fs.writeFileSync(file, JSON.stringify(copy, null, 2));
     return () => {
       // loadResourceBudget resolves the path under `root`, so a fake root whose only
       // content is the mutated document exercises the loader on those bytes alone.
+      // The byte-immutable V1 predecessor rides along unchanged, so the no-loosening proof is exercised too.
       const fakeRoot = path.join(WORK, 'fakeroot');
-      const target = path.resolve(fakeRoot, RESOURCE_BUDGET_PATH_V1);
+      const target = path.resolve(fakeRoot, RESOURCE_BUDGET_PATH_V2);
       fs.mkdirSync(path.dirname(target), { recursive: true });
       fs.copyFileSync(file, target);
+      fs.copyFileSync(path.resolve(ROOT, RESOURCE_BUDGET_PATH_V1), path.resolve(fakeRoot, RESOURCE_BUDGET_PATH_V1));
       return loadResourceBudget({ root: fakeRoot });
     };
   };
 
-  refusesWith(withBinding((b) => { b.fullGenerationAuthorized = true; }), 'RESOURCE_BUDGET_BINDING_INVALID');
+  assert.equal(withBinding(() => {})().fullGenerationAuthorized, true);
+  refusesWith(withBinding((b) => { b.fullGenerationAuthorized = false; }), 'RESOURCE_BUDGET_BINDING_INVALID');
+  refusesWith(withBinding((b) => { b.bindingId = 'GATE26_FULL_RESOURCE_BUDGET_V1'; }), 'RESOURCE_BUDGET_BINDING_INVALID');
+  refusesWith(withBinding((b) => { b.supersedes.sha256 = 'e'.repeat(64); }), 'RESOURCE_BUDGET_BINDING_INVALID');
+  refusesWith(withBinding((b) => { b.limits.maximumRssBeforeNextPairBytes *= 2; }), 'RESOURCE_BUDGET_THRESHOLD_LOOSENING_FORBIDDEN');
+  refusesWith(withBinding((b) => { b.limits.minimumRamFreeAtFullStartBytes -= 1; }), 'RESOURCE_BUDGET_THRESHOLD_LOOSENING_FORBIDDEN');
+  refusesWith(withBinding((b) => { b.limits.absoluteMaximumRuntimeMs += 1; }), 'RESOURCE_BUDGET_THRESHOLD_LOOSENING_FORBIDDEN');
   refusesWith(withBinding((b) => { b.source = 'HOST_OBSERVATION'; }), 'RESOURCE_BUDGET_BINDING_INVALID');
   refusesWith(withBinding((b) => { b.measurementPolicy.hostObservationsAreAuthority = true; }), 'RESOURCE_BUDGET_MEASUREMENT_POLICY_INVALID');
   refusesWith(withBinding((b) => { b.measurementPolicy.thresholdLooseningInThisMission = 'ALLOWED'; }), 'RESOURCE_BUDGET_MEASUREMENT_POLICY_INVALID');
@@ -289,18 +365,24 @@ test('H13: a loosened, reshaped or re-sourced resource budget fails closed', () 
 test('H14: the published producer binding verifies against the bytes actually on disk', () => {
   const verified = verifyProducerIdentity({ root: ROOT });
   assert.equal(verified.verified, true);
-  const binding = readJson(PRODUCER_BINDING_PATH_V1);
+  const binding = readJson(PRODUCER_BINDING_PATH_V2);
   assert.equal(binding.producerId, REAL_PRODUCER_ID_V1);
   assert.equal(binding.synthetic, false);
   assert.equal(binding.productionClass, 'REAL_PRODUCTION');
-  assert.equal(binding.bindings.fullGenerationAuthorized, false);
+  assert.equal(binding.bindingId, 'GATE26_FULL_PRODUCTION_PRODUCER_V2');
+  assert.equal(binding.bindings.fullGenerationAuthorized, true);
+  assert.equal(binding.bindings.executionIntent, 'CANONICAL_FULL');
+  assert.equal(binding.bindings.resourceBudgetPath, RESOURCE_BUDGET_PATH_V2);
+  // The pilot-era V1 binding stays byte-immutable, pilot-only, and is no longer what the producer loads.
+  assert.equal(readJson(PRODUCER_BINDING_PATH_V1).bindings.fullGenerationAuthorized, false);
+  refusesWith(() => verifyProducerIdentity({ root: ROOT, binding: readJson(PRODUCER_BINDING_PATH_V1) }), 'REAL_PRODUCER_BINDING_INVALID');
   assert.equal(binding.bindings.networkAuthorized, false);
   assert.equal(binding.bindings.yahooAuthorized, false);
   assert.ok(binding.dependencies.length > 0 && binding.frozenInputs.length > 0);
 });
 
 test('H15: a substituted dependency digest or a tampered identity digest fails closed', () => {
-  const binding = readJson(PRODUCER_BINDING_PATH_V1);
+  const binding = readJson(PRODUCER_BINDING_PATH_V2);
   const mutated = (mutate) => { const copy = JSON.parse(JSON.stringify(binding)); mutate(copy); return copy; };
 
   refusesWith(() => verifyProducerIdentity({
@@ -327,8 +409,13 @@ test('H15: a substituted dependency digest or a tampered identity digest fails c
   // the digest covers the bindings block, not only the file lists.
   refusesWith(() => verifyProducerIdentity({
     root: ROOT,
-    binding: mutated((b) => { b.bindings.fullGenerationAuthorized = true; }),
+    binding: mutated((b) => { b.bindings.networkAuthorized = true; }),
   }), 'REAL_PRODUCER_IDENTITY_DIGEST_MISMATCH');
+  // A V2 binding stripped of its FULL authorization is refused outright, digest or not.
+  refusesWith(() => verifyProducerIdentity({
+    root: ROOT,
+    binding: mutated((b) => { b.bindings.fullGenerationAuthorized = false; }),
+  }), 'REAL_PRODUCER_BINDING_INVALID');
 
   refusesWith(() => verifyProducerIdentity({
     root: ROOT,
@@ -337,7 +424,7 @@ test('H15: a substituted dependency digest or a tampered identity digest fails c
 });
 
 test('H16: a producer binding that declares itself synthetic, foreign or non-closed fails closed', () => {
-  const binding = readJson(PRODUCER_BINDING_PATH_V1);
+  const binding = readJson(PRODUCER_BINDING_PATH_V2);
   const mutated = (mutate) => { const copy = JSON.parse(JSON.stringify(binding)); mutate(copy); return copy; };
 
   for (const mutate of [
@@ -366,8 +453,8 @@ test('H16: a producer binding that declares itself synthetic, foreign or non-clo
 test('H17: the FULL code identity binds the real producer and its two documents, and refuses a missing member', () => {
   for (const required of [
     'governance/gates/GATE26/implementation/full-production-producer-v1.mjs',
-    'governance/gates/GATE26/contracts/GATE26_FULL_PRODUCTION_PRODUCER_V1.json',
-    'governance/gates/GATE26/contracts/GATE26_FULL_RESOURCE_BUDGET_V1.json',
+    'governance/gates/GATE26/contracts/GATE26_FULL_PRODUCTION_PRODUCER_V2.json',
+    'governance/gates/GATE26/contracts/GATE26_FULL_RESOURCE_BUDGET_V2.json',
   ]) {
     assert.ok(FULL_CODE_IDENTITY_PATHS_V1.includes(required), `code identity must bind ${required}`);
   }
@@ -383,12 +470,21 @@ test('H17: the FULL code identity binds the real producer and its two documents,
 /* ------------------------------------ H18: no FULL bytes, no network, no Yahoo, ever */
 
 test('H18: a real execution intent still cannot write into the canonical FULL root', () => {
+  // Historical R0006 authority: root and FULL target are both taken from the sealed view.
+  refusesWith(() => runPagedMaterialization({
+    root: R0006_ROOT, sourcePath: cohort().sourcePath, cohort: cohort().cohort, producer: impersonatingProducer(),
+    inputBinding: cohort().seed.inputBinding,
+    outputRoot: path.join(R0006_ROOT, CONTRACT.packagingRequirements.fullProductRoot, 'attack'), checkpointRoot: path.join(WORK, 'h18', 'checkpoint'),
+    executionIntent: REAL_PILOT_INTENT_V1, resourceGuard: guardWith({}),
+  }), 'R0003_FULL_PRODUCT_WRITE_FORBIDDEN');
+  // R0007: against the live repository the consumed authority refuses the attempt before anything else.
   refusesWith(() => runPagedMaterialization({
     root: ROOT, sourcePath: cohort().sourcePath, cohort: cohort().cohort, producer: impersonatingProducer(),
     inputBinding: cohort().seed.inputBinding,
-    outputRoot: path.join(FULL_ROOT, 'attack'), checkpointRoot: path.join(WORK, 'h18', 'checkpoint'),
-    executionIntent: REAL_PILOT_INTENT_V1, resourceGuard: guardWith({}),
-  }), 'R0003_FULL_PRODUCT_WRITE_FORBIDDEN');
+    outputRoot: path.join(FULL_ROOT, 'attack'), checkpointRoot: path.join(WORK, 'h18-live', 'checkpoint'),
+    executionIntent: CANONICAL_FULL_INTENT_V1, resourceGuard: guardWith({}),
+  }), 'CURRENT_CONTRACT_NOT_R0006');
+  assert.ok(!fs.existsSync(path.join(FULL_ROOT, 'attack')) && !fs.existsSync(path.join(WORK, 'h18-live')));
   noFullRoot();
 });
 
@@ -501,20 +597,74 @@ test('H22: raising the ceiling in the binding without recomputing identity fails
   // A budget edited on disk must break the producer identity that pins its bytes, so
   // a silent loosening cannot ride along inside a candidate that still claims to be
   // the audited one.
-  const binding = readJson(PRODUCER_BINDING_PATH_V1);
-  const budgetEntry = binding.frozenInputs.find((e) => e.path === RESOURCE_BUDGET_PATH_V1);
+  const binding = readJson(PRODUCER_BINDING_PATH_V2);
+  const budgetEntry = binding.frozenInputs.find((e) => e.path === RESOURCE_BUDGET_PATH_V2);
   assert.ok(budgetEntry, 'the resource budget must be a pinned frozen input');
 
   const tampered = JSON.parse(JSON.stringify(binding));
-  tampered.frozenInputs.find((e) => e.path === RESOURCE_BUDGET_PATH_V1).sha256 = 'c'.repeat(64);
+  tampered.frozenInputs.find((e) => e.path === RESOURCE_BUDGET_PATH_V2).sha256 = 'c'.repeat(64);
   refusesWith(() => verifyProducerIdentity({ root: ROOT, binding: tampered }), 'REAL_PRODUCER_DEPENDENCY_IDENTITY_MISMATCH');
 
   // And the binding as published does verify against the budget bytes now on disk.
   assert.equal(verifyProducerIdentity({ root: ROOT }).verified, true);
-  assert.equal(budgetEntry.sha256, sha256OfFile(RESOURCE_BUDGET_PATH_V1));
+  assert.equal(budgetEntry.sha256, sha256OfFile(RESOURCE_BUDGET_PATH_V2));
 });
 
 test('H19: no network call and no Yahoo access was attempted by any of these tests', () => {
   assert.deepEqual(networkCalls, []);
   noFullRoot();
+});
+
+/* ------------- H23: the canonical FULL process runs under a V8 heap bounded below the budget */
+
+/**
+ * GATE26_FULL_BUILD_HEAP_GROWTH_DIAGNOSIS_AND_REPAIR_R1. Canonical build R1 stopped with
+ * RESOURCE_HEAP_LIMIT_BREACH at pair 163. Measured over 220 real pairs, the retained live set
+ * after a full GC is flat (~312 MB); what crossed 1 GiB was collectable garbage, because the
+ * default V8 ceiling on the host (~4.5 GB) lets V8 defer full collections far past the budget's
+ * heapUsed limit, and the guard samples heapUsed without forcing a GC. The repair is the launch
+ * contract below, not code: every FULL code-identity member stays byte-identical, so the R1
+ * checkpoint run identity and its committed pairs remain resumable. Under these flags V8's hard
+ * ceiling sits below maximumHeapUsedBytes, so a sampled heapUsed cannot reach the limit; V8
+ * collects first, and a genuine live-set overflow aborts the process instead (resumable).
+ */
+export const GOVERNED_CANONICAL_FULL_NODE_FLAGS = Object.freeze(['--max-old-space-size=960', '--max-semi-space-size=16']);
+
+const runChild = (flags, source) => {
+  const child = spawnSync(process.execPath, [...flags, '-e', source], { encoding: 'utf8', timeout: 120000 });
+  assert.equal(child.status, 0, child.stderr);
+  return JSON.parse(child.stdout);
+};
+const runBoundedChild = (source) => runChild(GOVERNED_CANONICAL_FULL_NODE_FLAGS, source);
+
+test('H23: the governed launch flags put the V8 hard heap ceiling below the budget heapUsed limit', () => {
+  const { maximumHeapUsedBytes } = loadResourceBudget({ root: ROOT }).limits;
+  const { heapSizeLimit } = runBoundedChild("process.stdout.write(JSON.stringify({ heapSizeLimit: require('v8').getHeapStatistics().heap_size_limit }))");
+  assert.ok(heapSizeLimit < maximumHeapUsedBytes, `V8 ceiling ${heapSizeLimit} must stay below ${maximumHeapUsedBytes}`);
+  // The flags only bound the process; they are not a code-identity member and change no page byte.
+  for (const member of FULL_CODE_IDENTITY_PATHS_V1) assert.ok(!member.includes('flags'), member);
+});
+
+test('H23b: under the governed flags, a garbage-heavy workload over a stable live set never samples heapUsed at the limit', () => {
+  const { maximumHeapUsedBytes } = loadResourceBudget({ root: ROOT }).limits;
+  // ~312 MB retained (the measured canonical live set), plus page-lifetime garbage: each page's
+  // objects outlive a few pages (so they are promoted to old space, as page records are) and then
+  // die. heapUsed is sampled without any forced GC, exactly as the resource guard samples.
+  const workload = `
+    const live = []; for (let i = 0; i < 312; i += 1) live.push(new Array(131072).fill(i));
+    const ring = new Array(4).fill(null); let maxHeapUsed = 0;
+    for (let page = 0; page < 300; page += 1) {
+      const block = []; for (let j = 0; j < 8; j += 1) block.push(Array.from({ length: 16384 }, (_, k) => ({ page, j, k })));
+      ring[page % 4] = block;
+      maxHeapUsed = Math.max(maxHeapUsed, process.memoryUsage().heapUsed);
+    }
+    process.stdout.write(JSON.stringify({ maxHeapUsed, liveBlocks: live.length }));
+  `;
+  const bounded = runBoundedChild(workload);
+  assert.equal(bounded.liveBlocks, 312);
+  assert.ok(bounded.maxHeapUsed < maximumHeapUsedBytes, `sampled heapUsed ${bounded.maxHeapUsed} must stay below ${maximumHeapUsedBytes}`);
+  // Non-vacuity: under a wide ceiling like the host default, the SAME workload samples past the
+  // limit with no retention at all. That is the R1 failure shape the governed flags remove.
+  const unbounded = runChild(['--max-old-space-size=4096'], workload);
+  assert.ok(unbounded.maxHeapUsed >= maximumHeapUsedBytes, `control must cross the limit, observed ${unbounded.maxHeapUsed}`);
 });

@@ -1,0 +1,72 @@
+{
+  "documentKind": "MAINTENANCE_PUBLICATION_ADMISSION",
+  "schemaVersion": 1,
+  "authorityMode": "LOCAL_EXPLICIT_AUTHORITY",
+  "issuedBy": "PROJECT_OWNER",
+  "admissionId": "GATE26_SAME_GATE_PROTECTED_HASH_CARRY_FORWARD_PUBLICATION_R1_PUBLICATION_ADMISSION_R1",
+  "decisionId": "OWNER_AUTHORIZE_GATE26_SAME_GATE_PROTECTED_HASH_CARRY_FORWARD_PUBLICATION_R1",
+  "issuedAtUtc": "2026-09-25T04:00:00.000Z",
+  "expiresAtUtc": null,
+  "projectId": "WHEEL",
+  "repositoryId": "WHEEL_MCP_CANONICAL",
+  "gateId": "GATE26",
+  "programId": "GATE26_SAME_GATE_PROTECTED_HASH_CARRY_FORWARD_PUBLICATION_R1",
+  "purpose": "MAINTENANCE_PUBLICATION_ADMISSION",
+  "publicationClass": "PATH_PRESTATE_PROGRAM_PUBLISHER",
+  "authorityPurpose": "NORMAL_MAINTENANCE",
+  "maxUse": 1,
+  "admissionStatement": "Admit exactly one local V2 publication of the five-path same-gate protected-hash carry-forward change. The present residual is empty, so the maintenance bootstrap primitive does not consume a repair.",
+  "admittedAuthority": {
+    "path": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_GATE26_SAME_GATE_PROTECTED_HASH_CARRY_FORWARD_PUBLICATION_R1.json",
+    "sha256": "aa86df08eed507dabc58839a2b9cf1701d442729a0ff41e30aca2f434f3adfdd",
+    "byteLength": 2426,
+    "schemaVersion": 2,
+    "documentId": "GATE26_SAME_GATE_PROTECTED_HASH_CARRY_FORWARD_PUBLICATION_R1_LOCAL_AUTHORITY_R1"
+  },
+  "admittedManifest": {
+    "path": "governance/historical-architecture/GATE26_SAME_GATE_PROTECTED_HASH_CARRY_FORWARD_PUBLICATION_R1_AUTHORIZED_PATHS_R1.json",
+    "sha256": "a3949c9c971c9ee11d271b4b838548e73b46d88e39ca5aaf8e403c9cc379a14e",
+    "byteLength": 3003,
+    "schemaVersion": 2,
+    "documentId": "GATE26_SAME_GATE_PROTECTED_HASH_CARRY_FORWARD_PUBLICATION_R1_AUTHORIZED_PATHS_R1"
+  },
+  "admittedPrestate": {
+    "baseHead": "b1f9b080d448dfe5a6b25523f08c11808466d5f1",
+    "ledgerEventCount": 115,
+    "ledgerPrefixSha256": "61f81decc5f3845cecc4fab1906447a3e1036f9a45ca91c471b0ab89c0925738",
+    "gateId": "GATE26",
+    "gateStatus": "IN_PROGRESS",
+    "stateRevision": "R0005",
+    "contractRevision": "R0004",
+    "activeGate": "GATE13",
+    "R8ExpectedAbsent": true
+  },
+  "admittedOperationClasses": [
+    "MAINTENANCE"
+  ],
+  "grantsFutureBytePermission": false,
+  "grantsGateAuthorizationPermission": false,
+  "grantsStartPermission": false,
+  "grantsStatusTransitionPermission": false,
+  "grantsHistoricalAdmissionWidening": false,
+  "genericV1Admission": false,
+  "derivedFromGitDelta": false,
+  "derivedFromFinalGateIntegrityFindings": false,
+  "prohibitedOperations": [
+    "START",
+    "SECOND_START",
+    "GATE_AUTHORIZATION",
+    "STATUS_TRANSITION",
+    "ACTIVE_GATE_SWITCH",
+    "GEE_R8",
+    "GIT_PUSH",
+    "HISTORY_REWRITE",
+    "GENERIC_V1_ADMISSION",
+    "HISTORICAL_ADMISSION_WIDENING",
+    "SELF_ADMISSION"
+  ],
+  "successorRequirement": "A later publication over changed bytes or state requires a new exact Owner admission.",
+  "admissionDigest": "97c9647649d79a3264b475de0dcce6acea2fc90f3116cf8aa99e2f27f71e657b",
+  "ownerAuthorizationPath": "governance/sources/MAINTENANCE_PUBLICATION_ADMISSION_OWNER_AUTHORIZATION_GATE26_SAME_GATE_PROTECTED_HASH_CARRY_FORWARD_PUBLICATION_R1.json",
+  "ownerAuthorizationSha256": "44fd1607fce7e0c32fc37bd5520a84c0a64319d850583fc8060cb0b3da850a52"
+}

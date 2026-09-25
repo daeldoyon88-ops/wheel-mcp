@@ -257,8 +257,101 @@ function buildFixture() {
     protectedHash: { path: PROTECTED_PATH, sha256: oldSha256 },
     r1,
     r2,
+    ledgerEvents: [...prefix.events, succession],
+    successorContractSha256,
+    successorPointerSha256,
     paths: { predecessorContractPath, successorContractPath, currentContractPath, currentStatePath }
   };
+}
+
+const CARRY_AUTHORITY_PATH = `governance/authority/authorizations/${GATE_ID}/GATE_CONTRACT_SUCCESSION_LOCAL_AUTHORITY_R0003.json`;
+const THIRD_BYTES = 'generic protected resource v3\n';
+
+/**
+ * Same-gate carry-forward fixture: R0001(old) -> R0002(authorized replacement)
+ * -> R0003(replacement carried unchanged by a later ordinary contract succession).
+ */
+function buildCarryForwardFixture({ carriedCheckpointSha256 = null, carriedContractPinSha256 = null } = {}) {
+  const fixture = buildFixture();
+  const { root } = fixture;
+  const carriedCheckpoint = carriedCheckpointSha256 ?? fixture.newSha256;
+  const carriedPin = carriedContractPinSha256 ?? carriedCheckpoint;
+  const contractPath = `governance/gates/${GATE_ID}/contracts/EXECUTION_CONTRACT_R0003.json`;
+  writeJson(root, contractPath, {
+    gateId: GATE_ID,
+    contractRevision: 'R0003',
+    previousContractPath: fixture.paths.successorContractPath,
+    previousContractSha256: fixture.successorContractSha256,
+    requiredInputs: [{ path: PROTECTED_PATH, sha256: carriedPin, role: 'PROTECTED_INPUT' }]
+  });
+  const contractSha256 = sha(fs.readFileSync(abs(root, contractPath)));
+  const pointer = {
+    schemaVersion: 1,
+    gateId: GATE_ID,
+    contractRevision: 'R0003',
+    contractPath,
+    contractSha256,
+    activatedByEventId: 'FC02_CONTRACT_SUCCESSION_R0003'
+  };
+  const r3 = writeRevision({
+    root,
+    revision: 'R0003',
+    checkpoint: {
+      ...readJson(root, fixture.r2.checkpointPath),
+      stateRevision: 'R0003',
+      protectedHashes: [{ path: PROTECTED_PATH, sha256: carriedCheckpoint }]
+    },
+    currentContractPointer: pointer,
+    contractSha256,
+    previousStateSealSha256: fixture.r2.sealSha256
+  });
+  const pointerSha256 = sha(fs.readFileSync(abs(root, fixture.paths.currentContractPath)));
+  const head = fixture.ledgerEvents.at(-1);
+  const prefixBytes = Buffer.from(`${fixture.ledgerEvents.map(canonicalize).join('\n')}\n`, 'utf8');
+  writeJson(root, CARRY_AUTHORITY_PATH, {
+    ...readJson(root, AUTHORITY_PATH),
+    authorityId: 'FC02_GENERIC_CONTRACT_SUCCESSION_LOCAL_AUTHORITY_R0003',
+    reason: 'Generic protected-hash carry-forward fixture.',
+    preLedgerEventCount: fixture.ledgerEvents.length,
+    preLedgerPrefixSha256: sha(prefixBytes),
+    predecessorContractPath: fixture.paths.successorContractPath,
+    predecessorContractSha256: fixture.successorContractSha256,
+    predecessorContractRevision: 'R0002',
+    successorContractPath: contractPath,
+    successorContractSha256: contractSha256,
+    successorContractRevision: 'R0003',
+    predecessorCurrentContractSha256: fixture.successorPointerSha256,
+    successorCurrentContractSha256: pointerSha256,
+    previousStateSealSha256: fixture.r2.sealSha256,
+    successorStateRevision: 'R0003',
+    ledgerHeadEventId: head.eventId,
+    ledgerHeadEventPayloadSha256: head.eventPayloadSha256
+  });
+  const carry = event({
+    schemaVersion: 1,
+    ordinal: head.ordinal + 1,
+    eventId: 'FC02_CONTRACT_SUCCESSION_R0003',
+    gateId: GATE_ID,
+    fromStatus: 'IN_PROGRESS',
+    toStatus: 'IN_PROGRESS',
+    transitionType: 'CONTRACT_SUCCESSION',
+    authorityPath: CARRY_AUTHORITY_PATH,
+    authoritySha256: sha(fs.readFileSync(abs(root, CARRY_AUTHORITY_PATH))),
+    previousEventSha256: head.eventPayloadSha256,
+    recordedAt: '2026-09-01T00:04:00.000Z',
+    stateRevision: 'R0003',
+    stateRevisionSealSha256: r3.sealSha256
+  });
+  writeBytes(root, LEDGER_PATH, `${[...fixture.ledgerEvents, carry].map(canonicalize).join('\n')}\n`);
+  writeJson(root, fixture.paths.currentStatePath, {
+    schemaVersion: 1,
+    gateId: GATE_ID,
+    stateRevision: 'R0003',
+    revisionPath: `governance/gates/${GATE_ID}/state/revisions/R0003`,
+    stateSealSha256: r3.sealSha256,
+    committedByTransactionId: 'FC02_GENERIC_CARRY_FORWARD'
+  });
+  return { ...fixture, r3, thirdSha256: sha(THIRD_BYTES), paths: { ...fixture.paths, carriedContractPath: contractPath } };
 }
 
 function classify(fixture, overrides = {}) {
@@ -628,3 +721,83 @@ crossHostile('FC02 cross-gate hostile: ambiguous proof contract identity', {}, (
   const duplicatePath = `governance/gates/${CROSS_PINNING_GATE}/contracts/EXECUTION_CONTRACT_R0002.json`;
   writeBytes(fixture.root, duplicatePath, fs.readFileSync(abs(fixture.root, fixture.pinning.contractPath)));
 }, 'CROSS_GATE_EVENT_CONTRACT_IDENTITY_AMBIGUOUS');
+
+function carryHostile(name, options, mutate, expectedReason) {
+  test(name, () => {
+    const fixture = buildCarryForwardFixture(options);
+    try {
+      if (mutate) mutate(fixture);
+      const result = classify(fixture);
+      assert.equal(result.classification, PROTECTED_HASH_MISMATCH, JSON.stringify(result, null, 2));
+      assert.equal(result.blocking, true);
+      assert.ok(result.reasonCodes.some((code) => code.startsWith(expectedReason)), JSON.stringify(result, null, 2));
+    } finally { cleanup(fixture); }
+  });
+}
+
+test('FC02 carry-forward positive: R0001 old -> R0002 authorized replacement -> R0003 carried forward', () => {
+  const fixture = buildCarryForwardFixture();
+  try {
+    const historical = classify(fixture);
+    assert.equal(historical.classification, HISTORICAL_PROTECTED_HASH_SUPERSEDED, JSON.stringify(historical, null, 2));
+    assert.equal(historical.blocking, false);
+    const replacement = classifyProtectedHashLiveCheck({
+      root: fixture.root,
+      gateId: GATE_ID,
+      stateRevision: 'R0002',
+      protectedHash: { path: PROTECTED_PATH, sha256: fixture.newSha256 }
+    });
+    assert.equal(replacement.classification, PROTECTED_HASH_MATCH);
+    const report = validateStateRevision({ root: fixture.root, gateId: GATE_ID });
+    assert.equal(report.valid, true, JSON.stringify(report.findings, null, 2));
+    assert.equal(report.blockingCount, 0);
+  } finally { cleanup(fixture); }
+});
+
+carryHostile('FC02 carry-forward hostile: second replacement', { carriedCheckpointSha256: sha(THIRD_BYTES) }, (fixture) => {
+  writeBytes(fixture.root, PROTECTED_PATH, THIRD_BYTES);
+}, 'PROTECTED_HASH_SECOND_REPLACEMENT');
+
+carryHostile('FC02 carry-forward hostile: oscillation back to the old hash', {}, (fixture) => {
+  const checkpoint = readJson(fixture.root, fixture.r3.checkpointPath);
+  checkpoint.protectedHashes = [{ path: PROTECTED_PATH, sha256: fixture.oldSha256 }];
+  writeJson(fixture.root, fixture.r3.checkpointPath, checkpoint);
+}, 'PROTECTED_HASH_REVERSION');
+
+carryHostile('FC02 carry-forward hostile: skipped revision', {}, (fixture) => {
+  fs.renameSync(
+    abs(fixture.root, `governance/gates/${GATE_ID}/state/revisions/R0003`),
+    abs(fixture.root, `governance/gates/${GATE_ID}/state/revisions/R0004`)
+  );
+}, 'REVISION_SEQUENCE_GAP');
+
+carryHostile('FC02 carry-forward hostile: broken carried previous-state link', {}, (fixture) => {
+  const seal = readJson(fixture.root, fixture.r3.sealPath);
+  seal.previousStateSealSha256 = '0'.repeat(64);
+  writeJson(fixture.root, fixture.r3.sealPath, seal);
+}, 'STATE_SEAL_PREVIOUS_LINK_INVALID:R0003');
+
+carryHostile('FC02 carry-forward hostile: ambiguous ancestry at the replacement edge', {}, (fixture) => {
+  const competingRoot = `governance/gates/${GATE_ID}/state/revisions/R0004`;
+  fs.mkdirSync(abs(fixture.root, competingRoot), { recursive: true });
+  const seal = readJson(fixture.root, fixture.r3.sealPath);
+  seal.stateRevision = 'R0004';
+  seal.previousStateSealSha256 = fixture.r1.sealSha256;
+  writeJson(fixture.root, `${competingRoot}/STATE_SEAL.json`, seal);
+}, 'COMPETING_STATE_SUCCESSOR');
+
+carryHostile('FC02 carry-forward hostile: unauthorized replacement edge', {}, (fixture) => {
+  fs.rmSync(abs(fixture.root, AUTHORITY_PATH));
+}, 'CONTRACT_SUCCESSION_AUTHORITY_MISSING_OR_MISMATCH');
+
+carryHostile('FC02 carry-forward hostile: replacement pointer not consumed by the next succession', {}, (fixture) => {
+  const authority = readJson(fixture.root, CARRY_AUTHORITY_PATH);
+  authority.predecessorCurrentContractSha256 = 'e'.repeat(64);
+  writeJson(fixture.root, CARRY_AUTHORITY_PATH, authority);
+}, 'CONTRACT_SUCCESSION_POINTER_BINDING_INVALID');
+
+carryHostile('FC02 carry-forward hostile: carried contract pin drift', { carriedContractPinSha256: sha(THIRD_BYTES) }, null, 'CARRIED_FORWARD_CONTRACT_PIN_DRIFT:R0003');
+
+carryHostile('FC02 carry-forward hostile: terminal live hash mismatch', {}, (fixture) => {
+  writeBytes(fixture.root, PROTECTED_PATH, THIRD_BYTES);
+}, 'CURRENT_PROTECTED_HASH_LIVE_MISMATCH');

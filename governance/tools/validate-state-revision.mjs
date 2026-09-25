@@ -153,6 +153,29 @@ function protectedResult(classification, {
   };
 }
 
+/**
+ * Same-gate carry-forward law. A protected-hash chain from the stale revision to
+ * CURRENT is lawful only as: old identity, exactly one replacement edge, then
+ * that replacement identity carried unchanged to CURRENT. Returns the chain
+ * offset of the replacement revision, or -1 when no single edge exists.
+ */
+function locateSameGateReplacement(hashes, expectedSha256) {
+  const reasons = [];
+  const offset = hashes.findIndex((hash) => hash !== expectedSha256);
+  if (offset <= 0) {
+    reasons.push('CARRIED_FORWARD_REPLACEMENT_AMBIGUOUS');
+    if (offset < 0) reasons.push('PROTECTED_HASH_NEVER_REPLACED');
+    return { offset: -1, reasons };
+  }
+  const replacementSha256 = hashes[offset];
+  for (const hash of hashes.slice(offset + 1)) {
+    if (hash === expectedSha256) reasons.push('PROTECTED_HASH_REVERSION');
+    else if (hash !== replacementSha256) reasons.push('PROTECTED_HASH_SECOND_REPLACEMENT');
+  }
+  if (reasons.length > 0) return { offset: -1, reasons: ['CARRIED_FORWARD_REPLACEMENT_AMBIGUOUS', ...reasons] };
+  return { offset, reasons };
+}
+
 function inspectLedgerSealedContract({ root, event, protectedPath }) {
   const reasons = [];
   if (!event?.gateId || !REVISION_RE.test(String(event.stateRevision || '')) || !SHA256_RE.test(String(event.stateRevisionSealSha256 || ''))) {
@@ -389,8 +412,10 @@ export function classifyProtectedHashLiveCheck({
     if (sealIdentity && seal) seals.set(revisionName, { sha256: sealIdentity.sha256, gateId: seal.gateId, stateRevision: seal.stateRevision, previousStateSealSha256: seal.previousStateSealSha256 });
   }
 
+  let chain = [];
+  let replacementOffset = -1;
   if (targetIndex >= 0 && currentIndex >= 0 && targetIndex < currentIndex) {
-    const chain = revisionNames.slice(targetIndex, currentIndex + 1).map((name) => records.get(name));
+    chain = revisionNames.slice(targetIndex, currentIndex + 1).map((name) => records.get(name));
     const hashes = [];
     for (const [offset, record] of chain.entries()) {
       if (!record?.checkpoint || record.checkpoint.gateId !== gateId || record.checkpoint.stateRevision !== record.revisionName) reasons.push(`CHECKPOINT_IDENTITY_INVALID:${record?.revisionName}`);
@@ -418,11 +443,22 @@ export function classifyProtectedHashLiveCheck({
     }
     if (hashes[0] !== expectedSha256) reasons.push('PREDECESSOR_PROTECTED_HASH_BINDING_MISMATCH');
     if (hashes.at(-1) !== actualSha256) reasons.push('CURRENT_PROTECTED_HASH_LIVE_MISMATCH');
-    if (hashes.slice(0, -1).some((hash) => hash !== expectedSha256) || hashes.at(-1) === expectedSha256) reasons.push('CARRIED_FORWARD_REPLACEMENT_AMBIGUOUS');
+    const replacement = locateSameGateReplacement(hashes, expectedSha256);
+    reasons.push(...replacement.reasons);
+    replacementOffset = replacement.offset;
     for (let index = 1; index < chain.length; index += 1) {
       if (!chain[index - 1]?.sealIdentity || chain[index]?.seal?.previousStateSealSha256 !== chain[index - 1].sealIdentity.sha256) reasons.push(`STATE_SEAL_PREVIOUS_LINK_INVALID:${chain[index]?.revisionName}`);
     }
   }
+  // The replacement authority is validated at the actual replacement edge. When
+  // no single replacement edge exists, the CURRENT edge is inspected so that the
+  // failure remains fully disclosed; the chain reasons above already block.
+  const currentRecord = records.get(currentRevision);
+  const predecessorRecord = currentIndex > 0 ? records.get(revisionNames[currentIndex - 1]) : null;
+  const edgeToRecord = replacementOffset > 0 ? chain[replacementOffset] : currentRecord;
+  const edgeFromRecord = replacementOffset > 0 ? chain[replacementOffset - 1] : predecessorRecord;
+  const replacementIsCurrent = edgeToRecord === currentRecord;
+  const carriedRecords = replacementOffset > 0 ? chain.slice(replacementOffset + 1) : [];
 
   const resolvedLedgerPath = ledgerPath
     ? (path.isAbsolute(ledgerPath) ? ledgerPath : path.resolve(rootResolved, ledgerPath))
@@ -443,8 +479,6 @@ export function classifyProtectedHashLiveCheck({
   });
   if (lineage.resolved !== currentRevision || lineage.anchorState !== 'LEDGER_ANCHORED') reasons.push('CURRENT_NOT_LEDGER_ANCHORED');
   reasons.push(...lineage.findings.map((item) => `LINEAGE_${item.code}`));
-  const currentRecord = records.get(currentRevision);
-  const predecessorRecord = currentIndex > 0 ? records.get(revisionNames[currentIndex - 1]) : null;
   if (!currentRecord?.sealIdentity || currentState?.stateSealSha256 !== currentRecord.sealIdentity.sha256) reasons.push('CURRENT_STATE_SEAL_BINDING_INVALID');
 
   const contractsRoot = path.join(gateRoot, 'contracts');
@@ -457,8 +491,9 @@ export function classifyProtectedHashLiveCheck({
         return { path: `governance/gates/${gateId}/contracts/${entry.name}`, absolute, identity, json: readJsonQuiet(absolute) };
       })
     : [];
-  const predecessorContractMatches = contracts.filter((entry) => entry.identity?.sha256 === predecessorRecord?.seal?.payload?.contractSha256);
-  const currentContractMatches = contracts.filter((entry) => entry.identity?.sha256 === currentRecord?.seal?.payload?.contractSha256);
+  const sealedContractMatches = (record) => contracts.filter((entry) => entry.identity?.sha256 === record?.seal?.payload?.contractSha256);
+  const predecessorContractMatches = sealedContractMatches(edgeFromRecord);
+  const currentContractMatches = sealedContractMatches(edgeToRecord);
   if (predecessorContractMatches.length !== 1) reasons.push('PREDECESSOR_CONTRACT_IDENTITY_AMBIGUOUS');
   if (currentContractMatches.length !== 1) reasons.push('CURRENT_CONTRACT_IDENTITY_AMBIGUOUS');
   const predecessorContract = predecessorContractMatches[0];
@@ -477,23 +512,58 @@ export function classifyProtectedHashLiveCheck({
     const competingContracts = contracts.filter((entry) => entry.json?.previousContractPath === predecessorContract.path && entry.json?.previousContractSha256 === predecessorContract.identity.sha256);
     if (competingContracts.length !== 1 || competingContracts[0].path !== currentContract.path) reasons.push('COMPETING_CONTRACT_SUCCESSOR');
   }
+  // Carried-forward revisions need no new replacement authority, but every
+  // contract they seal must keep pinning exactly the replacement identity.
+  for (const record of carriedRecords) {
+    const matches = sealedContractMatches(record);
+    if (matches.length !== 1) {
+      reasons.push(`CARRIED_FORWARD_CONTRACT_IDENTITY_AMBIGUOUS:${record.revisionName}`);
+      continue;
+    }
+    const pins = [...new Set(collectContractPins(matches[0].json, protectedPath))];
+    if (pins.length > 0 && (pins.length !== 1 || pins[0] !== actualSha256)) reasons.push(`CARRIED_FORWARD_CONTRACT_PIN_DRIFT:${record.revisionName}`);
+  }
 
+  const liveContractMatches = replacementIsCurrent ? currentContractMatches : sealedContractMatches(currentRecord);
+  const liveContract = liveContractMatches.length === 1 ? liveContractMatches[0] : null;
   const currentContractPointer = readJsonQuiet(canonicalCurrentContract);
   const currentContractPointerIdentity = exactFileIdentity(canonicalCurrentContract);
-  if (!currentContract || currentContractPointer?.gateId !== gateId
-      || currentContractPointer?.contractRevision !== currentContract.json?.contractRevision
-      || currentContractPointer?.contractPath !== currentContract.path
-      || currentContractPointer?.contractSha256 !== currentContract.identity.sha256) reasons.push('CURRENT_CONTRACT_POINTER_BINDING_INVALID');
+  if (!liveContract || currentContractPointer?.gateId !== gateId
+      || currentContractPointer?.contractRevision !== liveContract.json?.contractRevision
+      || currentContractPointer?.contractPath !== liveContract.path
+      || currentContractPointer?.contractSha256 !== liveContract.identity.sha256) reasons.push('CURRENT_CONTRACT_POINTER_BINDING_INVALID');
 
+  const edgeRevision = edgeToRecord?.revisionName ?? currentRevision;
   const successionEvents = ledger.events.filter((event) => event?.gateId === gateId
     && event?.transitionType === CONTRACT_SUCCESSION_TRANSITION_TYPE
-    && event?.stateRevision === currentRevision);
+    && event?.stateRevision === edgeRevision);
   if (successionEvents.length !== 1) reasons.push('CONTRACT_SUCCESSION_EVENT_MISSING_OR_COMPETING');
   const successionEvent = successionEvents[0];
   const gateEvents = ledger.events.filter((event) => event?.gateId === gateId);
-  if (successionEvent && gateEvents.at(-1) !== successionEvent) reasons.push('CONTRACT_SUCCESSION_NOT_GATE_HEAD');
+  if (replacementIsCurrent) {
+    if (successionEvent && gateEvents.at(-1) !== successionEvent) reasons.push('CONTRACT_SUCCESSION_NOT_GATE_HEAD');
+  } else if (successionEvent) {
+    const carriedNames = new Set(carriedRecords.map((record) => record.revisionName));
+    if (gateEvents.some((event) => carriedNames.has(event?.stateRevision) && !(event.ordinal > successionEvent.ordinal))) reasons.push('REPLACEMENT_EVENT_ORDER_INVALID');
+  }
+  // A historical replacement edge cannot be checked against the live pointer:
+  // its successor pointer identity must be the one consumed as predecessor by
+  // the next ledger-anchored contract succession of this gate, or still live.
+  const nextSuccessionEvent = !replacementIsCurrent && successionEvent
+    ? gateEvents.find((event) => event?.transitionType === CONTRACT_SUCCESSION_TRANSITION_TYPE && event.ordinal > successionEvent.ordinal)
+    : null;
+  let nextSuccessionAuthority = null;
+  if (nextSuccessionEvent && safeRelative(nextSuccessionEvent.authorityPath)) {
+    const nextAuthorityIdentity = exactFileIdentity(path.resolve(rootResolved, ...nextSuccessionEvent.authorityPath.split('/')));
+    nextSuccessionAuthority = nextAuthorityIdentity?.sha256 === nextSuccessionEvent.authoritySha256
+      ? readJsonQuiet(path.resolve(rootResolved, ...nextSuccessionEvent.authorityPath.split('/')))
+      : null;
+  }
+  const edgeSuccessorPointerSha256 = replacementIsCurrent || !nextSuccessionEvent
+    ? currentContractPointerIdentity?.sha256
+    : nextSuccessionAuthority?.predecessorCurrentContractSha256;
   if (successionEvent && !CONTRACT_SUCCESSION_TRANSITIONS.some(([from, to, type]) => from === successionEvent.fromStatus && to === successionEvent.toStatus && type === successionEvent.transitionType)) reasons.push('CONTRACT_SUCCESSION_TRANSITION_INVALID');
-  if (successionEvent && currentRecord?.sealIdentity && successionEvent.stateRevisionSealSha256 !== currentRecord.sealIdentity.sha256) reasons.push('CONTRACT_SUCCESSION_STATE_PIN_MISMATCH');
+  if (successionEvent && edgeToRecord?.sealIdentity && successionEvent.stateRevisionSealSha256 !== edgeToRecord.sealIdentity.sha256) reasons.push('CONTRACT_SUCCESSION_STATE_PIN_MISMATCH');
 
   let successionAuthority = null;
   let successionAuthorityIdentity = null;
@@ -513,9 +583,10 @@ export function classifyProtectedHashLiveCheck({
         || successionAuthority.successorContractSha256 !== currentContract.identity.sha256
         || successionAuthority.successorContractRevision !== currentContract.json?.contractRevision) reasons.push('CONTRACT_SUCCESSION_SUCCESSOR_BINDING_INVALID');
     if (successionAuthority.currentContractPointerPath !== `governance/gates/${gateId}/contracts/CURRENT_CONTRACT.json`
-        || successionAuthority.successorCurrentContractSha256 !== currentContractPointerIdentity?.sha256) reasons.push('CONTRACT_SUCCESSION_POINTER_BINDING_INVALID');
-    if (successionAuthority.previousStateSealSha256 !== predecessorRecord?.sealIdentity?.sha256
-        || successionAuthority.successorStateRevision !== currentRevision) reasons.push('CONTRACT_SUCCESSION_STATE_CHAIN_BINDING_INVALID');
+        || !SHA256_RE.test(String(edgeSuccessorPointerSha256 || ''))
+        || successionAuthority.successorCurrentContractSha256 !== edgeSuccessorPointerSha256) reasons.push('CONTRACT_SUCCESSION_POINTER_BINDING_INVALID');
+    if (successionAuthority.previousStateSealSha256 !== edgeFromRecord?.sealIdentity?.sha256
+        || successionAuthority.successorStateRevision !== edgeRevision) reasons.push('CONTRACT_SUCCESSION_STATE_CHAIN_BINDING_INVALID');
     if (successionAuthority.preLedgerEventCount !== successionEvent.ordinal - 1
         || successionAuthority.preLedgerPrefixSha256 !== ledgerPrefixSha256(ledger, successionAuthority.preLedgerEventCount)) reasons.push('CONTRACT_SUCCESSION_LEDGER_PREFIX_BINDING_INVALID');
     if (Object.hasOwn(successionAuthority, 'ledgerHeadEventId')) {
@@ -525,9 +596,15 @@ export function classifyProtectedHashLiveCheck({
     }
   }
 
-  if (predecessorRecord?.sealIdentity) {
-    const competingStateSuccessors = [...records.values()].filter((record) => record.seal?.previousStateSealSha256 === predecessorRecord.sealIdentity.sha256);
-    if (competingStateSuccessors.length !== 1 || competingStateSuccessors[0].revisionName !== currentRevision) reasons.push('COMPETING_STATE_SUCCESSOR');
+  // Ancestry must be unambiguous across the replacement edge and every carried
+  // edge: each sealed revision has exactly one successor, the next in the chain.
+  const ancestryEdges = replacementIsCurrent
+    ? [[edgeFromRecord, currentRecord]]
+    : chain.slice(replacementOffset - 1, -1).map((record, index) => [record, chain[replacementOffset + index]]);
+  for (const [fromRecord, toRecord] of ancestryEdges) {
+    if (!fromRecord?.sealIdentity) continue;
+    const competingStateSuccessors = [...records.values()].filter((record) => record.seal?.previousStateSealSha256 === fromRecord.sealIdentity.sha256);
+    if (competingStateSuccessors.length !== 1 || competingStateSuccessors[0].revisionName !== toRecord?.revisionName) reasons.push('COMPETING_STATE_SUCCESSOR');
   }
 
   return protectedResult(reasons.length === 0 ? HISTORICAL_PROTECTED_HASH_SUPERSEDED : PROTECTED_HASH_MISMATCH, {

@@ -1,0 +1,74 @@
+{
+  "documentKind": "POST_FREEZE_MAINTENANCE_AUTHORIZED_PATH_MANIFEST",
+  "schemaVersion": 2,
+  "manifestId": "GATE26_SAME_GATE_PROTECTED_HASH_CARRY_FORWARD_PUBLICATION_R1_AUTHORIZED_PATHS_R1",
+  "programId": "GATE26_SAME_GATE_PROTECTED_HASH_CARRY_FORWARD_PUBLICATION_R1",
+  "paths": [
+    {
+      "path": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_GATE26_SAME_GATE_PROTECTED_HASH_CARRY_FORWARD_PUBLICATION_R1.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "Owner-issued V2 authority for the exact same-gate protected-hash carry-forward publication.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "governance/historical-architecture/GATE26_SAME_GATE_PROTECTED_HASH_CARRY_FORWARD_PUBLICATION_R1_AUTHORIZED_PATHS_R1.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "Exact closed five-path V2 publication cohort.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "governance/historical-architecture/GATE26_SAME_GATE_PROTECTED_HASH_CARRY_FORWARD_PUBLICATION_R1_CONSUMPTION_R1.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "RESERVED_RECEIPT: canonical V2 single-use consumption record written only by the publisher.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "governance/tools/validate-state-revision.mjs",
+      "operation": "MODIFY",
+      "phase": "MAINTENANCE",
+      "reason": "Carry one authorized same-gate protected-hash replacement forward unchanged.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "PRESENT",
+        "sha256": "339d5b17381a2fd3a12e5519a05154979ff788ef0cfd91107fe64cef4fc4483b",
+        "byteLength": 48054
+      }
+    },
+    {
+      "path": "governance/gee-v1/tests/gee-fc02-protected-hash-succession.test.mjs",
+      "operation": "MODIFY",
+      "phase": "MAINTENANCE",
+      "reason": "Prove the same-gate carry-forward law and its fail-closed hostile cases.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "PRESENT",
+        "sha256": "3012fb3053a2aeac37cade1269b1190c69474083a06f584738f37f35fa2ddef4",
+        "byteLength": 26180
+      }
+    }
+  ],
+  "prestateSelfExclusion": [
+    {
+      "path": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_GATE26_SAME_GATE_PROTECTED_HASH_CARRY_FORWARD_PUBLICATION_R1.json",
+      "role": "AUTHORITY_DOCUMENT",
+      "reason": "Read by the evaluator before publication while its declared base prestate is ABSENT."
+    },
+    {
+      "path": "governance/historical-architecture/GATE26_SAME_GATE_PROTECTED_HASH_CARRY_FORWARD_PUBLICATION_R1_AUTHORIZED_PATHS_R1.json",
+      "role": "AUTHORIZED_PATH_MANIFEST",
+      "reason": "Read by the evaluator before publication while its declared base prestate is ABSENT."
+    }
+  ]
+}

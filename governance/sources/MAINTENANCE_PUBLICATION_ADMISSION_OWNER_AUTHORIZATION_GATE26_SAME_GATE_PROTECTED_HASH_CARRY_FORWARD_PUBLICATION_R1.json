@@ -1,0 +1,25 @@
+{
+  "document": "MAINTENANCE_PUBLICATION_ADMISSION_OWNER_AUTHORIZATION",
+  "schemaVersion": 1,
+  "authorityId": "GATE26_SAME_GATE_PROTECTED_HASH_CARRY_FORWARD_PUBLICATION_R1_PUBLICATION_OWNER_AUTHORIZATION_R1",
+  "authorityClass": "PROJECT_OWNER_MAINTENANCE_PUBLICATION_ADMISSION_AUTHORITY",
+  "authorityMode": "LOCAL_EXPLICIT_AUTHORITY",
+  "issuedBy": "PROJECT_OWNER",
+  "issuedAtUtc": "2026-09-25T04:00:00.000Z",
+  "decisionId": "OWNER_AUTHORIZE_GATE26_SAME_GATE_PROTECTED_HASH_CARRY_FORWARD_PUBLICATION_R1",
+  "purpose": "MAINTENANCE_PUBLICATION_ADMISSION",
+  "reexecutionAuthorized": false,
+  "grantsFutureBytePermission": false,
+  "genericV1Admission": false,
+  "admittedPublications": [
+    {
+      "admissionId": "GATE26_SAME_GATE_PROTECTED_HASH_CARRY_FORWARD_PUBLICATION_R1_PUBLICATION_ADMISSION_R1",
+      "projectId": "WHEEL",
+      "gateId": "GATE26",
+      "programId": "GATE26_SAME_GATE_PROTECTED_HASH_CARRY_FORWARD_PUBLICATION_R1",
+      "admissionPath": "governance/authority/publication-admissions/GATE26/GATE26_SAME_GATE_PROTECTED_HASH_CARRY_FORWARD_PUBLICATION_R1_PUBLICATION_ADMISSION_R1.json",
+      "admissionDigest": "97c9647649d79a3264b475de0dcce6acea2fc90f3116cf8aa99e2f27f71e657b"
+    }
+  ],
+  "registryDigest": "f8d7c23ffb60d4e5944200844ceaace142cdfb55b8eb715fb177f41ee5281143"
+}

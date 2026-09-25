@@ -1,0 +1,56 @@
+{
+  "documentKind": "POST_FREEZE_MAINTENANCE_AUTHORITY_CONSUMPTION",
+  "schemaVersion": 2,
+  "authorityId": "GATE26_SAME_GATE_PROTECTED_HASH_CARRY_FORWARD_PUBLICATION_R1_LOCAL_AUTHORITY_R1",
+  "programId": "GATE26_SAME_GATE_PROTECTED_HASH_CARRY_FORWARD_PUBLICATION_R1",
+  "manifestSha256": "a3949c9c971c9ee11d271b4b838548e73b46d88e39ca5aaf8e403c9cc379a14e",
+  "baseHead": "b1f9b080d448dfe5a6b25523f08c11808466d5f1",
+  "consumedUse": 1,
+  "transactionId": "GATE26_SAME_GATE_PROTECTED_HASH_CARRY_FORWARD_PUBLICATION_R1_TRANSACTION",
+  "recordedAt": "2026-09-25T05:07:43.951Z",
+  "commitMessage": "fix(governance): carry one same-gate protected hash replacement forward",
+  "publicationAdmission": {
+    "admissionId": "GATE26_SAME_GATE_PROTECTED_HASH_CARRY_FORWARD_PUBLICATION_R1_PUBLICATION_ADMISSION_R1",
+    "admissionPath": "governance/authority/publication-admissions/GATE26/GATE26_SAME_GATE_PROTECTED_HASH_CARRY_FORWARD_PUBLICATION_R1_PUBLICATION_ADMISSION_R1.json",
+    "admissionSha256": "52dad4cd8d1fc75c092af70c98812696d86b1c225acbe0268826dabfbda10852"
+  },
+  "cohortSelfExclusion": {
+    "path": "governance/historical-architecture/GATE26_SAME_GATE_PROTECTED_HASH_CARRY_FORWARD_PUBLICATION_R1_CONSUMPTION_R1.json",
+    "reason": "The consumption record cannot hash its own final bytes; its identity is bound by the authority and manifest instead."
+  },
+  "cohortPathCount": 5,
+  "cohort": [
+    {
+      "path": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_GATE26_SAME_GATE_PROTECTED_HASH_CARRY_FORWARD_PUBLICATION_R1.json",
+      "sha256": "aa86df08eed507dabc58839a2b9cf1701d442729a0ff41e30aca2f434f3adfdd",
+      "byteLength": 2426,
+      "operation": "CREATE",
+      "reason": "Owner-issued V2 authority for the exact same-gate protected-hash carry-forward publication.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "governance/historical-architecture/GATE26_SAME_GATE_PROTECTED_HASH_CARRY_FORWARD_PUBLICATION_R1_AUTHORIZED_PATHS_R1.json",
+      "sha256": "a3949c9c971c9ee11d271b4b838548e73b46d88e39ca5aaf8e403c9cc379a14e",
+      "byteLength": 3003,
+      "operation": "CREATE",
+      "reason": "Exact closed five-path V2 publication cohort.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "governance/tools/validate-state-revision.mjs",
+      "sha256": "1d408ff6e04c55a8467a97ee0b89587795b2d20ca992fc170160a8d63c97da3c",
+      "byteLength": 52552,
+      "operation": "MODIFY",
+      "reason": "Carry one authorized same-gate protected-hash replacement forward unchanged.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "governance/gee-v1/tests/gee-fc02-protected-hash-succession.test.mjs",
+      "sha256": "4cfb3c86adc18451e716a976a66e072101d15117b222d9c38017e2c98794fa16",
+      "byteLength": 34242,
+      "operation": "MODIFY",
+      "reason": "Prove the same-gate carry-forward law and its fail-closed hostile cases.",
+      "artifactClass": "MAINTENANCE"
+    }
+  ]
+}

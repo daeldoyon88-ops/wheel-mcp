@@ -1,0 +1,64 @@
+{
+  "document": "GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY",
+  "schemaVersion": 2,
+  "authorityId": "GATE26_SAME_GATE_PROTECTED_HASH_CARRY_FORWARD_PUBLICATION_R1_LOCAL_AUTHORITY_R1",
+  "authorityClass": "PROJECT_OWNER_POST_FREEZE_MAINTENANCE_AUTHORITY",
+  "authorityMode": "LOCAL_EXPLICIT_AUTHORITY",
+  "issuedBy": "PROJECT_OWNER",
+  "createdAt": "2026-09-25T04:00:00.000Z",
+  "expiresAt": "2026-12-31T23:59:59.000Z",
+  "targetSystem": "PROJECT_GOVERNANCE",
+  "programId": "GATE26_SAME_GATE_PROTECTED_HASH_CARRY_FORWARD_PUBLICATION_R1",
+  "authorityPurpose": "NORMAL_MAINTENANCE",
+  "resumePoint": "CP-GATE26-SAME-GATE-PROTECTED-HASH-CARRY-FORWARD-PUBLICATION-R1-PREWRITE",
+  "maxUse": 1,
+  "preState": {
+    "baseHead": "b1f9b080d448dfe5a6b25523f08c11808466d5f1",
+    "ledgerEventCount": 115,
+    "ledgerPrefixSha256": "61f81decc5f3845cecc4fab1906447a3e1036f9a45ca91c471b0ab89c0925738",
+    "gateId": "GATE26",
+    "gateStatus": "IN_PROGRESS",
+    "stateRevision": "R0005",
+    "contractRevision": "R0004",
+    "activeGate": "GATE13",
+    "R8ExpectedAbsent": true
+  },
+  "authorizedPathManifestPath": "governance/historical-architecture/GATE26_SAME_GATE_PROTECTED_HASH_CARRY_FORWARD_PUBLICATION_R1_AUTHORIZED_PATHS_R1.json",
+  "authorizedPathManifestSha256": "a3949c9c971c9ee11d271b4b838548e73b46d88e39ca5aaf8e403c9cc379a14e",
+  "authorizedOperationClasses": [
+    "MAINTENANCE"
+  ],
+  "commitPolicy": {
+    "maxCommitCount": 1,
+    "allowedGitOperations": [
+      "GIT_ADD_PATHSPEC",
+      "GIT_COMMIT"
+    ],
+    "commitMessage": "fix(governance): carry one same-gate protected hash replacement forward",
+    "thirdCommitAuthorized": false
+  },
+  "pushAuthorized": false,
+  "authorityPredecessor": {
+    "authorityId": "GATE26_CROSS_GATE_PROTECTED_HASH_SUCCESSION_LAW_LOCAL_AUTHORITY_R1",
+    "sha256": "1b4dd5c5ca81cc7083b5e95bca90b32c93de0672c6213071c5ff21956cbe5c00"
+  },
+  "authorityHeadBinding": {
+    "mode": "BASE_HEAD",
+    "baseHead": "b1f9b080d448dfe5a6b25523f08c11808466d5f1"
+  },
+  "consumptionRecordPath": "governance/historical-architecture/GATE26_SAME_GATE_PROTECTED_HASH_CARRY_FORWARD_PUBLICATION_R1_CONSUMPTION_R1.json",
+  "prohibitedOperations": [
+    "START",
+    "SECOND_START",
+    "AGENT_CLOSURE",
+    "EXTERNAL_CONFIRMATION",
+    "COMPLETE_AGENT",
+    "COMPLETE_CONFIRMED",
+    "ACTIVE_GATE_SWITCH",
+    "GEE_R8",
+    "GIT_PUSH",
+    "HISTORY_REWRITE",
+    "THIRD_COMMIT",
+    "UNRELATED_WRITE"
+  ]
+}

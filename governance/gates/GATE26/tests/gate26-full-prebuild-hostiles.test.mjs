@@ -252,26 +252,47 @@ test('R0006-SUCCESSION-HOSTILES: invalid R0007, competing authority, replayed ev
   const r0007AuthorityPath = path.join(ROOT, 'governance/authority/authorizations/GATE26/GATE_CONTRACT_SUCCESSION_LOCAL_AUTHORITY_R0007.json');
   const r0007Authority = JSON.parse(fs.readFileSync(r0007AuthorityPath, 'utf8'));
   assert.deepEqual(validateGateContractSuccessionLedgerBoundAuthorityShape(r0007Authority), { valid: true, findings: [] });
-  const r0007Pointer = JSON.parse(fs.readFileSync(path.join(ROOT, CURRENT_CONTRACT_POINTER_PATH), 'utf8'));
-  const r0007Bytes = fs.readFileSync(path.join(ROOT, r0007Pointer.contractPath));
+  // R0007 is historical since the R0007 -> R0008 succession; it is read at its fixed path.
+  const r0007Bytes = fs.readFileSync(path.join(ROOT, 'governance/gates/GATE26/contracts/EXECUTION_CONTRACT_R0007.json'));
   const R0007 = JSON.parse(r0007Bytes.toString('utf8'));
   assert.equal(r0007Authority.predecessorContractSha256, sha256Bytes(fs.readFileSync(path.join(ROOT, R0006_CONTRACT_PATH))));
   assert.equal(r0007Authority.successorContractSha256, sha256Bytes(r0007Bytes));
   assert.equal(r0007Authority.functionalBuildAuthorized, false);
   assert.ok(r0007Authority.prohibitedOperations.includes('SECOND_CANONICAL_FULL_BUILD') && r0007Authority.prohibitedOperations.includes('GEE_R8'));
-  assert.equal(validateStateSeal({ root: ROOT, sealPath: path.join(ROOT, 'governance/gates/GATE26/state/revisions/R0008/STATE_SEAL.json'), currentRevision: 'R0008' }).valid, true);
+  assert.equal(validateStateSeal({ root: ROOT, sealPath: path.join(ROOT, 'governance/gates/GATE26/state/revisions/R0008/STATE_SEAL.json'), currentRevision: 'R0009' }).valid, true);
   const r0008 = JSON.parse(fs.readFileSync(path.join(ROOT, 'governance/gates/GATE26/state/revisions/R0008/CHECKPOINT.json'), 'utf8'));
   assert.ok(r0008.completedTasks.includes('GATE26_CANONICAL_FULL_BUILD_R1') && !r0008.openTasks.includes('GATE26_CANONICAL_FULL_BUILD_R1'), 'R0008 records FULL BUILD R1 complete');
   const r0007Events = ledgerLines.map((line) => JSON.parse(line)).filter((event) => event.authorityPath === path.relative(ROOT, r0007AuthorityPath).replaceAll('\\', '/'));
   assert.equal(r0007Events.length, 1);
   assert.deepEqual([r0007Events[0].ordinal, r0007Events[0].stateRevision, r0007Events[0].fromStatus, r0007Events[0].toStatus], [118, 'R0008', 'IN_PROGRESS', 'IN_PROGRESS']);
 
-  // Every uncommitted path must sit inside the R0006 or R0007 authority: authorized paths plus succession publication paths.
+  // R0008: the closure-preparation succession consumes its own single-use authority as event 119 and seals state R0009.
+  const r0008AuthorityPath = path.join(ROOT, 'governance/authority/authorizations/GATE26/GATE_CONTRACT_SUCCESSION_LOCAL_AUTHORITY_R0008.json');
+  const r0008Authority = JSON.parse(fs.readFileSync(r0008AuthorityPath, 'utf8'));
+  assert.deepEqual(validateGateContractSuccessionLedgerBoundAuthorityShape(r0008Authority), { valid: true, findings: [] });
+  const r0008Pointer = JSON.parse(fs.readFileSync(path.join(ROOT, CURRENT_CONTRACT_POINTER_PATH), 'utf8'));
+  const r0008Bytes = fs.readFileSync(path.join(ROOT, r0008Pointer.contractPath));
+  const R0008 = JSON.parse(r0008Bytes.toString('utf8'));
+  assert.equal(r0008Pointer.contractRevision, 'R0008');
+  assert.equal(r0008Authority.predecessorContractSha256, sha256Bytes(r0007Bytes));
+  assert.equal(r0008Authority.successorContractSha256, sha256Bytes(r0008Bytes));
+  assert.equal(r0008Authority.functionalBuildAuthorized, false);
+  assert.ok(['AGENT_CLOSURE', 'EXTERNAL_CONFIRMATION', 'GATE26_COMPLETION', 'GATE27_START', 'GEE_R8'].every((operation) => r0008Authority.prohibitedOperations.includes(operation)));
+  assert.equal(validateStateSeal({ root: ROOT, sealPath: path.join(ROOT, 'governance/gates/GATE26/state/revisions/R0009/STATE_SEAL.json'), currentRevision: 'R0009' }).valid, true);
+  const r0009 = JSON.parse(fs.readFileSync(path.join(ROOT, 'governance/gates/GATE26/state/revisions/R0009/CHECKPOINT.json'), 'utf8'));
+  assert.deepEqual(r0009.openTasks, ['GATE26_AGENT_CLOSURE', 'GATE26_EXTERNAL_CONFIRMATION', 'GATE26_FINAL_COMPLETION'], 'R0009 leaves only closure, confirmation and final completion open');
+  const r0008Events = ledgerLines.map((line) => JSON.parse(line)).filter((event) => event.authorityPath === path.relative(ROOT, r0008AuthorityPath).replaceAll('\\', '/'));
+  assert.equal(r0008Events.length, 1);
+  assert.deepEqual([r0008Events[0].ordinal, r0008Events[0].stateRevision, r0008Events[0].fromStatus, r0008Events[0].toStatus], [119, 'R0009', 'IN_PROGRESS', 'IN_PROGRESS']);
+
+  // Every uncommitted path must sit inside the R0006, R0007 or R0008 authority: authorized paths plus succession publication paths.
   const allowed = new Set([
     ...CONTRACT.authorizedPaths,
     ...CONTRACT.canonicalRequirements.find((entry) => entry.requirementId === 'G26-PREBUILD-11').successionPublicationPaths,
     ...R0007.authorizedPaths,
     ...R0007.canonicalRequirements.find((entry) => entry.requirementId === 'G26-PREBUILD-11').successionPublicationPaths,
+    ...R0008.authorizedPaths,
+    ...R0008.canonicalRequirements.find((entry) => entry.requirementId === 'G26-PREBUILD-11').successionPublicationPaths,
   ]);
   const status = spawnSync('git', ['status', '--porcelain=v1', '--untracked-files=all'], { cwd: ROOT, encoding: 'utf8' });
   assert.equal(status.status, 0);

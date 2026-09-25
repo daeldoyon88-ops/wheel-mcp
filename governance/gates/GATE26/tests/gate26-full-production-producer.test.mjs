@@ -193,7 +193,8 @@ test('G26-POSTBUILD-NEG-01: the consumed R0006 authority admits no second canoni
   const pointer = JSON.parse(fs.readFileSync(path.resolve(ROOT, 'governance/gates/GATE26/contracts/CURRENT_CONTRACT.json'), 'utf8'));
   const postbuild = JSON.parse(fs.readFileSync(path.resolve(ROOT, pointer.contractPath), 'utf8'))
     .canonicalRequirements.find((entry) => entry.requirementId === 'G26-POSTBUILD-01').binding;
-  assert.equal(pointer.contractRevision, 'R0007');
+  // R0008 carries G26-POSTBUILD-01 byte-identically from R0007.
+  assert.equal(pointer.contractRevision, 'R0008');
   assert.deepEqual([postbuild.canonicalFullBuildsConsumed, postbuild.remainingCanonicalFullBuilds, postbuild.fullGenerationAuthorized], [1, 0, false]);
   const manifestBefore = sha256Bytes(fs.readFileSync(path.resolve(ROOT, postbuild.manifestPath)));
   const namesBefore = fs.readdirSync(FULL_ROOT).sort();

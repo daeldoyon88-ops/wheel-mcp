@@ -394,11 +394,18 @@ test('the PREBUILD rehearsal report is bounded, synthetic, resumable and PREBUIL
 });
 
 test('G26-POSTBUILD-01: R0007 consumed the R0006 FULL authority; the unchanged code refuses every live build, and the audited product, code identity and LFS transport are unchanged', () => {
+  // R0007 is historical since the R0007 -> R0008 succession; R0008 carries G26-POSTBUILD-01 byte-identically.
   const pointer = readJson(CURRENT_CONTRACT_POINTER_PATH);
-  const r0007Bytes = fs.readFileSync(path.resolve(ROOT, pointer.contractPath));
+  const r0007Bytes = fs.readFileSync(path.resolve(ROOT, 'governance/gates/GATE26/contracts/EXECUTION_CONTRACT_R0007.json'));
   const r0007 = JSON.parse(r0007Bytes.toString('utf8'));
-  assert.equal(pointer.contractRevision, 'R0007');
-  assert.equal(pointer.contractSha256, sha256Bytes(r0007Bytes));
+  const currentBytes = fs.readFileSync(path.resolve(ROOT, pointer.contractPath));
+  const current = JSON.parse(currentBytes.toString('utf8'));
+  assert.equal(pointer.contractRevision, 'R0008');
+  assert.equal(pointer.contractSha256, sha256Bytes(currentBytes));
+  assert.equal(current.previousContractSha256, sha256Bytes(r0007Bytes));
+  const postbuildRequirement = (contract) => JSON.stringify(contract.canonicalRequirements.find((entry) => entry.requirementId === 'G26-POSTBUILD-01'));
+  assert.equal(postbuildRequirement(current), postbuildRequirement(r0007));
+  assert.ok(!current.canonicalRequirements.some((entry) => entry.binding?.fullGenerationAuthorized === true), 'no R0008 requirement re-authorizes FULL generation');
   assert.equal(r0007.previousContractSha256, sha256Bytes(CONTRACT_BYTES));
   const postbuild = r0007.canonicalRequirements.find((entry) => entry.requirementId === 'G26-POSTBUILD-01').binding;
   assert.equal(postbuild.consumedAuthorityContractSha256, sha256Bytes(CONTRACT_BYTES));

@@ -65,12 +65,42 @@ function overlayCandidateProduction(dir) {
   }
 }
 
+/**
+ * Revisions may protect repository paths outside `governance/`. Read here from
+ * the checkpoints directly — independently of the orchestrator under test — so
+ * a scratch root models the repository with exactly those declared paths.
+ */
+function declaredExternalProtectedPaths(root) {
+  const declared = [];
+  const gatesRoot = path.join(root, 'governance', 'gates');
+  for (const gateId of fs.readdirSync(gatesRoot).sort()) {
+    const revisions = path.join(gatesRoot, gateId, 'state', 'revisions');
+    if (!fs.existsSync(revisions)) continue;
+    for (const revision of fs.readdirSync(revisions).sort()) {
+      const checkpointPath = path.join(revisions, revision, 'CHECKPOINT.json');
+      if (!fs.existsSync(checkpointPath)) continue;
+      let checkpoint = null;
+      try { checkpoint = JSON.parse(fs.readFileSync(checkpointPath, 'utf8')); } catch { continue; }
+      for (const entry of Array.isArray(checkpoint?.protectedHashes) ? checkpoint.protectedHashes : []) {
+        if (typeof entry?.path !== 'string' || entry.path.startsWith('governance/')) continue;
+        if (!declared.some((item) => item.path === entry.path)) declared.push({ gateId, path: entry.path });
+      }
+    }
+  }
+  return declared;
+}
+
 function scratchRoot(label) {
   const root = fs.mkdtempSync(path.join(fs.realpathSync(os.tmpdir()), `gate-lifecycle-${label}-`));
   fs.cpSync(path.join(REPO_ROOT, 'governance'), path.join(root, 'governance'), { recursive: true });
+  const external = declaredExternalProtectedPaths(root).map((entry) => entry.path);
+  for (const relative of external) {
+    fs.mkdirSync(path.dirname(path.join(root, ...relative.split('/'))), { recursive: true });
+    fs.copyFileSync(path.join(REPO_ROOT, ...relative.split('/')), path.join(root, ...relative.split('/')));
+  }
   overlayCandidateProduction(root);
   execFileSync('git', ['init', '--quiet'], { cwd: root });
-  execFileSync('git', ['add', '--', 'governance'], { cwd: root });
+  execFileSync('git', ['add', '--', 'governance', ...external], { cwd: root });
   execFileSync('git', ['-c', 'user.name=gate-lifecycle-test', '-c', 'user.email=gate-lifecycle-test@example.invalid', 'commit', '--quiet', '-m', 'scratch baseline'], { cwd: root });
   return root;
 }
@@ -1431,4 +1461,219 @@ test('W4 NEW_BLOCKING_FINDING_REJECTED and DIFFERENTIAL_VALIDATION_PRESERVED', (
   assert.equal(report.valid, false);
   assert.ok(report.findings.some((finding) => finding.defectClass === 'CANDIDATE_LEDGER_INVALID' || finding.defectClass === 'CANDIDATE_PROJECTION_REGENERATION_FAILED'));
   fs.rmSync(staging, { recursive: true, force: true });
+});
+
+/* -------------------------------------------------------------------------
+ * Protected paths outside governance/
+ * ---------------------------------------------------------------------- */
+
+// The gate and path are discovered from the checkpoints, never named: the law
+// under test is "whatever a revision declares", not any particular file.
+function firstExternalProtectedDeclaration(root) {
+  for (const { gateId, path: protectedPath } of declaredExternalProtectedPaths(root)) {
+    return { gateId, protectedPath };
+  }
+  return null;
+}
+
+function headNoopCandidate(root, gateId) {
+  const currentState = readJson(root, `governance/gates/${gateId}/state/CURRENT_STATE.json`);
+  return {
+    gateId,
+    transitionType: 'STAGING_MATERIALIZATION_PROBE',
+    writes: [],
+    paths: {
+      seal: `governance/gates/${gateId}/state/revisions/${currentState.stateRevision}/STATE_SEAL.json`,
+      currentState: `governance/gates/${gateId}/state/CURRENT_STATE.json`
+    }
+  };
+}
+
+function defectClasses(validation) { return new Set(validation.findings.map((item) => item.defectClass)); }
+function mentions(validation, text) { return validation.findings.some((item) => JSON.stringify(item).includes(text)); }
+
+test('X1: a declared protected path outside governance/ is materialized byte-exact and the head revision validates', (t) => {
+  const declaration = firstExternalProtectedDeclaration(REPO_ROOT);
+  if (!declaration) { t.skip('no revision in this repository declares a protected path outside governance/'); return; }
+  const root = scratchRoot('external-protected');
+  const staging = fs.mkdtempSync(path.join(fs.realpathSync(os.tmpdir()), 'gate-lifecycle-stage-'));
+  try {
+    const validation = validateCandidateInStagingRoot({ root, candidate: headNoopCandidate(root, declaration.gateId), stagingRoot: staging });
+    assert.deepEqual(validation.findings, []);
+    assert.equal(validation.valid, true);
+    assert.equal(validation.reports.revisionValid, true);
+    assert.deepEqual(
+      readBytes(staging, declaration.protectedPath),
+      readBytes(root, declaration.protectedPath)
+    );
+  } finally { discard(root); discard(staging); }
+});
+
+test('X2: an absent declared protected source fails closed and the protected-hash law still reports it', (t) => {
+  const declaration = firstExternalProtectedDeclaration(REPO_ROOT);
+  if (!declaration) { t.skip('no revision in this repository declares a protected path outside governance/'); return; }
+  const root = scratchRoot('external-protected-absent');
+  const staging = fs.mkdtempSync(path.join(fs.realpathSync(os.tmpdir()), 'gate-lifecycle-stage-'));
+  try {
+    fs.rmSync(path.join(root, ...declaration.protectedPath.split('/')));
+    const validation = validateCandidateInStagingRoot({ root, candidate: headNoopCandidate(root, declaration.gateId), stagingRoot: staging });
+    assert.equal(validation.valid, false);
+    assert.ok(defectClasses(validation).has('CANDIDATE_PROTECTED_PATH_SOURCE_ABSENT'));
+    assert.ok(mentions(validation, 'PROTECTED_HASH_TARGET_ABSENT'), 'the absent target must still be disclosed by the protected-hash law');
+    assert.equal(fs.existsSync(path.join(staging, ...declaration.protectedPath.split('/'))), false);
+  } finally { discard(root); discard(staging); }
+});
+
+test('X3: a tampered declared protected source is carried as-is and fails the protected-hash law', (t) => {
+  const declaration = firstExternalProtectedDeclaration(REPO_ROOT);
+  if (!declaration) { t.skip('no revision in this repository declares a protected path outside governance/'); return; }
+  const root = scratchRoot('external-protected-tampered');
+  const staging = fs.mkdtempSync(path.join(fs.realpathSync(os.tmpdir()), 'gate-lifecycle-stage-'));
+  try {
+    const target = path.join(root, ...declaration.protectedPath.split('/'));
+    fs.appendFileSync(target, 'tampered\n');
+    const validation = validateCandidateInStagingRoot({ root, candidate: headNoopCandidate(root, declaration.gateId), stagingRoot: staging });
+    assert.equal(validation.valid, false);
+    assert.ok(defectClasses(validation).has('CANDIDATE_STATE_REVISION_INVALID'));
+    assert.ok(mentions(validation, 'PROTECTED_HASH_MISMATCH'));
+    assert.equal(defectClasses(validation).has('CANDIDATE_PROTECTED_PATH_SOURCE_ABSENT'), false);
+    assert.deepEqual(readBytes(staging, declaration.protectedPath), fs.readFileSync(target));
+  } finally { discard(root); discard(staging); }
+});
+
+test('X4: an undeclared path outside governance/ is never copied into staging', () => {
+  const root = scratchRoot('external-undeclared');
+  const staging = fs.mkdtempSync(path.join(fs.realpathSync(os.tmpdir()), 'gate-lifecycle-stage-'));
+  try {
+    fs.writeFileSync(path.join(root, 'UNDECLARED_EXTERNAL.txt'), 'not protected\n');
+    fs.mkdirSync(path.join(root, 'undeclared', 'nested'), { recursive: true });
+    fs.writeFileSync(path.join(root, 'undeclared', 'nested', 'file.txt'), 'not protected\n');
+    const declared = new Set(declaredExternalProtectedPaths(root).map((entry) => entry.path.split('/')[0]));
+    const gateId = firstExternalProtectedDeclaration(root)?.gateId ?? 'GATE17';
+    validateCandidateInStagingRoot({ root, candidate: headNoopCandidate(root, gateId), stagingRoot: staging });
+    assert.equal(fs.existsSync(path.join(staging, 'UNDECLARED_EXTERNAL.txt')), false);
+    assert.equal(fs.existsSync(path.join(staging, 'undeclared')), false);
+    assert.deepEqual(fs.readdirSync(staging).sort(), ['governance', ...declared].sort());
+  } finally { discard(root); discard(staging); }
+});
+
+function declareOnHeadCheckpoint(root, gateId, protectedPaths) {
+  const currentState = readJson(root, `governance/gates/${gateId}/state/CURRENT_STATE.json`);
+  const checkpointPath = `governance/gates/${gateId}/state/revisions/${currentState.stateRevision}/CHECKPOINT.json`;
+  const checkpoint = readJson(root, checkpointPath);
+  checkpoint.protectedHashes = [...(checkpoint.protectedHashes ?? []), ...protectedPaths.map((item) => ({ path: item, sha256: '0'.repeat(64) }))];
+  writeJson(root, checkpointPath, checkpoint);
+  return checkpointPath;
+}
+
+function findingPaths(validation, defectClass) {
+  return new Set(validation.findings.filter((item) => item.defectClass === defectClass).map((item) => item.path));
+}
+
+test('X5: an unsafe declared protected path is refused and nothing escapes the staging root', () => {
+  const root = scratchRoot('external-unsafe');
+  const staging = fs.mkdtempSync(path.join(fs.realpathSync(os.tmpdir()), 'gate-lifecycle-stage-'));
+  const escapeName = `${path.basename(staging)}-escaped.txt`;
+  const sourceOutsideRoot = path.join(path.dirname(root), escapeName);
+  const targetOutsideStaging = path.join(path.dirname(staging), escapeName);
+  // Traversal, absolute, drive, backslash, stream syntax, and segments a
+  // filesystem silently rewrites into another name.
+  const unsafe = [`../${escapeName}`, `governance/../${escapeName}`, `/${escapeName}`, `C:/${escapeName}`,
+    `nested\\${escapeName}`, `${escapeName}::$DATA`, `${escapeName}.`, `${escapeName} `, 'NUL', 'nested/aux.txt'];
+  try {
+    fs.writeFileSync(sourceOutsideRoot, 'outside\n');
+    declareOnHeadCheckpoint(root, 'GATE17', unsafe);
+    const before = fs.statSync(targetOutsideStaging).mtimeMs;
+    const validation = validateCandidateInStagingRoot({ root, candidate: headNoopCandidate(root, 'GATE17'), stagingRoot: staging });
+    assert.equal(validation.valid, false);
+    assert.deepEqual([...findingPaths(validation, 'CANDIDATE_PROTECTED_PATH_UNSAFE')].sort(), [...unsafe].sort());
+    assert.equal(defectClasses(validation).has('CANDIDATE_PROTECTED_PATH_SOURCE_ABSENT'), false);
+    assert.equal(fs.readFileSync(targetOutsideStaging, 'utf8'), 'outside\n');
+    assert.equal(fs.statSync(targetOutsideStaging).mtimeMs, before, 'nothing is written outside the staging root');
+    assert.equal(fs.existsSync(path.join(staging, 'nested')), false);
+  } finally { discard(root); discard(staging); fs.rmSync(sourceOutsideRoot, { force: true }); }
+});
+
+test('X6: a declared source that is a link, not a regular file, or resolves outside the root fails closed', () => {
+  const root = scratchRoot('external-invalid-source');
+  const staging = fs.mkdtempSync(path.join(fs.realpathSync(os.tmpdir()), 'gate-lifecycle-stage-'));
+  const outside = fs.mkdtempSync(path.join(fs.realpathSync(os.tmpdir()), 'gate-lifecycle-outside-'));
+  try {
+    fs.writeFileSync(path.join(outside, 'inner.txt'), 'outside the root\n');
+    fs.mkdirSync(path.join(root, 'x6-directory'));
+    // A junction needs no privilege on Windows; elsewhere the type is ignored.
+    fs.symlinkSync(outside, path.join(root, 'x6-linked-directory'), 'junction');
+    const declared = { 'x6-directory': 'NOT_A_FILE', 'x6-linked-directory/inner.txt': 'SYMBOLIC_LINK:x6-linked-directory' };
+    try {
+      fs.symlinkSync(path.join(outside, 'inner.txt'), path.join(root, 'x6-file-link.txt'), 'file');
+      declared['x6-file-link.txt'] = 'SYMBOLIC_LINK:x6-file-link.txt';
+    } catch (error) { if (error.code !== 'EPERM') throw error; }
+    declareOnHeadCheckpoint(root, 'GATE17', Object.keys(declared));
+    const validation = validateCandidateInStagingRoot({ root, candidate: headNoopCandidate(root, 'GATE17'), stagingRoot: staging });
+    assert.equal(validation.valid, false);
+    const invalid = validation.findings.filter((item) => item.defectClass === 'CANDIDATE_PROTECTED_PATH_SOURCE_INVALID');
+    assert.deepEqual(Object.fromEntries(invalid.map((item) => [item.path, item.actual])), declared);
+    for (const relative of Object.keys(declared)) assert.equal(fs.existsSync(path.join(staging, relative.split('/')[0])), false, relative);
+    assert.equal(fs.readFileSync(path.join(outside, 'inner.txt'), 'utf8'), 'outside the root\n');
+  } finally { discard(root); discard(staging); discard(outside); }
+});
+
+function swapCase(value) {
+  return [...value].map((char) => (char === char.toLowerCase() ? char.toUpperCase() : char.toLowerCase())).join('');
+}
+
+function isCaseInsensitiveDirectory(directory) {
+  const probe = path.join(directory, 'case-probe');
+  fs.writeFileSync(probe, '');
+  try { return fs.existsSync(path.join(directory, 'CASE-PROBE')); } finally { fs.rmSync(probe); }
+}
+
+test('X7: a case-variant alias of a candidate-written path is a collision and never overwrites candidate bytes', (t) => {
+  const declaration = firstExternalProtectedDeclaration(REPO_ROOT);
+  if (!declaration) { t.skip('no revision in this repository declares a protected path outside governance/'); return; }
+  const root = scratchRoot('external-collision');
+  const staging = fs.mkdtempSync(path.join(fs.realpathSync(os.tmpdir()), 'gate-lifecycle-stage-'));
+  try {
+    const caseInsensitive = isCaseInsensitiveDirectory(staging);
+    // (a) the candidate writes a case variant of a canonically declared external path;
+    // (b) the candidate writes a checkpoint declaring a case variant of itself.
+    const externalAlias = swapCase(declaration.protectedPath);
+    const currentState = readJson(root, 'governance/gates/GATE17/state/CURRENT_STATE.json');
+    const checkpointPath = `governance/gates/GATE17/state/revisions/${currentState.stateRevision}/CHECKPOINT.json`;
+    const selfAlias = `G${checkpointPath.slice(1)}`;
+    const checkpoint = readJson(root, checkpointPath);
+    checkpoint.protectedHashes = [...(checkpoint.protectedHashes ?? []), { path: selfAlias, sha256: '0'.repeat(64) }];
+    const candidateBytes = {
+      [externalAlias]: Buffer.from('candidate-produced external bytes\n'),
+      [checkpointPath]: Buffer.from(`${JSON.stringify(checkpoint, null, 2)}\n`)
+    };
+    const candidate = headNoopCandidate(root, declaration.gateId);
+    candidate.writes = Object.entries(candidateBytes).map(([relative, bytes]) => ({ path: relative, bytes, sha256: sha256Bytes(bytes), byteLength: bytes.length }));
+    const validation = validateCandidateInStagingRoot({ root, candidate, stagingRoot: staging });
+    assert.equal(validation.valid, false);
+    for (const [relative, bytes] of Object.entries(candidateBytes)) {
+      assert.deepEqual(readBytes(staging, relative), bytes, `candidate bytes at ${relative} must survive byte-identical`);
+    }
+    if (caseInsensitive) {
+      assert.deepEqual([...findingPaths(validation, 'CANDIDATE_PROTECTED_PATH_COLLISION')].sort(), [declaration.protectedPath, selfAlias].sort());
+    } else {
+      assert.ok(findingPaths(validation, 'CANDIDATE_PROTECTED_PATH_SOURCE_ABSENT').has(selfAlias));
+    }
+  } finally { discard(root); discard(staging); }
+});
+
+test('X8: an exact candidate write at a declared external path is a collision and keeps the candidate bytes', (t) => {
+  const declaration = firstExternalProtectedDeclaration(REPO_ROOT);
+  if (!declaration) { t.skip('no revision in this repository declares a protected path outside governance/'); return; }
+  const root = scratchRoot('external-exact-collision');
+  const staging = fs.mkdtempSync(path.join(fs.realpathSync(os.tmpdir()), 'gate-lifecycle-stage-'));
+  try {
+    const bytes = Buffer.from('candidate-produced bytes at the declared path\n');
+    const candidate = headNoopCandidate(root, declaration.gateId);
+    candidate.writes = [{ path: declaration.protectedPath, bytes, sha256: sha256Bytes(bytes), byteLength: bytes.length }];
+    const validation = validateCandidateInStagingRoot({ root, candidate, stagingRoot: staging });
+    assert.equal(validation.valid, false);
+    assert.ok(findingPaths(validation, 'CANDIDATE_PROTECTED_PATH_COLLISION').has(declaration.protectedPath));
+    assert.deepEqual(readBytes(staging, declaration.protectedPath), bytes);
+  } finally { discard(root); discard(staging); }
 });

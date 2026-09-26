@@ -51,9 +51,32 @@ const LEDGER = 'governance/state/GATE_STATUS_LEDGER.ndjson';
 const GATE17_CLOSURE_AUTHORITY =
   'governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_GATE17_AGENT_CLOSURE_R1.json';
 
+/** Declared protected paths outside `governance/`, read from the checkpoints. */
+function declaredExternalProtectedPaths(root) {
+  const declared = new Set();
+  const gatesRoot = path.join(root, 'governance', 'gates');
+  for (const gateId of fs.readdirSync(gatesRoot)) {
+    const revisions = path.join(gatesRoot, gateId, 'state', 'revisions');
+    if (!fs.existsSync(revisions)) continue;
+    for (const revision of fs.readdirSync(revisions)) {
+      const checkpointPath = path.join(revisions, revision, 'CHECKPOINT.json');
+      if (!fs.existsSync(checkpointPath)) continue;
+      let checkpoint = null;
+      try { checkpoint = JSON.parse(fs.readFileSync(checkpointPath, 'utf8')); } catch { continue; }
+      for (const entry of Array.isArray(checkpoint?.protectedHashes) ? checkpoint.protectedHashes : []) {
+        if (typeof entry?.path === 'string' && !entry.path.startsWith('governance/')) declared.add(entry.path);
+      }
+    }
+  }
+  return [...declared].sort();
+}
 function scratchRoot(label) {
   const root = fs.mkdtempSync(path.join(fs.realpathSync(os.tmpdir()), `hostile-${label}-`));
   fs.cpSync(path.join(REPO_ROOT, 'governance'), path.join(root, 'governance'), { recursive: true });
+  for (const relative of declaredExternalProtectedPaths(root)) {
+    fs.mkdirSync(path.dirname(path.join(root, ...relative.split('/'))), { recursive: true });
+    fs.copyFileSync(path.join(REPO_ROOT, ...relative.split('/')), path.join(root, ...relative.split('/')));
+  }
   return root;
 }
 function stagingDir() { return fs.mkdtempSync(path.join(fs.realpathSync(os.tmpdir()), 'hostile-stage-')); }
@@ -65,7 +88,7 @@ function writeJson(root, relative, value) { writeText(root, relative, `${JSON.st
 function initializeGitRepository(root) {
   const run = (args) => execFileSync('git', args, { cwd: root, stdio: 'pipe' });
   run(['init', '--quiet']);
-  run(['add', 'governance']);
+  run(['add', '--', 'governance', ...declaredExternalProtectedPaths(root)]);
   run(['-c', 'user.name=hostile', '-c', 'user.email=hostile@example.invalid', 'commit', '--quiet', '-m', 'fixture baseline']);
 }
 

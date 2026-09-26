@@ -776,9 +776,138 @@ function refreshCandidateProjections({ stagingRoot, candidate, fail, projectionP
   return writes;
 }
 
+const WINDOWS_DEVICE_SEGMENT_RE = /^(con|prn|aux|nul|com[0-9¹²³]|lpt[0-9¹²³])(\..*)?$/i;
+
 /**
- * Materializes the candidate into a disposable full copy of `governance/` and
- * validates it with the same tools that guard the real tree.
+ * A repository-relative path the filesystem cannot reinterpret: slash-separated,
+ * no traversal, no drive or stream syntax, NFC, and no segment a filesystem
+ * silently rewrites (trailing dot or space, device names).
+ */
+function isSafeRepoRelativePath(value) {
+  return typeof value === 'string' && value !== '' && value === value.normalize('NFC')
+    && !/[\\:*?"<>|\u0000-\u001f]/.test(value) && !value.startsWith('/')
+    && value.split('/').every((part) => part && part !== '.' && part !== '..'
+      && !/[. ]$/.test(part) && !WINDOWS_DEVICE_SEGMENT_RE.test(part));
+}
+
+function isInsideDirectory(directory, candidatePath) {
+  const relative = path.relative(directory, candidatePath);
+  return relative !== '' && !relative.startsWith('..') && !path.isAbsolute(relative);
+}
+
+/**
+ * What the filesystem really holds at `relativePath` under `base`, segment by
+ * segment. A segment that resolves but is not listed under its exact spelling
+ * is an ALIAS (case folding, Unicode normalization, short names): opening it
+ * would reach an entry the declaration does not name.
+ */
+function inspectExactPath(base, relativePath) {
+  const parts = relativePath.split('/');
+  let current = base;
+  for (const [index, part] of parts.entries()) {
+    const next = path.join(current, part);
+    let stat;
+    try { stat = fs.lstatSync(next); } catch (error) {
+      if (error.code === 'ENOENT') return { state: 'ABSENT' };
+      return { state: 'UNREADABLE', detail: error.code ?? 'UNKNOWN' };
+    }
+    if (!fs.readdirSync(current).includes(part)) return { state: 'ALIAS', detail: parts.slice(0, index + 1).join('/') };
+    if (stat.isSymbolicLink()) return { state: 'SYMBOLIC_LINK', detail: parts.slice(0, index + 1).join('/') };
+    if (index === parts.length - 1) return stat.isFile() ? { state: 'FILE', stat } : { state: 'NOT_A_FILE' };
+    if (!stat.isDirectory()) return { state: 'NOT_A_FILE', detail: parts.slice(0, index + 1).join('/') };
+    current = next;
+  }
+  return { state: 'ABSENT' };
+}
+
+/**
+ * Every repository path a sealed revision protects, as declared by the staged
+ * checkpoints themselves (the pre-state revisions plus the candidate's own).
+ * The declaration is the only source: nothing here names a Gate or a file.
+ */
+function collectDeclaredProtectedPaths(stagingRoot) {
+  const declared = new Set();
+  const gatesRoot = path.join(stagingRoot, 'governance', 'gates');
+  if (!fs.existsSync(gatesRoot)) return declared;
+  for (const gateEntry of fs.readdirSync(gatesRoot, { withFileTypes: true })) {
+    if (!gateEntry.isDirectory() || !GATE_RE.test(gateEntry.name)) continue;
+    const gateRevisions = path.join(gatesRoot, gateEntry.name, 'state', 'revisions');
+    if (!fs.existsSync(gateRevisions)) continue;
+    for (const revision of fs.readdirSync(gateRevisions, { withFileTypes: true })) {
+      if (!revision.isDirectory() || !REVISION_RE.test(revision.name)) continue;
+      const checkpoint = readJsonOrNull(stagingRoot, `governance/gates/${gateEntry.name}/state/revisions/${revision.name}/CHECKPOINT.json`);
+      for (const entry of Array.isArray(checkpoint?.protectedHashes) ? checkpoint.protectedHashes : []) {
+        if (typeof entry?.path === 'string') declared.add(entry.path);
+      }
+    }
+  }
+  return declared;
+}
+
+/**
+ * The staging root is a copy of `governance/`, but a revision may protect a
+ * repository path outside it. Those declared paths — and only those — are
+ * copied byte-for-byte from the real root to the same repository-relative
+ * location, by exclusive creation only. Anything already staged at, or
+ * aliasing, the destination (a candidate write above all) is a
+ * CANDIDATE_PROTECTED_PATH_COLLISION and keeps its bytes. A declared source
+ * that is absent, unsafe, aliased, a link, not a regular file or outside the
+ * root is a finding and is never materialized, so the protected-hash law still
+ * evaluates the staged tree exactly as it stands.
+ */
+function materializeExternalProtectedPaths({ root, stagingRoot, fail }) {
+  const rootReal = fs.realpathSync.native(root);
+  const stagingReal = fs.realpathSync.native(stagingRoot);
+  const materialized = [];
+  for (const relativePath of [...collectDeclaredProtectedPaths(stagingRoot)].sort()) {
+    if (isGovernedRelativePath(relativePath)) continue;
+    if (!isSafeRepoRelativePath(relativePath)) {
+      fail('CANDIDATE_PROTECTED_PATH_UNSAFE', { path: relativePath, expected: 'relative slash-separated NFC path the filesystem cannot reinterpret', actual: relativePath });
+      continue;
+    }
+    const target = path.join(stagingReal, ...relativePath.split('/'));
+    const staged = inspectExactPath(stagingReal, relativePath);
+    if (staged.state !== 'ABSENT' || !isInsideDirectory(stagingReal, target)) {
+      fail('CANDIDATE_PROTECTED_PATH_COLLISION', { path: relativePath, expected: 'no staged entry at or aliasing the declared protected path', actual: staged.detail ? `${staged.state}:${staged.detail}` : staged.state });
+      continue;
+    }
+    const source = inspectExactPath(rootReal, relativePath);
+    if (source.state === 'ABSENT') {
+      fail('CANDIDATE_PROTECTED_PATH_SOURCE_ABSENT', { path: relativePath, expected: 'declared protected path present in repository root', actual: 'ABSENT' });
+      continue;
+    }
+    const sourcePath = path.join(rootReal, ...relativePath.split('/'));
+    if (source.state !== 'FILE' || !isInsideDirectory(rootReal, fs.realpathSync.native(sourcePath))) {
+      fail('CANDIDATE_PROTECTED_PATH_SOURCE_INVALID', { path: relativePath, expected: 'regular file inside repository root under its exact spelling', actual: source.state === 'FILE' ? 'OUTSIDE_ROOT' : source.detail ? `${source.state}:${source.detail}` : source.state });
+      continue;
+    }
+    const descriptor = fs.openSync(sourcePath, 'r');
+    let bytes = null;
+    try {
+      const opened = fs.fstatSync(descriptor);
+      if (opened.isFile() && opened.ino === source.stat.ino && opened.dev === source.stat.dev) bytes = fs.readFileSync(descriptor);
+    } finally { fs.closeSync(descriptor); }
+    if (!bytes) {
+      fail('CANDIDATE_PROTECTED_PATH_SOURCE_INVALID', { path: relativePath, expected: 'the inspected regular file', actual: 'REPLACED_DURING_READ' });
+      continue;
+    }
+    fs.mkdirSync(path.dirname(target), { recursive: true });
+    try {
+      fs.writeFileSync(target, bytes, { flag: 'wx' });
+    } catch (error) {
+      if (error.code !== 'EEXIST') throw error;
+      fail('CANDIDATE_PROTECTED_PATH_COLLISION', { path: relativePath, expected: 'no staged entry at or aliasing the declared protected path', actual: 'EEXIST' });
+      continue;
+    }
+    materialized.push(relativePath);
+  }
+  return materialized;
+}
+
+/**
+ * Materializes the candidate into a disposable full copy of `governance/`, plus
+ * any protected path a revision declares outside it, and validates it with the
+ * same tools that guard the real tree.
  *
  * The staging root is a real directory, not a mock, because the validators read
  * real files: seals resolve members from disk, the ledger validator resolves
@@ -799,6 +928,8 @@ export function validateCandidateInStagingRoot({ root, candidate, stagingRoot, b
     fs.mkdirSync(path.dirname(target), { recursive: true });
     fs.writeFileSync(target, write.bytes);
   }
+
+  materializeExternalProtectedPaths({ root, stagingRoot, fail });
 
   const projectionWrites = refreshCandidateProjections({ stagingRoot, candidate, fail, projectionPolicyModulePath });
 

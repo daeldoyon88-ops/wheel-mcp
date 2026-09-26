@@ -1,0 +1,71 @@
+{
+  "documentKind": "POST_FREEZE_MAINTENANCE_AUTHORIZED_PATH_MANIFEST",
+  "schemaVersion": 1,
+  "manifestId": "GATE26_STANDARD_AGENT_CLOSURE_AUTHORIZED_PATHS_R3",
+  "programId": "GATE26_STANDARD_AGENT_CLOSURE_VERIFICATION_B056E1D7351A969C3F2AB2E5F37E73B6EDB041009D6F7624F5A1CCAA1166BA38_R3",
+  "paths": [
+    {
+      "path": "governance/gates/GATE26/state/CURRENT_STATE.json",
+      "operation": "MODIFY",
+      "phase": "AGENT_CLOSURE",
+      "reason": "Advance the canonical GATE26 state pointer to R0010 COMPLETE_AGENT.",
+      "artifactClass": "AGENT_CLOSURE"
+    },
+    {
+      "path": "governance/gates/GATE26/state/revisions/R0010/CHECKPOINT.json",
+      "operation": "CREATE",
+      "phase": "AGENT_CLOSURE",
+      "reason": "New GATE26 closure checkpoint after the exact AGENT_CLOSURE transition.",
+      "artifactClass": "AGENT_CLOSURE"
+    },
+    {
+      "path": "governance/gates/GATE26/state/revisions/R0010/OPEN_DEFECTS.json",
+      "operation": "CREATE",
+      "phase": "AGENT_CLOSURE",
+      "reason": "Derived GATE26 closure defect projection preserving the zero blocking-defect state.",
+      "artifactClass": "AGENT_CLOSURE"
+    },
+    {
+      "path": "governance/gates/GATE26/state/revisions/R0010/STATE_SEAL.json",
+      "operation": "CREATE",
+      "phase": "AGENT_CLOSURE",
+      "reason": "Native GATE26 state seal chained from R0009 and pinned by the AGENT_CLOSURE event.",
+      "artifactClass": "AGENT_CLOSURE"
+    },
+    {
+      "path": "governance/historical-architecture/GATE26_STANDARD_AGENT_CLOSURE_AUTHORIZED_PATHS_R3.json",
+      "operation": "CREATE",
+      "phase": "AGENT_CLOSURE",
+      "reason": "Finite exact-file GATE26 closure cohort with no wildcard or directory blanket.",
+      "artifactClass": "AGENT_CLOSURE"
+    },
+    {
+      "path": "governance/historical-architecture/GATE26_STANDARD_AGENT_CLOSURE_CONSUMPTION_R3.json",
+      "operation": "CREATE",
+      "phase": "AGENT_CLOSURE",
+      "reason": "Single-use consumption record binding the GATE26 authority, manifest and transaction.",
+      "artifactClass": "AGENT_CLOSURE"
+    },
+    {
+      "path": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_GATE26_STANDARD_AGENT_CLOSURE_R3.json",
+      "operation": "CREATE",
+      "phase": "AGENT_CLOSURE",
+      "reason": "Single-use LOCAL_EXPLICIT_AUTHORITY bound to the exact GATE26 closure pre-state and AGENT_CLOSURE_VERIFICATION_R3 digest.",
+      "artifactClass": "AGENT_CLOSURE"
+    },
+    {
+      "path": "governance/state/GATE_STATUS_LEDGER.ndjson",
+      "operation": "MODIFY",
+      "phase": "AGENT_CLOSURE",
+      "reason": "Append exactly one canonical GATE26 AGENT_CLOSURE event; every earlier event stays byte-identical.",
+      "artifactClass": "AGENT_CLOSURE"
+    },
+    {
+      "path": "governance/state/generated/GATE_STATUS_SNAPSHOT.json",
+      "operation": "MODIFY",
+      "phase": "AGENT_CLOSURE",
+      "reason": "Regenerate the derived status projection from the post-closure canonical ledger.",
+      "artifactClass": "AGENT_CLOSURE"
+    }
+  ]
+}

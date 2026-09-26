@@ -1,0 +1,61 @@
+{
+  "document": "GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY",
+  "schemaVersion": 2,
+  "authorityId": "GATE26_STANDARD_AGENT_CLOSURE_LOCAL_AUTHORITY_R3",
+  "authorityClass": "PROJECT_OWNER_POST_FREEZE_MAINTENANCE_AUTHORITY",
+  "authorityMode": "LOCAL_EXPLICIT_AUTHORITY",
+  "issuedBy": "PROJECT_OWNER",
+  "createdAt": "2026-09-26T13:11:00.000Z",
+  "expiresAt": "2026-12-31T23:59:59.000Z",
+  "targetSystem": "PROJECT_GOVERNANCE",
+  "programId": "GATE26_STANDARD_AGENT_CLOSURE_VERIFICATION_B056E1D7351A969C3F2AB2E5F37E73B6EDB041009D6F7624F5A1CCAA1166BA38_R3",
+  "authorityPurpose": "GATE_FINAL_CLOSURE",
+  "resumePoint": "GATE26_R0009_AGENT_CLOSURE_VERIFICATION_R3_B056E1D7351A969C3F2AB2E5F37E73B6EDB041009D6F7624F5A1CCAA1166BA38",
+  "maxUse": 1,
+  "preState": {
+    "baseHead": "57073d8a9e8458c5c832d605419bcafbda8551dd",
+    "ledgerEventCount": 119,
+    "ledgerPrefixSha256": "daf294ecc35c01e45090160d548a09801816ce3db52d9c8cfd0c914105e8b00e",
+    "gateId": "GATE26",
+    "gateStatus": "IN_PROGRESS",
+    "stateRevision": "R0009",
+    "contractRevision": "R0008",
+    "activeGate": "GATE13",
+    "R8ExpectedAbsent": true
+  },
+  "authorizedPathManifestPath": "governance/historical-architecture/GATE26_STANDARD_AGENT_CLOSURE_AUTHORIZED_PATHS_R3.json",
+  "authorizedPathManifestSha256": "c0c2b17130b254afed7965af91670b5e73f344d07c3b3b3451dd7c510875a770",
+  "authorizedOperationClasses": [
+    "AGENT_CLOSURE"
+  ],
+  "commitPolicy": {
+    "maxCommitCount": 1,
+    "allowedGitOperations": [
+      "GIT_ADD_PATHSPEC",
+      "GIT_COMMIT"
+    ],
+    "commitMessage": "governance: close GATE26 under final closure authority",
+    "thirdCommitAuthorized": false
+  },
+  "pushAuthorized": false,
+  "authorityPredecessor": null,
+  "authorityHeadBinding": {
+    "mode": "BASE_HEAD",
+    "baseHead": "57073d8a9e8458c5c832d605419bcafbda8551dd"
+  },
+  "consumptionRecordPath": "governance/historical-architecture/GATE26_STANDARD_AGENT_CLOSURE_CONSUMPTION_R3.json",
+  "prohibitedOperations": [
+    "START",
+    "SECOND_START",
+    "AGENT_CLOSURE",
+    "EXTERNAL_CONFIRMATION",
+    "COMPLETE_AGENT",
+    "COMPLETE_CONFIRMED",
+    "ACTIVE_GATE_SWITCH",
+    "GEE_R8",
+    "GIT_PUSH",
+    "HISTORY_REWRITE",
+    "THIRD_COMMIT",
+    "UNRELATED_WRITE"
+  ]
+}

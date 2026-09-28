@@ -1,0 +1,80 @@
+{
+  "documentKind": "POST_FREEZE_MAINTENANCE_AUTHORITY_CONSUMPTION",
+  "schemaVersion": 2,
+  "authorityId": "GATE26_PRE_EXTERNAL_CONFIRMATION_MAINTENANCE_PUBLICATION_R2_LOCAL_AUTHORITY_R1",
+  "programId": "GATE26_PRE_EXTERNAL_CONFIRMATION_MAINTENANCE_PUBLICATION_R2",
+  "manifestSha256": "5c76fc08d56ac1fe8364c71f467bc6ee03b2188a5539327758cc5d926b476f24",
+  "baseHead": "8f025b47dce4832bda9c17da2cbaaf2a6ef0a774",
+  "consumedUse": 1,
+  "transactionId": "GATE26_PRE_EXTERNAL_CONFIRMATION_MAINTENANCE_PUBLICATION_R2_TRANSACTION",
+  "recordedAt": "2026-09-28T23:27:30.044Z",
+  "commitMessage": "GATE26: publish pre-external-confirmation maintenance repair",
+  "publicationAdmission": {
+    "admissionId": "GATE26_PRE_EXTERNAL_CONFIRMATION_MAINTENANCE_PUBLICATION_R2_PUBLICATION_ADMISSION_R1",
+    "admissionPath": "governance/authority/publication-admissions/GATE26/GATE26_PRE_EXTERNAL_CONFIRMATION_MAINTENANCE_PUBLICATION_R2_PUBLICATION_ADMISSION_R1.json",
+    "admissionSha256": "7878d77bf694f61dc057901dd814749f49d61ed08a9c44b0f066b3267cce6369"
+  },
+  "cohortSelfExclusion": {
+    "path": "governance/historical-architecture/GATE26_PRE_EXTERNAL_CONFIRMATION_MAINTENANCE_PUBLICATION_R2_CONSUMPTION_R1.json",
+    "reason": "The consumption record cannot hash its own final bytes; its identity is bound by the authority and manifest instead."
+  },
+  "cohortPathCount": 8,
+  "cohort": [
+    {
+      "path": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_GATE26_PRE_EXTERNAL_CONFIRMATION_MAINTENANCE_PUBLICATION_R2.json",
+      "sha256": "e978af0357573034b1e386f03afc4959dfb93d624695a5fd4f2cd31b08b9d1a6",
+      "byteLength": 2395,
+      "operation": "CREATE",
+      "reason": "Owner-issued V2 authority for the exact pre-external-confirmation maintenance publication.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "governance/historical-architecture/GATE26_PRE_EXTERNAL_CONFIRMATION_MAINTENANCE_PUBLICATION_R2_AUTHORIZED_PATHS_R1.json",
+      "sha256": "5c76fc08d56ac1fe8364c71f467bc6ee03b2188a5539327758cc5d926b476f24",
+      "byteLength": 4398,
+      "operation": "CREATE",
+      "reason": "Exact closed eight-path V2 publication cohort; target pathset digest b0fc9f468d8fdf162446ef914e4c7c4320584eb1c7d6ee978a2977cc9a509e69, binding digest 81da2619b9ded912ee7145210ad79e049a48e8fa9224f00ebe5dfce9af664fe5.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "governance/gates/GATE26/state/revisions/R0010/DEFERRED_CAPABILITY_DECLARATION.json",
+      "sha256": "bbbcc57a2aa1c06ffef0f59ceb241f846c36a32e6441dce213616bb392724977",
+      "byteLength": 43,
+      "operation": "CREATE",
+      "reason": "Durably register the R0010 deferred-capability declaration (no deferred capability introduced).",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "governance/gates/GATE26/tests/gate26-foundation.test.mjs",
+      "sha256": "67738d9333979d2fbe7a3f19228327c0e21c0b1ee2176c01afce15510eb98eab",
+      "byteLength": 13030,
+      "operation": "MODIFY",
+      "reason": "Align GATE26 foundation tests with the pre-external-confirmation repair.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "governance/gates/GATE26/tests/gate26-hostiles.test.mjs",
+      "sha256": "f32131371225145bec4cf118355a544d7c1cf0c2f2d51cca62d081077dbff43c",
+      "byteLength": 27089,
+      "operation": "MODIFY",
+      "reason": "Align GATE26 hostile tests with the pre-external-confirmation repair.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "governance/tools/final-gate-integrity-auditor.mjs",
+      "sha256": "30714db59367b8df25f14c0f905f4b12e97e36cd19bd8f1ac30a104220e615a3",
+      "byteLength": 53248,
+      "operation": "MODIFY",
+      "reason": "Pre-external-confirmation repair of the final gate integrity auditor.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "governance/tools/validate-status-ledger.mjs",
+      "sha256": "d1cc0c650a59711872064bf7caea5e39698265a81927cc25d3f48268c9dc1957",
+      "byteLength": 174542,
+      "operation": "MODIFY",
+      "reason": "Pre-external-confirmation repair of the status ledger validator.",
+      "artifactClass": "MAINTENANCE"
+    }
+  ]
+}

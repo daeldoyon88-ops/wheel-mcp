@@ -47,8 +47,8 @@ import { canonicalize, sha256Bytes, sha256Canonical } from './canonical-json.mjs
 import {
   MODE_FULL, TRANSITIONS, NATIVE_STATE_PIN_FIRST_ORDINAL,
   HISTORICAL_RECONCILIATION_TRANSITIONS, CONTRACT_SUCCESSION_TRANSITIONS,
-  PRECONTRACT_CONSUMPTION_ANCHOR_TRANSITIONS,
-  reconstructLedgerPrefixBytes, validateLedger
+  PRECONTRACT_CONSUMPTION_ANCHOR_TRANSITION_TYPE, PRECONTRACT_CONSUMPTION_ANCHOR_TRANSITIONS,
+  reconstructLedgerPrefixBytes, validateLedger, validatePrecontractConsumptionAnchorStatePin
 } from './validate-status-ledger.mjs';
 
 /**
@@ -309,9 +309,31 @@ export function auditFinalGateIntegrity({
         message: `event ${event.eventId ?? lineNumber}`
       });
     }
-    // The native state pin boundary is enforced in both directions.
+    // The native state pin boundary is enforced in both directions. A
+    // PRECONTRACT_CONSUMPTION_ANCHOR is the one contextual case: it mints no
+    // revision, so the canonical ledger validator admits an absent pin only for
+    // the Gate's untouched NOT_STARTED bootstrap pre-state. Reuse that exact law
+    // here; do not replace it with a blanket anchor exemption.
     const hasPin = Object.hasOwn(event, 'stateRevision') || Object.hasOwn(event, 'stateRevisionSealSha256');
-    if (event.ordinal >= NATIVE_STATE_PIN_FIRST_ORDINAL && !hasPin) {
+    const isPrecontractAnchor = event.transitionType === PRECONTRACT_CONSUMPTION_ANCHOR_TRANSITION_TYPE;
+    if (event.ordinal >= NATIVE_STATE_PIN_FIRST_ORDINAL && isPrecontractAnchor) {
+      const anchorPinFindings = [];
+      validatePrecontractConsumptionAnchorStatePin({
+        event,
+        lineNumber,
+        priorEvents: events,
+        findings: anchorPinFindings
+      });
+      for (const item of anchorPinFindings.filter((finding) => finding.severity === 'BLOCKING')) {
+        blocking('LEDGER', item.detectorId, {
+          path: LEDGER_PATH,
+          expected: item.expectedRule,
+          actual: item.actualValue,
+          message: `ordinal ${event.ordinal}: ${item.message}`
+        });
+      }
+    }
+    if (event.ordinal >= NATIVE_STATE_PIN_FIRST_ORDINAL && !hasPin && !isPrecontractAnchor) {
       blocking('LEDGER', 'NATIVE_STATE_PIN_MISSING', {
         path: LEDGER_PATH, expected: 'stateRevision + stateRevisionSealSha256', actual: 'ABSENT',
         message: `ordinal ${event.ordinal}`

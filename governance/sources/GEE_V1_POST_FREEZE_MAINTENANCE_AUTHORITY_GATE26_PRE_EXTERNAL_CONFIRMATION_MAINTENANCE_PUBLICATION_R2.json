@@ -1,0 +1,64 @@
+{
+  "document": "GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY",
+  "schemaVersion": 2,
+  "authorityId": "GATE26_PRE_EXTERNAL_CONFIRMATION_MAINTENANCE_PUBLICATION_R2_LOCAL_AUTHORITY_R1",
+  "authorityClass": "PROJECT_OWNER_POST_FREEZE_MAINTENANCE_AUTHORITY",
+  "authorityMode": "LOCAL_EXPLICIT_AUTHORITY",
+  "issuedBy": "PROJECT_OWNER",
+  "createdAt": "2026-09-28T00:00:00.000Z",
+  "expiresAt": "2026-12-31T23:59:59.000Z",
+  "targetSystem": "PROJECT_GOVERNANCE",
+  "programId": "GATE26_PRE_EXTERNAL_CONFIRMATION_MAINTENANCE_PUBLICATION_R2",
+  "authorityPurpose": "NORMAL_MAINTENANCE",
+  "resumePoint": "CP-GATE26-PRE-EXTERNAL-CONFIRMATION-MAINTENANCE-PUBLICATION-R2-PREWRITE",
+  "maxUse": 1,
+  "preState": {
+    "baseHead": "8f025b47dce4832bda9c17da2cbaaf2a6ef0a774",
+    "ledgerEventCount": 120,
+    "ledgerPrefixSha256": "f8de790d74504d76bc9ea6ac84c4251f226b58d8379ee5942e5b660d2bb42d40",
+    "gateId": "GATE26",
+    "gateStatus": "COMPLETE_AGENT",
+    "stateRevision": "R0010",
+    "contractRevision": "R0008",
+    "activeGate": "GATE13",
+    "R8ExpectedAbsent": true
+  },
+  "authorizedPathManifestPath": "governance/historical-architecture/GATE26_PRE_EXTERNAL_CONFIRMATION_MAINTENANCE_PUBLICATION_R2_AUTHORIZED_PATHS_R1.json",
+  "authorizedPathManifestSha256": "5c76fc08d56ac1fe8364c71f467bc6ee03b2188a5539327758cc5d926b476f24",
+  "authorizedOperationClasses": [
+    "MAINTENANCE"
+  ],
+  "commitPolicy": {
+    "maxCommitCount": 1,
+    "allowedGitOperations": [
+      "GIT_ADD_PATHSPEC",
+      "GIT_COMMIT"
+    ],
+    "commitMessage": "GATE26: publish pre-external-confirmation maintenance repair",
+    "thirdCommitAuthorized": false
+  },
+  "pushAuthorized": false,
+  "authorityPredecessor": {
+    "authorityId": "GATE26_STANDARD_AGENT_CLOSURE_LOCAL_AUTHORITY_R3",
+    "sha256": "a688c81eca39f28d20d61ee6020175c0fc44964c89d6525e3d36b376e20dc500"
+  },
+  "authorityHeadBinding": {
+    "mode": "BASE_HEAD",
+    "baseHead": "8f025b47dce4832bda9c17da2cbaaf2a6ef0a774"
+  },
+  "consumptionRecordPath": "governance/historical-architecture/GATE26_PRE_EXTERNAL_CONFIRMATION_MAINTENANCE_PUBLICATION_R2_CONSUMPTION_R1.json",
+  "prohibitedOperations": [
+    "START",
+    "SECOND_START",
+    "AGENT_CLOSURE",
+    "EXTERNAL_CONFIRMATION",
+    "COMPLETE_AGENT",
+    "COMPLETE_CONFIRMED",
+    "ACTIVE_GATE_SWITCH",
+    "GEE_R8",
+    "GIT_PUSH",
+    "HISTORY_REWRITE",
+    "THIRD_COMMIT",
+    "UNRELATED_WRITE"
+  ]
+}

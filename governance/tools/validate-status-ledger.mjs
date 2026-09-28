@@ -1713,7 +1713,7 @@ function validateModernGateStart({ root, ledgerPath, event, lineNumber, priorEve
  * Gate lawfully advanced and minted R0001 — the precise "receipt whose validity
  * decays as history moves forward" defect the anchor exists to end.
  */
-function validatePrecontractConsumptionAnchorStatePin({ event, lineNumber, priorEvents, findings }) {
+export function validatePrecontractConsumptionAnchorStatePin({ event, lineNumber, priorEvents, findings }) {
   const R = (detectorId, pointer, actual, expected, message) =>
     finding(findings, detectorId, event, lineNumber, pointer, actual, expected, 'GATE_PRECONTRACT_CONSUMPTION_ANCHOR_AUTHORITY', message, 'REQ-PCA-01');
 

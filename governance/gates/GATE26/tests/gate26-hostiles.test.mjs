@@ -246,23 +246,27 @@ check(() => assert.equal(LFS_THRESHOLD_BYTES_V1, authority.bindings.GATE26_LFS_T
   check(() => assert.equal(serializeEnsembleIndex({ ...envelope, records: [{ pad: 'x'.repeat(LFS_THRESHOLD_BYTES_V1 - overhead - 1) }] }).length, LFS_THRESHOLD_BYTES_V1 - 1));
 }
 
-/* H18 interrupted build resumes from the open MINI_BUILD checkpoint, not from zero */
+/* H18 terminal agent closure preserves the completed MINI checkpoint lineage. */
 check(() => {
   const current = readJson('governance/gates/GATE26/state/CURRENT_STATE.json');
   const checkpoint = readJson(`${current.revisionPath}/CHECKPOINT.json`);
   assert.equal(sha256Bytes(readFileSync(resolve(ROOT, `${current.revisionPath}/STATE_SEAL.json`))), current.stateSealSha256);
   assert.equal(checkpoint.stateRevision, current.stateRevision);
-  assert.ok(checkpoint.openTasks.includes('GATE26_MINI_BUILD_FUNCTIONAL'));
+  assert.equal(current.stateRevision, 'R0010');
+  assert.ok(checkpoint.completedTasks.includes('GATE26_MINI_BUILD_FUNCTIONAL'));
+  assert.ok(!checkpoint.openTasks.includes('GATE26_MINI_BUILD_FUNCTIONAL'));
+  assert.ok(checkpoint.openTasks.includes('GATE26_EXTERNAL_CONFIRMATION'));
   assert.ok(['R0001', 'R0002'].every((revision) => existsSync(resolve(ROOT, `governance/gates/GATE26/state/revisions/${revision}/STATE_SEAL.json`))));
 });
 
-/* H19 partial publication is not closable: the ledger keeps GATE26 IN_PROGRESS with no closure event */
+/* H19 agent closure is terminal locally, while independent confirmation remains absent. */
 check(() => {
   const events = readFileSync(resolve(ROOT, 'governance/state/GATE_STATUS_LEDGER.ndjson'), 'utf8').split(/\r?\n/).filter((line) => line.trim()).map((line) => JSON.parse(line));
   const gate26 = events.filter((event) => event.gateId === 'GATE26');
   assert.ok(gate26.length > 0);
-  assert.equal(gate26.at(-1).toStatus, 'IN_PROGRESS');
-  assert.ok(gate26.every((event) => !['AGENT_CLOSURE', 'EXTERNAL_CONFIRMATION'].includes(event.transitionType ?? event.eventType)));
+  assert.equal(gate26.at(-1).toStatus, 'COMPLETE_AGENT');
+  assert.equal(gate26.filter((event) => (event.transitionType ?? event.eventType) === 'AGENT_CLOSURE').length, 1);
+  assert.ok(gate26.every((event) => (event.transitionType ?? event.eventType) !== 'EXTERNAL_CONFIRMATION'));
   assert.equal(rehearsal.closure.agentClosureExecuted, false);
   assert.equal(rehearsal.closure.independentAuditPassAssigned, false);
 });

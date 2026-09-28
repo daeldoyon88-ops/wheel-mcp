@@ -1,6 +1,6 @@
 /**
  * GATE26 foundation: every expectation is read from an independent source — the
- * pinned R0002 contract, its CURRENT_CONTRACT pointer, the GATE22 horizon contract
+ * pinned R0002 MINI contract, the current R0008 contract pointer, the GATE22 horizon contract
  * bytes and the ratified mandate — never from the implementation constant under test.
  *
  * Engine controls run on GATE25 same-pipeline selections over GATE25's synthetic
@@ -63,12 +63,13 @@ export function runFoundation() {
   const contractBytes = readFileSync(resolve(ROOT, EXECUTION_CONTRACT_PATH));
   const contract = JSON.parse(contractBytes.toString('utf8'));
   const pointer = readJson('governance/gates/GATE26/contracts/CURRENT_CONTRACT.json');
+  const currentContractBytes = readFileSync(resolve(ROOT, pointer.contractPath));
   const requirement = (bindingId) => contract.canonicalRequirements.find((item) => item.bindingId === bindingId).binding;
 
-  /* Contract identity: the pointer, the bytes and the engine pin agree. */
-  check(() => assert.equal(pointer.contractPath, EXECUTION_CONTRACT_PATH));
-  check(() => assert.equal(pointer.contractSha256, sha256Bytes(contractBytes)));
-  check(() => assert.equal(EXECUTION_CONTRACT_SHA256, pointer.contractSha256));
+  /* Contract identity: R0002 remains the immutable MINI pin; the lifecycle pointer advanced to R0008. */
+  check(() => assert.equal(pointer.contractPath, 'governance/gates/GATE26/contracts/EXECUTION_CONTRACT_R0008.json'));
+  check(() => assert.equal(pointer.contractSha256, sha256Bytes(currentContractBytes)));
+  check(() => assert.equal(EXECUTION_CONTRACT_SHA256, sha256Bytes(contractBytes)));
 
   /* The exact 22-path workset covers every path the MINI and the D5 layout name. */
   check(() => assert.equal(new Set(contract.authorizedPaths).size, 22));

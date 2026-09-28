@@ -1,0 +1,72 @@
+{
+  "documentKind": "MAINTENANCE_PUBLICATION_ADMISSION",
+  "schemaVersion": 1,
+  "authorityMode": "LOCAL_EXPLICIT_AUTHORITY",
+  "issuedBy": "PROJECT_OWNER",
+  "admissionId": "GATE26_PRE_EXTERNAL_CONFIRMATION_MAINTENANCE_PUBLICATION_R2_PUBLICATION_ADMISSION_R1",
+  "decisionId": "OWNER_AUTHORIZE_GATE26_PRE_EXTERNAL_CONFIRMATION_MAINTENANCE_PUBLICATION_R2",
+  "issuedAtUtc": "2026-09-28T00:00:00.000Z",
+  "expiresAtUtc": null,
+  "projectId": "WHEEL",
+  "repositoryId": "WHEEL_MCP_CANONICAL",
+  "gateId": "GATE26",
+  "programId": "GATE26_PRE_EXTERNAL_CONFIRMATION_MAINTENANCE_PUBLICATION_R2",
+  "purpose": "MAINTENANCE_PUBLICATION_ADMISSION",
+  "publicationClass": "PATH_PRESTATE_PROGRAM_PUBLISHER",
+  "authorityPurpose": "NORMAL_MAINTENANCE",
+  "maxUse": 1,
+  "admissionStatement": "Admit exactly one local V2 publication of the five pre-external-confirmation maintenance target paths (pathset digest b0fc9f468d8fdf162446ef914e4c7c4320584eb1c7d6ee978a2977cc9a509e69, binding digest 81da2619b9ded912ee7145210ad79e049a48e8fa9224f00ebe5dfce9af664fe5) at base 8f025b47dce4832bda9c17da2cbaaf2a6ef0a774. No external confirmation, push or GATE27 action is admitted.",
+  "admittedAuthority": {
+    "path": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_GATE26_PRE_EXTERNAL_CONFIRMATION_MAINTENANCE_PUBLICATION_R2.json",
+    "sha256": "e978af0357573034b1e386f03afc4959dfb93d624695a5fd4f2cd31b08b9d1a6",
+    "byteLength": 2395,
+    "schemaVersion": 2,
+    "documentId": "GATE26_PRE_EXTERNAL_CONFIRMATION_MAINTENANCE_PUBLICATION_R2_LOCAL_AUTHORITY_R1"
+  },
+  "admittedManifest": {
+    "path": "governance/historical-architecture/GATE26_PRE_EXTERNAL_CONFIRMATION_MAINTENANCE_PUBLICATION_R2_AUTHORIZED_PATHS_R1.json",
+    "sha256": "5c76fc08d56ac1fe8364c71f467bc6ee03b2188a5539327758cc5d926b476f24",
+    "byteLength": 4398,
+    "schemaVersion": 2,
+    "documentId": "GATE26_PRE_EXTERNAL_CONFIRMATION_MAINTENANCE_PUBLICATION_R2_AUTHORIZED_PATHS_R1"
+  },
+  "admittedPrestate": {
+    "baseHead": "8f025b47dce4832bda9c17da2cbaaf2a6ef0a774",
+    "ledgerEventCount": 120,
+    "ledgerPrefixSha256": "f8de790d74504d76bc9ea6ac84c4251f226b58d8379ee5942e5b660d2bb42d40",
+    "gateId": "GATE26",
+    "gateStatus": "COMPLETE_AGENT",
+    "stateRevision": "R0010",
+    "contractRevision": "R0008",
+    "activeGate": "GATE13",
+    "R8ExpectedAbsent": true
+  },
+  "admittedOperationClasses": [
+    "MAINTENANCE"
+  ],
+  "grantsFutureBytePermission": false,
+  "grantsGateAuthorizationPermission": false,
+  "grantsStartPermission": false,
+  "grantsStatusTransitionPermission": false,
+  "grantsHistoricalAdmissionWidening": false,
+  "genericV1Admission": false,
+  "derivedFromGitDelta": false,
+  "derivedFromFinalGateIntegrityFindings": false,
+  "prohibitedOperations": [
+    "START",
+    "SECOND_START",
+    "GATE_AUTHORIZATION",
+    "STATUS_TRANSITION",
+    "ACTIVE_GATE_SWITCH",
+    "GEE_R8",
+    "GIT_PUSH",
+    "HISTORY_REWRITE",
+    "GENERIC_V1_ADMISSION",
+    "HISTORICAL_ADMISSION_WIDENING",
+    "SELF_ADMISSION"
+  ],
+  "successorRequirement": "A later publication over changed bytes or state requires a new exact Owner admission.",
+  "admissionDigest": "e468e1e01968ff8909ce19bdc8872678a2f566715923064059d127ec8330e4e5",
+  "ownerAuthorizationPath": "governance/sources/MAINTENANCE_PUBLICATION_ADMISSION_OWNER_AUTHORIZATION_GATE26_PRE_EXTERNAL_CONFIRMATION_MAINTENANCE_PUBLICATION_R2.json",
+  "ownerAuthorizationSha256": "5e821d871ce988ddefd316027ab2d6037ff2bb9cca475575214372bb76d74540"
+}

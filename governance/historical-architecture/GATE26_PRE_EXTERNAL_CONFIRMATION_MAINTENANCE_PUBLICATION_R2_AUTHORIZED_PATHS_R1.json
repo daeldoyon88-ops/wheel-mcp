@@ -1,0 +1,108 @@
+{
+  "documentKind": "POST_FREEZE_MAINTENANCE_AUTHORIZED_PATH_MANIFEST",
+  "schemaVersion": 2,
+  "manifestId": "GATE26_PRE_EXTERNAL_CONFIRMATION_MAINTENANCE_PUBLICATION_R2_AUTHORIZED_PATHS_R1",
+  "programId": "GATE26_PRE_EXTERNAL_CONFIRMATION_MAINTENANCE_PUBLICATION_R2",
+  "paths": [
+    {
+      "path": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_GATE26_PRE_EXTERNAL_CONFIRMATION_MAINTENANCE_PUBLICATION_R2.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "Owner-issued V2 authority for the exact pre-external-confirmation maintenance publication.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "governance/historical-architecture/GATE26_PRE_EXTERNAL_CONFIRMATION_MAINTENANCE_PUBLICATION_R2_AUTHORIZED_PATHS_R1.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "Exact closed eight-path V2 publication cohort; target pathset digest b0fc9f468d8fdf162446ef914e4c7c4320584eb1c7d6ee978a2977cc9a509e69, binding digest 81da2619b9ded912ee7145210ad79e049a48e8fa9224f00ebe5dfce9af664fe5.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "governance/historical-architecture/GATE26_PRE_EXTERNAL_CONFIRMATION_MAINTENANCE_PUBLICATION_R2_CONSUMPTION_R1.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "RESERVED_RECEIPT: canonical V2 single-use consumption record written only by the publisher.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "governance/gates/GATE26/state/revisions/R0010/DEFERRED_CAPABILITY_DECLARATION.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "Durably register the R0010 deferred-capability declaration (no deferred capability introduced).",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "governance/gates/GATE26/tests/gate26-foundation.test.mjs",
+      "operation": "MODIFY",
+      "phase": "MAINTENANCE",
+      "reason": "Align GATE26 foundation tests with the pre-external-confirmation repair.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "PRESENT",
+        "sha256": "af003e7762a18643857c342d926cfdcde70ebd8d43a4e9af2a25f36478fde4f7",
+        "byteLength": 12854
+      }
+    },
+    {
+      "path": "governance/gates/GATE26/tests/gate26-hostiles.test.mjs",
+      "operation": "MODIFY",
+      "phase": "MAINTENANCE",
+      "reason": "Align GATE26 hostile tests with the pre-external-confirmation repair.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "PRESENT",
+        "sha256": "78ff45196f680b45b256ab502b4d892fab0a324a84aeacf5874e3e2f27d1b52e",
+        "byteLength": 26807
+      }
+    },
+    {
+      "path": "governance/tools/final-gate-integrity-auditor.mjs",
+      "operation": "MODIFY",
+      "phase": "MAINTENANCE",
+      "reason": "Pre-external-confirmation repair of the final gate integrity auditor.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "PRESENT",
+        "sha256": "2fb69b8a8535140f8f4342026923e69421ff3f56563e66ed54010bf3c8e7bf46",
+        "byteLength": 52099
+      }
+    },
+    {
+      "path": "governance/tools/validate-status-ledger.mjs",
+      "operation": "MODIFY",
+      "phase": "MAINTENANCE",
+      "reason": "Pre-external-confirmation repair of the status ledger validator.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "PRESENT",
+        "sha256": "5265bb88491641b66db926404d7a686f9583f4bc20dcddae095ed3b533c91af1",
+        "byteLength": 174535
+      }
+    }
+  ],
+  "prestateSelfExclusion": [
+    {
+      "path": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_GATE26_PRE_EXTERNAL_CONFIRMATION_MAINTENANCE_PUBLICATION_R2.json",
+      "role": "AUTHORITY_DOCUMENT",
+      "reason": "Read by the evaluator before publication while its declared base prestate is ABSENT."
+    },
+    {
+      "path": "governance/historical-architecture/GATE26_PRE_EXTERNAL_CONFIRMATION_MAINTENANCE_PUBLICATION_R2_AUTHORIZED_PATHS_R1.json",
+      "role": "AUTHORIZED_PATH_MANIFEST",
+      "reason": "Read by the evaluator before publication while its declared base prestate is ABSENT."
+    }
+  ]
+}

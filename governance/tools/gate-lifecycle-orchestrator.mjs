@@ -81,12 +81,16 @@ import {
   LEDGER_SILENT_CASE_TYPES
 } from './transaction-provenance.mjs';
 import { durableReplaceFileSync, sweepPublicationResidue } from './durable-write.mjs';
+import {
+  DECLARATION_FILENAME, evaluateDeferredCapabilityClosureDeclaration, resolveApplicability, validateDeclarationDocument
+} from './evaluate-deferred-capability-closure-declaration.mjs';
 
 export const ORCHESTRATOR_DOCUMENT = 'GATE_LIFECYCLE_ORCHESTRATOR';
 export const ORCHESTRATOR_VERSION = 'R1';
 
 export const LEDGER_PATH = 'governance/state/GATE_STATUS_LEDGER.ndjson';
 export const REGISTRY_PATH = 'governance/GATE_REGISTRY_00_40.json';
+const CONSTITUTION_PATH = 'governance/PROJECT_CONSTITUTION.json';
 
 /**
  * The mechanical transitions this orchestrator derives.
@@ -226,6 +230,20 @@ function inheritedClosureCompletedTasks(previousCheckpoint) {
 }
 
 /**
+ * Task history for every non-closure transition: the predecessor's completed
+ * tasks carried forward, plus the lifecycle task this transition performs.
+ *
+ * A defaulted `[]` here was a reset, not a neutral value: the next revision then
+ * failed to consume its predecessor's resume contract and the revision validator
+ * rightly reported RESTART_FROM_ZERO_DETECTED. Only the task this transition
+ * itself completes is added — an unrelated required next action stays
+ * unconsumed and still fails closed.
+ */
+function inheritedTransitionCompletedTasks(previousCheckpoint, currentTask) {
+  return dedupeTaskList([...(previousCheckpoint?.completedTasks ?? []), currentTask]);
+}
+
+/**
  * Canonical governed-document bytes.
  *
  * Every artifact this orchestrator writes is serialized exactly one way, so a
@@ -313,6 +331,7 @@ export function deriveCandidateTransition({
   sealedMemberOrder = null,
   checkpoint = {},
   openDefects = [],
+  deferredCapabilityDeclaration = null,
   missionId = null,
   policy = WHEEL_EXTERNAL_AUTHORITY_POLICY
 }) {
@@ -444,7 +463,12 @@ export function deriveCandidateTransition({
     ? `governance/gates/${gateId}/state/revisions/${previousRevision}/CHECKPOINT.json`
     : null;
   const previousCheckpoint = previousCheckpointPath ? readJsonOrNull(root, previousCheckpointPath) : null;
-  if (transitionType === 'AGENT_CLOSURE' && previousRevision && !previousCheckpoint) {
+  // Any transition that inherits from its predecessor checkpoint needs it
+  // readable; an unreadable one must block rather than silently reset history.
+  const inheritsFromPreviousCheckpoint = transitionType === 'AGENT_CLOSURE'
+    || checkpoint.completedTasks === undefined
+    || checkpoint.protectedHashes === undefined;
+  if (inheritsFromPreviousCheckpoint && previousRevision && !previousCheckpoint) {
     fail('PREVIOUS_CHECKPOINT_UNREADABLE', {
       path: previousCheckpointPath,
       expected: 'readable predecessor checkpoint',
@@ -472,18 +496,64 @@ export function deriveCandidateTransition({
     milestone: checkpoint.milestone ?? `${gateId}_${transitionType}`,
     resumePoint: checkpoint.resumePoint ?? toStatus,
     completedTasks: checkpoint.completedTasks
-      ?? (transitionType === 'AGENT_CLOSURE' ? inheritedClosureCompletedTasks(previousCheckpoint) : []),
+      ?? (transitionType === 'AGENT_CLOSURE'
+        ? inheritedClosureCompletedTasks(previousCheckpoint)
+        : inheritedTransitionCompletedTasks(previousCheckpoint, `${gateId}_${transitionType}`)),
     openTasks: checkpoint.openTasks ?? [],
     reusableEvidence: checkpoint.reusableEvidence ?? [],
     invalidatedEvidence: checkpoint.invalidatedEvidence ?? [],
     requiredNextActions: checkpoint.requiredNextActions ?? [],
-    protectedHashes: checkpoint.protectedHashes ?? [],
+    // Carried forward, never reset: the protected-hash successor law reads the
+    // head revision's pins, so dropping them breaks a proven succession chain.
+    protectedHashes: checkpoint.protectedHashes ?? previousCheckpoint?.protectedHashes ?? [],
     createdAt: checkpoint.createdAt ?? recordedAt
   };
   const openDefectsDocument = { gateId, stateRevision, defects: openDefects };
 
   const checkpointBytes = governedBytes(checkpointDocument);
   const openDefectsBytes = governedBytes(openDefectsDocument);
+
+  // ---- deferred-capability declaration -----------------------------------
+  //
+  // Where DEFERRED_CAPABILITY_MUST_BE_DURABLY_REGISTERED applies to the status
+  // this transition leads to, the new revision must carry its structured
+  // declaration, so it is minted here in the same transaction as the revision
+  // rather than by a later out-of-band publication. Applicability is the
+  // evaluator's own rule read from the constitution, never restated. The
+  // content is the caller's explicit declaration or, failing that, the
+  // predecessor revision's declaration carried forward; with neither, the
+  // transition blocks instead of inventing an empty declaration.
+  const declarationApplicability = resolveApplicability({
+    constitution: readJsonOrNull(root, CONSTITUTION_PATH), gateId, derivedStatus: toStatus
+  });
+  let declarationRelativePath = null;
+  let declarationDocument = null;
+  if (declarationApplicability.applicable) {
+    declarationRelativePath = `${revisionDirectory}/${DECLARATION_FILENAME}`;
+    const previousDeclarationPath = previousRevision
+      ? `governance/gates/${gateId}/state/revisions/${previousRevision}/${DECLARATION_FILENAME}`
+      : null;
+    const inheritedDeclarationPresent = Boolean(previousDeclarationPath && readBytesOrNull(root, previousDeclarationPath));
+    const declarationSource = deferredCapabilityDeclaration
+      ?? (inheritedDeclarationPresent ? readJsonOrNull(root, previousDeclarationPath) : undefined);
+    if (declarationSource === undefined) {
+      fail('DEFERRED_CAPABILITY_DECLARATION_UNRESOLVABLE', {
+        path: declarationRelativePath,
+        expected: 'explicit deferredCapabilityDeclaration or a predecessor revision declaration',
+        actual: 'ABSENT'
+      });
+      return { status: 'BLOCKED', findings, candidate: null };
+    }
+    if (!validateDeclarationDocument(declarationSource)) {
+      fail('DEFERRED_CAPABILITY_DECLARATION_MALFORMED', {
+        path: deferredCapabilityDeclaration ? declarationRelativePath : previousDeclarationPath,
+        expected: 'schema-valid deferredCapabilitiesIntroduced array',
+        actual: 'MALFORMED'
+      });
+      return { status: 'BLOCKED', findings, candidate: null };
+    }
+    declarationDocument = { deferredCapabilitiesIntroduced: [...declarationSource.deferredCapabilitiesIntroduced] };
+  }
 
   // ---- sealed members -----------------------------------------------------
   //
@@ -497,6 +567,7 @@ export function deriveCandidateTransition({
     [checkpointRelativePath, checkpointBytes],
     [openDefectsRelativePath, openDefectsBytes]
   ]);
+  if (declarationDocument) candidateWrites.set(declarationRelativePath, governedBytes(declarationDocument));
 
   // MEMBER ORDER IS THE CALLER'S, HASHES ARE NOT.
   //
@@ -620,12 +691,14 @@ export function deriveCandidateTransition({
       currentState: currentStateDocument,
       checkpointDocument,
       openDefectsDocument,
+      deferredCapabilityDeclarationDocument: declarationDocument,
       paths: {
         ledger: LEDGER_PATH,
         seal: sealRelativePath,
         currentState: currentStateRelativePath,
         checkpoint: checkpointRelativePath,
         openDefects: openDefectsRelativePath,
+        deferredCapabilityDeclaration: declarationRelativePath,
         revisionDirectory
       },
       writes: [...candidateWrites.entries()].map(([relativePath, bytes]) => ({
@@ -1001,6 +1074,21 @@ export function validateCandidateInStagingRoot({ root, candidate, stagingRoot, b
     });
   }
 
+  // ---- deferred-capability declaration, by the evaluator FGI uses ---------
+  //
+  // Judged on the staged post-state with the transition's own target status and
+  // revision, so a declaration that is missing, malformed or cites a capability
+  // the canonical registry does not hold OPEN for this Gate blocks here, before
+  // publication, rather than surfacing afterwards as an FGI failure.
+  const declarationReport = evaluateDeferredCapabilityClosureDeclaration({
+    root: stagingRoot, gateId: candidate.gateId, derivedStatus: candidate.toStatus, stateRevision: candidate.stateRevision
+  });
+  for (const item of declarationReport.findings) {
+    fail('CANDIDATE_DEFERRED_CAPABILITY_DECLARATION_INVALID', {
+      path: item.path, detectorId: item.code, expected: item.expected, actual: item.actual
+    });
+  }
+
   // ---- every OTHER seal in the repository must still validate -------------
   //
   // A transition may not disturb a seal it did not create. This is what turns
@@ -1074,6 +1162,7 @@ export function validateCandidateInStagingRoot({ root, candidate, stagingRoot, b
       projectionWriteCount: projectionWrites.length,
       sealValid: sealReport.valid,
       revisionValid: revisionReport?.valid ?? null,
+      deferredCapabilityDeclaration: { applicable: declarationReport.applicable, findingCount: declarationReport.findings.length },
       otherSealsChecked: otherSeals.length,
       preStateSealedMemberCount: preStateByPath.size
     },
@@ -1410,6 +1499,10 @@ if (process.argv[1] && path.resolve(process.argv[1]) === path.resolve(fileURLToP
     authorityDocumentPath: option('--maintenance-authority'),
     recordedAt: option('--recorded-at', new Date().toISOString()),
     sealCohort: (option('--seal-cohort', '') || '').split(',').filter(Boolean),
+    // Present with no value (or followed by another flag) declares none.
+    deferredCapabilityDeclaration: process.argv.includes('--deferred-capabilities-introduced')
+      ? { deferredCapabilitiesIntroduced: (/^--/.test(option('--deferred-capabilities-introduced') ?? '--') ? '' : option('--deferred-capabilities-introduced')).split(',').filter(Boolean) }
+      : null,
     missionId: option('--mission'),
     stagingRoot: option('--staging-root'),
     dryRun: !process.argv.includes('--apply')

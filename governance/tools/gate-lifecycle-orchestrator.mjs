@@ -89,6 +89,7 @@ export const ORCHESTRATOR_DOCUMENT = 'GATE_LIFECYCLE_ORCHESTRATOR';
 export const ORCHESTRATOR_VERSION = 'R1';
 
 export const LEDGER_PATH = 'governance/state/GATE_STATUS_LEDGER.ndjson';
+export const STATUS_SNAPSHOT_PATH = 'governance/state/generated/GATE_STATUS_SNAPSHOT.json';
 export const REGISTRY_PATH = 'governance/GATE_REGISTRY_00_40.json';
 const CONSTITUTION_PATH = 'governance/PROJECT_CONSTITUTION.json';
 
@@ -244,6 +245,15 @@ function inheritedTransitionCompletedTasks(previousCheckpoint, currentTask) {
 }
 
 /**
+ * Open work for a non-closure transition is predecessor state, not caller
+ * boilerplate. Only the lifecycle task performed by this transition is removed;
+ * every unrelated task remains open in its original order.
+ */
+function inheritedTransitionOpenTasks(previousCheckpoint, currentTask) {
+  return dedupeTaskList(previousCheckpoint?.openTasks ?? []).filter((task) => task !== currentTask);
+}
+
+/**
  * Canonical governed-document bytes.
  *
  * Every artifact this orchestrator writes is serialized exactly one way, so a
@@ -253,6 +263,85 @@ function inheritedTransitionCompletedTasks(previousCheckpoint, currentTask) {
  */
 export function governedBytes(value) {
   return Buffer.from(`${JSON.stringify(value, null, 2)}\n`, 'utf8');
+}
+
+/**
+ * Builds the authorized-path manifest for a future lifecycle publication that
+ * needs current-byte lineage.
+ *
+ * The prestate is observed here, from the real repository bytes, after the
+ * candidate has been derived but before any candidate byte is applied. Callers
+ * cannot supply a digest or length. This makes a present path a causal successor
+ * of the publication that produced its exact bytes instead of another root.
+ */
+export function buildLifecyclePublicationManifest({
+  root, candidate, manifestId, programId, additionalPaths = []
+}) {
+  const findings = [];
+  const fail = (code, detail) => findings.push({ code, detail });
+  if (typeof root !== 'string' || !root) fail('PUBLICATION_ROOT_INVALID', root);
+  if (!candidate || typeof candidate !== 'object' || !Array.isArray(candidate.writes)
+      || typeof candidate.transitionType !== 'string' || !candidate.transitionType) {
+    fail('PUBLICATION_CANDIDATE_INVALID', candidate?.transitionType ?? null);
+  }
+  if (typeof manifestId !== 'string' || !manifestId) fail('PUBLICATION_MANIFEST_ID_INVALID', manifestId);
+  if (typeof programId !== 'string' || !programId) fail('PUBLICATION_PROGRAM_ID_INVALID', programId);
+  if (!Array.isArray(additionalPaths)) fail('PUBLICATION_ADDITIONAL_PATHS_INVALID', additionalPaths);
+  if (findings.length) return { status: 'BLOCKED', findings, manifest: null };
+
+  const requestedPaths = [
+    ...candidate.writes.map((write) => write?.path),
+    STATUS_SNAPSHOT_PATH,
+    ...additionalPaths
+  ];
+  const paths = [...new Set(requestedPaths)].sort((left, right) => left.localeCompare(right, 'en'));
+  const entries = [];
+  for (const relativePath of paths) {
+    if (!isSafeRepoRelativePath(relativePath)) {
+      fail('PUBLICATION_PATH_UNSAFE', relativePath);
+      continue;
+    }
+    const target = repoPath(root, relativePath);
+    if (!fs.existsSync(target)) {
+      entries.push({
+        path: relativePath, operation: 'CREATE', phase: candidate.transitionType,
+        reason: `Lifecycle ${candidate.transitionType} publication under exact current-byte lineage.`,
+        artifactClass: candidate.transitionType, prestate: { state: 'ABSENT' }
+      });
+      continue;
+    }
+    let stat;
+    try { stat = fs.lstatSync(target); } catch (error) {
+      fail('PUBLICATION_PRESTATE_UNREADABLE', `${relativePath}:${error.message}`);
+      continue;
+    }
+    if (!stat.isFile() || stat.isSymbolicLink()) {
+      fail('PUBLICATION_PRESTATE_NOT_REGULAR_FILE', relativePath);
+      continue;
+    }
+    let bytes;
+    try { bytes = fs.readFileSync(target); } catch (error) {
+      fail('PUBLICATION_PRESTATE_UNREADABLE', `${relativePath}:${error.message}`);
+      continue;
+    }
+    entries.push({
+      path: relativePath, operation: 'MODIFY', phase: candidate.transitionType,
+      reason: `Lifecycle ${candidate.transitionType} publication under exact current-byte lineage.`,
+      artifactClass: candidate.transitionType,
+      prestate: { state: 'PRESENT', sha256: sha256Bytes(bytes), byteLength: bytes.length }
+    });
+  }
+  if (findings.length) return { status: 'BLOCKED', findings, manifest: null };
+  return {
+    status: 'BUILT', findings: [],
+    manifest: {
+      documentKind: 'POST_FREEZE_MAINTENANCE_AUTHORIZED_PATH_MANIFEST',
+      schemaVersion: 2,
+      manifestId,
+      programId,
+      paths: entries
+    }
+  };
 }
 
 /** One ledger line, in the canonical serialization the ledger validator demands. */
@@ -467,6 +556,7 @@ export function deriveCandidateTransition({
   // readable; an unreadable one must block rather than silently reset history.
   const inheritsFromPreviousCheckpoint = transitionType === 'AGENT_CLOSURE'
     || checkpoint.completedTasks === undefined
+    || checkpoint.openTasks === undefined
     || checkpoint.protectedHashes === undefined;
   if (inheritsFromPreviousCheckpoint && previousRevision && !previousCheckpoint) {
     fail('PREVIOUS_CHECKPOINT_UNREADABLE', {
@@ -490,6 +580,7 @@ export function deriveCandidateTransition({
   const sealRelativePath = `${revisionDirectory}/STATE_SEAL.json`;
   const currentStateRelativePath = `governance/gates/${gateId}/state/CURRENT_STATE.json`;
 
+  const transitionTask = `${gateId}_${transitionType}`;
   const checkpointDocument = {
     gateId,
     stateRevision,
@@ -498,8 +589,11 @@ export function deriveCandidateTransition({
     completedTasks: checkpoint.completedTasks
       ?? (transitionType === 'AGENT_CLOSURE'
         ? inheritedClosureCompletedTasks(previousCheckpoint)
-        : inheritedTransitionCompletedTasks(previousCheckpoint, `${gateId}_${transitionType}`)),
-    openTasks: checkpoint.openTasks ?? [],
+        : inheritedTransitionCompletedTasks(previousCheckpoint, transitionTask)),
+    openTasks: checkpoint.openTasks
+      ?? (transitionType === 'AGENT_CLOSURE'
+        ? []
+        : inheritedTransitionOpenTasks(previousCheckpoint, transitionTask)),
     reusableEvidence: checkpoint.reusableEvidence ?? [],
     invalidatedEvidence: checkpoint.invalidatedEvidence ?? [],
     requiredNextActions: checkpoint.requiredNextActions ?? [],

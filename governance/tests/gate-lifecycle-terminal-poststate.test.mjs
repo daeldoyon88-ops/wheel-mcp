@@ -26,10 +26,12 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import {
-  LEDGER_PATH, applyCandidate, deriveCandidateTransition, governedBytes, validateCandidateInStagingRoot
+  LEDGER_PATH, STATUS_SNAPSHOT_PATH, applyCandidate, buildLifecyclePublicationManifest,
+  deriveCandidateTransition, governedBytes, validateCandidateInStagingRoot
 } from '../tools/gate-lifecycle-orchestrator.mjs';
 import { sha256Bytes } from '../tools/canonical-json.mjs';
 import { validateStateRevision } from '../tools/validate-state-revision.mjs';
+import { validateMaintenanceAuthorizedPathManifest } from '../gee-v1/core/post-freeze-maintenance-authority.mjs';
 
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 const CANONICAL_INPUTS = [
@@ -116,8 +118,28 @@ test('CLI-shaped EXTERNAL_CONFIRMATION carries predecessor task history and reco
     assert.equal(derived.status, 'DERIVED', JSON.stringify(derived.findings));
     assert.deepEqual(derived.candidate.checkpointDocument.completedTasks,
       ['GATE30_BUILD', 'GATE30_AGENT_CLOSURE', 'GATE30_EXTERNAL_CONFIRMATION']);
+    assert.deepEqual(derived.candidate.checkpointDocument.openTasks, []);
     assert.deepEqual(derived.candidate.checkpointDocument.protectedHashes,
       [{ path: 'governance/sources/FIXTURE_PROTECTED.json', sha256: 'a'.repeat(64) }]);
+  } finally { discard(root); }
+});
+
+test('a non-closure transition removes only its own task and carries unrelated open work forward', () => {
+  const root = terminalFixture({
+    previousCheckpoint: {
+      completedTasks: ['GATE30_BUILD', 'GATE30_AGENT_CLOSURE'],
+      openTasks: ['GATE30_EXTERNAL_CONFIRMATION', 'GATE30_FINAL_COMPLETION'],
+      requiredNextActions: ['GATE30_EXTERNAL_CONFIRMATION'],
+      protectedHashes: [{ path: 'governance/sources/FIXTURE_PROTECTED.json', sha256: 'a'.repeat(64) }]
+    }
+  });
+  try {
+    const derived = confirm(root);
+    assert.equal(derived.status, 'DERIVED', JSON.stringify(derived.findings));
+    assert.deepEqual(derived.candidate.checkpointDocument.completedTasks,
+      ['GATE30_BUILD', 'GATE30_AGENT_CLOSURE', 'GATE30_EXTERNAL_CONFIRMATION']);
+    assert.deepEqual(derived.candidate.checkpointDocument.openTasks, ['GATE30_FINAL_COMPLETION']);
+    assert.ok(!derived.candidate.checkpointDocument.completedTasks.includes('GATE30_FINAL_COMPLETION'));
   } finally { discard(root); }
 });
 
@@ -172,10 +194,76 @@ test('an unreadable predecessor checkpoint blocks an inheriting transition inste
       const derived = confirm(root);
       assert.equal(derived.status, 'BLOCKED');
       assert.deepEqual(derived.findings.map((item) => item.defectClass), ['PREVIOUS_CHECKPOINT_UNREADABLE']);
-      const explicit = confirm(root, { checkpoint: { completedTasks: ['X'], protectedHashes: [] } });
+      const explicit = confirm(root, { checkpoint: { completedTasks: ['X'], openTasks: [], protectedHashes: [] } });
       assert.equal(explicit.status, 'DERIVED', JSON.stringify(explicit.findings));
     } finally { discard(root); }
   }
+});
+
+/* -------------------------------------------------------------------------
+ * Future lifecycle publication manifest and current-byte lineage
+ * ---------------------------------------------------------------------- */
+
+test('a current-byte lifecycle publication manifest is V2 and derives exact pre-transition bytes', () => {
+  const root = terminalFixture({
+    previousCheckpoint: {
+      completedTasks: ['GATE30_BUILD', 'GATE30_AGENT_CLOSURE'],
+      openTasks: ['GATE30_EXTERNAL_CONFIRMATION', 'GATE30_FINAL_COMPLETION'],
+      requiredNextActions: ['GATE30_EXTERNAL_CONFIRMATION'],
+      protectedHashes: []
+    }
+  });
+  try {
+    writeJson(root, STATUS_SNAPSHOT_PATH, { fixture: 'pre-transition-snapshot' });
+    const derived = confirm(root);
+    assert.equal(derived.status, 'DERIVED', JSON.stringify(derived.findings));
+    const built = buildLifecyclePublicationManifest({
+      root,
+      candidate: derived.candidate,
+      manifestId: 'GATE30_SYNTHETIC_EXTERNAL_CONFIRMATION_AUTHORIZED_PATHS_R1',
+      programId: 'GATE30_SYNTHETIC_EXTERNAL_CONFIRMATION_R1'
+    });
+    assert.equal(built.status, 'BUILT', JSON.stringify(built.findings));
+    assert.equal(built.manifest.schemaVersion, 2);
+    assert.equal(validateMaintenanceAuthorizedPathManifest(
+      built.manifest, built.manifest.programId, 'GATE_EXTERNAL_CONFIRMATION'
+    ).valid, true);
+
+    for (const relativePath of [
+      'governance/gates/GATE30/state/CURRENT_STATE.json',
+      LEDGER_PATH,
+      STATUS_SNAPSHOT_PATH
+    ]) {
+      const bytes = fs.readFileSync(path.join(root, ...relativePath.split('/')));
+      const entry = built.manifest.paths.find((item) => item.path === relativePath);
+      assert.deepEqual(entry.prestate, {
+        state: 'PRESENT', sha256: sha256Bytes(bytes), byteLength: bytes.length
+      });
+      assert.equal(entry.operation, 'MODIFY');
+    }
+  } finally { discard(root); }
+});
+
+test('lifecycle publication prestate collection rejects unsafe and non-file paths', () => {
+  const root = terminalFixture();
+  try {
+    const derived = confirm(root);
+    const unsafe = buildLifecyclePublicationManifest({
+      root, candidate: derived.candidate, manifestId: 'SAFE_ID', programId: 'SAFE_PROGRAM',
+      additionalPaths: ['../outside']
+    });
+    assert.equal(unsafe.status, 'BLOCKED');
+    assert.ok(unsafe.findings.some((item) => item.code === 'PUBLICATION_PATH_UNSAFE'));
+
+    const directoryPath = 'governance/sources/NON_FILE_PRESTATE';
+    fs.mkdirSync(path.join(root, ...directoryPath.split('/')), { recursive: true });
+    const nonFile = buildLifecyclePublicationManifest({
+      root, candidate: derived.candidate, manifestId: 'SAFE_ID', programId: 'SAFE_PROGRAM',
+      additionalPaths: [directoryPath]
+    });
+    assert.equal(nonFile.status, 'BLOCKED');
+    assert.ok(nonFile.findings.some((item) => item.code === 'PUBLICATION_PRESTATE_NOT_REGULAR_FILE'));
+  } finally { discard(root); }
 });
 
 /* -------------------------------------------------------------------------

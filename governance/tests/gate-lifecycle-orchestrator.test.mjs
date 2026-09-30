@@ -29,7 +29,7 @@ import { fileURLToPath } from 'node:url';
 
 import {
   ORCHESTRATED_TRANSITIONS, ORCHESTRATOR_DOCUMENT, LEDGER_PATH,
-  applyCandidate, collectBaselineIntegrity, deriveCandidateTransition, governedBytes,
+  applyCandidate, buildLifecyclePublicationManifest, collectBaselineIntegrity, deriveCandidateTransition, governedBytes,
   ledgerLineBytes, replayGateStatus, readLedgerEvents, resolveTargetStatus,
   runLifecycleTransition, summarizeCandidate, validateCandidateInStagingRoot, evaluateTransitionAuthority
 } from '../tools/gate-lifecycle-orchestrator.mjs';
@@ -48,6 +48,7 @@ import {
   computeGateStartRecordDigest
 } from '../gee-v1/core/gate-start-authority.mjs';
 import { WHEEL_EXTERNAL_AUTHORITY_POLICY } from '../gee-v1/adapters/wheel/external-authority-policy.mjs';
+import { deriveCurrentByteAuthorizationProofs, STATUS_AUTHORIZED } from '../gee-v1/core/current-byte-authorization.mjs';
 
 const REPO_ROOT = process.env.WHEEL_LIVE_REPO_ROOT || path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 const CANDIDATE_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
@@ -275,16 +276,26 @@ function futureStartInputs(root, gateId, eventId, recordedAt) {
   return { recordPath, authorityPath };
 }
 
-function futureMaintenanceInputs(root, gateId, transitionType, eventId, recordedAt, { policy = null, externalReportPath = null, authorityPredecessor = null, lifecycleAuthorityPath = null } = {}) {
+function futureMaintenanceInputs(root, gateId, transitionType, eventId, recordedAt, {
+  policy = null, externalReportPath = null, authorityPredecessor = null,
+  lifecycleAuthorityPath = null, currentByteLineage = false
+} = {}) {
   const stem = `${gateId}_SYNTHETIC_${transitionType}_R1`;
   const authorityPath = `governance/sources/${stem}_LOCAL_AUTHORITY.json`;
   const manifestPath = `governance/sources/${stem}_AUTHORIZED_PATHS.json`;
   writeJson(root, authorityPath, { placeholder: true });
   const initial = deriveCandidateTransition({ root, policy: policy ?? WHEEL_EXTERNAL_AUTHORITY_POLICY, gateId, transitionType, eventId, authorityPath: lifecycleAuthorityPath ?? authorityPath, recordedAt });
   assert.equal(initial.status, 'DERIVED', JSON.stringify(initial.findings));
-  const manifest = {
+  const manifestId = `${stem}_AUTHORIZED_PATHS`;
+  const programId = `${stem}_PROGRAM`;
+  const prepared = currentByteLineage ? buildLifecyclePublicationManifest({
+    root, candidate: initial.candidate, manifestId, programId,
+    additionalPaths: [externalReportPath].filter(Boolean)
+  }) : null;
+  if (currentByteLineage) assert.equal(prepared.status, 'BUILT', JSON.stringify(prepared.findings));
+  const manifest = currentByteLineage ? prepared.manifest : {
     documentKind: 'POST_FREEZE_MAINTENANCE_AUTHORIZED_PATH_MANIFEST', schemaVersion: 1,
-    manifestId: `${stem}_AUTHORIZED_PATHS`, programId: `${stem}_PROGRAM`,
+    manifestId, programId,
     paths: [...initial.candidate.writes.map((write) => write.path), 'governance/state/generated/GATE_STATUS_SNAPSHOT.json', externalReportPath]
       .filter(Boolean)
       .sort().map((candidatePath) => ({
@@ -301,7 +312,7 @@ function futureMaintenanceInputs(root, gateId, transitionType, eventId, recorded
     document: 'GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY', schemaVersion: 2,
     authorityId: `${stem}_LOCAL_AUTHORITY`, authorityClass: 'PROJECT_OWNER_POST_FREEZE_MAINTENANCE_AUTHORITY', authorityMode: 'LOCAL_EXPLICIT_AUTHORITY',
     issuedBy: 'PROJECT_OWNER', createdAt: recordedAt, expiresAt: windowEnd(recordedAt), targetSystem: 'PROJECT_GOVERNANCE',
-    programId: `${stem}_PROGRAM`, authorityPurpose: transitionType === 'EXTERNAL_CONFIRMATION' ? 'GATE_EXTERNAL_CONFIRMATION' : 'GATE_FINAL_CLOSURE', resumePoint: `${gateId}_${transitionType}`, maxUse: 1,
+    programId, authorityPurpose: transitionType === 'EXTERNAL_CONFIRMATION' ? 'GATE_EXTERNAL_CONFIRMATION' : 'GATE_FINAL_CLOSURE', resumePoint: `${gateId}_${transitionType}`, maxUse: 1,
     preState: {
       baseHead, ledgerEventCount: identity.count, ledgerPrefixSha256: identity.sha256,
       gateId, gateStatus: replayGateStatus(readLedgerEvents(root)).get(gateId), stateRevision: current.stateRevision,
@@ -320,10 +331,10 @@ function futureMaintenanceInputs(root, gateId, transitionType, eventId, recorded
     authority.externalReinspectionReportSha256 = sha256Bytes(readBytes(root, externalReportPath));
   }
   writeJson(root, authorityPath, authority);
-  return { authorityPath };
+  return { authorityPath, manifestPath, manifest };
 }
 
-function syntheticExternalPolicy(gateId, authorityId, reportPath, reportSha256, programId) {
+function syntheticExternalPolicy(gateId, authorityId, reportPath, reportSha256, programId, reportGateId = gateId) {
   return {
     extraExternalAuthorities: [...WHEEL_EXTERNAL_AUTHORITY_POLICY.extraExternalAuthorities, {
       authorityId, classification: 'EXTERNAL_REINSPECTION_REPORT', path: reportPath, sha256: reportSha256,
@@ -332,27 +343,28 @@ function syntheticExternalPolicy(gateId, authorityId, reportPath, reportSha256, 
     assertExternalReinspectionVerdict({ event, report, authorityId: observedAuthorityId }) {
       if (observedAuthorityId === authorityId) {
         return event?.gateId === gateId && report?.document === 'EXTERNAL_REINSPECTION_REPORT'
-          && report?.gateId === gateId && report?.verdict === 'PASS' && report?.independentSession === true && report?.programId === programId;
+          && report?.gateId === reportGateId && report?.verdict === 'PASS' && report?.independentSession === true && report?.programId === programId;
       }
       return WHEEL_EXTERNAL_AUTHORITY_POLICY.assertExternalReinspectionVerdict({ event, report, authorityId: observedAuthorityId });
     }
   };
 }
 
-function syntheticExternalPolicyModule(root, gateId, authorityId, reportPath, reportSha256, programId) {
+function syntheticExternalPolicyModule(root, gateId, authorityId, reportPath, reportSha256, programId, reportGateId = gateId) {
   const relative = `governance/sources/${gateId}_SYNTHETIC_EXTERNAL_POLICY.mjs`;
   const target = path.join(root, ...relative.split('/'));
   fs.mkdirSync(path.dirname(target), { recursive: true });
   fs.writeFileSync(target, `import { WHEEL_EXTERNAL_AUTHORITY_POLICY } from '../gee-v1/adapters/wheel/external-authority-policy.mjs';
 const authorityId = ${JSON.stringify(authorityId)};
 const gateId = ${JSON.stringify(gateId)};
+const reportGateId = ${JSON.stringify(reportGateId)};
 const programId = ${JSON.stringify(programId)};
 export default {
   extraExternalAuthorities: [...WHEEL_EXTERNAL_AUTHORITY_POLICY.extraExternalAuthorities, {
     authorityId, classification: 'EXTERNAL_REINSPECTION_REPORT', path: ${JSON.stringify(reportPath)}, sha256: ${JSON.stringify(reportSha256)}, gateId, programId, reportShape: 'SYNTHETIC_EXTERNAL_REINSPECTION_REPORT'
   }],
   assertExternalReinspectionVerdict({ event, report, authorityId: observedAuthorityId }) {
-    if (observedAuthorityId === authorityId) return event?.gateId === gateId && report?.document === 'EXTERNAL_REINSPECTION_REPORT' && report?.gateId === gateId && report?.verdict === 'PASS' && report?.independentSession === true && report?.programId === programId;
+    if (observedAuthorityId === authorityId) return event?.gateId === gateId && report?.document === 'EXTERNAL_REINSPECTION_REPORT' && report?.gateId === reportGateId && report?.verdict === 'PASS' && report?.independentSession === true && report?.programId === programId;
     return WHEEL_EXTERNAL_AUTHORITY_POLICY.assertExternalReinspectionVerdict({ event, report, authorityId: observedAuthorityId });
   }
 };
@@ -573,6 +585,92 @@ test('target status is read from the canonical transition table, not restated', 
   // candidate can be derived for it.
   assert.equal(resolveTargetStatus('COMPLETE_CONFIRMED', 'AGENT_CLOSURE'), null);
   assert.equal(resolveTargetStatus('NOT_STARTED', 'START'), null);
+});
+
+test('GATE26 dry publication prep emits V2 lineage and carries only unfinished work into R0011', () => {
+  const root = scratchRoot('gate26-external-confirmation-publication-prep');
+  const staging = fs.mkdtempSync(path.join(fs.realpathSync(os.tmpdir()), 'gate26-external-confirmation-dry-stage-'));
+  const gateId = 'GATE26';
+  const transitionType = 'EXTERNAL_CONFIRMATION';
+  const eventId = 'GATE26_EXTERNAL_CONFIRMATION_DRY_PUBLICATION_PREP_R1';
+  const recordedAt = '2026-09-29T12:00:00.000Z';
+  const externalAuthorityId = 'GATE26_EXTERNAL_CONFIRMATION_DRY_REINSPECTION_R1';
+  const externalReportPath = 'governance/sources/GATE25_INDEPENDENT_EXTERNAL_CONFIRMATION_R1_EXTERNAL_REINSPECTION_REPORT.json';
+  const externalReport = readJson(root, externalReportPath);
+  const externalReportSha256 = sha256Bytes(readBytes(root, externalReportPath));
+  const policy = syntheticExternalPolicy(
+    gateId, externalAuthorityId, externalReportPath, externalReportSha256,
+    externalReport.programId, externalReport.gateId
+  );
+  const projectionPolicyModulePath = syntheticExternalPolicyModule(
+    root, gateId, externalAuthorityId, externalReportPath, externalReportSha256,
+    externalReport.programId, externalReport.gateId
+  );
+  const predecessorAuthorityPath = 'governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_GATE26_STANDARD_AGENT_CLOSURE_R3.json';
+  const predecessorAuthority = readJson(root, predecessorAuthorityPath);
+  try {
+    const predecessor = readJson(root, 'governance/gates/GATE26/state/revisions/R0010/CHECKPOINT.json');
+    const prepared = futureMaintenanceInputs(root, gateId, transitionType, eventId, recordedAt, {
+      policy, externalReportPath, lifecycleAuthorityPath: externalAuthorityId, currentByteLineage: true,
+      authorityPredecessor: {
+        authorityId: predecessorAuthority.authorityId,
+        sha256: sha256Bytes(readBytes(root, predecessorAuthorityPath))
+      }
+    });
+    assert.equal(prepared.manifest.schemaVersion, 2);
+    const lineagePaths = [
+      'governance/gates/GATE26/state/CURRENT_STATE.json',
+      LEDGER_PATH,
+      'governance/state/generated/GATE_STATUS_SNAPSHOT.json'
+    ];
+    const priorAuthorization = deriveCurrentByteAuthorizationProofs({ root, gateId, paths: lineagePaths });
+    assert.equal(priorAuthorization.valid, true, JSON.stringify(priorAuthorization.blocked));
+    const expectedPrestates = new Map([
+      ['governance/gates/GATE26/state/CURRENT_STATE.json', ['7621db595f76cd332cbbadfbb9111bd281303323bfad244ae87e6d3096c52b92', 300]],
+      [LEDGER_PATH, ['f8de790d74504d76bc9ea6ac84c4251f226b58d8379ee5942e5b660d2bb42d40', 75245]],
+      ['governance/state/generated/GATE_STATUS_SNAPSHOT.json', ['2a5085c2b4ba7f3784217021af2d69b00dbae647f5a2111fe71c8f5eac8613f4', 16145]]
+    ]);
+    for (const [relativePath, [sha256, byteLength]] of expectedPrestates) {
+      const entry = prepared.manifest.paths.find((item) => item.path === relativePath);
+      assert.deepEqual(entry.prestate, { state: 'PRESENT', sha256, byteLength });
+      const prior = priorAuthorization.proofs.find((proof) => proof.path === relativePath);
+      assert.equal(prior.status, STATUS_AUTHORIZED);
+      assert.equal(entry.prestate.sha256, prior.candidateSha256, `${relativePath} consumes the prior terminal`);
+    }
+
+    const dry = deriveCandidateTransition({
+      root, policy, gateId, transitionType, eventId, authorityPath: externalAuthorityId, recordedAt
+    });
+    assert.equal(dry.status, 'DERIVED', JSON.stringify(dry.findings));
+    assert.equal(dry.candidate.stateRevision, 'R0011');
+    assert.deepEqual(dry.candidate.checkpointDocument.openTasks, ['GATE26_FINAL_COMPLETION']);
+    assert.deepEqual(dry.candidate.checkpointDocument.completedTasks,
+      [...predecessor.completedTasks, 'GATE26_EXTERNAL_CONFIRMATION']);
+    assert.ok(!dry.candidate.checkpointDocument.completedTasks.includes('GATE26_FINAL_COMPLETION'));
+    assert.deepEqual(dry.candidate.checkpointDocument.protectedHashes, predecessor.protectedHashes);
+    const validation = validateCandidateInStagingRoot({
+      root, candidate: dry.candidate, stagingRoot: staging, policy, projectionPolicyModulePath
+    });
+    assert.equal(validation.valid, true, JSON.stringify(validation.findings, null, 2));
+    const authority = evaluateTransitionAuthority({
+      root, candidate: dry.candidate, authorityDocumentPath: prepared.authorityPath,
+      now: new Date(recordedAt)
+    });
+    assert.equal(authority.decision, 'AUTHORIZED', JSON.stringify(authority.findings));
+
+    const before = lineagePaths.map((relativePath) => ({
+      relativePath, bytes: Buffer.from(readBytes(root, relativePath))
+    }));
+    const report = runLifecycleTransition({
+      root, stagingRoot: staging, dryRun: true, now: new Date(recordedAt), policy,
+      projectionPolicyModulePath, gateId, transitionType, eventId,
+      authorityPath: externalAuthorityId, authorityDocumentPath: prepared.authorityPath, recordedAt
+    });
+    assert.equal(report.result, 'CANDIDATE_VALID', JSON.stringify(report.findings, null, 2));
+    assert.equal(report.canonicalBytesUnchanged, true);
+    for (const { relativePath, bytes } of before) assert.ok(readBytes(root, relativePath).equals(bytes));
+    assert.equal(fs.existsSync(path.join(root, 'governance/gates/GATE26/state/revisions/R0011')), false);
+  } finally { discard(root); discard(staging); }
 });
 
 test('HIST_AUTH_POSITIVE and HIST_START_POSITIVE consume exact historical transaction bytes without regenerating signatures', () => {

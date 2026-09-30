@@ -1,0 +1,210 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "publication-lineage-successor-owner-authority.schema.json",
+  "title": "PUBLICATION_LINEAGE_SUCCESSOR_OWNER_AUTHORITY",
+  "description": "One-use Owner authority for exactly one PUBLICATION_LINEAGE_SUCCESSOR_RECORD. It restates the identical edge and its canonical digest and names the record by id and path; the record pins this authority by raw-byte SHA-256. It grants no byte authorization, no publication binding, no admission widening and no historical rewrite. Instances live at governance/authority/publication-lineage-successor/owner-authorities/AUTHORITY_ID.json.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "document",
+    "schemaVersion",
+    "authorityId",
+    "authorityClass",
+    "authorityMode",
+    "issuedBy",
+    "gateId",
+    "maxUse",
+    "recordId",
+    "recordPath",
+    "edge",
+    "edgeSha256",
+    "grantsByteAuthorization",
+    "createsPublicationBinding",
+    "rewritesHistoricalArtifacts",
+    "widensAdmission"
+  ],
+  "properties": {
+    "document": {
+      "const": "PUBLICATION_LINEAGE_SUCCESSOR_OWNER_AUTHORITY"
+    },
+    "schemaVersion": {
+      "const": 1
+    },
+    "authorityId": {
+      "type": "string",
+      "pattern": "^[A-Z][A-Z0-9_-]*$"
+    },
+    "authorityClass": {
+      "const": "PROJECT_OWNER_PUBLICATION_LINEAGE_SUCCESSOR_AUTHORITY"
+    },
+    "authorityMode": {
+      "const": "LOCAL_EXPLICIT_AUTHORITY"
+    },
+    "issuedBy": {
+      "const": "PROJECT_OWNER"
+    },
+    "gateId": {
+      "type": "string",
+      "pattern": "^GATE[0-9]{2}$"
+    },
+    "maxUse": {
+      "const": 1
+    },
+    "recordId": {
+      "type": "string",
+      "pattern": "^[A-Z][A-Z0-9_-]*$"
+    },
+    "recordPath": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^(?!.*(?:^|/).{1,2}(?:/|$))(?!.*//)[A-Za-z0-9_-][A-Za-z0-9._/-]*$"
+    },
+    "edge": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "One exact path, one exact predecessor publication, one exact successor publication. Nothing else is in scope.",
+      "required": [
+        "path",
+        "predecessor",
+        "successor"
+      ],
+      "properties": {
+        "path": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^(?!.*(?:^|/).{1,2}(?:/|$))(?!.*//)[A-Za-z0-9_-][A-Za-z0-9._/-]*$"
+        },
+        "predecessor": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "The exact predecessor publication: its maintenance authority, authorized-path manifest and consumption receipt, each by path AND raw-byte SHA-256, plus the exact bytes it certified for the edge path.",
+          "required": [
+            "authorityId",
+            "authorityPath",
+            "authoritySha256",
+            "manifestPath",
+            "manifestSha256",
+            "consumptionPath",
+            "consumptionSha256",
+            "sha256",
+            "byteLength"
+          ],
+          "properties": {
+            "authorityId": {
+              "type": "string",
+              "pattern": "^[A-Z][A-Z0-9_-]*$"
+            },
+            "authorityPath": {
+              "type": "string",
+              "minLength": 1,
+              "pattern": "^(?!.*(?:^|/).{1,2}(?:/|$))(?!.*//)[A-Za-z0-9_-][A-Za-z0-9._/-]*$"
+            },
+            "authoritySha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "manifestPath": {
+              "type": "string",
+              "minLength": 1,
+              "pattern": "^(?!.*(?:^|/).{1,2}(?:/|$))(?!.*//)[A-Za-z0-9_-][A-Za-z0-9._/-]*$"
+            },
+            "manifestSha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "consumptionPath": {
+              "type": "string",
+              "minLength": 1,
+              "pattern": "^(?!.*(?:^|/).{1,2}(?:/|$))(?!.*//)[A-Za-z0-9_-][A-Za-z0-9._/-]*$"
+            },
+            "consumptionSha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "byteLength": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
+        },
+        "successor": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "The exact successor publication: its maintenance authority, authorized-path manifest and consumption receipt, each by path AND raw-byte SHA-256, plus the exact bytes it certified for the edge path.",
+          "required": [
+            "authorityId",
+            "authorityPath",
+            "authoritySha256",
+            "manifestPath",
+            "manifestSha256",
+            "consumptionPath",
+            "consumptionSha256",
+            "sha256",
+            "byteLength"
+          ],
+          "properties": {
+            "authorityId": {
+              "type": "string",
+              "pattern": "^[A-Z][A-Z0-9_-]*$"
+            },
+            "authorityPath": {
+              "type": "string",
+              "minLength": 1,
+              "pattern": "^(?!.*(?:^|/).{1,2}(?:/|$))(?!.*//)[A-Za-z0-9_-][A-Za-z0-9._/-]*$"
+            },
+            "authoritySha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "manifestPath": {
+              "type": "string",
+              "minLength": 1,
+              "pattern": "^(?!.*(?:^|/).{1,2}(?:/|$))(?!.*//)[A-Za-z0-9_-][A-Za-z0-9._/-]*$"
+            },
+            "manifestSha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "consumptionPath": {
+              "type": "string",
+              "minLength": 1,
+              "pattern": "^(?!.*(?:^|/).{1,2}(?:/|$))(?!.*//)[A-Za-z0-9_-][A-Za-z0-9._/-]*$"
+            },
+            "consumptionSha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "byteLength": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
+        }
+      }
+    },
+    "edgeSha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "grantsByteAuthorization": {
+      "const": false
+    },
+    "createsPublicationBinding": {
+      "const": false
+    },
+    "rewritesHistoricalArtifacts": {
+      "const": false
+    },
+    "widensAdmission": {
+      "const": false
+    }
+  }
+}

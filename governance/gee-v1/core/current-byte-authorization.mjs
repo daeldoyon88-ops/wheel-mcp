@@ -104,6 +104,7 @@ import {
   collectValidatedOwnerPresentByteBootstrapSuccessorBindings,
   collectValidatedExternalOwnerByteAuthorityBindings
 } from './owner-present-byte-bootstrap.mjs';
+import { resolvePublicationLineageSuccessorConsumption } from './publication-lineage-successor.mjs';
 
 export const CURRENT_BYTE_AUTHORIZATION_DOCUMENT = 'CURRENT_BYTE_AUTHORIZATION';
 export const CURRENT_BYTE_ALGORITHM_VERSION = 'R1';
@@ -448,15 +449,22 @@ export function collectCurrentByteBindings({ root, gateId }) {
  * precisely because the bootstrap digest is no longer a candidate anyone can
  * match against. And two genuinely competing publications remain AMBIGUOUS: the
  * bootstrap rule removes one non-answer, never a real conflict.
+ *
+ * EXPLICIT SUCCESSOR EDGES. `consumedBySuccessor` holds the exact binding
+ * objects a validated PUBLICATION_LINEAGE_SUCCESSOR record marks as consumed for
+ * this path (see publication-lineage-successor.mjs). They are excluded by
+ * IDENTITY, never by digest, so another publication that happens to certify the
+ * same bytes stays terminal. With no valid edge the set is empty and this
+ * function behaves exactly as before.
  */
-function resolveApplicable(candidates) {
+function resolveApplicable(candidates, consumedBySuccessor = new Set()) {
   const published = candidates.filter((entry) => entry.bootstrapOnly !== true);
   const effective = published.length > 0 ? published : candidates;
   if (effective.length === 1) return { applicable: effective[0], ambiguous: false };
   const consumedAsPrestate = new Set(
     effective.map((entry) => entry.prestateSha256).filter((value) => typeof value === 'string')
   );
-  const terminal = effective.filter((entry) => !consumedAsPrestate.has(entry.candidateSha256));
+  const terminal = effective.filter((entry) => !consumedAsPrestate.has(entry.candidateSha256) && !consumedBySuccessor.has(entry));
   if (terminal.length === 1) return { applicable: terminal[0], ambiguous: false };
   // Distinct documents can certify IDENTICAL bytes for a path — republishing a
   // file to the digest it already holds is ordinary. That is one answer, not an
@@ -502,7 +510,11 @@ export function deriveCurrentByteAuthorizationProof({ root, gateId, path: relati
     return { ...base, status: STATUS_BLOCKED, reason: REASON_NO_APPLICABLE_AUTHORITY };
   }
 
-  const { applicable, ambiguous, terminalCount } = resolveApplicable(candidates);
+  // A successor record is consulted only for the exact path being judged, and is
+  // reported on the proof only when one names that path.
+  const successor = resolvePublicationLineageSuccessorConsumption({ root, gateId, path: relativePath, candidates });
+  if (successor.attributed) base.lineageSuccessor = successor.report;
+  const { applicable, ambiguous, terminalCount } = resolveApplicable(candidates, successor.consumed);
   if (ambiguous) return { ...base, status: STATUS_BLOCKED, reason: REASON_LINEAGE_AMBIGUOUS, terminalCount };
 
   const proof = {

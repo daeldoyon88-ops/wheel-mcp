@@ -1,0 +1,72 @@
+{
+  "documentKind": "POST_FREEZE_MAINTENANCE_AUTHORIZED_PATH_MANIFEST",
+  "schemaVersion": 2,
+  "manifestId": "GATE26_ROUTE_B_P2_R5_CORRECTED_PUBLICATION_R2_AUTHORIZED_PATHS_R2",
+  "programId": "GATE26_ROUTE_B_P2_R5_CORRECTED_PUBLICATION_R2",
+  "paths": [
+    {
+      "path": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_GATE26_ROUTE_B_P2_R5_CORRECTED_PUBLICATION_R2.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE_AUTHORITY_RECORDS",
+      "reason": "Fresh Owner-issued P2 R2 authority for the exact corrected GATE26 R5 report publication and external binding registration.",
+      "artifactClass": "EXTERNAL_BINDING_REPAIR",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "governance/historical-architecture/GATE26_ROUTE_B_P2_R5_CORRECTED_PUBLICATION_R2_AUTHORIZED_PATHS_R2.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE_AUTHORITY_RECORDS",
+      "reason": "Schema V2 manifest binding the exact five-path P2 R2 canonical prestates.",
+      "artifactClass": "EXTERNAL_BINDING_REPAIR",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "governance/historical-architecture/GATE26_ROUTE_B_P2_R5_CORRECTED_PUBLICATION_R2_CONSUMPTION_R2.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE_AUTHORITY_RECORDS",
+      "reason": "RESERVED_RECEIPT: V2 single-use consumption record written only by the publisher.",
+      "artifactClass": "EXTERNAL_BINDING_REPAIR",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "governance/sources/GATE26_INDEPENDENT_EXTERNAL_CONFIRMATION_R5_EXTERNAL_REINSPECTION_REPORT.json",
+      "operation": "CREATE",
+      "phase": "EXTERNAL_BINDING_REPAIR",
+      "reason": "Publish the exact corrected GATE26 R5 external reinspection report bytes (event120 eventPayloadSha256 corrected to the BASE ledger value) bound to observation BASE afd2d53b01e86ae687bc5d432c4b73b6a3bacd67.",
+      "artifactClass": "EXTERNAL_BINDING_REPAIR",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "governance/gee-v1/adapters/wheel/external-authority-policy.mjs",
+      "operation": "MODIFY",
+      "phase": "EXTERNAL_BINDING_REPAIR",
+      "reason": "Register only the exact corrected R5 report path, digest and GATE26 identity under the existing STANDARD_EXTERNAL_REINSPECTION_REPORT rule; no verdict rule or trust model changes.",
+      "artifactClass": "EXTERNAL_BINDING_REPAIR",
+      "prestate": {
+        "state": "PRESENT",
+        "sha256": "4ea02f8d2d34d9f25b24534ccb464a2ab98361a363fc72afc09fa71f042c7b6c",
+        "byteLength": 10070
+      }
+    }
+  ],
+  "prestateSelfExclusion": [
+    {
+      "path": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_GATE26_ROUTE_B_P2_R5_CORRECTED_PUBLICATION_R2.json",
+      "role": "AUTHORITY_DOCUMENT",
+      "reason": "Read by the evaluator before publication while its base prestate is ABSENT."
+    },
+    {
+      "path": "governance/historical-architecture/GATE26_ROUTE_B_P2_R5_CORRECTED_PUBLICATION_R2_AUTHORIZED_PATHS_R2.json",
+      "role": "AUTHORIZED_PATH_MANIFEST",
+      "reason": "Digest-pinned and read before publication while its base prestate is ABSENT."
+    }
+  ]
+}

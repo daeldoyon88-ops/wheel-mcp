@@ -1,0 +1,416 @@
+{
+  "document": "EXTERNAL_REINSPECTION_REPORT",
+  "schemaVersion": 1,
+  "reportId": "GATE26_INDEPENDENT_EXTERNAL_CONFIRMATION_R5_EXTERNAL_REINSPECTION_REPORT",
+  "gateId": "GATE26",
+  "programId": "GATE26_INDEPENDENT_EXTERNAL_CONFIRMATION_R5",
+  "verifierId": "GATE26_R5_EXTERNAL_REINSPECTION_REPORT_R1",
+  "ownerAuthorizationId": "OWNER_AUTHORIZE_GATE26_R5_EXTERNAL_REINSPECTION_REPORT_R1",
+  "independentSession": true,
+  "reinspectionMission": "GATE26_R5_EXTERNAL_REINSPECTION_REPORT_R1",
+  "reinspectionVerdict": "GATE26_R5_EXTERNAL_REINSPECTION_PASS",
+  "applySessionDistinctFromReinspection": true,
+  "verdict": "PASS",
+  "publicationState": "UNPUBLISHED_REPORT_CANDIDATE",
+  "reinspectionBasis": "Fresh targeted separate-session reinspection from detached canonical BASE afd2d53b01e86ae687bc5d432c4b73b6a3bacd67. Every identity and verdict below was recomputed from the committed BASE bytes in this session. No R4 report or R4 authority was read or reused. No network, lifecycle transition, authority creation, ledger mutation, state mutation, commit or push occurred.",
+  "canonicalGit": {
+    "worktree": "C:/Users/melan/AppData/Local/Temp/GATE26_R5_EXTERNAL_REINSPECTION_REPORT_R1",
+    "detached": true,
+    "head": "afd2d53b01e86ae687bc5d432c4b73b6a3bacd67",
+    "originUiLabR2": "afd2d53b01e86ae687bc5d432c4b73b6a3bacd67",
+    "headEqualsCanonicalBase": true,
+    "originEqualsCanonicalBase": true,
+    "coreAutocrlf": false,
+    "preReportWorktreeClean": true
+  },
+  "currentContract": {
+    "valid": true,
+    "blockingCount": 0,
+    "pointer": {
+      "path": "governance/gates/GATE26/contracts/CURRENT_CONTRACT.json",
+      "sha256": "487ecfe744c4554c9a99cb2ed9883291fbaad7b13ac17050b4123c8024f7fb49",
+      "byteLength": 314,
+      "contractRevision": "R0008"
+    },
+    "contract": {
+      "path": "governance/gates/GATE26/contracts/EXECUTION_CONTRACT_R0008.json",
+      "sha256": "f08e9a96db9240e1a38b393d5924eed7ea26f472a3f1e81eb9985ce8f9ee53d2",
+      "byteLength": 37165
+    }
+  },
+  "currentState": {
+    "valid": true,
+    "blockingCount": 0,
+    "path": "governance/gates/GATE26/state/CURRENT_STATE.json",
+    "sha256": "7621db595f76cd332cbbadfbb9111bd281303323bfad244ae87e6d3096c52b92",
+    "byteLength": 300,
+    "status": "COMPLETE_AGENT",
+    "stateRevision": "R0010",
+    "revisionCount": 10,
+    "resolvedBy": "NATIVE_EVENT_PIN",
+    "anchorState": "LEDGER_ANCHORED",
+    "sealChain": [
+      "R0001",
+      "R0002",
+      "R0003",
+      "R0004",
+      "R0005",
+      "R0006",
+      "R0007",
+      "R0008",
+      "R0009",
+      "R0010"
+    ],
+    "checkpoint": {
+      "path": "governance/gates/GATE26/state/revisions/R0010/CHECKPOINT.json",
+      "sha256": "d3a881c8d4c10c0c28fdc1f7289ffed577a752b3acd99fb43ca528f088acfbf0",
+      "byteLength": 2611,
+      "milestone": "GATE26_AGENT_CLOSURE",
+      "resumePoint": "GATE26_EXTERNAL_CONFIRMATION"
+    },
+    "openDefects": {
+      "path": "governance/gates/GATE26/state/revisions/R0010/OPEN_DEFECTS.json",
+      "sha256": "76467f893fa7622d38a8f89487aac308fa87b216a40562f1d4f8cb19a3de4105",
+      "byteLength": 70,
+      "count": 0
+    },
+    "seal": {
+      "path": "governance/gates/GATE26/state/revisions/R0010/STATE_SEAL.json",
+      "sha256": "b4a0baa8b7b74522070bc8a88ab614c690bb6ce24a57b1628df2f089a6a612a1",
+      "byteLength": 1356,
+      "executionStatus": "COMPLETE_AGENT",
+      "valid": true,
+      "blockingCount": 0
+    }
+  },
+  "ledger": {
+    "path": "governance/state/GATE_STATUS_LEDGER.ndjson",
+    "sha256": "f8de790d74504d76bc9ea6ac84c4251f226b58d8379ee5942e5b660d2bb42d40",
+    "byteLength": 75245,
+    "eventCount": 120,
+    "valid": true,
+    "throughOrdinal": 120,
+    "headEvent": {
+      "eventId": "GATE26_AGENT_CLOSURE_R1",
+      "ordinal": 120,
+      "transitionType": "AGENT_CLOSURE",
+      "fromStatus": "IN_PROGRESS",
+      "toStatus": "COMPLETE_AGENT",
+      "stateRevision": "R0010",
+      "stateRevisionSealSha256": "b4a0baa8b7b74522070bc8a88ab614c690bb6ce24a57b1628df2f089a6a612a1",
+      "eventPayloadSha256": "e4f8f8cf51d5fc0ca0ec5e3264c6612266d5af84c5daddb85bbd42f4c900ebad",
+      "previousEventSha256": "9e5f091d95c4182d2b57a620a59d7f1b410d5e2582f49599243a969af8e5a0aa"
+    },
+    "prefixProbe120Agrees": true
+  },
+  "agentClosureProof": {
+    "valid": true,
+    "verifyProgramConsumptionVerdict": "AUTHORIZED",
+    "verifyProgramConsumptionFindingCount": 0,
+    "authority": {
+      "authorityId": "GATE26_STANDARD_AGENT_CLOSURE_LOCAL_AUTHORITY_R3",
+      "programId": "GATE26_STANDARD_AGENT_CLOSURE_VERIFICATION_B056E1D7351A969C3F2AB2E5F37E73B6EDB041009D6F7624F5A1CCAA1166BA38_R3",
+      "path": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_GATE26_STANDARD_AGENT_CLOSURE_R3.json",
+      "sha256": "a688c81eca39f28d20d61ee6020175c0fc44964c89d6525e3d36b376e20dc500",
+      "byteLength": 2232,
+      "authorityMode": "LOCAL_EXPLICIT_AUTHORITY",
+      "authorityPurpose": "GATE_FINAL_CLOSURE",
+      "authorizedOperationClasses": [
+        "AGENT_CLOSURE"
+      ],
+      "maxUse": 1,
+      "pushAuthorized": false
+    },
+    "manifest": {
+      "path": "governance/historical-architecture/GATE26_STANDARD_AGENT_CLOSURE_AUTHORIZED_PATHS_R3.json",
+      "sha256": "c0c2b17130b254afed7965af91670b5e73f344d07c3b3b3451dd7c510875a770",
+      "byteLength": 3031,
+      "pathCount": 9
+    },
+    "consumption": {
+      "path": "governance/historical-architecture/GATE26_STANDARD_AGENT_CLOSURE_CONSUMPTION_R3.json",
+      "sha256": "b92a3ad0a92cef3237b747bb5dfb829bab3602fda002a02c5e327da91635f54f",
+      "byteLength": 3966,
+      "consumedUse": 1,
+      "transactionId": "GATE26_AGENT_CLOSURE_R1_TRANSACTION",
+      "cohortPathCount": 9
+    }
+  },
+  "protectedHashes": {
+    "valid": true,
+    "terminalRevision": "R0010",
+    "checks": [
+      {
+        "path": ".gitattributes",
+        "expectedSha256": "92c5f598025b23c8786e1274b1c9f6866c0d0681de4c23ad03f408b32ea79a7f",
+        "actualSha256": "92c5f598025b23c8786e1274b1c9f6866c0d0681de4c23ad03f408b32ea79a7f",
+        "classification": "PROTECTED_HASH_MATCH",
+        "blocking": false
+      },
+      {
+        "path": "governance/gates/GATE26/contracts/EXECUTION_CONTRACT_R0002.json",
+        "expectedSha256": "b0ab114a7a8125d37c871addfc2d795f3900894edac287fd7a1d5a67150a8d93",
+        "actualSha256": "b0ab114a7a8125d37c871addfc2d795f3900894edac287fd7a1d5a67150a8d93",
+        "classification": "PROTECTED_HASH_MATCH",
+        "blocking": false
+      }
+    ],
+    "historicalDisclosure": {
+      "revision": "R0004",
+      "classification": "HISTORICAL_PROTECTED_HASH_SUPERSEDED",
+      "blocking": false
+    }
+  },
+  "deferredCapabilityDeclaration": {
+    "valid": true,
+    "applicable": true,
+    "effectiveFromGate": "GATE24",
+    "path": "governance/gates/GATE26/state/revisions/R0010/DEFERRED_CAPABILITY_DECLARATION.json",
+    "sha256": "bbbcc57a2aa1c06ffef0f59ceb241f846c36a32e6441dce213616bb392724977",
+    "byteLength": 43,
+    "deferredCapabilitiesIntroduced": [],
+    "findingCount": 0
+  },
+  "publicationLineage": {
+    "valid": true,
+    "currentState": {
+      "recordPath": "governance/authority/publication-lineage-successor/records/GATE26_PUBLICATION_LINEAGE_SUCCESSOR_CURRENT_STATE_R1.json",
+      "recordSha256": "32deb01b463b5fb88c9b435211ce20c9c140f3aad5a6466647c1a087bb8ca88c",
+      "recordByteLength": 2554,
+      "recordId": "GATE26_PUBLICATION_LINEAGE_SUCCESSOR_CURRENT_STATE_R1",
+      "edgeSha256": "3cdb6048fbd3ffa8f4d8793ce64dcc4d660122e729536fbaf859577b4d7e251d",
+      "ownerAuthorityPath": "governance/authority/publication-lineage-successor/owner-authorities/GATE26_PUBLICATION_LINEAGE_SUCCESSOR_CURRENT_STATE_OWNER_AUTHORITY_R1.json",
+      "ownerAuthoritySha256": "44192fa50cf609d72c1ef468aad78492298b09b0d7165e0d62d3cf082c8644a0",
+      "accepted": true,
+      "findingCount": 0
+    },
+    "ledger": {
+      "recordPath": "governance/authority/publication-lineage-successor/records/GATE26_PUBLICATION_LINEAGE_SUCCESSOR_LEDGER_R1.json",
+      "recordSha256": "7ec691691a788649a4aa6a312fdae9c8b21fdcb265b1848eed00633721778207",
+      "recordByteLength": 2531,
+      "recordId": "GATE26_PUBLICATION_LINEAGE_SUCCESSOR_LEDGER_R1",
+      "edgeSha256": "64499997e41e1c14fca3cc1b49d70a6fc5c51841849281c1abf23229f6f7905d",
+      "ownerAuthorityPath": "governance/authority/publication-lineage-successor/owner-authorities/GATE26_PUBLICATION_LINEAGE_SUCCESSOR_LEDGER_OWNER_AUTHORITY_R1.json",
+      "ownerAuthoritySha256": "475d91f658323fbb318974370a19c5944e64c44bdee265652ae31cd63104a12a",
+      "accepted": true,
+      "findingCount": 0
+    }
+  },
+  "currentByteAuthorization": {
+    "document": "CURRENT_BYTE_AUTHORIZATION",
+    "algorithmVersion": "R1",
+    "valid": true,
+    "examined": 3,
+    "authorized": 3,
+    "blocked": 0,
+    "findingCount": 0,
+    "proofs": [
+      {
+        "path": "governance/gates/GATE26/state/CURRENT_STATE.json",
+        "sha256": "7621db595f76cd332cbbadfbb9111bd281303323bfad244ae87e6d3096c52b92",
+        "byteLength": 300,
+        "status": "AUTHORIZED_CURRENT_BYTES",
+        "bindingClass": "MAINTENANCE_PUBLICATION_COHORT",
+        "lineageSuccessorRecordId": "GATE26_PUBLICATION_LINEAGE_SUCCESSOR_CURRENT_STATE_R1"
+      },
+      {
+        "path": "governance/state/GATE_STATUS_LEDGER.ndjson",
+        "sha256": "f8de790d74504d76bc9ea6ac84c4251f226b58d8379ee5942e5b660d2bb42d40",
+        "byteLength": 75245,
+        "status": "AUTHORIZED_CURRENT_BYTES",
+        "bindingClass": "MAINTENANCE_PUBLICATION_COHORT",
+        "lineageSuccessorRecordId": "GATE26_PUBLICATION_LINEAGE_SUCCESSOR_LEDGER_R1"
+      },
+      {
+        "path": "governance/state/generated/GATE_STATUS_SNAPSHOT.json",
+        "sha256": "2a5085c2b4ba7f3784217021af2d69b00dbae647f5a2111fe71c8f5eac8613f4",
+        "byteLength": 16145,
+        "status": "AUTHORIZED_CURRENT_BYTES",
+        "bindingClass": "MAINTENANCE_PUBLICATION_COHORT"
+      }
+    ]
+  },
+  "statusSnapshot": {
+    "path": "governance/state/generated/GATE_STATUS_SNAPSHOT.json",
+    "sha256": "2a5085c2b4ba7f3784217021af2d69b00dbae647f5a2111fe71c8f5eac8613f4",
+    "byteLength": 16145,
+    "canonical": false,
+    "generatedFromLedgerPath": "governance/state/GATE_STATUS_LEDGER.ndjson",
+    "generatedFromLedgerSha256": "f8de790d74504d76bc9ea6ac84c4251f226b58d8379ee5942e5b660d2bb42d40",
+    "gate26Status": "COMPLETE_AGENT",
+    "gate26LastEventOrdinal": 120,
+    "gate27Status": "NOT_STARTED"
+  },
+  "finalGateIntegrity": {
+    "toolPath": "governance/tools/final-gate-integrity-auditor.mjs",
+    "toolSha256": "30714db59367b8df25f14c0f905f4b12e97e36cd19bd8f1ac30a104220e615a3",
+    "command": "node governance/tools/final-gate-integrity-auditor.mjs --gate GATE26 --expect-not-started-from GATE27",
+    "auditedAt": "2026-09-30T18:33:40.214Z",
+    "verdict": "PASS",
+    "findingCount": 0,
+    "defectClasses": [],
+    "familiesRun": [
+      "GIT_COHORT",
+      "LIFECYCLE",
+      "LEDGER",
+      "STATE",
+      "AUTHORITY",
+      "EVIDENCE",
+      "GENERATED",
+      "TEMP",
+      "GLOBAL_BOUNDARIES",
+      "DEFERRED_CAPABILITY"
+    ],
+    "familiesNotRun": []
+  },
+  "fastGate": {
+    "toolPath": "governance/tools/gate-fast-path-control-plane.mjs",
+    "toolSha256": "b8dc7a0558e5e2e022d326eb582b12e69452fbd6ee06ba084a958e702cd11231",
+    "command": "node governance/tools/gate-fast-path-control-plane.mjs --gate GATE26",
+    "generatedAt": "2026-09-30T18:32:02.055Z",
+    "exitCode": 0,
+    "verdict": "FAST_PATH_READY",
+    "mode": "PLAN_READ_ONLY",
+    "phase": "READINESS",
+    "gateStatus": "COMPLETE_AGENT",
+    "admission": {
+      "verdict": "READY",
+      "pass": 25,
+      "fail": 0,
+      "gateLocalExpected": 0,
+      "preexecutionGaps": 0,
+      "systemicGaps": 0
+    },
+    "blockingFactCount": 0,
+    "gateLocalExpectedCount": 0,
+    "nextAllowedTransition": "NO_TRANSITION_DERIVABLE_FROM_STATUS:COMPLETE_AGENT"
+  },
+  "fullIdentity": {
+    "unchanged": true,
+    "correctlyBound": true,
+    "productRoot": "data/jarvise/predictive-ensemble/GATE26/V1/FULL",
+    "productFileCount": 1073,
+    "nonFileEntryCount": 0,
+    "manifest": {
+      "path": "data/jarvise/predictive-ensemble/GATE26/V1/FULL/MANIFEST.json",
+      "sha256": "731a16b60b239bf9921091d1fde11c382de5c1181c8aace1605c4dd73ce11dc6",
+      "byteLength": 384807,
+      "pageCount": 536,
+      "ensembleRecordCount": 68562,
+      "provenanceRecordCount": 68562,
+      "producedUnderContractRevision": "R0006",
+      "producedUnderContractSha256": "765392a0ac2b79e9b71db158bdd9a7660790a48d825de2c361fc4fb6bb3aae18",
+      "producerId": "GATE26_FULL_REAL_PRODUCTION_PRODUCER_V1"
+    },
+    "auditedCodeIdentity": {
+      "expectedSha256": "a935dbe10637d8a9c0ddb7cda1b5ec6031c4280513306966e9a9953a8e069ad8",
+      "observedSha256": "a935dbe10637d8a9c0ddb7cda1b5ec6031c4280513306966e9a9953a8e069ad8",
+      "pathCount": 14,
+      "match": true
+    }
+  },
+  "lifecycleOrchestrator": {
+    "path": "governance/tools/gate-lifecycle-orchestrator.mjs",
+    "expectedSha256": "3765695c61e24023e853423cd682dda5d85b3599baca987a3bc3421c2b4b7110",
+    "observedSha256": "3765695c61e24023e853423cd682dda5d85b3599baca987a3bc3421c2b4b7110",
+    "byteLength": 78237,
+    "gitBlobOid": "b94196a5fc6683545b6f34068e73434e5491651d",
+    "committedAtCanonicalBase": true,
+    "worktreeDiffersFromHead": false,
+    "syntaxCheckExitCode": 0,
+    "current": true
+  },
+  "requiredAbsences": {
+    "stateRevisionR0011Present": false,
+    "gate26ExternalConfirmationEventCount": 0,
+    "gate26ExternalConfirmationAuthorizationFiles": [],
+    "gate26ExternalPolicyDeclarations": [],
+    "gate27Status": "NOT_STARTED",
+    "geeR8LowercaseDirectoryPresent": false,
+    "geeR8UppercaseDirectoryPresent": false
+  },
+  "validationRuns": [
+    {
+      "check": "GOVERNANCE_PREFLIGHT",
+      "verdict": "PASS",
+      "blockingFindingCount": 0
+    },
+    {
+      "check": "CURRENT_CONTRACT_AND_POINTER",
+      "verdict": "PASS",
+      "blockingFindingCount": 0
+    },
+    {
+      "check": "STATUS_LEDGER",
+      "verdict": "PASS",
+      "eventCount": 120
+    },
+    {
+      "check": "R0010_STATE_SEAL",
+      "verdict": "PASS",
+      "blockingFindingCount": 0
+    },
+    {
+      "check": "R0010_STATE_REVISION",
+      "verdict": "PASS",
+      "blockingFindingCount": 0
+    },
+    {
+      "check": "DEFERRED_CAPABILITY_DECLARATION",
+      "verdict": "PASS",
+      "findingCount": 0
+    },
+    {
+      "check": "AGENT_CLOSURE_VERIFY_PROGRAM_CONSUMPTION",
+      "verdict": "AUTHORIZED",
+      "findingCount": 0
+    },
+    {
+      "check": "CURRENT_BYTE_AUTHORIZATION",
+      "verdict": "PASS",
+      "authorized": 3,
+      "blocked": 0
+    },
+    {
+      "check": "FULL_IDENTITY",
+      "verdict": "PASS",
+      "mismatchCount": 0
+    },
+    {
+      "check": "FAST_GATE",
+      "verdict": "FAST_PATH_READY",
+      "blockingCount": 0
+    },
+    {
+      "check": "FINAL_GATE_INTEGRITY",
+      "verdict": "PASS",
+      "findingCount": 0
+    },
+    {
+      "check": "LIFECYCLE_ORCHESTRATOR",
+      "verdict": "PASS",
+      "sha256MatchesExpected": true,
+      "syntaxCheckExitCode": 0
+    }
+  ],
+  "scopeAssertions": {
+    "freshlyDerived": true,
+    "targetedVerificationOnly": true,
+    "r4ReportReused": false,
+    "r4AuthorityReused": false,
+    "networkUsed": false,
+    "externalAuthorityCreatedOrModified": false,
+    "externalAuthorityPolicyCreatedOrModified": false,
+    "lifecycleManifestCreatedOrModified": false,
+    "consumptionRecordCreatedOrModified": false,
+    "publicationAdmissionCreatedOrModified": false,
+    "ledgerCreatedOrModified": false,
+    "gate26StateCreatedOrModified": false,
+    "gate27CreatedOrModified": false,
+    "geeR8CreatedOrModified": false,
+    "commitCreated": false,
+    "pushPerformed": false
+  },
+  "nextSingleAction": "P2_PUBLICATION_OF_THIS_REPORT_ONLY",
+  "recordedAt": "2026-09-30T18:35:41.976Z"
+}

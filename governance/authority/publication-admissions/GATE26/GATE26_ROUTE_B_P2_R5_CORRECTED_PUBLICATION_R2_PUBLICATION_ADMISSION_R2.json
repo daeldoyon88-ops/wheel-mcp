@@ -1,0 +1,72 @@
+{
+  "documentKind": "MAINTENANCE_PUBLICATION_ADMISSION",
+  "schemaVersion": 1,
+  "authorityMode": "LOCAL_EXPLICIT_AUTHORITY",
+  "issuedBy": "PROJECT_OWNER",
+  "admissionId": "GATE26_ROUTE_B_P2_R5_CORRECTED_PUBLICATION_R2_PUBLICATION_ADMISSION_R2",
+  "decisionId": "OWNER_AUTHORIZE_GATE26_ROUTE_B_P2_R5_CORRECTED_PUBLICATION_R2",
+  "issuedAtUtc": "2026-09-30T00:00:00.000Z",
+  "expiresAtUtc": null,
+  "projectId": "WHEEL",
+  "repositoryId": "WHEEL_MCP_CANONICAL",
+  "gateId": "GATE26",
+  "programId": "GATE26_ROUTE_B_P2_R5_CORRECTED_PUBLICATION_R2",
+  "purpose": "MAINTENANCE_PUBLICATION_ADMISSION",
+  "publicationClass": "PATH_PRESTATE_PROGRAM_PUBLISHER",
+  "authorityPurpose": "NORMAL_MAINTENANCE",
+  "maxUse": 1,
+  "admissionStatement": "Admit exactly one local V2 publication of the exact five-path GATE26_ROUTE_B_P2_R5_CORRECTED_PUBLICATION_R2 cohort at base afd2d53b01e86ae687bc5d432c4b73b6a3bacd67; no lifecycle transition, external confirmation, commit, push, GATE27 action or GEE R8 is admitted by this mission.",
+  "admittedAuthority": {
+    "path": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_GATE26_ROUTE_B_P2_R5_CORRECTED_PUBLICATION_R2.json",
+    "sha256": "4ea67740b6f4786d805078b43c2ed07db66118fbe4abc3f14a1f36169a0c8aa6",
+    "byteLength": 2167,
+    "schemaVersion": 2,
+    "documentId": "GATE26_ROUTE_B_P2_R5_CORRECTED_PUBLICATION_R2_LOCAL_AUTHORITY_R2"
+  },
+  "admittedManifest": {
+    "path": "governance/historical-architecture/GATE26_ROUTE_B_P2_R5_CORRECTED_PUBLICATION_R2_AUTHORIZED_PATHS_R2.json",
+    "sha256": "e9ae4951c69c515c2807fd2ca769b4697e384497f4a1c67a41e46d06228db17d",
+    "byteLength": 3235,
+    "schemaVersion": 2,
+    "documentId": "GATE26_ROUTE_B_P2_R5_CORRECTED_PUBLICATION_R2_AUTHORIZED_PATHS_R2"
+  },
+  "admittedPrestate": {
+    "baseHead": "afd2d53b01e86ae687bc5d432c4b73b6a3bacd67",
+    "ledgerEventCount": 120,
+    "ledgerPrefixSha256": "f8de790d74504d76bc9ea6ac84c4251f226b58d8379ee5942e5b660d2bb42d40",
+    "gateId": "GATE26",
+    "gateStatus": "COMPLETE_AGENT",
+    "stateRevision": "R0010",
+    "contractRevision": "R0008",
+    "activeGate": "GATE13",
+    "R8ExpectedAbsent": true
+  },
+  "admittedOperationClasses": [
+    "EXTERNAL_BINDING_REPAIR"
+  ],
+  "grantsFutureBytePermission": false,
+  "grantsGateAuthorizationPermission": false,
+  "grantsStartPermission": false,
+  "grantsStatusTransitionPermission": false,
+  "grantsHistoricalAdmissionWidening": false,
+  "genericV1Admission": false,
+  "derivedFromGitDelta": false,
+  "derivedFromFinalGateIntegrityFindings": false,
+  "prohibitedOperations": [
+    "START",
+    "SECOND_START",
+    "GATE_AUTHORIZATION",
+    "STATUS_TRANSITION",
+    "ACTIVE_GATE_SWITCH",
+    "GEE_R8",
+    "GIT_PUSH",
+    "HISTORY_REWRITE",
+    "GENERIC_V1_ADMISSION",
+    "HISTORICAL_ADMISSION_WIDENING",
+    "SELF_ADMISSION"
+  ],
+  "successorRequirement": "Any later publication over changed bytes or state requires a new exact Owner admission.",
+  "admissionDigest": "160e7a409db02cda0daf3409dd83896209b465252e109a80f91f563f850d01d3",
+  "ownerAuthorizationPath": "governance/sources/MAINTENANCE_PUBLICATION_ADMISSION_OWNER_AUTHORIZATION_GATE26_ROUTE_B_P2_R5_CORRECTED_PUBLICATION_R2.json",
+  "ownerAuthorizationSha256": "99315f1e1274f42acb28dc13fbf03080298b9f8d865858da5e40acf729126610"
+}

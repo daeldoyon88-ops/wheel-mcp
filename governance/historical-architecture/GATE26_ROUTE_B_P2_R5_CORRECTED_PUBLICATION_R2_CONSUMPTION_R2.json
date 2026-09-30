@@ -1,0 +1,56 @@
+{
+  "documentKind": "POST_FREEZE_MAINTENANCE_AUTHORITY_CONSUMPTION",
+  "schemaVersion": 2,
+  "authorityId": "GATE26_ROUTE_B_P2_R5_CORRECTED_PUBLICATION_R2_LOCAL_AUTHORITY_R2",
+  "programId": "GATE26_ROUTE_B_P2_R5_CORRECTED_PUBLICATION_R2",
+  "manifestSha256": "e9ae4951c69c515c2807fd2ca769b4697e384497f4a1c67a41e46d06228db17d",
+  "baseHead": "afd2d53b01e86ae687bc5d432c4b73b6a3bacd67",
+  "consumedUse": 1,
+  "transactionId": "GATE26_ROUTE_B_P2_R5_CORRECTED_PUBLICATION_R2",
+  "recordedAt": "2026-09-30T21:49:47.923Z",
+  "commitMessage": "GATE26: publish Route B P2 R5 corrected report",
+  "publicationAdmission": {
+    "admissionId": "GATE26_ROUTE_B_P2_R5_CORRECTED_PUBLICATION_R2_PUBLICATION_ADMISSION_R2",
+    "admissionPath": "governance/authority/publication-admissions/GATE26/GATE26_ROUTE_B_P2_R5_CORRECTED_PUBLICATION_R2_PUBLICATION_ADMISSION_R2.json",
+    "admissionSha256": "7e56c707d3c33fb5678783c71f84114d48878dc1bbc6158fa2d252736fa8e5a9"
+  },
+  "cohortSelfExclusion": {
+    "path": "governance/historical-architecture/GATE26_ROUTE_B_P2_R5_CORRECTED_PUBLICATION_R2_CONSUMPTION_R2.json",
+    "reason": "The consumption record cannot hash its own final bytes; its identity is bound by the authority and manifest instead."
+  },
+  "cohortPathCount": 5,
+  "cohort": [
+    {
+      "path": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_GATE26_ROUTE_B_P2_R5_CORRECTED_PUBLICATION_R2.json",
+      "sha256": "4ea67740b6f4786d805078b43c2ed07db66118fbe4abc3f14a1f36169a0c8aa6",
+      "byteLength": 2167,
+      "operation": "CREATE",
+      "reason": "Fresh Owner-issued P2 R2 authority for the exact corrected GATE26 R5 report publication and external binding registration.",
+      "artifactClass": "EXTERNAL_BINDING_REPAIR"
+    },
+    {
+      "path": "governance/historical-architecture/GATE26_ROUTE_B_P2_R5_CORRECTED_PUBLICATION_R2_AUTHORIZED_PATHS_R2.json",
+      "sha256": "e9ae4951c69c515c2807fd2ca769b4697e384497f4a1c67a41e46d06228db17d",
+      "byteLength": 3235,
+      "operation": "CREATE",
+      "reason": "Schema V2 manifest binding the exact five-path P2 R2 canonical prestates.",
+      "artifactClass": "EXTERNAL_BINDING_REPAIR"
+    },
+    {
+      "path": "governance/sources/GATE26_INDEPENDENT_EXTERNAL_CONFIRMATION_R5_EXTERNAL_REINSPECTION_REPORT.json",
+      "sha256": "d3b1fa5741384c310ac2f095bafb4e96d8ee00076a63b1f80b3d22a860ba6559",
+      "byteLength": 15779,
+      "operation": "CREATE",
+      "reason": "Publish the exact corrected GATE26 R5 external reinspection report bytes (event120 eventPayloadSha256 corrected to the BASE ledger value) bound to observation BASE afd2d53b01e86ae687bc5d432c4b73b6a3bacd67.",
+      "artifactClass": "EXTERNAL_BINDING_REPAIR"
+    },
+    {
+      "path": "governance/gee-v1/adapters/wheel/external-authority-policy.mjs",
+      "sha256": "901ee64c3dc82e181197792380ff8c2597edd051d84b4ba9fefcfd7b5f46c00f",
+      "byteLength": 10595,
+      "operation": "MODIFY",
+      "reason": "Register only the exact corrected R5 report path, digest and GATE26 identity under the existing STANDARD_EXTERNAL_REINSPECTION_REPORT rule; no verdict rule or trust model changes.",
+      "artifactClass": "EXTERNAL_BINDING_REPAIR"
+    }
+  ]
+}

@@ -1,0 +1,66 @@
+{
+  "document": "GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY",
+  "schemaVersion": 2,
+  "authorityId": "GATE26_INDEPENDENT_EXTERNAL_CONFIRMATION_LOCAL_AUTHORITY_R5",
+  "authorityClass": "PROJECT_OWNER_POST_FREEZE_MAINTENANCE_AUTHORITY",
+  "authorityMode": "LOCAL_EXPLICIT_AUTHORITY",
+  "issuedBy": "PROJECT_OWNER",
+  "createdAt": "2026-09-30T22:44:00.000Z",
+  "expiresAt": "2026-12-31T23:59:59.000Z",
+  "targetSystem": "PROJECT_GOVERNANCE",
+  "programId": "GATE26_INDEPENDENT_EXTERNAL_CONFIRMATION_R5",
+  "authorityPurpose": "GATE_EXTERNAL_CONFIRMATION",
+  "resumePoint": "GATE26_INDEPENDENT_EXTERNAL_CONFIRMATION_R5",
+  "maxUse": 1,
+  "preState": {
+    "baseHead": "9b9d5bd17db4ab5316f70fb06322a81a5ba4bb3e",
+    "ledgerEventCount": 120,
+    "ledgerPrefixSha256": "f8de790d74504d76bc9ea6ac84c4251f226b58d8379ee5942e5b660d2bb42d40",
+    "gateId": "GATE26",
+    "gateStatus": "COMPLETE_AGENT",
+    "stateRevision": "R0010",
+    "contractRevision": "R0008",
+    "activeGate": "GATE13",
+    "R8ExpectedAbsent": true
+  },
+  "authorizedPathManifestPath": "governance/historical-architecture/GATE26_EXTERNAL_CONFIRMATION_AUTHORIZED_PATHS_R5.json",
+  "authorizedPathManifestSha256": "8316c03a9fc1e971ed7f7de00f719e7f1755614259616b93c7eca532b2b74117",
+  "authorizedOperationClasses": [
+    "EXTERNAL_CONFIRMATION"
+  ],
+  "commitPolicy": {
+    "maxCommitCount": 1,
+    "allowedGitOperations": [
+      "GIT_ADD_PATHSPEC",
+      "GIT_COMMIT"
+    ],
+    "commitMessage": "governance: confirm GATE26 with independent confirmation",
+    "thirdCommitAuthorized": false
+  },
+  "pushAuthorized": false,
+  "authorityPredecessor": {
+    "authorityId": "GATE26_STANDARD_AGENT_CLOSURE_LOCAL_AUTHORITY_R3",
+    "sha256": "a688c81eca39f28d20d61ee6020175c0fc44964c89d6525e3d36b376e20dc500"
+  },
+  "authorityHeadBinding": {
+    "mode": "BASE_HEAD",
+    "baseHead": "9b9d5bd17db4ab5316f70fb06322a81a5ba4bb3e"
+  },
+  "consumptionRecordPath": "governance/historical-architecture/GATE26_EXTERNAL_CONFIRMATION_CONSUMPTION_R5.json",
+  "prohibitedOperations": [
+    "START",
+    "SECOND_START",
+    "AGENT_CLOSURE",
+    "EXTERNAL_CONFIRMATION",
+    "COMPLETE_AGENT",
+    "COMPLETE_CONFIRMED",
+    "ACTIVE_GATE_SWITCH",
+    "GEE_R8",
+    "GIT_PUSH",
+    "HISTORY_REWRITE",
+    "THIRD_COMMIT",
+    "UNRELATED_WRITE"
+  ],
+  "externalReinspectionReportPath": "governance/sources/GATE26_INDEPENDENT_EXTERNAL_CONFIRMATION_R5_EXTERNAL_REINSPECTION_REPORT.json",
+  "externalReinspectionReportSha256": "d3b1fa5741384c310ac2f095bafb4e96d8ee00076a63b1f80b3d22a860ba6559"
+}

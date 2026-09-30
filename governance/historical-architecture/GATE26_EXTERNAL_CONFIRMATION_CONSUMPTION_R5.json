@@ -1,0 +1,99 @@
+{
+  "documentKind": "POST_FREEZE_MAINTENANCE_AUTHORITY_CONSUMPTION",
+  "schemaVersion": 2,
+  "authorityId": "GATE26_INDEPENDENT_EXTERNAL_CONFIRMATION_LOCAL_AUTHORITY_R5",
+  "programId": "GATE26_INDEPENDENT_EXTERNAL_CONFIRMATION_R5",
+  "manifestSha256": "8316c03a9fc1e971ed7f7de00f719e7f1755614259616b93c7eca532b2b74117",
+  "baseHead": "9b9d5bd17db4ab5316f70fb06322a81a5ba4bb3e",
+  "consumedUse": 1,
+  "transactionId": "GATE26_EXTERNAL_CONFIRMATION_R1_TRANSACTION",
+  "recordedAt": "2026-09-30T22:49:00.000Z",
+  "commitMessage": "governance: confirm GATE26 with independent confirmation",
+  "cohortSelfExclusion": {
+    "path": "governance/historical-architecture/GATE26_EXTERNAL_CONFIRMATION_CONSUMPTION_R5.json",
+    "reason": "The consumption record cannot hash its own final bytes; its identity is bound by the authority and manifest instead."
+  },
+  "cohortPathCount": 11,
+  "cohort": [
+    {
+      "path": "governance/gates/GATE26/state/CURRENT_STATE.json",
+      "sha256": "32ebb88c98bbf28ea400da03044811c0c8da93f433521343757937c5c6fca518",
+      "byteLength": 308,
+      "operation": "MODIFY",
+      "reason": "Lifecycle EXTERNAL_CONFIRMATION publication under exact current-byte lineage.",
+      "artifactClass": "EXTERNAL_CONFIRMATION"
+    },
+    {
+      "path": "governance/gates/GATE26/state/revisions/R0011/CHECKPOINT.json",
+      "sha256": "35e8d254c9784816a93c94e657cff2b2e3dfe096e354431323e2cab6b99829fc",
+      "byteLength": 1879,
+      "operation": "CREATE",
+      "reason": "Lifecycle EXTERNAL_CONFIRMATION publication under exact current-byte lineage.",
+      "artifactClass": "EXTERNAL_CONFIRMATION"
+    },
+    {
+      "path": "governance/gates/GATE26/state/revisions/R0011/DEFERRED_CAPABILITY_DECLARATION.json",
+      "sha256": "bbbcc57a2aa1c06ffef0f59ceb241f846c36a32e6441dce213616bb392724977",
+      "byteLength": 43,
+      "operation": "CREATE",
+      "reason": "Lifecycle EXTERNAL_CONFIRMATION publication under exact current-byte lineage.",
+      "artifactClass": "EXTERNAL_CONFIRMATION"
+    },
+    {
+      "path": "governance/gates/GATE26/state/revisions/R0011/OPEN_DEFECTS.json",
+      "sha256": "6819275cc1389abdcc790566b2c81224580be647df19f24cc9abde037f9a5842",
+      "byteLength": 70,
+      "operation": "CREATE",
+      "reason": "Lifecycle EXTERNAL_CONFIRMATION publication under exact current-byte lineage.",
+      "artifactClass": "EXTERNAL_CONFIRMATION"
+    },
+    {
+      "path": "governance/gates/GATE26/state/revisions/R0011/STATE_SEAL.json",
+      "sha256": "cdecddbd7fea9b8849cab0b39cb1a03d1b7caf059e5a7dca69b9426b968139d8",
+      "byteLength": 1360,
+      "operation": "CREATE",
+      "reason": "Lifecycle EXTERNAL_CONFIRMATION publication under exact current-byte lineage.",
+      "artifactClass": "EXTERNAL_CONFIRMATION"
+    },
+    {
+      "path": "governance/historical-architecture/GATE26_EXTERNAL_CONFIRMATION_AUTHORIZED_PATHS_R5.json",
+      "sha256": "8316c03a9fc1e971ed7f7de00f719e7f1755614259616b93c7eca532b2b74117",
+      "byteLength": 5344,
+      "operation": "CREATE",
+      "reason": "Lifecycle EXTERNAL_CONFIRMATION publication under exact current-byte lineage.",
+      "artifactClass": "EXTERNAL_CONFIRMATION"
+    },
+    {
+      "path": "governance/sources/GATE26_INDEPENDENT_EXTERNAL_CONFIRMATION_R5_EXTERNAL_REINSPECTION_REPORT.json",
+      "sha256": "d3b1fa5741384c310ac2f095bafb4e96d8ee00076a63b1f80b3d22a860ba6559",
+      "byteLength": 15779,
+      "operation": "MODIFY",
+      "reason": "Lifecycle EXTERNAL_CONFIRMATION publication under exact current-byte lineage.",
+      "artifactClass": "EXTERNAL_CONFIRMATION"
+    },
+    {
+      "path": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_GATE26_EXTERNAL_CONFIRMATION_R5.json",
+      "sha256": "b412bd2cc1854fb42431b68ca248179095e8253aff8e1b9bd4b2b7881ba51fee",
+      "byteLength": 2526,
+      "operation": "CREATE",
+      "reason": "Lifecycle EXTERNAL_CONFIRMATION publication under exact current-byte lineage.",
+      "artifactClass": "EXTERNAL_CONFIRMATION"
+    },
+    {
+      "path": "governance/state/GATE_STATUS_LEDGER.ndjson",
+      "sha256": "2e3d558b01386e15ac84fbad4ebd94ec1db672f7a1bd55150618725bfe333587",
+      "byteLength": 75978,
+      "operation": "MODIFY",
+      "reason": "Lifecycle EXTERNAL_CONFIRMATION publication under exact current-byte lineage.",
+      "artifactClass": "EXTERNAL_CONFIRMATION"
+    },
+    {
+      "path": "governance/state/generated/GATE_STATUS_SNAPSHOT.json",
+      "sha256": "7667216f03bdd1f2802f2344e18dea47de514fa5bfb8dddebef601d9e55cae93",
+      "byteLength": 16156,
+      "operation": "MODIFY",
+      "reason": "Lifecycle EXTERNAL_CONFIRMATION publication under exact current-byte lineage.",
+      "artifactClass": "EXTERNAL_CONFIRMATION"
+    }
+  ]
+}

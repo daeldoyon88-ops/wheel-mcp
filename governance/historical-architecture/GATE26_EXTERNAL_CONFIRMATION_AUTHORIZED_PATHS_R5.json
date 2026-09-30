@@ -1,0 +1,138 @@
+{
+  "documentKind": "POST_FREEZE_MAINTENANCE_AUTHORIZED_PATH_MANIFEST",
+  "schemaVersion": 2,
+  "manifestId": "GATE26_EXTERNAL_CONFIRMATION_AUTHORIZED_PATHS_R5",
+  "programId": "GATE26_INDEPENDENT_EXTERNAL_CONFIRMATION_R5",
+  "paths": [
+    {
+      "path": "governance/gates/GATE26/state/CURRENT_STATE.json",
+      "operation": "MODIFY",
+      "phase": "EXTERNAL_CONFIRMATION",
+      "reason": "Lifecycle EXTERNAL_CONFIRMATION publication under exact current-byte lineage.",
+      "artifactClass": "EXTERNAL_CONFIRMATION",
+      "prestate": {
+        "state": "PRESENT",
+        "sha256": "7621db595f76cd332cbbadfbb9111bd281303323bfad244ae87e6d3096c52b92",
+        "byteLength": 300
+      }
+    },
+    {
+      "path": "governance/gates/GATE26/state/revisions/R0011/CHECKPOINT.json",
+      "operation": "CREATE",
+      "phase": "EXTERNAL_CONFIRMATION",
+      "reason": "Lifecycle EXTERNAL_CONFIRMATION publication under exact current-byte lineage.",
+      "artifactClass": "EXTERNAL_CONFIRMATION",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "governance/gates/GATE26/state/revisions/R0011/DEFERRED_CAPABILITY_DECLARATION.json",
+      "operation": "CREATE",
+      "phase": "EXTERNAL_CONFIRMATION",
+      "reason": "Lifecycle EXTERNAL_CONFIRMATION publication under exact current-byte lineage.",
+      "artifactClass": "EXTERNAL_CONFIRMATION",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "governance/gates/GATE26/state/revisions/R0011/OPEN_DEFECTS.json",
+      "operation": "CREATE",
+      "phase": "EXTERNAL_CONFIRMATION",
+      "reason": "Lifecycle EXTERNAL_CONFIRMATION publication under exact current-byte lineage.",
+      "artifactClass": "EXTERNAL_CONFIRMATION",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "governance/gates/GATE26/state/revisions/R0011/STATE_SEAL.json",
+      "operation": "CREATE",
+      "phase": "EXTERNAL_CONFIRMATION",
+      "reason": "Lifecycle EXTERNAL_CONFIRMATION publication under exact current-byte lineage.",
+      "artifactClass": "EXTERNAL_CONFIRMATION",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "governance/historical-architecture/GATE26_EXTERNAL_CONFIRMATION_AUTHORIZED_PATHS_R5.json",
+      "operation": "CREATE",
+      "phase": "EXTERNAL_CONFIRMATION",
+      "reason": "Lifecycle EXTERNAL_CONFIRMATION publication under exact current-byte lineage.",
+      "artifactClass": "EXTERNAL_CONFIRMATION",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "governance/historical-architecture/GATE26_EXTERNAL_CONFIRMATION_CONSUMPTION_R5.json",
+      "operation": "CREATE",
+      "phase": "EXTERNAL_CONFIRMATION",
+      "reason": "Lifecycle EXTERNAL_CONFIRMATION publication under exact current-byte lineage.",
+      "artifactClass": "EXTERNAL_CONFIRMATION",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "governance/sources/GATE26_INDEPENDENT_EXTERNAL_CONFIRMATION_R5_EXTERNAL_REINSPECTION_REPORT.json",
+      "operation": "MODIFY",
+      "phase": "EXTERNAL_CONFIRMATION",
+      "reason": "Lifecycle EXTERNAL_CONFIRMATION publication under exact current-byte lineage.",
+      "artifactClass": "EXTERNAL_CONFIRMATION",
+      "prestate": {
+        "state": "PRESENT",
+        "sha256": "d3b1fa5741384c310ac2f095bafb4e96d8ee00076a63b1f80b3d22a860ba6559",
+        "byteLength": 15779
+      }
+    },
+    {
+      "path": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_GATE26_EXTERNAL_CONFIRMATION_R5.json",
+      "operation": "CREATE",
+      "phase": "EXTERNAL_CONFIRMATION",
+      "reason": "Lifecycle EXTERNAL_CONFIRMATION publication under exact current-byte lineage.",
+      "artifactClass": "EXTERNAL_CONFIRMATION",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "governance/state/GATE_STATUS_LEDGER.ndjson",
+      "operation": "MODIFY",
+      "phase": "EXTERNAL_CONFIRMATION",
+      "reason": "Lifecycle EXTERNAL_CONFIRMATION publication under exact current-byte lineage.",
+      "artifactClass": "EXTERNAL_CONFIRMATION",
+      "prestate": {
+        "state": "PRESENT",
+        "sha256": "f8de790d74504d76bc9ea6ac84c4251f226b58d8379ee5942e5b660d2bb42d40",
+        "byteLength": 75245
+      }
+    },
+    {
+      "path": "governance/state/generated/GATE_STATUS_SNAPSHOT.json",
+      "operation": "MODIFY",
+      "phase": "EXTERNAL_CONFIRMATION",
+      "reason": "Lifecycle EXTERNAL_CONFIRMATION publication under exact current-byte lineage.",
+      "artifactClass": "EXTERNAL_CONFIRMATION",
+      "prestate": {
+        "state": "PRESENT",
+        "sha256": "2a5085c2b4ba7f3784217021af2d69b00dbae647f5a2111fe71c8f5eac8613f4",
+        "byteLength": 16145
+      }
+    }
+  ],
+  "prestateSelfExclusion": [
+    {
+      "path": "governance/historical-architecture/GATE26_EXTERNAL_CONFIRMATION_AUTHORIZED_PATHS_R5.json",
+      "role": "AUTHORIZED_PATH_MANIFEST",
+      "reason": "The manifest cannot declare its own final digest; its identity is pinned by the authority."
+    },
+    {
+      "path": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_GATE26_EXTERNAL_CONFIRMATION_R5.json",
+      "role": "AUTHORITY_DOCUMENT",
+      "reason": "The authority must already exist to be read; its identity is pinned by the consumption record."
+    }
+  ]
+}

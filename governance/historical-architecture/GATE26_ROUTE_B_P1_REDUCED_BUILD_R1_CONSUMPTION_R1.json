@@ -1,0 +1,56 @@
+{
+  "documentKind": "POST_FREEZE_MAINTENANCE_AUTHORITY_CONSUMPTION",
+  "schemaVersion": 2,
+  "authorityId": "GATE26_ROUTE_B_P1_REDUCED_BUILD_R1_LOCAL_AUTHORITY_R1",
+  "programId": "GATE26_ROUTE_B_P1_REDUCED_BUILD_R1",
+  "manifestSha256": "442e0c4b6c3acc4a50a1f28194e1d325a7ad861fad66ee8401d3584a81f70158",
+  "baseHead": "85838e8c495ebf07ab4153f9f93c0a1dda268e46",
+  "consumedUse": 1,
+  "transactionId": "GATE26_ROUTE_B_P1_REDUCED_BUILD_R1",
+  "recordedAt": "2026-09-30T16:32:18.340Z",
+  "commitMessage": "GATE26: build Route B P1 reduced repair",
+  "publicationAdmission": {
+    "admissionId": "GATE26_ROUTE_B_P1_REDUCED_BUILD_R1_PUBLICATION_ADMISSION_R1",
+    "admissionPath": "governance/authority/publication-admissions/GATE26/GATE26_ROUTE_B_P1_REDUCED_BUILD_R1_PUBLICATION_ADMISSION_R1.json",
+    "admissionSha256": "c9b2ada2fc381b695384b5b5f347b088dd1ba3b375da748f1272485ba7444823"
+  },
+  "cohortSelfExclusion": {
+    "path": "governance/historical-architecture/GATE26_ROUTE_B_P1_REDUCED_BUILD_R1_CONSUMPTION_R1.json",
+    "reason": "The consumption record cannot hash its own final bytes; its identity is bound by the authority and manifest instead."
+  },
+  "cohortPathCount": 5,
+  "cohort": [
+    {
+      "path": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_GATE26_ROUTE_B_P1_REDUCED_BUILD_R1.json",
+      "sha256": "e610f75f194f64a7049cfd8349e4d5105ec804e10865b642cc5b2fea3ded9068",
+      "byteLength": 2093,
+      "operation": "CREATE",
+      "reason": "Fresh Owner-issued P1 authority for the exact Route B reduced build.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "governance/historical-architecture/GATE26_ROUTE_B_P1_REDUCED_BUILD_R1_AUTHORIZED_PATHS_R1.json",
+      "sha256": "442e0c4b6c3acc4a50a1f28194e1d325a7ad861fad66ee8401d3584a81f70158",
+      "byteLength": 2827,
+      "operation": "CREATE",
+      "reason": "Schema V2 manifest binding the exact P1 canonical prestates.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "governance/tools/gate-lifecycle-orchestrator.mjs",
+      "sha256": "3765695c61e24023e853423cd682dda5d85b3599baca987a3bc3421c2b4b7110",
+      "byteLength": 78237,
+      "operation": "MODIFY",
+      "reason": "Forward the exact loaded authority document path into the canonical maintenance observation.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "governance/tests/gate-lifecycle-orchestrator.test.mjs",
+      "sha256": "d56fc677d49ae33f9392edc524b94e590e7c669ec4a56420ab6df51199769a1f",
+      "byteLength": 115538,
+      "operation": "MODIFY",
+      "reason": "Prove exact authority-path acceptance and fail-closed hostile cases without widening self-exclusion roles.",
+      "artifactClass": "MAINTENANCE"
+    }
+  ]
+}

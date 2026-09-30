@@ -1,0 +1,61 @@
+{
+  "document": "GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY",
+  "schemaVersion": 2,
+  "authorityId": "GATE26_ROUTE_B_P1_REDUCED_BUILD_R1_LOCAL_AUTHORITY_R1",
+  "authorityClass": "PROJECT_OWNER_POST_FREEZE_MAINTENANCE_AUTHORITY",
+  "authorityMode": "LOCAL_EXPLICIT_AUTHORITY",
+  "issuedBy": "PROJECT_OWNER",
+  "createdAt": "2026-09-30T00:00:00.000Z",
+  "expiresAt": "2026-12-31T23:59:59.000Z",
+  "targetSystem": "PROJECT_GOVERNANCE",
+  "programId": "GATE26_ROUTE_B_P1_REDUCED_BUILD_R1",
+  "authorityPurpose": "NORMAL_MAINTENANCE",
+  "resumePoint": "GATE26_ROUTE_B_P1_REDUCED_BUILD_R1_PREWRITE",
+  "maxUse": 1,
+  "preState": {
+    "baseHead": "85838e8c495ebf07ab4153f9f93c0a1dda268e46",
+    "ledgerEventCount": 120,
+    "ledgerPrefixSha256": "f8de790d74504d76bc9ea6ac84c4251f226b58d8379ee5942e5b660d2bb42d40",
+    "gateId": "GATE26",
+    "gateStatus": "COMPLETE_AGENT",
+    "stateRevision": "R0010",
+    "contractRevision": "R0008",
+    "activeGate": "GATE13",
+    "R8ExpectedAbsent": true
+  },
+  "authorizedPathManifestPath": "governance/historical-architecture/GATE26_ROUTE_B_P1_REDUCED_BUILD_R1_AUTHORIZED_PATHS_R1.json",
+  "authorizedPathManifestSha256": "442e0c4b6c3acc4a50a1f28194e1d325a7ad861fad66ee8401d3584a81f70158",
+  "authorizedOperationClasses": [
+    "MAINTENANCE"
+  ],
+  "commitPolicy": {
+    "maxCommitCount": 1,
+    "allowedGitOperations": [
+      "GIT_ADD_PATHSPEC",
+      "GIT_COMMIT"
+    ],
+    "commitMessage": "GATE26: build Route B P1 reduced repair",
+    "thirdCommitAuthorized": false
+  },
+  "pushAuthorized": false,
+  "authorityPredecessor": null,
+  "authorityHeadBinding": {
+    "mode": "BASE_HEAD",
+    "baseHead": "85838e8c495ebf07ab4153f9f93c0a1dda268e46"
+  },
+  "consumptionRecordPath": "governance/historical-architecture/GATE26_ROUTE_B_P1_REDUCED_BUILD_R1_CONSUMPTION_R1.json",
+  "prohibitedOperations": [
+    "START",
+    "SECOND_START",
+    "AGENT_CLOSURE",
+    "EXTERNAL_CONFIRMATION",
+    "COMPLETE_AGENT",
+    "COMPLETE_CONFIRMED",
+    "ACTIVE_GATE_SWITCH",
+    "GEE_R8",
+    "GIT_PUSH",
+    "HISTORY_REWRITE",
+    "THIRD_COMMIT",
+    "UNRELATED_WRITE"
+  ]
+}

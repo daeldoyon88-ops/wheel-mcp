@@ -1,0 +1,74 @@
+{
+  "documentKind": "POST_FREEZE_MAINTENANCE_AUTHORIZED_PATH_MANIFEST",
+  "schemaVersion": 2,
+  "manifestId": "GATE26_ROUTE_B_P1_REDUCED_BUILD_R1_AUTHORIZED_PATHS_R1",
+  "programId": "GATE26_ROUTE_B_P1_REDUCED_BUILD_R1",
+  "paths": [
+    {
+      "path": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_GATE26_ROUTE_B_P1_REDUCED_BUILD_R1.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "Fresh Owner-issued P1 authority for the exact Route B reduced build.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "governance/historical-architecture/GATE26_ROUTE_B_P1_REDUCED_BUILD_R1_AUTHORIZED_PATHS_R1.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "Schema V2 manifest binding the exact P1 canonical prestates.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "governance/historical-architecture/GATE26_ROUTE_B_P1_REDUCED_BUILD_R1_CONSUMPTION_R1.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "RESERVED_RECEIPT: V2 single-use consumption record written only by the publisher.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "governance/tools/gate-lifecycle-orchestrator.mjs",
+      "operation": "MODIFY",
+      "phase": "MAINTENANCE",
+      "reason": "Forward the exact loaded authority document path into the canonical maintenance observation.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "PRESENT",
+        "sha256": "992500de5607dcd5c183505a2f7f7b884081f1256881cebfd5ac07a93c660741",
+        "byteLength": 78214
+      }
+    },
+    {
+      "path": "governance/tests/gate-lifecycle-orchestrator.test.mjs",
+      "operation": "MODIFY",
+      "phase": "MAINTENANCE",
+      "reason": "Prove exact authority-path acceptance and fail-closed hostile cases without widening self-exclusion roles.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "PRESENT",
+        "sha256": "2d2fc3ce4b3dd92766cecd33aecdca907fe7989b66e99e9574d16518dd77de9a",
+        "byteLength": 110318
+      }
+    }
+  ],
+  "prestateSelfExclusion": [
+    {
+      "path": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_GATE26_ROUTE_B_P1_REDUCED_BUILD_R1.json",
+      "role": "AUTHORITY_DOCUMENT",
+      "reason": "Read by the evaluator before publication while its base prestate is ABSENT."
+    },
+    {
+      "path": "governance/historical-architecture/GATE26_ROUTE_B_P1_REDUCED_BUILD_R1_AUTHORIZED_PATHS_R1.json",
+      "role": "AUTHORIZED_PATH_MANIFEST",
+      "reason": "Digest-pinned and read before publication while its base prestate is ABSENT."
+    }
+  ]
+}

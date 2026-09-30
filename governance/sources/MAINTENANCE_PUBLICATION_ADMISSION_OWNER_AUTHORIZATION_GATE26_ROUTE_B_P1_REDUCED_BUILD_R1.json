@@ -1,0 +1,25 @@
+{
+  "document": "MAINTENANCE_PUBLICATION_ADMISSION_OWNER_AUTHORIZATION",
+  "schemaVersion": 1,
+  "authorityId": "GATE26_ROUTE_B_P1_REDUCED_BUILD_R1_PUBLICATION_OWNER_AUTHORIZATION_R1",
+  "authorityClass": "PROJECT_OWNER_MAINTENANCE_PUBLICATION_ADMISSION_AUTHORITY",
+  "authorityMode": "LOCAL_EXPLICIT_AUTHORITY",
+  "issuedBy": "PROJECT_OWNER",
+  "issuedAtUtc": "2026-09-30T00:00:00.000Z",
+  "decisionId": "OWNER_AUTHORIZE_GATE26_ROUTE_B_P1_REDUCED_BUILD_R1",
+  "purpose": "MAINTENANCE_PUBLICATION_ADMISSION",
+  "reexecutionAuthorized": false,
+  "grantsFutureBytePermission": false,
+  "genericV1Admission": false,
+  "admittedPublications": [
+    {
+      "admissionId": "GATE26_ROUTE_B_P1_REDUCED_BUILD_R1_PUBLICATION_ADMISSION_R1",
+      "projectId": "WHEEL",
+      "gateId": "GATE26",
+      "programId": "GATE26_ROUTE_B_P1_REDUCED_BUILD_R1",
+      "admissionPath": "governance/authority/publication-admissions/GATE26/GATE26_ROUTE_B_P1_REDUCED_BUILD_R1_PUBLICATION_ADMISSION_R1.json",
+      "admissionDigest": "8ef8054a53ca36e10496cb66b4177cca9077ed472a50d092267890673b820380"
+    }
+  ],
+  "registryDigest": "2fdfd7e6e7f7c73aafc2219ffa503e592a637072f540c014351fd8a53f939cd4"
+}

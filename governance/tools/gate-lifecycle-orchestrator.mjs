@@ -1288,7 +1288,7 @@ export function evaluateTransitionAuthority({ root, candidate, authorityDocument
     };
   }
   const observation = collectPostFreezeMaintenanceObservation({
-    root, authority,
+    root, authority, authorityDocumentPath,
     requestedPaths: candidate.writes.map((write) => write.path),
     requestedOperationClasses: [candidate.transitionType],
     candidateWrites: candidate.writes

@@ -818,6 +818,100 @@ test('A7: validator and orchestrator share the complete external-confirmation ob
   } finally { discard(root); discard(staging); }
 });
 
+test('P1: lifecycle maintenance authority preserves exact document identity and fails closed', () => {
+  const root = scratchRoot('maintenance-authority-document-identity');
+  try {
+    const gateId = 'GATE26';
+    const recordedAt = '2026-09-29T12:00:00.000Z';
+    const reportPath = 'governance/sources/GATE25_INDEPENDENT_EXTERNAL_CONFIRMATION_R1_EXTERNAL_REINSPECTION_REPORT.json';
+    const externalAuthorityId = 'GATE26_SYNTHETIC_IDENTITY_EXTERNAL_REINSPECTION_R1';
+    const report = readJson(root, reportPath);
+    const programId = report.programId;
+    const reportSha256 = sha256Bytes(readBytes(root, reportPath));
+    const policy = syntheticExternalPolicy(
+      gateId, externalAuthorityId, reportPath, reportSha256, programId, report.gateId
+    );
+    const predecessorAuthorityPath = 'governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_GATE26_STANDARD_AGENT_CLOSURE_R3.json';
+    const predecessorAuthority = readJson(root, predecessorAuthorityPath);
+    const confirmation = futureMaintenanceInputs(
+      root, gateId, 'EXTERNAL_CONFIRMATION', 'GATE26_SYNTHETIC_IDENTITY_EXTERNAL_CONFIRMATION_R1', recordedAt,
+      {
+        policy, externalReportPath: reportPath, lifecycleAuthorityPath: externalAuthorityId,
+        currentByteLineage: true,
+        authorityPredecessor: {
+          authorityId: predecessorAuthority.authorityId,
+          sha256: sha256Bytes(readBytes(root, predecessorAuthorityPath))
+        }
+      }
+    );
+    const candidate = deriveCandidateTransition({
+      root, policy, gateId, transitionType: 'EXTERNAL_CONFIRMATION',
+      eventId: 'GATE26_SYNTHETIC_IDENTITY_EXTERNAL_CONFIRMATION_R1',
+      authorityPath: externalAuthorityId, recordedAt
+    }).candidate;
+    const manifest = readJson(root, confirmation.manifestPath);
+    manifest.prestateSelfExclusion = [
+      { path: confirmation.authorityPath, role: 'AUTHORITY_DOCUMENT', reason: 'Exact loaded authority identity.' },
+      { path: confirmation.manifestPath, role: 'AUTHORIZED_PATH_MANIFEST', reason: 'Digest-pinned manifest identity.' }
+    ];
+    for (const [selfPath, reason] of [
+      [confirmation.authorityPath, 'Authority document published by this program.'],
+      [confirmation.manifestPath, 'Authorized-path manifest published by this program.']
+    ]) {
+      manifest.paths.push({
+        path: selfPath, operation: 'CREATE', phase: 'EXTERNAL_CONFIRMATION', reason,
+        artifactClass: 'EXTERNAL_CONFIRMATION', prestate: { state: 'ABSENT' }
+      });
+    }
+    manifest.paths.sort((left, right) => left.path.localeCompare(right.path, 'en'));
+    writeJson(root, confirmation.manifestPath, manifest);
+    const authority = readJson(root, confirmation.authorityPath);
+    authority.authorizedPathManifestSha256 = sha256Bytes(readBytes(root, confirmation.manifestPath));
+    writeJson(root, confirmation.authorityPath, authority);
+
+    const evaluate = (authorityDocumentPath = confirmation.authorityPath) => evaluateTransitionAuthority({
+      root, candidate, authorityDocumentPath, now: new Date(recordedAt)
+    });
+    const accepted = evaluate();
+    assert.equal(accepted.decision, 'AUTHORIZED', JSON.stringify(accepted.findings));
+    assert.equal(accepted.observed.authorityDocumentPath, confirmation.authorityPath);
+
+    const missing = evaluateTransitionAuthority({ root, candidate, now: new Date(recordedAt) });
+    assert.equal(missing.decision, 'BLOCKED');
+    assert.ok(missing.findings.some((finding) => finding.code === 'MAINTENANCE_AUTHORITY_REQUIRED'));
+
+    const mismatchedAuthorityPath = 'governance/sources/GATE18_SYNTHETIC_IDENTITY_AUTHORITY_COPY.json';
+    writeJson(root, mismatchedAuthorityPath, authority);
+    const mismatched = evaluate(mismatchedAuthorityPath);
+    assert.equal(mismatched.decision, 'BLOCKED');
+    assert.ok(mismatched.findings.some((finding) => finding.code === 'PRESTATE_SELF_EXCLUSION_AUTHORITY_PATH_MISMATCH'));
+
+    writeJson(root, confirmation.authorityPath, { ...authority, authorizedPathManifestSha256: '0'.repeat(64) });
+    const tamperedAuthority = evaluate();
+    assert.equal(tamperedAuthority.decision, 'BLOCKED');
+    assert.ok(tamperedAuthority.findings.some((finding) => finding.code === 'AUTHORIZED_MANIFEST_SHA_MISMATCH'));
+    writeJson(root, confirmation.authorityPath, authority);
+
+    writeJson(root, reportPath, { ...report, verdict: 'FAIL' });
+    const tamperedReport = evaluate();
+    assert.equal(tamperedReport.decision, 'BLOCKED');
+    assert.ok(tamperedReport.findings.some((finding) => finding.code === 'EXTERNAL_REINSPECTION_REPORT_SHA_MISMATCH'));
+    writeJson(root, reportPath, report);
+
+    manifest.prestateSelfExclusion.push({
+      path: reportPath, role: 'PUBLICATION_ADMISSION', reason: 'Hostile third self-exclusion role.'
+    });
+    writeJson(root, confirmation.manifestPath, manifest);
+    writeJson(root, confirmation.authorityPath, {
+      ...authority,
+      authorizedPathManifestSha256: sha256Bytes(readBytes(root, confirmation.manifestPath))
+    });
+    const thirdRole = evaluate();
+    assert.equal(thirdRole.decision, 'BLOCKED');
+    assert.ok(thirdRole.findings.some((finding) => finding.code === 'MANIFEST_PRESTATE_SELF_EXCLUSION_ROLE_INVALID'));
+  } finally { discard(root); }
+});
+
 test('B1: a rollback restoration failure is RECOVERY_REQUIRED, never falsely reported rolled back', () => {
   const root = scratchRoot('rollback-restoration-failure');
   const staging = fs.mkdtempSync(path.join(fs.realpathSync(os.tmpdir()), 'gate-lifecycle-stage-'));

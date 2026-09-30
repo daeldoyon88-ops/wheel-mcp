@@ -1,0 +1,39 @@
+{
+  "document": "PUBLICATION_LINEAGE_SUCCESSOR_RECORD",
+  "schemaVersion": 1,
+  "recordId": "GATE26_PUBLICATION_LINEAGE_SUCCESSOR_LEDGER_R1",
+  "gateId": "GATE26",
+  "ownerAuthorityId": "GATE26_PUBLICATION_LINEAGE_SUCCESSOR_LEDGER_OWNER_AUTHORITY_R1",
+  "ownerAuthorityPath": "governance/authority/publication-lineage-successor/owner-authorities/GATE26_PUBLICATION_LINEAGE_SUCCESSOR_LEDGER_OWNER_AUTHORITY_R1.json",
+  "ownerAuthoritySha256": "475d91f658323fbb318974370a19c5944e64c44bdee265652ae31cd63104a12a",
+  "edge": {
+    "path": "governance/state/GATE_STATUS_LEDGER.ndjson",
+    "predecessor": {
+      "authorityId": "GATE26_PHASE_D_BYTE_IDENTITY_SUCCESSOR_LOCAL_AUTHORITY_R1",
+      "authorityPath": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_GATE26_PHASE_D_BYTE_IDENTITY_SUCCESSOR_R1.json",
+      "authoritySha256": "b1c3088323ad6ac3c3a04510a0596a761f74f0854ae4b466f4d9b4b4e9176280",
+      "manifestPath": "governance/historical-architecture/GATE26_PHASE_D_BYTE_IDENTITY_SUCCESSOR_AUTHORIZED_PATHS_R1.json",
+      "manifestSha256": "2463b889f631e46779abade23ee409523c09de251ccb617400bbb0444f32c0a6",
+      "consumptionPath": "governance/historical-architecture/GATE26_PHASE_D_BYTE_IDENTITY_SUCCESSOR_CONSUMPTION_R1.json",
+      "consumptionSha256": "626a040645722c888dec490532ebf13421da058c768d407cb73e1b0b7821e662",
+      "sha256": "61f81decc5f3845cecc4fab1906447a3e1036f9a45ca91c471b0ab89c0925738",
+      "byteLength": 71638
+    },
+    "successor": {
+      "authorityId": "GATE26_STANDARD_AGENT_CLOSURE_LOCAL_AUTHORITY_R3",
+      "authorityPath": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_GATE26_STANDARD_AGENT_CLOSURE_R3.json",
+      "authoritySha256": "a688c81eca39f28d20d61ee6020175c0fc44964c89d6525e3d36b376e20dc500",
+      "manifestPath": "governance/historical-architecture/GATE26_STANDARD_AGENT_CLOSURE_AUTHORIZED_PATHS_R3.json",
+      "manifestSha256": "c0c2b17130b254afed7965af91670b5e73f344d07c3b3b3451dd7c510875a770",
+      "consumptionPath": "governance/historical-architecture/GATE26_STANDARD_AGENT_CLOSURE_CONSUMPTION_R3.json",
+      "consumptionSha256": "b92a3ad0a92cef3237b747bb5dfb829bab3602fda002a02c5e327da91635f54f",
+      "sha256": "f8de790d74504d76bc9ea6ac84c4251f226b58d8379ee5942e5b660d2bb42d40",
+      "byteLength": 75245
+    }
+  },
+  "edgeSha256": "64499997e41e1c14fca3cc1b49d70a6fc5c51841849281c1abf23229f6f7905d",
+  "grantsByteAuthorization": false,
+  "createsPublicationBinding": false,
+  "rewritesHistoricalArtifacts": false,
+  "widensAdmission": false
+}

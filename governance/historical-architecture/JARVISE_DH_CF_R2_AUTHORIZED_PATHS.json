@@ -1,0 +1,38 @@
+{
+  "documentKind": "POST_FREEZE_MAINTENANCE_AUTHORIZED_PATH_MANIFEST",
+  "schemaVersion": 2,
+  "manifestId": "JARVISE_DH_CF_R2_AUTHORIZED_PATHS",
+  "programId": "JARVISE_DH_CF_R2",
+  "paths": [
+    {
+      "path": "governance/historical-architecture/JARVISE_DEEP_HISTORY_CAUSAL_FOUNDATION_CONTRACT_R2.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "P3: audited candidate destination for the Owner-ratified R2 causal foundation contract; candidate bytes require separate Builder B authorization, independent audit and publication admission before PATH_PRESTATE_PROGRAM_PUBLISHER may publish.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "governance/sources/JARVISE_DH_CF_R2_EXTERNAL_REINSPECTION_REPORT.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "P4: audited candidate destination for the R2 external reinspection report; this path declaration grants no Builder B, independent audit, admission C or publication execution authority.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "governance/historical-architecture/JARVISE_DH_CF_R2_AUTHORITY_CONSUMPTION.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "P7: RESERVED_RECEIPT generated only by PATH_PRESTATE_PROGRAM_PUBLISHER during a separately authorized publication; never supplied as candidate bytes or hand-created.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    }
+  ]
+}

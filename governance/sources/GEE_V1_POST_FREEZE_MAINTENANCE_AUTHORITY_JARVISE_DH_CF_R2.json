@@ -1,0 +1,61 @@
+{
+  "document": "GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY",
+  "schemaVersion": 2,
+  "authorityId": "JARVISE_DH_CF_R2_PREBUILD_LOCAL_AUTHORITY_R1",
+  "authorityClass": "PROJECT_OWNER_POST_FREEZE_MAINTENANCE_AUTHORITY",
+  "authorityMode": "LOCAL_EXPLICIT_AUTHORITY",
+  "issuedBy": "PROJECT_OWNER",
+  "createdAt": "2026-10-01T20:49:58.106Z",
+  "expiresAt": "2026-12-31T23:59:59.000Z",
+  "targetSystem": "PROJECT_GOVERNANCE",
+  "programId": "JARVISE_DH_CF_R2",
+  "authorityPurpose": "NORMAL_MAINTENANCE",
+  "resumePoint": "OWNER_RATIFY_JARVISE_DH_CF_R2_AND_AUTHORIZE_PREBUILD_AUTHORITY_R1; JARVISE_DH_CF_R2_PREBUILD_AUTHORITY_ISSUANCE_R1. Owner authorizes only sequential creation of P1 then P2. Finalized P1 governs exactly the future P3/P4 audited-candidate destinations and P7 publisher-generated receipt. P1/P2/P5/P6 are governing inputs excluded from the publisher write-set. GATE27 is documentary maintenance context only and remains NOT_STARTED; GATE26 remains closed and unchanged. This issuance grants no Builder B, independent audit B, publication, admission C, dataset acquisition, Deep History build, calibration, START, lifecycle transition, mandate or trust-model change, staging, commit or push. The required commitPolicy is a schema ceiling only; a separate explicit Owner commit approval remains required. Publication remains subject to separately issued canonical admission and execution authority.",
+  "maxUse": 1,
+  "preState": {
+    "baseHead": "eb8500359e0a149a55c7f586dc1e35d290dcf02d",
+    "ledgerEventCount": 121,
+    "ledgerPrefixSha256": "2e3d558b01386e15ac84fbad4ebd94ec1db672f7a1bd55150618725bfe333587",
+    "gateId": "GATE27",
+    "gateStatus": "NOT_STARTED",
+    "stateRevision": null,
+    "contractRevision": null,
+    "activeGate": "GATE13",
+    "R8ExpectedAbsent": true
+  },
+  "authorizedPathManifestPath": "governance/historical-architecture/JARVISE_DH_CF_R2_AUTHORIZED_PATHS.json",
+  "authorizedPathManifestSha256": "c78d9df9d0a372b7d5855989422ab6a695c651a5fe8114972fe72bc0574e27de",
+  "authorizedOperationClasses": [
+    "MAINTENANCE"
+  ],
+  "commitPolicy": {
+    "maxCommitCount": 1,
+    "allowedGitOperations": [
+      "GIT_ADD_PATHSPEC",
+      "GIT_COMMIT"
+    ],
+    "commitMessage": "jarvise: R2 causal foundation documentary publication (schema ceiling; separate Owner commit approval required)",
+    "thirdCommitAuthorized": false
+  },
+  "pushAuthorized": false,
+  "authorityPredecessor": null,
+  "authorityHeadBinding": {
+    "mode": "BASE_HEAD",
+    "baseHead": "eb8500359e0a149a55c7f586dc1e35d290dcf02d"
+  },
+  "consumptionRecordPath": "governance/historical-architecture/JARVISE_DH_CF_R2_AUTHORITY_CONSUMPTION.json",
+  "prohibitedOperations": [
+    "START",
+    "SECOND_START",
+    "AGENT_CLOSURE",
+    "EXTERNAL_CONFIRMATION",
+    "COMPLETE_AGENT",
+    "COMPLETE_CONFIRMED",
+    "ACTIVE_GATE_SWITCH",
+    "GEE_R8",
+    "GIT_PUSH",
+    "HISTORY_REWRITE",
+    "THIRD_COMMIT",
+    "UNRELATED_WRITE"
+  ]
+}

@@ -1,0 +1,72 @@
+{
+  "documentKind": "MAINTENANCE_PUBLICATION_ADMISSION",
+  "schemaVersion": 1,
+  "authorityMode": "LOCAL_EXPLICIT_AUTHORITY",
+  "issuedBy": "PROJECT_OWNER",
+  "admissionId": "JARVISE_DH_CF_R2_PUBLICATION_ADMISSION",
+  "decisionId": "OWNER_ACCEPT_JARVISE_DH_CF_R2_P4_R7R1_AND_AUTHORIZE_PHASE_C_ADMISSION_PREPARATION_R1",
+  "issuedAtUtc": "2026-10-02T00:00:00.000Z",
+  "expiresAtUtc": null,
+  "projectId": "WHEEL",
+  "repositoryId": "WHEEL_MCP_CANONICAL",
+  "gateId": "GATE27",
+  "programId": "JARVISE_DH_CF_R2",
+  "purpose": "MAINTENANCE_PUBLICATION_ADMISSION",
+  "publicationClass": "PATH_PRESTATE_PROGRAM_PUBLISHER",
+  "authorityPurpose": "NORMAL_MAINTENANCE",
+  "maxUse": 1,
+  "admissionStatement": "Admit exactly one local V2 PATH_PRESTATE_PROGRAM_PUBLISHER publication of the exact three-path JARVISE_DH_CF_R2 cohort (P3 audited candidate, P4 independent reinspection report, publisher-generated P7 receipt) at base eb8500359e0a149a55c7f586dc1e35d290dcf02d; GATE27 is documentary maintenance context only and remains NOT_STARTED; GATE26 remains closed. Exact P3/P4 candidate identity remains a required pre-publisher verification. The admitted authority commitPolicy is a schema ceiling only; no START, lifecycle transition, commit, push or GEE R8 is admitted.",
+  "admittedAuthority": {
+    "path": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_JARVISE_DH_CF_R2.json",
+    "sha256": "ffec619661dea48d781e875e28a749876e3897a080002c8d742b3743afe69c74",
+    "byteLength": 2947,
+    "schemaVersion": 2,
+    "documentId": "JARVISE_DH_CF_R2_PREBUILD_LOCAL_AUTHORITY_R1"
+  },
+  "admittedManifest": {
+    "path": "governance/historical-architecture/JARVISE_DH_CF_R2_AUTHORIZED_PATHS.json",
+    "sha256": "c78d9df9d0a372b7d5855989422ab6a695c651a5fe8114972fe72bc0574e27de",
+    "byteLength": 1633,
+    "schemaVersion": 2,
+    "documentId": "JARVISE_DH_CF_R2_AUTHORIZED_PATHS"
+  },
+  "admittedPrestate": {
+    "baseHead": "eb8500359e0a149a55c7f586dc1e35d290dcf02d",
+    "ledgerEventCount": 121,
+    "ledgerPrefixSha256": "2e3d558b01386e15ac84fbad4ebd94ec1db672f7a1bd55150618725bfe333587",
+    "gateId": "GATE27",
+    "gateStatus": "NOT_STARTED",
+    "stateRevision": null,
+    "contractRevision": null,
+    "activeGate": "GATE13",
+    "R8ExpectedAbsent": true
+  },
+  "admittedOperationClasses": [
+    "MAINTENANCE"
+  ],
+  "grantsFutureBytePermission": false,
+  "grantsGateAuthorizationPermission": false,
+  "grantsStartPermission": false,
+  "grantsStatusTransitionPermission": false,
+  "grantsHistoricalAdmissionWidening": false,
+  "genericV1Admission": false,
+  "derivedFromGitDelta": false,
+  "derivedFromFinalGateIntegrityFindings": false,
+  "prohibitedOperations": [
+    "START",
+    "SECOND_START",
+    "GATE_AUTHORIZATION",
+    "STATUS_TRANSITION",
+    "ACTIVE_GATE_SWITCH",
+    "GEE_R8",
+    "GIT_PUSH",
+    "HISTORY_REWRITE",
+    "GENERIC_V1_ADMISSION",
+    "HISTORICAL_ADMISSION_WIDENING",
+    "SELF_ADMISSION"
+  ],
+  "successorRequirement": "Any later publication over changed bytes or state requires a new exact Owner admission.",
+  "admissionDigest": "265b9d283f8827075b9efef2826924ad329ef463c2707bd9665230830e7becc8",
+  "ownerAuthorizationPath": "governance/sources/MAINTENANCE_PUBLICATION_ADMISSION_OWNER_AUTHORIZATION_JARVISE_DH_CF_R2.json",
+  "ownerAuthorizationSha256": "6084008388953648d51e9f3c9344159fc16df93b4b8f105329da8c93c80295d1"
+}

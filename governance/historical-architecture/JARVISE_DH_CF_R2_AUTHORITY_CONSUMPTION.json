@@ -1,0 +1,40 @@
+{
+  "documentKind": "POST_FREEZE_MAINTENANCE_AUTHORITY_CONSUMPTION",
+  "schemaVersion": 2,
+  "authorityId": "JARVISE_DH_CF_R2_PREBUILD_LOCAL_AUTHORITY_R1",
+  "programId": "JARVISE_DH_CF_R2",
+  "manifestSha256": "c78d9df9d0a372b7d5855989422ab6a695c651a5fe8114972fe72bc0574e27de",
+  "baseHead": "eb8500359e0a149a55c7f586dc1e35d290dcf02d",
+  "consumedUse": 1,
+  "transactionId": "JARVISE_DH_CF_R2_TRANSACTION",
+  "recordedAt": "2026-10-02T08:39:21.452Z",
+  "commitMessage": "jarvise: R2 causal foundation documentary publication (schema ceiling; separate Owner commit approval required)",
+  "publicationAdmission": {
+    "admissionId": "JARVISE_DH_CF_R2_PUBLICATION_ADMISSION",
+    "admissionPath": "governance/authority/publication-admissions/GATE27/JARVISE_DH_CF_R2_PUBLICATION_ADMISSION.json",
+    "admissionSha256": "c3d2df06ea465827b6edbedddcffac335770cc4b27c0074da8ae5ec45ef7fae2"
+  },
+  "cohortSelfExclusion": {
+    "path": "governance/historical-architecture/JARVISE_DH_CF_R2_AUTHORITY_CONSUMPTION.json",
+    "reason": "The consumption record cannot hash its own final bytes; its identity is bound by the authority and manifest instead."
+  },
+  "cohortPathCount": 3,
+  "cohort": [
+    {
+      "path": "governance/historical-architecture/JARVISE_DEEP_HISTORY_CAUSAL_FOUNDATION_CONTRACT_R2.json",
+      "sha256": "361b9e2f84ff49147047b6f90fc1ddcb82ef8efcb3353a61cc05e0fe3625fe48",
+      "byteLength": 46228,
+      "operation": "CREATE",
+      "reason": "P3: audited candidate destination for the Owner-ratified R2 causal foundation contract; candidate bytes require separate Builder B authorization, independent audit and publication admission before PATH_PRESTATE_PROGRAM_PUBLISHER may publish.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "governance/sources/JARVISE_DH_CF_R2_EXTERNAL_REINSPECTION_REPORT.json",
+      "sha256": "325553bcffd3b2a3603873cfad243edb3d85d12cfc478e5e5a71fe057ca4d99c",
+      "byteLength": 137148,
+      "operation": "CREATE",
+      "reason": "P4: audited candidate destination for the R2 external reinspection report; this path declaration grants no Builder B, independent audit, admission C or publication execution authority.",
+      "artifactClass": "MAINTENANCE"
+    }
+  ]
+}

@@ -1,0 +1,25 @@
+{
+  "document": "MAINTENANCE_PUBLICATION_ADMISSION_OWNER_AUTHORIZATION",
+  "schemaVersion": 1,
+  "authorityId": "JARVISE_DH_2011_WU1_PUBLICATION_OWNER_AUTHORIZATION_R1",
+  "authorityClass": "PROJECT_OWNER_MAINTENANCE_PUBLICATION_ADMISSION_AUTHORITY",
+  "authorityMode": "LOCAL_EXPLICIT_AUTHORITY",
+  "issuedBy": "PROJECT_OWNER",
+  "issuedAtUtc": "2026-10-02T15:41:34.429Z",
+  "decisionId": "OWNER_AUTHORIZE_JARVISE_DH_2011_WU1_PUBLICATION_ADMISSION_R1",
+  "purpose": "MAINTENANCE_PUBLICATION_ADMISSION",
+  "reexecutionAuthorized": false,
+  "grantsFutureBytePermission": false,
+  "genericV1Admission": false,
+  "admittedPublications": [
+    {
+      "admissionId": "JARVISE_DH_2011_WU1_PUBLICATION_ADMISSION",
+      "projectId": "WHEEL",
+      "gateId": "GATE27",
+      "programId": "JARVISE_DH_2011",
+      "admissionPath": "governance/authority/publication-admissions/GATE27/JARVISE_DH_2011_WU1_PUBLICATION_ADMISSION.json",
+      "admissionDigest": "19e7cd2db1331863bcaad7684170524e7340d61f89f485b11d593c3a43a15b3d"
+    }
+  ],
+  "registryDigest": "357c88616eb571f061ac8d915a5b427c07d79c1412d4499f8b07f40100255ee6"
+}

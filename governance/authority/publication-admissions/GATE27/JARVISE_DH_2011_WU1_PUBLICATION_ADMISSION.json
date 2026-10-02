@@ -1,0 +1,72 @@
+{
+  "documentKind": "MAINTENANCE_PUBLICATION_ADMISSION",
+  "schemaVersion": 1,
+  "authorityMode": "LOCAL_EXPLICIT_AUTHORITY",
+  "issuedBy": "PROJECT_OWNER",
+  "admissionId": "JARVISE_DH_2011_WU1_PUBLICATION_ADMISSION",
+  "decisionId": "OWNER_AUTHORIZE_JARVISE_DH_2011_WU1_PUBLICATION_ADMISSION_R1",
+  "issuedAtUtc": "2026-10-02T15:41:34.429Z",
+  "expiresAtUtc": null,
+  "projectId": "WHEEL",
+  "repositoryId": "WHEEL_MCP_CANONICAL",
+  "gateId": "GATE27",
+  "programId": "JARVISE_DH_2011",
+  "purpose": "MAINTENANCE_PUBLICATION_ADMISSION",
+  "publicationClass": "PATH_PRESTATE_PROGRAM_PUBLISHER",
+  "authorityPurpose": "NORMAL_MAINTENANCE",
+  "maxUse": 1,
+  "admissionStatement": "Admit exactly one local V2 PATH_PRESTATE_PROGRAM_PUBLISHER publication of the exact three-path JARVISE_DH_2011 WU1 cohort declared by P1 governance/historical-architecture/JARVISE_DH_2011_WU1_AUTHORIZED_PATHS.json (sha256 909c664f58205bd75fd3ec067132b2bcf7eadccec7f225d1dddd405c6848b08b, 1727 bytes) under P2 governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_JARVISE_DH_2011_WU1.json (sha256 88706f09d352fb49cce02f1c6b0c23243bd68e12168de63f7e16cfaaccb6f8b8, 3291 bytes, authorityId JARVISE_DH_2011_WU1_PREBUILD_LOCAL_AUTHORITY_R1), at base 5ef5116aa4ccae81e29f1c561e5483928ccc7e50: P3 audited successor-contract candidate governance/historical-architecture/JARVISE_DH_2011_SUCCESSOR_CONTRACT_R1.json (sha256 541170aa5d2ceebf6a87f0ee83c733e2bedde7822b8c663ba1273c83d13839c9, 35503 bytes), P4 independent reinspection report governance/sources/JARVISE_DH_2011_WU1_EXTERNAL_REINSPECTION_REPORT.json (sha256 d592582b4c944ffcbf6c049b5d0e3c03c7ad588088dfc268f44186abc77372fe, 3991 bytes, finalVerdict JARVISE_DH_2011_WU1_R1A_INDEPENDENT_AUDIT_PASS), and the publisher-generated P7 receipt governance/historical-architecture/JARVISE_DH_2011_WU1_AUTHORITY_CONSUMPTION.json. Superseded R1 P2/P3 bytes (71d06b784dbebf62d365b567d034fbfe151ba2488d4540ea8c3d6ffc7b927bf1 / c776d008b479f1f81fb6f83b2f993ad4bb5d4cbaf5fea489875d72595dc6c49a) are not admitted. GATE27 is solely the GATE## documentary publication context that canonical publisher law requires; it remains NOT_STARTED, and this admission implies no GATE27 START, execution, lifecycle transition or contract/state/mandate mutation. Exact P3/P4 candidate identity remains a required pre-publisher verification. This admission does not itself invoke the publisher or create P7. No WU2-WU7 authority, network access, commit or push is admitted; the admitted authority commitPolicy is a schema ceiling only.",
+  "admittedAuthority": {
+    "path": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_JARVISE_DH_2011_WU1.json",
+    "sha256": "88706f09d352fb49cce02f1c6b0c23243bd68e12168de63f7e16cfaaccb6f8b8",
+    "byteLength": 3291,
+    "schemaVersion": 2,
+    "documentId": "JARVISE_DH_2011_WU1_PREBUILD_LOCAL_AUTHORITY_R1"
+  },
+  "admittedManifest": {
+    "path": "governance/historical-architecture/JARVISE_DH_2011_WU1_AUTHORIZED_PATHS.json",
+    "sha256": "909c664f58205bd75fd3ec067132b2bcf7eadccec7f225d1dddd405c6848b08b",
+    "byteLength": 1727,
+    "schemaVersion": 2,
+    "documentId": "JARVISE_DH_2011_WU1_AUTHORIZED_PATHS"
+  },
+  "admittedPrestate": {
+    "baseHead": "5ef5116aa4ccae81e29f1c561e5483928ccc7e50",
+    "ledgerEventCount": 121,
+    "ledgerPrefixSha256": "2e3d558b01386e15ac84fbad4ebd94ec1db672f7a1bd55150618725bfe333587",
+    "gateId": "GATE27",
+    "gateStatus": "NOT_STARTED",
+    "stateRevision": null,
+    "contractRevision": null,
+    "activeGate": "GATE13",
+    "R8ExpectedAbsent": true
+  },
+  "admittedOperationClasses": [
+    "MAINTENANCE"
+  ],
+  "grantsFutureBytePermission": false,
+  "grantsGateAuthorizationPermission": false,
+  "grantsStartPermission": false,
+  "grantsStatusTransitionPermission": false,
+  "grantsHistoricalAdmissionWidening": false,
+  "genericV1Admission": false,
+  "derivedFromGitDelta": false,
+  "derivedFromFinalGateIntegrityFindings": false,
+  "prohibitedOperations": [
+    "START",
+    "SECOND_START",
+    "GATE_AUTHORIZATION",
+    "STATUS_TRANSITION",
+    "ACTIVE_GATE_SWITCH",
+    "GEE_R8",
+    "GIT_PUSH",
+    "HISTORY_REWRITE",
+    "GENERIC_V1_ADMISSION",
+    "HISTORICAL_ADMISSION_WIDENING",
+    "SELF_ADMISSION"
+  ],
+  "successorRequirement": "Any later publication over changed bytes or state requires a new exact Owner admission. WU2-WU7 and any GATE27 START or execution each require their own separate Owner authority; nothing here carries forward.",
+  "admissionDigest": "19e7cd2db1331863bcaad7684170524e7340d61f89f485b11d593c3a43a15b3d",
+  "ownerAuthorizationPath": "governance/sources/MAINTENANCE_PUBLICATION_ADMISSION_OWNER_AUTHORIZATION_JARVISE_DH_2011_WU1.json",
+  "ownerAuthorizationSha256": "118f3bc6aa0f472acbcc20c74708fd859028e249aeb3382e306a542810dbd290"
+}

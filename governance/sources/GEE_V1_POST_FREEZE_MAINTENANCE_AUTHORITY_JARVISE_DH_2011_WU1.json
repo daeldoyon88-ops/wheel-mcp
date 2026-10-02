@@ -1,0 +1,61 @@
+{
+  "document": "GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY",
+  "schemaVersion": 2,
+  "authorityId": "JARVISE_DH_2011_WU1_PREBUILD_LOCAL_AUTHORITY_R1",
+  "authorityClass": "PROJECT_OWNER_POST_FREEZE_MAINTENANCE_AUTHORITY",
+  "authorityMode": "LOCAL_EXPLICIT_AUTHORITY",
+  "issuedBy": "PROJECT_OWNER",
+  "createdAt": "2026-10-02T15:02:32.167Z",
+  "expiresAt": "2026-10-31T23:59:59.000Z",
+  "targetSystem": "PROJECT_GOVERNANCE",
+  "programId": "JARVISE_DH_2011",
+  "authorityPurpose": "NORMAL_MAINTENANCE",
+  "resumePoint": "OWNER_RATIFY_JARVISE_DH_2011_DEFINITION_R1A_WITH_R13_GATE27_CONTEXT_R1; JARVISE_DH_2011_WU1_BUILD_R1. Owner ratified JARVISE_DH_2011_DEFINITION_R1A (R1-R8, R10-R12, R14; R9 optional/non-blocking) and amended R13: GATE27 is used solely as the DOCUMENTARY PUBLICATION CONTEXT that current canonical publisher law requires (GATE## admission namespace). GATE27 remains NOT_STARTED with its numeric-outcome mandate unchanged; this authority grants no GATE27 START, lifecycle execution, transition, build, or contract/state mutation. Finalized P1 governs exactly the future P3/P4 audited-candidate destinations and the P7 publisher-generated receipt for programId JARVISE_DH_2011 WU1 (documentary only). P1/P2/P5/P6 are governing inputs excluded from the publisher write-set. This issuance grants no independent audit, admission, publication, network access, acquisition, Calendar V3 build, identity acquisition, dataset creation, WU2-WU7 execution, publisher-law change, staging, commit or push. The commitPolicy is a schema ceiling only; a separate explicit Owner commit approval remains required. Publication remains subject to a separately issued Owner admission under governance/authority/publication-admissions/GATE27/.",
+  "maxUse": 1,
+  "preState": {
+    "baseHead": "5ef5116aa4ccae81e29f1c561e5483928ccc7e50",
+    "ledgerEventCount": 121,
+    "ledgerPrefixSha256": "2e3d558b01386e15ac84fbad4ebd94ec1db672f7a1bd55150618725bfe333587",
+    "gateId": "GATE27",
+    "gateStatus": "NOT_STARTED",
+    "stateRevision": null,
+    "contractRevision": null,
+    "activeGate": "GATE13",
+    "R8ExpectedAbsent": true
+  },
+  "authorizedPathManifestPath": "governance/historical-architecture/JARVISE_DH_2011_WU1_AUTHORIZED_PATHS.json",
+  "authorizedPathManifestSha256": "909c664f58205bd75fd3ec067132b2bcf7eadccec7f225d1dddd405c6848b08b",
+  "authorizedOperationClasses": [
+    "MAINTENANCE"
+  ],
+  "commitPolicy": {
+    "maxCommitCount": 1,
+    "allowedGitOperations": [
+      "GIT_ADD_PATHSPEC",
+      "GIT_COMMIT"
+    ],
+    "commitMessage": "jarvise: DH_2011 WU1 successor contract documentary publication (schema ceiling; separate Owner commit approval required)",
+    "thirdCommitAuthorized": false
+  },
+  "pushAuthorized": false,
+  "authorityPredecessor": null,
+  "authorityHeadBinding": {
+    "mode": "BASE_HEAD",
+    "baseHead": "5ef5116aa4ccae81e29f1c561e5483928ccc7e50"
+  },
+  "consumptionRecordPath": "governance/historical-architecture/JARVISE_DH_2011_WU1_AUTHORITY_CONSUMPTION.json",
+  "prohibitedOperations": [
+    "START",
+    "SECOND_START",
+    "AGENT_CLOSURE",
+    "EXTERNAL_CONFIRMATION",
+    "COMPLETE_AGENT",
+    "COMPLETE_CONFIRMED",
+    "ACTIVE_GATE_SWITCH",
+    "GEE_R8",
+    "GIT_PUSH",
+    "HISTORY_REWRITE",
+    "THIRD_COMMIT",
+    "UNRELATED_WRITE"
+  ]
+}

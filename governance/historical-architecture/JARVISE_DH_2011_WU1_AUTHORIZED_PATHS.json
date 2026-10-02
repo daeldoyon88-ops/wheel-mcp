@@ -1,0 +1,38 @@
+{
+  "documentKind": "POST_FREEZE_MAINTENANCE_AUTHORIZED_PATH_MANIFEST",
+  "schemaVersion": 2,
+  "manifestId": "JARVISE_DH_2011_WU1_AUTHORIZED_PATHS",
+  "programId": "JARVISE_DH_2011",
+  "paths": [
+    {
+      "path": "governance/historical-architecture/JARVISE_DH_2011_SUCCESSOR_CONTRACT_R1.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "P3: audited-candidate destination for the Owner-ratified JARVISE_DH_2011 successor contract R1 (WU1, documentary only); candidate bytes are held outside this path and require independent audit (P4) and Owner publication admission (P5/P6) before PATH_PRESTATE_PROGRAM_PUBLISHER may publish.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "governance/sources/JARVISE_DH_2011_WU1_EXTERNAL_REINSPECTION_REPORT.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "P4: audited-candidate destination for the JARVISE_DH_2011 WU1 external reinspection report written by an independent main agent in a distinct manual session; this declaration grants no audit, admission or publication execution authority.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "governance/historical-architecture/JARVISE_DH_2011_WU1_AUTHORITY_CONSUMPTION.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "P7: RESERVED_RECEIPT generated only by PATH_PRESTATE_PROGRAM_PUBLISHER during a separately admitted publication; never supplied as candidate bytes or hand-created.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    }
+  ]
+}

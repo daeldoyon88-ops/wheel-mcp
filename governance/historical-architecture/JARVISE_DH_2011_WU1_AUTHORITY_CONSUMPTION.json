@@ -1,0 +1,40 @@
+{
+  "documentKind": "POST_FREEZE_MAINTENANCE_AUTHORITY_CONSUMPTION",
+  "schemaVersion": 2,
+  "authorityId": "JARVISE_DH_2011_WU1_PREBUILD_LOCAL_AUTHORITY_R1",
+  "programId": "JARVISE_DH_2011",
+  "manifestSha256": "909c664f58205bd75fd3ec067132b2bcf7eadccec7f225d1dddd405c6848b08b",
+  "baseHead": "5ef5116aa4ccae81e29f1c561e5483928ccc7e50",
+  "consumedUse": 1,
+  "transactionId": "JARVISE_DH_2011_TRANSACTION",
+  "recordedAt": "2026-10-02T15:49:30.821Z",
+  "commitMessage": "jarvise: DH_2011 WU1 successor contract documentary publication (schema ceiling; separate Owner commit approval required)",
+  "publicationAdmission": {
+    "admissionId": "JARVISE_DH_2011_WU1_PUBLICATION_ADMISSION",
+    "admissionPath": "governance/authority/publication-admissions/GATE27/JARVISE_DH_2011_WU1_PUBLICATION_ADMISSION.json",
+    "admissionSha256": "dfc8e7d0e8664be36950bccac1745171e5cf880a0ecacfd82c23ce278c2df498"
+  },
+  "cohortSelfExclusion": {
+    "path": "governance/historical-architecture/JARVISE_DH_2011_WU1_AUTHORITY_CONSUMPTION.json",
+    "reason": "The consumption record cannot hash its own final bytes; its identity is bound by the authority and manifest instead."
+  },
+  "cohortPathCount": 3,
+  "cohort": [
+    {
+      "path": "governance/historical-architecture/JARVISE_DH_2011_SUCCESSOR_CONTRACT_R1.json",
+      "sha256": "541170aa5d2ceebf6a87f0ee83c733e2bedde7822b8c663ba1273c83d13839c9",
+      "byteLength": 35503,
+      "operation": "CREATE",
+      "reason": "P3: audited-candidate destination for the Owner-ratified JARVISE_DH_2011 successor contract R1 (WU1, documentary only); candidate bytes are held outside this path and require independent audit (P4) and Owner publication admission (P5/P6) before PATH_PRESTATE_PROGRAM_PUBLISHER may publish.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "governance/sources/JARVISE_DH_2011_WU1_EXTERNAL_REINSPECTION_REPORT.json",
+      "sha256": "d592582b4c944ffcbf6c049b5d0e3c03c7ad588088dfc268f44186abc77372fe",
+      "byteLength": 3991,
+      "operation": "CREATE",
+      "reason": "P4: audited-candidate destination for the JARVISE_DH_2011 WU1 external reinspection report written by an independent main agent in a distinct manual session; this declaration grants no audit, admission or publication execution authority.",
+      "artifactClass": "MAINTENANCE"
+    }
+  ]
+}

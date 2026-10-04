@@ -1,0 +1,680 @@
+{
+  "documentKind": "POST_FREEZE_MAINTENANCE_AUTHORITY_CONSUMPTION",
+  "schemaVersion": 2,
+  "authorityId": "JARVISE_DH_2011_WU2B_BUILD_LOCAL_AUTHORITY_R7",
+  "programId": "JARVISE_DH_2011_WU2",
+  "manifestSha256": "a31547b36d286215cba3c3e75a037b2ba01fd0b1a607e46b9e2439e01f7ea0a6",
+  "baseHead": "85ad83a8894b3e25cd411cca477f881758e068c9",
+  "consumedUse": 1,
+  "transactionId": "JARVISE_DH_2011_WU2_PROGRAM_TRANSACTION",
+  "recordedAt": "2026-10-04T05:03:12.706Z",
+  "commitMessage": "jarvise: DH_2011 WU2 Calendar V3 candidate publication (schema ceiling; separate Owner commit approval required)",
+  "publicationAdmission": {
+    "admissionId": "JARVISE_DH_2011_WU2_PUBLICATION_ADMISSION",
+    "admissionPath": "governance/authority/publication-admissions/GATE27/JARVISE_DH_2011_WU2_PUBLICATION_ADMISSION.json",
+    "admissionSha256": "5cba1612eff2a38d990349fa62107838006d9d9a428fb096630636db5454833d"
+  },
+  "cohortSelfExclusion": {
+    "path": "governance/historical-architecture/JARVISE_DH_2011_WU2_AUTHORITY_CONSUMPTION.json",
+    "reason": "The consumption record cannot hash its own final bytes; its identity is bound by the authority and manifest instead."
+  },
+  "cohortPathCount": 83,
+  "cohort": [
+    {
+      "path": "data/jarvise/session-calendar-xnys-v3/XNYS/2010/PROVENANCE.json",
+      "sha256": "c29d984537c695bbe354a6993e1c2f06591b315116ffca94d6ef0562bc282716",
+      "byteLength": 2037,
+      "operation": "CREATE",
+      "reason": "P3: audited-candidate destination for a JARVISE_DH_2011 WU2B Calendar V3 (WHEEL_JARVISE_US_EQUITY_XNYS_CALENDAR/3) deterministic output; candidate bytes are held outside this path and require independent audit (P4) and Owner publication admission (P5/P6) before PATH_PRESTATE_PROGRAM_PUBLISHER may publish.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "data/jarvise/session-calendar-xnys-v3/XNYS/2010/normalized-source.json",
+      "sha256": "2808198203cb56fabd87b536fcfb8496513e4b97b5e08ba2e4eb57058a658fad",
+      "byteLength": 1000,
+      "operation": "CREATE",
+      "reason": "P3: audited-candidate destination for a JARVISE_DH_2011 WU2B Calendar V3 (WHEEL_JARVISE_US_EQUITY_XNYS_CALENDAR/3) deterministic output; candidate bytes are held outside this path and require independent audit (P4) and Owner publication admission (P5/P6) before PATH_PRESTATE_PROGRAM_PUBLISHER may publish.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "data/jarvise/session-calendar-xnys-v3/XNYS/2010/session-calendar-core.json",
+      "sha256": "584fa994a672e2372b463c13d94ef97383913efb16c67a3300605cf90b554a76",
+      "byteLength": 45958,
+      "operation": "CREATE",
+      "reason": "P3: audited-candidate destination for a JARVISE_DH_2011 WU2B Calendar V3 (WHEEL_JARVISE_US_EQUITY_XNYS_CALENDAR/3) deterministic output; candidate bytes are held outside this path and require independent audit (P4) and Owner publication admission (P5/P6) before PATH_PRESTATE_PROGRAM_PUBLISHER may publish.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "data/jarvise/session-calendar-xnys-v3/XNYS/2010/timezone-ruleset.json",
+      "sha256": "96823d3e970c16a9f479d782c4a7a35ce0617b37d6220953509ae29a3dc61669",
+      "byteLength": 40344,
+      "operation": "CREATE",
+      "reason": "P3: audited-candidate destination for a JARVISE_DH_2011 WU2B Calendar V3 (WHEEL_JARVISE_US_EQUITY_XNYS_CALENDAR/3) deterministic output; candidate bytes are held outside this path and require independent audit (P4) and Owner publication admission (P5/P6) before PATH_PRESTATE_PROGRAM_PUBLISHER may publish.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "data/jarvise/session-calendar-xnys-v3/XNYS/2011/PROVENANCE.json",
+      "sha256": "179ae7b2ee4e684d4f4606e7305063070410830f0bfff43a30b0539e02c05554",
+      "byteLength": 2529,
+      "operation": "CREATE",
+      "reason": "P3: audited-candidate destination for a JARVISE_DH_2011 WU2B Calendar V3 (WHEEL_JARVISE_US_EQUITY_XNYS_CALENDAR/3) deterministic output; candidate bytes are held outside this path and require independent audit (P4) and Owner publication admission (P5/P6) before PATH_PRESTATE_PROGRAM_PUBLISHER may publish.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "data/jarvise/session-calendar-xnys-v3/XNYS/2011/normalized-source.json",
+      "sha256": "af7b94f1588be55179c0508f13b83a1dc68a30da3bdb659d26ad6789a0ce18b8",
+      "byteLength": 1061,
+      "operation": "CREATE",
+      "reason": "P3: audited-candidate destination for a JARVISE_DH_2011 WU2B Calendar V3 (WHEEL_JARVISE_US_EQUITY_XNYS_CALENDAR/3) deterministic output; candidate bytes are held outside this path and require independent audit (P4) and Owner publication admission (P5/P6) before PATH_PRESTATE_PROGRAM_PUBLISHER may publish.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "data/jarvise/session-calendar-xnys-v3/XNYS/2011/session-calendar-core.json",
+      "sha256": "4445f796f1601d83cad610a9dcd53835a1aee793293a06f7d5437baf277fe913",
+      "byteLength": 45958,
+      "operation": "CREATE",
+      "reason": "P3: audited-candidate destination for a JARVISE_DH_2011 WU2B Calendar V3 (WHEEL_JARVISE_US_EQUITY_XNYS_CALENDAR/3) deterministic output; candidate bytes are held outside this path and require independent audit (P4) and Owner publication admission (P5/P6) before PATH_PRESTATE_PROGRAM_PUBLISHER may publish.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "data/jarvise/session-calendar-xnys-v3/XNYS/2011/timezone-ruleset.json",
+      "sha256": "d904f15542bcdd5c852e3d1cec95214ef54d18c0b4248c42f22128d992b1c439",
+      "byteLength": 40344,
+      "operation": "CREATE",
+      "reason": "P3: audited-candidate destination for a JARVISE_DH_2011 WU2B Calendar V3 (WHEEL_JARVISE_US_EQUITY_XNYS_CALENDAR/3) deterministic output; candidate bytes are held outside this path and require independent audit (P4) and Owner publication admission (P5/P6) before PATH_PRESTATE_PROGRAM_PUBLISHER may publish.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "data/jarvise/session-calendar-xnys-v3/XNYS/2012/PROVENANCE.json",
+      "sha256": "e6747df078748dfc733752d6eabdb86871ccb4fb698567748873c11bc04dd4c6",
+      "byteLength": 5634,
+      "operation": "CREATE",
+      "reason": "P3: audited-candidate destination for a JARVISE_DH_2011 WU2B Calendar V3 (WHEEL_JARVISE_US_EQUITY_XNYS_CALENDAR/3) deterministic output; candidate bytes are held outside this path and require independent audit (P4) and Owner publication admission (P5/P6) before PATH_PRESTATE_PROGRAM_PUBLISHER may publish.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "data/jarvise/session-calendar-xnys-v3/XNYS/2012/normalized-source.json",
+      "sha256": "cda34714db1e048d1e6786bb8bc0887b2db0742a47591c54b239448479853a42",
+      "byteLength": 1516,
+      "operation": "CREATE",
+      "reason": "P3: audited-candidate destination for a JARVISE_DH_2011 WU2B Calendar V3 (WHEEL_JARVISE_US_EQUITY_XNYS_CALENDAR/3) deterministic output; candidate bytes are held outside this path and require independent audit (P4) and Owner publication admission (P5/P6) before PATH_PRESTATE_PROGRAM_PUBLISHER may publish.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "data/jarvise/session-calendar-xnys-v3/XNYS/2012/session-calendar-core.json",
+      "sha256": "33c27305b97e8cb544b91c1986c57c1d73d5c4f7cb351710b4f471287f3a2a68",
+      "byteLength": 45598,
+      "operation": "CREATE",
+      "reason": "P3: audited-candidate destination for a JARVISE_DH_2011 WU2B Calendar V3 (WHEEL_JARVISE_US_EQUITY_XNYS_CALENDAR/3) deterministic output; candidate bytes are held outside this path and require independent audit (P4) and Owner publication admission (P5/P6) before PATH_PRESTATE_PROGRAM_PUBLISHER may publish.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "data/jarvise/session-calendar-xnys-v3/XNYS/2012/timezone-ruleset.json",
+      "sha256": "5d8b9cb2231a682b65417537dc4577b5edb1bd10c041f0801bc46ed69257fe2a",
+      "byteLength": 40454,
+      "operation": "CREATE",
+      "reason": "P3: audited-candidate destination for a JARVISE_DH_2011 WU2B Calendar V3 (WHEEL_JARVISE_US_EQUITY_XNYS_CALENDAR/3) deterministic output; candidate bytes are held outside this path and require independent audit (P4) and Owner publication admission (P5/P6) before PATH_PRESTATE_PROGRAM_PUBLISHER may publish.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "data/jarvise/session-calendar-xnys-v3/XNYS/2013/PROVENANCE.json",
+      "sha256": "6a3f743eac6990b84c6574d6ecb8fe682cdab8456a598a97031335af1d2a5e1a",
+      "byteLength": 2534,
+      "operation": "CREATE",
+      "reason": "P3: audited-candidate destination for a JARVISE_DH_2011 WU2B Calendar V3 (WHEEL_JARVISE_US_EQUITY_XNYS_CALENDAR/3) deterministic output; candidate bytes are held outside this path and require independent audit (P4) and Owner publication admission (P5/P6) before PATH_PRESTATE_PROGRAM_PUBLISHER may publish.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "data/jarvise/session-calendar-xnys-v3/XNYS/2013/normalized-source.json",
+      "sha256": "00b97934d8479bc24d73cc4d70bea7cf7e5cc56204b1add407ecb679b1cd64db",
+      "byteLength": 1163,
+      "operation": "CREATE",
+      "reason": "P3: audited-candidate destination for a JARVISE_DH_2011 WU2B Calendar V3 (WHEEL_JARVISE_US_EQUITY_XNYS_CALENDAR/3) deterministic output; candidate bytes are held outside this path and require independent audit (P4) and Owner publication admission (P5/P6) before PATH_PRESTATE_PROGRAM_PUBLISHER may publish.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "data/jarvise/session-calendar-xnys-v3/XNYS/2013/session-calendar-core.json",
+      "sha256": "727adfb1c336bd1c9b1e4e9cc8ab6a3c0169468141a59492a258623a9f7d8710",
+      "byteLength": 45960,
+      "operation": "CREATE",
+      "reason": "P3: audited-candidate destination for a JARVISE_DH_2011 WU2B Calendar V3 (WHEEL_JARVISE_US_EQUITY_XNYS_CALENDAR/3) deterministic output; candidate bytes are held outside this path and require independent audit (P4) and Owner publication admission (P5/P6) before PATH_PRESTATE_PROGRAM_PUBLISHER may publish.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "data/jarvise/session-calendar-xnys-v3/XNYS/2013/timezone-ruleset.json",
+      "sha256": "b590cf2d0d9a8a9fb7780f298864c76fde69d70dca308e83a83b1f9ee40e1d30",
+      "byteLength": 40344,
+      "operation": "CREATE",
+      "reason": "P3: audited-candidate destination for a JARVISE_DH_2011 WU2B Calendar V3 (WHEEL_JARVISE_US_EQUITY_XNYS_CALENDAR/3) deterministic output; candidate bytes are held outside this path and require independent audit (P4) and Owner publication admission (P5/P6) before PATH_PRESTATE_PROGRAM_PUBLISHER may publish.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "data/jarvise/session-calendar-xnys-v3/XNYS/2014/PROVENANCE.json",
+      "sha256": "f6afd33bd2239ffff86ba676ed72588e320e90a7a670cc27563ddfc8ce53fe65",
+      "byteLength": 2004,
+      "operation": "CREATE",
+      "reason": "P3: audited-candidate destination for a JARVISE_DH_2011 WU2B Calendar V3 (WHEEL_JARVISE_US_EQUITY_XNYS_CALENDAR/3) deterministic output; candidate bytes are held outside this path and require independent audit (P4) and Owner publication admission (P5/P6) before PATH_PRESTATE_PROGRAM_PUBLISHER may publish.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "data/jarvise/session-calendar-xnys-v3/XNYS/2014/normalized-source.json",
+      "sha256": "c1cf95dd16824bb4d8fefd21b259c26bf2bd64ef5dfb287316a1710c504eaa72",
+      "byteLength": 1089,
+      "operation": "CREATE",
+      "reason": "P3: audited-candidate destination for a JARVISE_DH_2011 WU2B Calendar V3 (WHEEL_JARVISE_US_EQUITY_XNYS_CALENDAR/3) deterministic output; candidate bytes are held outside this path and require independent audit (P4) and Owner publication admission (P5/P6) before PATH_PRESTATE_PROGRAM_PUBLISHER may publish.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "data/jarvise/session-calendar-xnys-v3/XNYS/2014/session-calendar-core.json",
+      "sha256": "e903004e90b3b1ff6311a7c0560d6d98d5f646de24222cf3fed4e5767bf8a727",
+      "byteLength": 45960,
+      "operation": "CREATE",
+      "reason": "P3: audited-candidate destination for a JARVISE_DH_2011 WU2B Calendar V3 (WHEEL_JARVISE_US_EQUITY_XNYS_CALENDAR/3) deterministic output; candidate bytes are held outside this path and require independent audit (P4) and Owner publication admission (P5/P6) before PATH_PRESTATE_PROGRAM_PUBLISHER may publish.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "data/jarvise/session-calendar-xnys-v3/XNYS/2014/timezone-ruleset.json",
+      "sha256": "542ec7d8f3a039aefdc3aeeea239f005a293b9188412f5eba534898872770207",
+      "byteLength": 40344,
+      "operation": "CREATE",
+      "reason": "P3: audited-candidate destination for a JARVISE_DH_2011 WU2B Calendar V3 (WHEEL_JARVISE_US_EQUITY_XNYS_CALENDAR/3) deterministic output; candidate bytes are held outside this path and require independent audit (P4) and Owner publication admission (P5/P6) before PATH_PRESTATE_PROGRAM_PUBLISHER may publish.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "data/jarvise/session-calendar-xnys-v3/XNYS/2015/PROVENANCE.json",
+      "sha256": "bcc612fd22ae6081bf81aa3bcb2f1f4f4b919b381a7637aaab1ea8b53a170121",
+      "byteLength": 1995,
+      "operation": "CREATE",
+      "reason": "P3: audited-candidate destination for a JARVISE_DH_2011 WU2B Calendar V3 (WHEEL_JARVISE_US_EQUITY_XNYS_CALENDAR/3) deterministic output; candidate bytes are held outside this path and require independent audit (P4) and Owner publication admission (P5/P6) before PATH_PRESTATE_PROGRAM_PUBLISHER may publish.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "data/jarvise/session-calendar-xnys-v3/XNYS/2015/normalized-source.json",
+      "sha256": "b40a167e3ed9ab9495d61b9c6f6f5362236164847aaf5d69d4e6340bbb24b832",
+      "byteLength": 1006,
+      "operation": "CREATE",
+      "reason": "P3: audited-candidate destination for a JARVISE_DH_2011 WU2B Calendar V3 (WHEEL_JARVISE_US_EQUITY_XNYS_CALENDAR/3) deterministic output; candidate bytes are held outside this path and require independent audit (P4) and Owner publication admission (P5/P6) before PATH_PRESTATE_PROGRAM_PUBLISHER may publish.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "data/jarvise/session-calendar-xnys-v3/XNYS/2015/session-calendar-core.json",
+      "sha256": "9c356cf06e005c4db768299d5d16e8b934374cde6a3e784badab78a327dce427",
+      "byteLength": 45959,
+      "operation": "CREATE",
+      "reason": "P3: audited-candidate destination for a JARVISE_DH_2011 WU2B Calendar V3 (WHEEL_JARVISE_US_EQUITY_XNYS_CALENDAR/3) deterministic output; candidate bytes are held outside this path and require independent audit (P4) and Owner publication admission (P5/P6) before PATH_PRESTATE_PROGRAM_PUBLISHER may publish.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "data/jarvise/session-calendar-xnys-v3/XNYS/2015/timezone-ruleset.json",
+      "sha256": "2230228c5fddaadbc088b06cf4c3bea96f1f04de5eb51de5ecbd67c97a5e5ad7",
+      "byteLength": 40344,
+      "operation": "CREATE",
+      "reason": "P3: audited-candidate destination for a JARVISE_DH_2011 WU2B Calendar V3 (WHEEL_JARVISE_US_EQUITY_XNYS_CALENDAR/3) deterministic output; candidate bytes are held outside this path and require independent audit (P4) and Owner publication admission (P5/P6) before PATH_PRESTATE_PROGRAM_PUBLISHER may publish.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "data/jarvise/session-calendar-xnys-v3/XNYS/2016/PROVENANCE.json",
+      "sha256": "0e5fe7d9315ebca29e8a4d16c1004bf8c4751c40c042f82d2fbb0d5479257828",
+      "byteLength": 2510,
+      "operation": "CREATE",
+      "reason": "P3: audited-candidate destination for a JARVISE_DH_2011 WU2B Calendar V3 (WHEEL_JARVISE_US_EQUITY_XNYS_CALENDAR/3) deterministic output; candidate bytes are held outside this path and require independent audit (P4) and Owner publication admission (P5/P6) before PATH_PRESTATE_PROGRAM_PUBLISHER may publish.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "data/jarvise/session-calendar-xnys-v3/XNYS/2016/normalized-source.json",
+      "sha256": "caf07c775c066b3a219fdd6ecbe1e99f3e44bccfe4d2f49b57a5205dc10ddbcc",
+      "byteLength": 1067,
+      "operation": "CREATE",
+      "reason": "P3: audited-candidate destination for a JARVISE_DH_2011 WU2B Calendar V3 (WHEEL_JARVISE_US_EQUITY_XNYS_CALENDAR/3) deterministic output; candidate bytes are held outside this path and require independent audit (P4) and Owner publication admission (P5/P6) before PATH_PRESTATE_PROGRAM_PUBLISHER may publish.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "data/jarvise/session-calendar-xnys-v3/XNYS/2016/session-calendar-core.json",
+      "sha256": "03122c93189fb57a38b98d8bfae210f5c121c446fb2f0e5552ef36e0efdeddc3",
+      "byteLength": 45958,
+      "operation": "CREATE",
+      "reason": "P3: audited-candidate destination for a JARVISE_DH_2011 WU2B Calendar V3 (WHEEL_JARVISE_US_EQUITY_XNYS_CALENDAR/3) deterministic output; candidate bytes are held outside this path and require independent audit (P4) and Owner publication admission (P5/P6) before PATH_PRESTATE_PROGRAM_PUBLISHER may publish.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "data/jarvise/session-calendar-xnys-v3/XNYS/2016/timezone-ruleset.json",
+      "sha256": "0f3d6ca28b4f30bc2c553a7432ba4f8f40a34f62f0ed576603aa3d1f370b2852",
+      "byteLength": 40454,
+      "operation": "CREATE",
+      "reason": "P3: audited-candidate destination for a JARVISE_DH_2011 WU2B Calendar V3 (WHEEL_JARVISE_US_EQUITY_XNYS_CALENDAR/3) deterministic output; candidate bytes are held outside this path and require independent audit (P4) and Owner publication admission (P5/P6) before PATH_PRESTATE_PROGRAM_PUBLISHER may publish.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "data/jarvise/session-calendar-xnys-v3/XNYS/2017/PROVENANCE.json",
+      "sha256": "82240f3c07ba77d56850080e1abe6abaeb1cfd7c62f1662dc51d3c9bf839bfe7",
+      "byteLength": 2503,
+      "operation": "CREATE",
+      "reason": "P3: audited-candidate destination for a JARVISE_DH_2011 WU2B Calendar V3 (WHEEL_JARVISE_US_EQUITY_XNYS_CALENDAR/3) deterministic output; candidate bytes are held outside this path and require independent audit (P4) and Owner publication admission (P5/P6) before PATH_PRESTATE_PROGRAM_PUBLISHER may publish.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "data/jarvise/session-calendar-xnys-v3/XNYS/2017/normalized-source.json",
+      "sha256": "060bc0edd2dfdbe6835f5be2695d7f55955ec35f7b5954d4aafde5cf687d948c",
+      "byteLength": 1080,
+      "operation": "CREATE",
+      "reason": "P3: audited-candidate destination for a JARVISE_DH_2011 WU2B Calendar V3 (WHEEL_JARVISE_US_EQUITY_XNYS_CALENDAR/3) deterministic output; candidate bytes are held outside this path and require independent audit (P4) and Owner publication admission (P5/P6) before PATH_PRESTATE_PROGRAM_PUBLISHER may publish.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "data/jarvise/session-calendar-xnys-v3/XNYS/2017/session-calendar-core.json",
+      "sha256": "04be12da0732149163c79ff58ba505ad2fd2fdc6a259278ff57af466cceb4649",
+      "byteLength": 45778,
+      "operation": "CREATE",
+      "reason": "P3: audited-candidate destination for a JARVISE_DH_2011 WU2B Calendar V3 (WHEEL_JARVISE_US_EQUITY_XNYS_CALENDAR/3) deterministic output; candidate bytes are held outside this path and require independent audit (P4) and Owner publication admission (P5/P6) before PATH_PRESTATE_PROGRAM_PUBLISHER may publish.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "data/jarvise/session-calendar-xnys-v3/XNYS/2017/timezone-ruleset.json",
+      "sha256": "0b9977e1cce7c5b93c1e62c33d10dc95370c7feae1b7ba0126469e00a508453f",
+      "byteLength": 40344,
+      "operation": "CREATE",
+      "reason": "P3: audited-candidate destination for a JARVISE_DH_2011 WU2B Calendar V3 (WHEEL_JARVISE_US_EQUITY_XNYS_CALENDAR/3) deterministic output; candidate bytes are held outside this path and require independent audit (P4) and Owner publication admission (P5/P6) before PATH_PRESTATE_PROGRAM_PUBLISHER may publish.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "data/jarvise/session-calendar-xnys-v3/XNYS/2018/PROVENANCE.json",
+      "sha256": "a01517b74e43c9501d6c06ba0010720b6dc4e74f40ef2d66204c48d48c5271b0",
+      "byteLength": 3749,
+      "operation": "CREATE",
+      "reason": "P3: audited-candidate destination for a JARVISE_DH_2011 WU2B Calendar V3 (WHEEL_JARVISE_US_EQUITY_XNYS_CALENDAR/3) deterministic output; candidate bytes are held outside this path and require independent audit (P4) and Owner publication admission (P5/P6) before PATH_PRESTATE_PROGRAM_PUBLISHER may publish.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "data/jarvise/session-calendar-xnys-v3/XNYS/2018/normalized-source.json",
+      "sha256": "54e0826f2ac257062ab12b4e8321a7c0c837dc077771e1a35870ab4278c492bd",
+      "byteLength": 1281,
+      "operation": "CREATE",
+      "reason": "P3: audited-candidate destination for a JARVISE_DH_2011 WU2B Calendar V3 (WHEEL_JARVISE_US_EQUITY_XNYS_CALENDAR/3) deterministic output; candidate bytes are held outside this path and require independent audit (P4) and Owner publication admission (P5/P6) before PATH_PRESTATE_PROGRAM_PUBLISHER may publish.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "data/jarvise/session-calendar-xnys-v3/XNYS/2018/session-calendar-core.json",
+      "sha256": "04037c627b4a6f9251d253fd2bd01021362a9e5e8a22750bde7e68af1f879b66",
+      "byteLength": 45779,
+      "operation": "CREATE",
+      "reason": "P3: audited-candidate destination for a JARVISE_DH_2011 WU2B Calendar V3 (WHEEL_JARVISE_US_EQUITY_XNYS_CALENDAR/3) deterministic output; candidate bytes are held outside this path and require independent audit (P4) and Owner publication admission (P5/P6) before PATH_PRESTATE_PROGRAM_PUBLISHER may publish.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "data/jarvise/session-calendar-xnys-v3/XNYS/2018/timezone-ruleset.json",
+      "sha256": "4d91ab55dedb78e8d3cdc835956e5735c9cc27dd9d754a85ed5765f6d6bf5786",
+      "byteLength": 40344,
+      "operation": "CREATE",
+      "reason": "P3: audited-candidate destination for a JARVISE_DH_2011 WU2B Calendar V3 (WHEEL_JARVISE_US_EQUITY_XNYS_CALENDAR/3) deterministic output; candidate bytes are held outside this path and require independent audit (P4) and Owner publication admission (P5/P6) before PATH_PRESTATE_PROGRAM_PUBLISHER may publish.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "data/jarvise/session-calendar-xnys-v3/XNYS/2019/PROVENANCE.json",
+      "sha256": "59a9910b087fad5a6e8fb09d7c21873a60c9630bdb72ffdf50f1006a09284cc8",
+      "byteLength": 2501,
+      "operation": "CREATE",
+      "reason": "P3: audited-candidate destination for a JARVISE_DH_2011 WU2B Calendar V3 (WHEEL_JARVISE_US_EQUITY_XNYS_CALENDAR/3) deterministic output; candidate bytes are held outside this path and require independent audit (P4) and Owner publication admission (P5/P6) before PATH_PRESTATE_PROGRAM_PUBLISHER may publish.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "data/jarvise/session-calendar-xnys-v3/XNYS/2019/normalized-source.json",
+      "sha256": "dd03467f75de1ea28cc9239b3b81d2a2aef88da4a53191d5fac2231757b075cd",
+      "byteLength": 1093,
+      "operation": "CREATE",
+      "reason": "P3: audited-candidate destination for a JARVISE_DH_2011 WU2B Calendar V3 (WHEEL_JARVISE_US_EQUITY_XNYS_CALENDAR/3) deterministic output; candidate bytes are held outside this path and require independent audit (P4) and Owner publication admission (P5/P6) before PATH_PRESTATE_PROGRAM_PUBLISHER may publish.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "data/jarvise/session-calendar-xnys-v3/XNYS/2019/session-calendar-core.json",
+      "sha256": "1bb30ae9c5ef7369fb128110e586508e29ae6a32486945612568296d87a331c6",
+      "byteLength": 45960,
+      "operation": "CREATE",
+      "reason": "P3: audited-candidate destination for a JARVISE_DH_2011 WU2B Calendar V3 (WHEEL_JARVISE_US_EQUITY_XNYS_CALENDAR/3) deterministic output; candidate bytes are held outside this path and require independent audit (P4) and Owner publication admission (P5/P6) before PATH_PRESTATE_PROGRAM_PUBLISHER may publish.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "data/jarvise/session-calendar-xnys-v3/XNYS/2019/timezone-ruleset.json",
+      "sha256": "f4c36e36e8dec55a70b975d2794bf1829b86cb35c809b320a097095a17ca201c",
+      "byteLength": 40344,
+      "operation": "CREATE",
+      "reason": "P3: audited-candidate destination for a JARVISE_DH_2011 WU2B Calendar V3 (WHEEL_JARVISE_US_EQUITY_XNYS_CALENDAR/3) deterministic output; candidate bytes are held outside this path and require independent audit (P4) and Owner publication admission (P5/P6) before PATH_PRESTATE_PROGRAM_PUBLISHER may publish.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "data/jarvise/session-calendar-xnys-v3/XNYS/2020/PROVENANCE.json",
+      "sha256": "ffbf8e138c68fc8c01bca1d8e4fffe357c9d429e199cf2c0f49d67759c65e1ce",
+      "byteLength": 2008,
+      "operation": "CREATE",
+      "reason": "P3: audited-candidate destination for a JARVISE_DH_2011 WU2B Calendar V3 (WHEEL_JARVISE_US_EQUITY_XNYS_CALENDAR/3) deterministic output; candidate bytes are held outside this path and require independent audit (P4) and Owner publication admission (P5/P6) before PATH_PRESTATE_PROGRAM_PUBLISHER may publish.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "data/jarvise/session-calendar-xnys-v3/XNYS/2020/normalized-source.json",
+      "sha256": "005d1ecc82b5774d09e21c76ab04486ea6a0604f534ef6c6493e087d8a53ddfa",
+      "byteLength": 1006,
+      "operation": "CREATE",
+      "reason": "P3: audited-candidate destination for a JARVISE_DH_2011 WU2B Calendar V3 (WHEEL_JARVISE_US_EQUITY_XNYS_CALENDAR/3) deterministic output; candidate bytes are held outside this path and require independent audit (P4) and Owner publication admission (P5/P6) before PATH_PRESTATE_PROGRAM_PUBLISHER may publish.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "data/jarvise/session-calendar-xnys-v3/XNYS/2020/session-calendar-core.json",
+      "sha256": "67fee095be7f2ebd4cb0ca1ed65c95debe3b1437aa093c0182b8f86c9171c28d",
+      "byteLength": 46140,
+      "operation": "CREATE",
+      "reason": "P3: audited-candidate destination for a JARVISE_DH_2011 WU2B Calendar V3 (WHEEL_JARVISE_US_EQUITY_XNYS_CALENDAR/3) deterministic output; candidate bytes are held outside this path and require independent audit (P4) and Owner publication admission (P5/P6) before PATH_PRESTATE_PROGRAM_PUBLISHER may publish.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "data/jarvise/session-calendar-xnys-v3/XNYS/2020/timezone-ruleset.json",
+      "sha256": "c713f12f6e5800b697acc43bfea7ac857b086180b27339db9fd8fbbdb439803d",
+      "byteLength": 40454,
+      "operation": "CREATE",
+      "reason": "P3: audited-candidate destination for a JARVISE_DH_2011 WU2B Calendar V3 (WHEEL_JARVISE_US_EQUITY_XNYS_CALENDAR/3) deterministic output; candidate bytes are held outside this path and require independent audit (P4) and Owner publication admission (P5/P6) before PATH_PRESTATE_PROGRAM_PUBLISHER may publish.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "data/jarvise/session-calendar-xnys-v3/XNYS/2021/PROVENANCE.json",
+      "sha256": "89ff8866f6bf37b83e596477092e0319320c260c8d871a320644a689458263ce",
+      "byteLength": 2008,
+      "operation": "CREATE",
+      "reason": "P3: audited-candidate destination for a JARVISE_DH_2011 WU2B Calendar V3 (WHEEL_JARVISE_US_EQUITY_XNYS_CALENDAR/3) deterministic output; candidate bytes are held outside this path and require independent audit (P4) and Owner publication admission (P5/P6) before PATH_PRESTATE_PROGRAM_PUBLISHER may publish.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "data/jarvise/session-calendar-xnys-v3/XNYS/2021/normalized-source.json",
+      "sha256": "b1c331d961136af280046d5fb47cafcbb87187f90ed4686b5b5483fcab8462db",
+      "byteLength": 993,
+      "operation": "CREATE",
+      "reason": "P3: audited-candidate destination for a JARVISE_DH_2011 WU2B Calendar V3 (WHEEL_JARVISE_US_EQUITY_XNYS_CALENDAR/3) deterministic output; candidate bytes are held outside this path and require independent audit (P4) and Owner publication admission (P5/P6) before PATH_PRESTATE_PROGRAM_PUBLISHER may publish.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "data/jarvise/session-calendar-xnys-v3/XNYS/2021/session-calendar-core.json",
+      "sha256": "702bd195f33bf0ab7772c0b2a1a922d49b92283c1394206681a7ab716c81aea1",
+      "byteLength": 45958,
+      "operation": "CREATE",
+      "reason": "P3: audited-candidate destination for a JARVISE_DH_2011 WU2B Calendar V3 (WHEEL_JARVISE_US_EQUITY_XNYS_CALENDAR/3) deterministic output; candidate bytes are held outside this path and require independent audit (P4) and Owner publication admission (P5/P6) before PATH_PRESTATE_PROGRAM_PUBLISHER may publish.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "data/jarvise/session-calendar-xnys-v3/XNYS/2021/timezone-ruleset.json",
+      "sha256": "2053a715aebd74fa86377f532016c25efef12283da2b8b6ce5c28cc25c0c34e5",
+      "byteLength": 40344,
+      "operation": "CREATE",
+      "reason": "P3: audited-candidate destination for a JARVISE_DH_2011 WU2B Calendar V3 (WHEEL_JARVISE_US_EQUITY_XNYS_CALENDAR/3) deterministic output; candidate bytes are held outside this path and require independent audit (P4) and Owner publication admission (P5/P6) before PATH_PRESTATE_PROGRAM_PUBLISHER may publish.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "data/jarvise/session-calendar-xnys-v3/XNYS/2022/PROVENANCE.json",
+      "sha256": "f7762ff296f469bac2f39f74755444a8c3a880ad1515f0fae49c142dbf83eaf2",
+      "byteLength": 2502,
+      "operation": "CREATE",
+      "reason": "P3: audited-candidate destination for a JARVISE_DH_2011 WU2B Calendar V3 (WHEEL_JARVISE_US_EQUITY_XNYS_CALENDAR/3) deterministic output; candidate bytes are held outside this path and require independent audit (P4) and Owner publication admission (P5/P6) before PATH_PRESTATE_PROGRAM_PUBLISHER may publish.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "data/jarvise/session-calendar-xnys-v3/XNYS/2022/normalized-source.json",
+      "sha256": "352a165ece51ad25a096196d27b2b67c8bf1043df9e96ffe79138e75a628f66d",
+      "byteLength": 1289,
+      "operation": "CREATE",
+      "reason": "P3: audited-candidate destination for a JARVISE_DH_2011 WU2B Calendar V3 (WHEEL_JARVISE_US_EQUITY_XNYS_CALENDAR/3) deterministic output; candidate bytes are held outside this path and require independent audit (P4) and Owner publication admission (P5/P6) before PATH_PRESTATE_PROGRAM_PUBLISHER may publish.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "data/jarvise/session-calendar-xnys-v3/XNYS/2022/session-calendar-core.json",
+      "sha256": "9702d31c46d06bff82e2deb5b93c973a592b8132f356ffd62d314d60f740eda8",
+      "byteLength": 45777,
+      "operation": "CREATE",
+      "reason": "P3: audited-candidate destination for a JARVISE_DH_2011 WU2B Calendar V3 (WHEEL_JARVISE_US_EQUITY_XNYS_CALENDAR/3) deterministic output; candidate bytes are held outside this path and require independent audit (P4) and Owner publication admission (P5/P6) before PATH_PRESTATE_PROGRAM_PUBLISHER may publish.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "data/jarvise/session-calendar-xnys-v3/XNYS/2022/timezone-ruleset.json",
+      "sha256": "d32b937c80067b73e1cc7c6da33497e19d0a9a6687de12ca66ba8d4fef8544bc",
+      "byteLength": 40344,
+      "operation": "CREATE",
+      "reason": "P3: audited-candidate destination for a JARVISE_DH_2011 WU2B Calendar V3 (WHEEL_JARVISE_US_EQUITY_XNYS_CALENDAR/3) deterministic output; candidate bytes are held outside this path and require independent audit (P4) and Owner publication admission (P5/P6) before PATH_PRESTATE_PROGRAM_PUBLISHER may publish.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "data/jarvise/session-calendar-xnys-v3/XNYS/2023/PROVENANCE.json",
+      "sha256": "591c2bc03519c9f1bc85e36ac1f82c3a45ed51d6ad8768643093d336189800af",
+      "byteLength": 2008,
+      "operation": "CREATE",
+      "reason": "P3: audited-candidate destination for a JARVISE_DH_2011 WU2B Calendar V3 (WHEEL_JARVISE_US_EQUITY_XNYS_CALENDAR/3) deterministic output; candidate bytes are held outside this path and require independent audit (P4) and Owner publication admission (P5/P6) before PATH_PRESTATE_PROGRAM_PUBLISHER may publish.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "data/jarvise/session-calendar-xnys-v3/XNYS/2023/normalized-source.json",
+      "sha256": "968474b7b774e167e6fa938705d97358947087784c420a8def87b9b5491cdfa7",
+      "byteLength": 1019,
+      "operation": "CREATE",
+      "reason": "P3: audited-candidate destination for a JARVISE_DH_2011 WU2B Calendar V3 (WHEEL_JARVISE_US_EQUITY_XNYS_CALENDAR/3) deterministic output; candidate bytes are held outside this path and require independent audit (P4) and Owner publication admission (P5/P6) before PATH_PRESTATE_PROGRAM_PUBLISHER may publish.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "data/jarvise/session-calendar-xnys-v3/XNYS/2023/session-calendar-core.json",
+      "sha256": "b958c4969731b04362c355be35ea5ec588295dccfd14bcc1ba0b82c9d6bcb3ca",
+      "byteLength": 45597,
+      "operation": "CREATE",
+      "reason": "P3: audited-candidate destination for a JARVISE_DH_2011 WU2B Calendar V3 (WHEEL_JARVISE_US_EQUITY_XNYS_CALENDAR/3) deterministic output; candidate bytes are held outside this path and require independent audit (P4) and Owner publication admission (P5/P6) before PATH_PRESTATE_PROGRAM_PUBLISHER may publish.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "data/jarvise/session-calendar-xnys-v3/XNYS/2023/timezone-ruleset.json",
+      "sha256": "5a8ef5635aadfb3c88eb994d121861f3eb4195bc49a44e2fcef1ee2d0c07b632",
+      "byteLength": 40344,
+      "operation": "CREATE",
+      "reason": "P3: audited-candidate destination for a JARVISE_DH_2011 WU2B Calendar V3 (WHEEL_JARVISE_US_EQUITY_XNYS_CALENDAR/3) deterministic output; candidate bytes are held outside this path and require independent audit (P4) and Owner publication admission (P5/P6) before PATH_PRESTATE_PROGRAM_PUBLISHER may publish.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "data/jarvise/session-calendar-xnys-v3/XNYS/2024/PROVENANCE.json",
+      "sha256": "b8f8d2b5b91b347ab0efbfae270a0447b0ae0b960acc3ba161258980b78ad693",
+      "byteLength": 2008,
+      "operation": "CREATE",
+      "reason": "P3: audited-candidate destination for a JARVISE_DH_2011 WU2B Calendar V3 (WHEEL_JARVISE_US_EQUITY_XNYS_CALENDAR/3) deterministic output; candidate bytes are held outside this path and require independent audit (P4) and Owner publication admission (P5/P6) before PATH_PRESTATE_PROGRAM_PUBLISHER may publish.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "data/jarvise/session-calendar-xnys-v3/XNYS/2024/normalized-source.json",
+      "sha256": "184816ad9b3e076750019508a760fe543649dd9945ef0b4659ec548658770e9f",
+      "byteLength": 1032,
+      "operation": "CREATE",
+      "reason": "P3: audited-candidate destination for a JARVISE_DH_2011 WU2B Calendar V3 (WHEEL_JARVISE_US_EQUITY_XNYS_CALENDAR/3) deterministic output; candidate bytes are held outside this path and require independent audit (P4) and Owner publication admission (P5/P6) before PATH_PRESTATE_PROGRAM_PUBLISHER may publish.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "data/jarvise/session-calendar-xnys-v3/XNYS/2024/session-calendar-core.json",
+      "sha256": "4ae95e8cb1174c08220d829a98d113f1fe8b35a0c5b07cf6ce924caaefed3c82",
+      "byteLength": 45960,
+      "operation": "CREATE",
+      "reason": "P3: audited-candidate destination for a JARVISE_DH_2011 WU2B Calendar V3 (WHEEL_JARVISE_US_EQUITY_XNYS_CALENDAR/3) deterministic output; candidate bytes are held outside this path and require independent audit (P4) and Owner publication admission (P5/P6) before PATH_PRESTATE_PROGRAM_PUBLISHER may publish.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "data/jarvise/session-calendar-xnys-v3/XNYS/2024/timezone-ruleset.json",
+      "sha256": "4b45e826d7ff121bcb7bc072225b91b82cab678415bce2e40e7aff43daa0ff49",
+      "byteLength": 40454,
+      "operation": "CREATE",
+      "reason": "P3: audited-candidate destination for a JARVISE_DH_2011 WU2B Calendar V3 (WHEEL_JARVISE_US_EQUITY_XNYS_CALENDAR/3) deterministic output; candidate bytes are held outside this path and require independent audit (P4) and Owner publication admission (P5/P6) before PATH_PRESTATE_PROGRAM_PUBLISHER may publish.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "data/jarvise/session-calendar-xnys-v3/XNYS/2025/PROVENANCE.json",
+      "sha256": "efb25be22532e07de62d490c5e8f055937bc2d117ea6057251f8182e8018a61f",
+      "byteLength": 3362,
+      "operation": "CREATE",
+      "reason": "P3: audited-candidate destination for a JARVISE_DH_2011 WU2B Calendar V3 (WHEEL_JARVISE_US_EQUITY_XNYS_CALENDAR/3) deterministic output; candidate bytes are held outside this path and require independent audit (P4) and Owner publication admission (P5/P6) before PATH_PRESTATE_PROGRAM_PUBLISHER may publish.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "data/jarvise/session-calendar-xnys-v3/XNYS/2025/normalized-source.json",
+      "sha256": "dc387920a5740baaac2c7c7cc3d13b024e17b1fab24e54dd041b92bffc161378",
+      "byteLength": 1220,
+      "operation": "CREATE",
+      "reason": "P3: audited-candidate destination for a JARVISE_DH_2011 WU2B Calendar V3 (WHEEL_JARVISE_US_EQUITY_XNYS_CALENDAR/3) deterministic output; candidate bytes are held outside this path and require independent audit (P4) and Owner publication admission (P5/P6) before PATH_PRESTATE_PROGRAM_PUBLISHER may publish.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "data/jarvise/session-calendar-xnys-v3/XNYS/2025/session-calendar-core.json",
+      "sha256": "79febc70f9e8b7198c2ff72180999cfb85fa0b82a7f50da7452d199fe4b2ad74",
+      "byteLength": 45598,
+      "operation": "CREATE",
+      "reason": "P3: audited-candidate destination for a JARVISE_DH_2011 WU2B Calendar V3 (WHEEL_JARVISE_US_EQUITY_XNYS_CALENDAR/3) deterministic output; candidate bytes are held outside this path and require independent audit (P4) and Owner publication admission (P5/P6) before PATH_PRESTATE_PROGRAM_PUBLISHER may publish.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "data/jarvise/session-calendar-xnys-v3/XNYS/2025/timezone-ruleset.json",
+      "sha256": "95f1cf5c259a8e53923d77c6f09d97e2ee8fa78b723811c14cff483879e3ca61",
+      "byteLength": 40344,
+      "operation": "CREATE",
+      "reason": "P3: audited-candidate destination for a JARVISE_DH_2011 WU2B Calendar V3 (WHEEL_JARVISE_US_EQUITY_XNYS_CALENDAR/3) deterministic output; candidate bytes are held outside this path and require independent audit (P4) and Owner publication admission (P5/P6) before PATH_PRESTATE_PROGRAM_PUBLISHER may publish.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "data/jarvise/session-calendar-xnys-v3/XNYS/2026/PROVENANCE.json",
+      "sha256": "618e5dfff2d0fa180850f43aaee87d3d158fae766b8e5751f4a79944235fa6c4",
+      "byteLength": 5766,
+      "operation": "CREATE",
+      "reason": "P3: audited-candidate destination for a JARVISE_DH_2011 WU2B Calendar V3 (WHEEL_JARVISE_US_EQUITY_XNYS_CALENDAR/3) deterministic output; candidate bytes are held outside this path and require independent audit (P4) and Owner publication admission (P5/P6) before PATH_PRESTATE_PROGRAM_PUBLISHER may publish.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "data/jarvise/session-calendar-xnys-v3/XNYS/2026/normalized-source.json",
+      "sha256": "6dca25100350bb8e30bdc6bf9f4c80d41fd0a29f15df0a7ef0c973eb724e38fb",
+      "byteLength": 1610,
+      "operation": "CREATE",
+      "reason": "P3: audited-candidate destination for a JARVISE_DH_2011 WU2B Calendar V3 (WHEEL_JARVISE_US_EQUITY_XNYS_CALENDAR/3) deterministic output; candidate bytes are held outside this path and require independent audit (P4) and Owner publication admission (P5/P6) before PATH_PRESTATE_PROGRAM_PUBLISHER may publish.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "data/jarvise/session-calendar-xnys-v3/XNYS/2026/session-calendar-core.json",
+      "sha256": "3ad53c7000ed4b5858ce3f249bd3287f99a835ce55a0504d875796f6d97a0827",
+      "byteLength": 45778,
+      "operation": "CREATE",
+      "reason": "P3: audited-candidate destination for a JARVISE_DH_2011 WU2B Calendar V3 (WHEEL_JARVISE_US_EQUITY_XNYS_CALENDAR/3) deterministic output; candidate bytes are held outside this path and require independent audit (P4) and Owner publication admission (P5/P6) before PATH_PRESTATE_PROGRAM_PUBLISHER may publish.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "data/jarvise/session-calendar-xnys-v3/XNYS/2026/timezone-ruleset.json",
+      "sha256": "9a8208dccc3601f96d971f22f82d0c5dc53b6f72b9233a0f076243b675bd27a6",
+      "byteLength": 40344,
+      "operation": "CREATE",
+      "reason": "P3: audited-candidate destination for a JARVISE_DH_2011 WU2B Calendar V3 (WHEEL_JARVISE_US_EQUITY_XNYS_CALENDAR/3) deterministic output; candidate bytes are held outside this path and require independent audit (P4) and Owner publication admission (P5/P6) before PATH_PRESTATE_PROGRAM_PUBLISHER may publish.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "data/jarvise/session-calendar-xnys-v3/XNYS/authority-policy.json",
+      "sha256": "3d9ba325de57f02ce0196040d7bd81ee2327603f5eb5f6b2933445cb4b11b9be",
+      "byteLength": 3468,
+      "operation": "CREATE",
+      "reason": "P3: audited-candidate destination for a JARVISE_DH_2011 WU2B Calendar V3 (WHEEL_JARVISE_US_EQUITY_XNYS_CALENDAR/3) deterministic output; candidate bytes are held outside this path and require independent audit (P4) and Owner publication admission (P5/P6) before PATH_PRESTATE_PROGRAM_PUBLISHER may publish.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "data/jarvise/session-calendar-xnys-v3/XNYS/registry/R0001/ANALOGUE_SEARCH_SCOPE.json",
+      "sha256": "81dfd37a62e940d7bcb556e140b5c35fd6fe0ea0360801a436c1abebc65c30a3",
+      "byteLength": 970,
+      "operation": "CREATE",
+      "reason": "P3: audited-candidate destination for a JARVISE_DH_2011 WU2B Calendar V3 (WHEEL_JARVISE_US_EQUITY_XNYS_CALENDAR/3) deterministic output; candidate bytes are held outside this path and require independent audit (P4) and Owner publication admission (P5/P6) before PATH_PRESTATE_PROGRAM_PUBLISHER may publish.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "data/jarvise/session-calendar-xnys-v3/XNYS/registry/R0001/CALENDAR_WINDOW_BINDING.json",
+      "sha256": "47d4a4ed66d1583acb22ff8109421dbb2baaf7c8898e542cefc0f8585c896bc7",
+      "byteLength": 2153,
+      "operation": "CREATE",
+      "reason": "P3: audited-candidate destination for a JARVISE_DH_2011 WU2B Calendar V3 (WHEEL_JARVISE_US_EQUITY_XNYS_CALENDAR/3) deterministic output; candidate bytes are held outside this path and require independent audit (P4) and Owner publication admission (P5/P6) before PATH_PRESTATE_PROGRAM_PUBLISHER may publish.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "data/jarvise/session-calendar-xnys-v3/XNYS/registry/R0001/HORIZON_BINDINGS.json",
+      "sha256": "bea519f4e00fb67b5a3e3762a6098ece9e5edfa93c3f46f82a4fbf32a001f78c",
+      "byteLength": 1233,
+      "operation": "CREATE",
+      "reason": "P3: audited-candidate destination for a JARVISE_DH_2011 WU2B Calendar V3 (WHEEL_JARVISE_US_EQUITY_XNYS_CALENDAR/3) deterministic output; candidate bytes are held outside this path and require independent audit (P4) and Owner publication admission (P5/P6) before PATH_PRESTATE_PROGRAM_PUBLISHER may publish.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "data/jarvise/session-calendar-xnys-v3/XNYS/registry/R0001/PROVENANCE.json",
+      "sha256": "ed5aba6eb3c4a1fb265e6d320ceed23a50fe123399585d340103fe230a9bbeff",
+      "byteLength": 2754,
+      "operation": "CREATE",
+      "reason": "P3: audited-candidate destination for a JARVISE_DH_2011 WU2B Calendar V3 (WHEEL_JARVISE_US_EQUITY_XNYS_CALENDAR/3) deterministic output; candidate bytes are held outside this path and require independent audit (P4) and Owner publication admission (P5/P6) before PATH_PRESTATE_PROGRAM_PUBLISHER may publish.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "data/jarvise/session-calendar-xnys-v3/XNYS/registry/R0001/V2_V3_DIFFERENTIAL.json",
+      "sha256": "676213b57d5e2af411d8e149b406c5d4a32a04aa345f32d2ae23b1cd89a83dd0",
+      "byteLength": 3789,
+      "operation": "CREATE",
+      "reason": "P3: audited-candidate destination for a JARVISE_DH_2011 WU2B Calendar V3 (WHEEL_JARVISE_US_EQUITY_XNYS_CALENDAR/3) deterministic output; candidate bytes are held outside this path and require independent audit (P4) and Owner publication admission (P5/P6) before PATH_PRESTATE_PROGRAM_PUBLISHER may publish.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "data/jarvise/session-calendar-xnys-v3/XNYS/registry/R0001/registry-manifest.json",
+      "sha256": "000e35dfaa79dea5a97f6bd8c24f1f548a021fe8b4207aa3e6d2c968e1de8330",
+      "byteLength": 11906,
+      "operation": "CREATE",
+      "reason": "P3: audited-candidate destination for a JARVISE_DH_2011 WU2B Calendar V3 (WHEEL_JARVISE_US_EQUITY_XNYS_CALENDAR/3) deterministic output; candidate bytes are held outside this path and require independent audit (P4) and Owner publication admission (P5/P6) before PATH_PRESTATE_PROGRAM_PUBLISHER may publish.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "data/jarvise/session-calendar-xnys-v3/evidence/ACCEPTED_EVIDENCE_COHORT.json",
+      "sha256": "480e71e4a96c9b7a9861c7161e0f6febf5d43c3a239f15940e2cafdfd606d01e",
+      "byteLength": 11996,
+      "operation": "CREATE",
+      "reason": "P3: audited-candidate destination for a JARVISE_DH_2011 WU2B Calendar V3 (WHEEL_JARVISE_US_EQUITY_XNYS_CALENDAR/3) deterministic output; candidate bytes are held outside this path and require independent audit (P4) and Owner publication admission (P5/P6) before PATH_PRESTATE_PROGRAM_PUBLISHER may publish.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "data/jarvise/session-calendar-xnys-v3/evidence/CALENDAR_SOURCE_EVIDENCE.json",
+      "sha256": "490ae292b5c6eea75f3d36077896f07d164c51f77d5f18d29e882f69664d2ffa",
+      "byteLength": 105480,
+      "operation": "CREATE",
+      "reason": "P3: audited-candidate destination for a JARVISE_DH_2011 WU2B Calendar V3 (WHEEL_JARVISE_US_EQUITY_XNYS_CALENDAR/3) deterministic output; candidate bytes are held outside this path and require independent audit (P4) and Owner publication admission (P5/P6) before PATH_PRESTATE_PROGRAM_PUBLISHER may publish.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "data/jarvise/session-calendar-xnys-v3/evidence/EXCEPTIONAL_CLOSURE_SWEEP_2026.json",
+      "sha256": "bf5d2a93b4f804f5d67c31d8c9d5878d2441149b7d2cf1d0699e1709fe03761e",
+      "byteLength": 2388,
+      "operation": "CREATE",
+      "reason": "P3: audited-candidate destination for a JARVISE_DH_2011 WU2B Calendar V3 (WHEEL_JARVISE_US_EQUITY_XNYS_CALENDAR/3) deterministic output; candidate bytes are held outside this path and require independent audit (P4) and Owner publication admission (P5/P6) before PATH_PRESTATE_PROGRAM_PUBLISHER may publish.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "data/jarvise/session-calendar-xnys-v3/evidence/SPECIAL_CLOSURE_EVIDENCE.json",
+      "sha256": "1dcf285815434e9be0a731ff297ef93fa5ba5870587f646d0aa08e4d0d9212f0",
+      "byteLength": 5753,
+      "operation": "CREATE",
+      "reason": "P3: audited-candidate destination for a JARVISE_DH_2011 WU2B Calendar V3 (WHEEL_JARVISE_US_EQUITY_XNYS_CALENDAR/3) deterministic output; candidate bytes are held outside this path and require independent audit (P4) and Owner publication admission (P5/P6) before PATH_PRESTATE_PROGRAM_PUBLISHER may publish.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "governance/sources/JARVISE_DH_2011_WU2_EXTERNAL_REINSPECTION_REPORT.json",
+      "sha256": "0f4d4f43a07ec5e2b58c65fdfebd75cfbb7798dd9f58a39a8255da6f7e741538",
+      "byteLength": 12282,
+      "operation": "CREATE",
+      "reason": "P4: audited-candidate destination for the JARVISE_DH_2011 WU2 external reinspection report written by an independent main agent in a distinct manual session; this declaration grants no audit, admission or publication execution authority.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "research/directional-lab/test/jarvise-session-calendar-xnys-v3.test.mjs",
+      "sha256": "28e92642413cb0fa5eb3515c4ef773271ec256a84173ade44d294d1b4ab3a2d9",
+      "byteLength": 13041,
+      "operation": "CREATE",
+      "reason": "P3: audited-candidate destination for JARVISE_DH_2011 WU2B Calendar V3 deterministic builder/validator code; candidate bytes are held outside this path and require independent audit (P4) and Owner publication admission (P5/P6) before PATH_PRESTATE_PROGRAM_PUBLISHER may publish.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "scripts/buildJarviseSessionCalendarXNYSV3.mjs",
+      "sha256": "f0910f51ff6e1c863fc66bbbf667501d5c9d29ee2b3daf7cc006de99ad4d9182",
+      "byteLength": 65058,
+      "operation": "CREATE",
+      "reason": "P3: audited-candidate destination for JARVISE_DH_2011 WU2B Calendar V3 deterministic builder/validator code; candidate bytes are held outside this path and require independent audit (P4) and Owner publication admission (P5/P6) before PATH_PRESTATE_PROGRAM_PUBLISHER may publish.",
+      "artifactClass": "MAINTENANCE"
+    }
+  ]
+}

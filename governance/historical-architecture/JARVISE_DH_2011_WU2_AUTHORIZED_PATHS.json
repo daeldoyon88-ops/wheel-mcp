@@ -1,0 +1,838 @@
+{
+  "documentKind": "POST_FREEZE_MAINTENANCE_AUTHORIZED_PATH_MANIFEST",
+  "schemaVersion": 2,
+  "manifestId": "JARVISE_DH_2011_WU2_AUTHORIZED_PATHS",
+  "programId": "JARVISE_DH_2011_WU2",
+  "paths": [
+    {
+      "path": "data/jarvise/session-calendar-xnys-v3/XNYS/2010/PROVENANCE.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "P3: audited-candidate destination for a JARVISE_DH_2011 WU2B Calendar V3 (WHEEL_JARVISE_US_EQUITY_XNYS_CALENDAR/3) deterministic output; candidate bytes are held outside this path and require independent audit (P4) and Owner publication admission (P5/P6) before PATH_PRESTATE_PROGRAM_PUBLISHER may publish.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "data/jarvise/session-calendar-xnys-v3/XNYS/2010/normalized-source.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "P3: audited-candidate destination for a JARVISE_DH_2011 WU2B Calendar V3 (WHEEL_JARVISE_US_EQUITY_XNYS_CALENDAR/3) deterministic output; candidate bytes are held outside this path and require independent audit (P4) and Owner publication admission (P5/P6) before PATH_PRESTATE_PROGRAM_PUBLISHER may publish.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "data/jarvise/session-calendar-xnys-v3/XNYS/2010/session-calendar-core.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "P3: audited-candidate destination for a JARVISE_DH_2011 WU2B Calendar V3 (WHEEL_JARVISE_US_EQUITY_XNYS_CALENDAR/3) deterministic output; candidate bytes are held outside this path and require independent audit (P4) and Owner publication admission (P5/P6) before PATH_PRESTATE_PROGRAM_PUBLISHER may publish.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "data/jarvise/session-calendar-xnys-v3/XNYS/2010/timezone-ruleset.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "P3: audited-candidate destination for a JARVISE_DH_2011 WU2B Calendar V3 (WHEEL_JARVISE_US_EQUITY_XNYS_CALENDAR/3) deterministic output; candidate bytes are held outside this path and require independent audit (P4) and Owner publication admission (P5/P6) before PATH_PRESTATE_PROGRAM_PUBLISHER may publish.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "data/jarvise/session-calendar-xnys-v3/XNYS/2011/PROVENANCE.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "P3: audited-candidate destination for a JARVISE_DH_2011 WU2B Calendar V3 (WHEEL_JARVISE_US_EQUITY_XNYS_CALENDAR/3) deterministic output; candidate bytes are held outside this path and require independent audit (P4) and Owner publication admission (P5/P6) before PATH_PRESTATE_PROGRAM_PUBLISHER may publish.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "data/jarvise/session-calendar-xnys-v3/XNYS/2011/normalized-source.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "P3: audited-candidate destination for a JARVISE_DH_2011 WU2B Calendar V3 (WHEEL_JARVISE_US_EQUITY_XNYS_CALENDAR/3) deterministic output; candidate bytes are held outside this path and require independent audit (P4) and Owner publication admission (P5/P6) before PATH_PRESTATE_PROGRAM_PUBLISHER may publish.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "data/jarvise/session-calendar-xnys-v3/XNYS/2011/session-calendar-core.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "P3: audited-candidate destination for a JARVISE_DH_2011 WU2B Calendar V3 (WHEEL_JARVISE_US_EQUITY_XNYS_CALENDAR/3) deterministic output; candidate bytes are held outside this path and require independent audit (P4) and Owner publication admission (P5/P6) before PATH_PRESTATE_PROGRAM_PUBLISHER may publish.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "data/jarvise/session-calendar-xnys-v3/XNYS/2011/timezone-ruleset.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "P3: audited-candidate destination for a JARVISE_DH_2011 WU2B Calendar V3 (WHEEL_JARVISE_US_EQUITY_XNYS_CALENDAR/3) deterministic output; candidate bytes are held outside this path and require independent audit (P4) and Owner publication admission (P5/P6) before PATH_PRESTATE_PROGRAM_PUBLISHER may publish.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "data/jarvise/session-calendar-xnys-v3/XNYS/2012/PROVENANCE.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "P3: audited-candidate destination for a JARVISE_DH_2011 WU2B Calendar V3 (WHEEL_JARVISE_US_EQUITY_XNYS_CALENDAR/3) deterministic output; candidate bytes are held outside this path and require independent audit (P4) and Owner publication admission (P5/P6) before PATH_PRESTATE_PROGRAM_PUBLISHER may publish.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "data/jarvise/session-calendar-xnys-v3/XNYS/2012/normalized-source.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "P3: audited-candidate destination for a JARVISE_DH_2011 WU2B Calendar V3 (WHEEL_JARVISE_US_EQUITY_XNYS_CALENDAR/3) deterministic output; candidate bytes are held outside this path and require independent audit (P4) and Owner publication admission (P5/P6) before PATH_PRESTATE_PROGRAM_PUBLISHER may publish.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "data/jarvise/session-calendar-xnys-v3/XNYS/2012/session-calendar-core.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "P3: audited-candidate destination for a JARVISE_DH_2011 WU2B Calendar V3 (WHEEL_JARVISE_US_EQUITY_XNYS_CALENDAR/3) deterministic output; candidate bytes are held outside this path and require independent audit (P4) and Owner publication admission (P5/P6) before PATH_PRESTATE_PROGRAM_PUBLISHER may publish.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "data/jarvise/session-calendar-xnys-v3/XNYS/2012/timezone-ruleset.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "P3: audited-candidate destination for a JARVISE_DH_2011 WU2B Calendar V3 (WHEEL_JARVISE_US_EQUITY_XNYS_CALENDAR/3) deterministic output; candidate bytes are held outside this path and require independent audit (P4) and Owner publication admission (P5/P6) before PATH_PRESTATE_PROGRAM_PUBLISHER may publish.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "data/jarvise/session-calendar-xnys-v3/XNYS/2013/PROVENANCE.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "P3: audited-candidate destination for a JARVISE_DH_2011 WU2B Calendar V3 (WHEEL_JARVISE_US_EQUITY_XNYS_CALENDAR/3) deterministic output; candidate bytes are held outside this path and require independent audit (P4) and Owner publication admission (P5/P6) before PATH_PRESTATE_PROGRAM_PUBLISHER may publish.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "data/jarvise/session-calendar-xnys-v3/XNYS/2013/normalized-source.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "P3: audited-candidate destination for a JARVISE_DH_2011 WU2B Calendar V3 (WHEEL_JARVISE_US_EQUITY_XNYS_CALENDAR/3) deterministic output; candidate bytes are held outside this path and require independent audit (P4) and Owner publication admission (P5/P6) before PATH_PRESTATE_PROGRAM_PUBLISHER may publish.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "data/jarvise/session-calendar-xnys-v3/XNYS/2013/session-calendar-core.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "P3: audited-candidate destination for a JARVISE_DH_2011 WU2B Calendar V3 (WHEEL_JARVISE_US_EQUITY_XNYS_CALENDAR/3) deterministic output; candidate bytes are held outside this path and require independent audit (P4) and Owner publication admission (P5/P6) before PATH_PRESTATE_PROGRAM_PUBLISHER may publish.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "data/jarvise/session-calendar-xnys-v3/XNYS/2013/timezone-ruleset.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "P3: audited-candidate destination for a JARVISE_DH_2011 WU2B Calendar V3 (WHEEL_JARVISE_US_EQUITY_XNYS_CALENDAR/3) deterministic output; candidate bytes are held outside this path and require independent audit (P4) and Owner publication admission (P5/P6) before PATH_PRESTATE_PROGRAM_PUBLISHER may publish.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "data/jarvise/session-calendar-xnys-v3/XNYS/2014/PROVENANCE.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "P3: audited-candidate destination for a JARVISE_DH_2011 WU2B Calendar V3 (WHEEL_JARVISE_US_EQUITY_XNYS_CALENDAR/3) deterministic output; candidate bytes are held outside this path and require independent audit (P4) and Owner publication admission (P5/P6) before PATH_PRESTATE_PROGRAM_PUBLISHER may publish.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "data/jarvise/session-calendar-xnys-v3/XNYS/2014/normalized-source.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "P3: audited-candidate destination for a JARVISE_DH_2011 WU2B Calendar V3 (WHEEL_JARVISE_US_EQUITY_XNYS_CALENDAR/3) deterministic output; candidate bytes are held outside this path and require independent audit (P4) and Owner publication admission (P5/P6) before PATH_PRESTATE_PROGRAM_PUBLISHER may publish.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "data/jarvise/session-calendar-xnys-v3/XNYS/2014/session-calendar-core.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "P3: audited-candidate destination for a JARVISE_DH_2011 WU2B Calendar V3 (WHEEL_JARVISE_US_EQUITY_XNYS_CALENDAR/3) deterministic output; candidate bytes are held outside this path and require independent audit (P4) and Owner publication admission (P5/P6) before PATH_PRESTATE_PROGRAM_PUBLISHER may publish.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "data/jarvise/session-calendar-xnys-v3/XNYS/2014/timezone-ruleset.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "P3: audited-candidate destination for a JARVISE_DH_2011 WU2B Calendar V3 (WHEEL_JARVISE_US_EQUITY_XNYS_CALENDAR/3) deterministic output; candidate bytes are held outside this path and require independent audit (P4) and Owner publication admission (P5/P6) before PATH_PRESTATE_PROGRAM_PUBLISHER may publish.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "data/jarvise/session-calendar-xnys-v3/XNYS/2015/PROVENANCE.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "P3: audited-candidate destination for a JARVISE_DH_2011 WU2B Calendar V3 (WHEEL_JARVISE_US_EQUITY_XNYS_CALENDAR/3) deterministic output; candidate bytes are held outside this path and require independent audit (P4) and Owner publication admission (P5/P6) before PATH_PRESTATE_PROGRAM_PUBLISHER may publish.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "data/jarvise/session-calendar-xnys-v3/XNYS/2015/normalized-source.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "P3: audited-candidate destination for a JARVISE_DH_2011 WU2B Calendar V3 (WHEEL_JARVISE_US_EQUITY_XNYS_CALENDAR/3) deterministic output; candidate bytes are held outside this path and require independent audit (P4) and Owner publication admission (P5/P6) before PATH_PRESTATE_PROGRAM_PUBLISHER may publish.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "data/jarvise/session-calendar-xnys-v3/XNYS/2015/session-calendar-core.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "P3: audited-candidate destination for a JARVISE_DH_2011 WU2B Calendar V3 (WHEEL_JARVISE_US_EQUITY_XNYS_CALENDAR/3) deterministic output; candidate bytes are held outside this path and require independent audit (P4) and Owner publication admission (P5/P6) before PATH_PRESTATE_PROGRAM_PUBLISHER may publish.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "data/jarvise/session-calendar-xnys-v3/XNYS/2015/timezone-ruleset.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "P3: audited-candidate destination for a JARVISE_DH_2011 WU2B Calendar V3 (WHEEL_JARVISE_US_EQUITY_XNYS_CALENDAR/3) deterministic output; candidate bytes are held outside this path and require independent audit (P4) and Owner publication admission (P5/P6) before PATH_PRESTATE_PROGRAM_PUBLISHER may publish.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "data/jarvise/session-calendar-xnys-v3/XNYS/2016/PROVENANCE.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "P3: audited-candidate destination for a JARVISE_DH_2011 WU2B Calendar V3 (WHEEL_JARVISE_US_EQUITY_XNYS_CALENDAR/3) deterministic output; candidate bytes are held outside this path and require independent audit (P4) and Owner publication admission (P5/P6) before PATH_PRESTATE_PROGRAM_PUBLISHER may publish.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "data/jarvise/session-calendar-xnys-v3/XNYS/2016/normalized-source.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "P3: audited-candidate destination for a JARVISE_DH_2011 WU2B Calendar V3 (WHEEL_JARVISE_US_EQUITY_XNYS_CALENDAR/3) deterministic output; candidate bytes are held outside this path and require independent audit (P4) and Owner publication admission (P5/P6) before PATH_PRESTATE_PROGRAM_PUBLISHER may publish.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "data/jarvise/session-calendar-xnys-v3/XNYS/2016/session-calendar-core.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "P3: audited-candidate destination for a JARVISE_DH_2011 WU2B Calendar V3 (WHEEL_JARVISE_US_EQUITY_XNYS_CALENDAR/3) deterministic output; candidate bytes are held outside this path and require independent audit (P4) and Owner publication admission (P5/P6) before PATH_PRESTATE_PROGRAM_PUBLISHER may publish.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "data/jarvise/session-calendar-xnys-v3/XNYS/2016/timezone-ruleset.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "P3: audited-candidate destination for a JARVISE_DH_2011 WU2B Calendar V3 (WHEEL_JARVISE_US_EQUITY_XNYS_CALENDAR/3) deterministic output; candidate bytes are held outside this path and require independent audit (P4) and Owner publication admission (P5/P6) before PATH_PRESTATE_PROGRAM_PUBLISHER may publish.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "data/jarvise/session-calendar-xnys-v3/XNYS/2017/PROVENANCE.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "P3: audited-candidate destination for a JARVISE_DH_2011 WU2B Calendar V3 (WHEEL_JARVISE_US_EQUITY_XNYS_CALENDAR/3) deterministic output; candidate bytes are held outside this path and require independent audit (P4) and Owner publication admission (P5/P6) before PATH_PRESTATE_PROGRAM_PUBLISHER may publish.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "data/jarvise/session-calendar-xnys-v3/XNYS/2017/normalized-source.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "P3: audited-candidate destination for a JARVISE_DH_2011 WU2B Calendar V3 (WHEEL_JARVISE_US_EQUITY_XNYS_CALENDAR/3) deterministic output; candidate bytes are held outside this path and require independent audit (P4) and Owner publication admission (P5/P6) before PATH_PRESTATE_PROGRAM_PUBLISHER may publish.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "data/jarvise/session-calendar-xnys-v3/XNYS/2017/session-calendar-core.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "P3: audited-candidate destination for a JARVISE_DH_2011 WU2B Calendar V3 (WHEEL_JARVISE_US_EQUITY_XNYS_CALENDAR/3) deterministic output; candidate bytes are held outside this path and require independent audit (P4) and Owner publication admission (P5/P6) before PATH_PRESTATE_PROGRAM_PUBLISHER may publish.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "data/jarvise/session-calendar-xnys-v3/XNYS/2017/timezone-ruleset.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "P3: audited-candidate destination for a JARVISE_DH_2011 WU2B Calendar V3 (WHEEL_JARVISE_US_EQUITY_XNYS_CALENDAR/3) deterministic output; candidate bytes are held outside this path and require independent audit (P4) and Owner publication admission (P5/P6) before PATH_PRESTATE_PROGRAM_PUBLISHER may publish.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "data/jarvise/session-calendar-xnys-v3/XNYS/2018/PROVENANCE.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "P3: audited-candidate destination for a JARVISE_DH_2011 WU2B Calendar V3 (WHEEL_JARVISE_US_EQUITY_XNYS_CALENDAR/3) deterministic output; candidate bytes are held outside this path and require independent audit (P4) and Owner publication admission (P5/P6) before PATH_PRESTATE_PROGRAM_PUBLISHER may publish.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "data/jarvise/session-calendar-xnys-v3/XNYS/2018/normalized-source.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "P3: audited-candidate destination for a JARVISE_DH_2011 WU2B Calendar V3 (WHEEL_JARVISE_US_EQUITY_XNYS_CALENDAR/3) deterministic output; candidate bytes are held outside this path and require independent audit (P4) and Owner publication admission (P5/P6) before PATH_PRESTATE_PROGRAM_PUBLISHER may publish.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "data/jarvise/session-calendar-xnys-v3/XNYS/2018/session-calendar-core.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "P3: audited-candidate destination for a JARVISE_DH_2011 WU2B Calendar V3 (WHEEL_JARVISE_US_EQUITY_XNYS_CALENDAR/3) deterministic output; candidate bytes are held outside this path and require independent audit (P4) and Owner publication admission (P5/P6) before PATH_PRESTATE_PROGRAM_PUBLISHER may publish.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "data/jarvise/session-calendar-xnys-v3/XNYS/2018/timezone-ruleset.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "P3: audited-candidate destination for a JARVISE_DH_2011 WU2B Calendar V3 (WHEEL_JARVISE_US_EQUITY_XNYS_CALENDAR/3) deterministic output; candidate bytes are held outside this path and require independent audit (P4) and Owner publication admission (P5/P6) before PATH_PRESTATE_PROGRAM_PUBLISHER may publish.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "data/jarvise/session-calendar-xnys-v3/XNYS/2019/PROVENANCE.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "P3: audited-candidate destination for a JARVISE_DH_2011 WU2B Calendar V3 (WHEEL_JARVISE_US_EQUITY_XNYS_CALENDAR/3) deterministic output; candidate bytes are held outside this path and require independent audit (P4) and Owner publication admission (P5/P6) before PATH_PRESTATE_PROGRAM_PUBLISHER may publish.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "data/jarvise/session-calendar-xnys-v3/XNYS/2019/normalized-source.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "P3: audited-candidate destination for a JARVISE_DH_2011 WU2B Calendar V3 (WHEEL_JARVISE_US_EQUITY_XNYS_CALENDAR/3) deterministic output; candidate bytes are held outside this path and require independent audit (P4) and Owner publication admission (P5/P6) before PATH_PRESTATE_PROGRAM_PUBLISHER may publish.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "data/jarvise/session-calendar-xnys-v3/XNYS/2019/session-calendar-core.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "P3: audited-candidate destination for a JARVISE_DH_2011 WU2B Calendar V3 (WHEEL_JARVISE_US_EQUITY_XNYS_CALENDAR/3) deterministic output; candidate bytes are held outside this path and require independent audit (P4) and Owner publication admission (P5/P6) before PATH_PRESTATE_PROGRAM_PUBLISHER may publish.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "data/jarvise/session-calendar-xnys-v3/XNYS/2019/timezone-ruleset.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "P3: audited-candidate destination for a JARVISE_DH_2011 WU2B Calendar V3 (WHEEL_JARVISE_US_EQUITY_XNYS_CALENDAR/3) deterministic output; candidate bytes are held outside this path and require independent audit (P4) and Owner publication admission (P5/P6) before PATH_PRESTATE_PROGRAM_PUBLISHER may publish.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "data/jarvise/session-calendar-xnys-v3/XNYS/2020/PROVENANCE.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "P3: audited-candidate destination for a JARVISE_DH_2011 WU2B Calendar V3 (WHEEL_JARVISE_US_EQUITY_XNYS_CALENDAR/3) deterministic output; candidate bytes are held outside this path and require independent audit (P4) and Owner publication admission (P5/P6) before PATH_PRESTATE_PROGRAM_PUBLISHER may publish.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "data/jarvise/session-calendar-xnys-v3/XNYS/2020/normalized-source.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "P3: audited-candidate destination for a JARVISE_DH_2011 WU2B Calendar V3 (WHEEL_JARVISE_US_EQUITY_XNYS_CALENDAR/3) deterministic output; candidate bytes are held outside this path and require independent audit (P4) and Owner publication admission (P5/P6) before PATH_PRESTATE_PROGRAM_PUBLISHER may publish.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "data/jarvise/session-calendar-xnys-v3/XNYS/2020/session-calendar-core.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "P3: audited-candidate destination for a JARVISE_DH_2011 WU2B Calendar V3 (WHEEL_JARVISE_US_EQUITY_XNYS_CALENDAR/3) deterministic output; candidate bytes are held outside this path and require independent audit (P4) and Owner publication admission (P5/P6) before PATH_PRESTATE_PROGRAM_PUBLISHER may publish.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "data/jarvise/session-calendar-xnys-v3/XNYS/2020/timezone-ruleset.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "P3: audited-candidate destination for a JARVISE_DH_2011 WU2B Calendar V3 (WHEEL_JARVISE_US_EQUITY_XNYS_CALENDAR/3) deterministic output; candidate bytes are held outside this path and require independent audit (P4) and Owner publication admission (P5/P6) before PATH_PRESTATE_PROGRAM_PUBLISHER may publish.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "data/jarvise/session-calendar-xnys-v3/XNYS/2021/PROVENANCE.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "P3: audited-candidate destination for a JARVISE_DH_2011 WU2B Calendar V3 (WHEEL_JARVISE_US_EQUITY_XNYS_CALENDAR/3) deterministic output; candidate bytes are held outside this path and require independent audit (P4) and Owner publication admission (P5/P6) before PATH_PRESTATE_PROGRAM_PUBLISHER may publish.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "data/jarvise/session-calendar-xnys-v3/XNYS/2021/normalized-source.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "P3: audited-candidate destination for a JARVISE_DH_2011 WU2B Calendar V3 (WHEEL_JARVISE_US_EQUITY_XNYS_CALENDAR/3) deterministic output; candidate bytes are held outside this path and require independent audit (P4) and Owner publication admission (P5/P6) before PATH_PRESTATE_PROGRAM_PUBLISHER may publish.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "data/jarvise/session-calendar-xnys-v3/XNYS/2021/session-calendar-core.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "P3: audited-candidate destination for a JARVISE_DH_2011 WU2B Calendar V3 (WHEEL_JARVISE_US_EQUITY_XNYS_CALENDAR/3) deterministic output; candidate bytes are held outside this path and require independent audit (P4) and Owner publication admission (P5/P6) before PATH_PRESTATE_PROGRAM_PUBLISHER may publish.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "data/jarvise/session-calendar-xnys-v3/XNYS/2021/timezone-ruleset.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "P3: audited-candidate destination for a JARVISE_DH_2011 WU2B Calendar V3 (WHEEL_JARVISE_US_EQUITY_XNYS_CALENDAR/3) deterministic output; candidate bytes are held outside this path and require independent audit (P4) and Owner publication admission (P5/P6) before PATH_PRESTATE_PROGRAM_PUBLISHER may publish.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "data/jarvise/session-calendar-xnys-v3/XNYS/2022/PROVENANCE.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "P3: audited-candidate destination for a JARVISE_DH_2011 WU2B Calendar V3 (WHEEL_JARVISE_US_EQUITY_XNYS_CALENDAR/3) deterministic output; candidate bytes are held outside this path and require independent audit (P4) and Owner publication admission (P5/P6) before PATH_PRESTATE_PROGRAM_PUBLISHER may publish.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "data/jarvise/session-calendar-xnys-v3/XNYS/2022/normalized-source.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "P3: audited-candidate destination for a JARVISE_DH_2011 WU2B Calendar V3 (WHEEL_JARVISE_US_EQUITY_XNYS_CALENDAR/3) deterministic output; candidate bytes are held outside this path and require independent audit (P4) and Owner publication admission (P5/P6) before PATH_PRESTATE_PROGRAM_PUBLISHER may publish.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "data/jarvise/session-calendar-xnys-v3/XNYS/2022/session-calendar-core.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "P3: audited-candidate destination for a JARVISE_DH_2011 WU2B Calendar V3 (WHEEL_JARVISE_US_EQUITY_XNYS_CALENDAR/3) deterministic output; candidate bytes are held outside this path and require independent audit (P4) and Owner publication admission (P5/P6) before PATH_PRESTATE_PROGRAM_PUBLISHER may publish.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "data/jarvise/session-calendar-xnys-v3/XNYS/2022/timezone-ruleset.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "P3: audited-candidate destination for a JARVISE_DH_2011 WU2B Calendar V3 (WHEEL_JARVISE_US_EQUITY_XNYS_CALENDAR/3) deterministic output; candidate bytes are held outside this path and require independent audit (P4) and Owner publication admission (P5/P6) before PATH_PRESTATE_PROGRAM_PUBLISHER may publish.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "data/jarvise/session-calendar-xnys-v3/XNYS/2023/PROVENANCE.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "P3: audited-candidate destination for a JARVISE_DH_2011 WU2B Calendar V3 (WHEEL_JARVISE_US_EQUITY_XNYS_CALENDAR/3) deterministic output; candidate bytes are held outside this path and require independent audit (P4) and Owner publication admission (P5/P6) before PATH_PRESTATE_PROGRAM_PUBLISHER may publish.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "data/jarvise/session-calendar-xnys-v3/XNYS/2023/normalized-source.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "P3: audited-candidate destination for a JARVISE_DH_2011 WU2B Calendar V3 (WHEEL_JARVISE_US_EQUITY_XNYS_CALENDAR/3) deterministic output; candidate bytes are held outside this path and require independent audit (P4) and Owner publication admission (P5/P6) before PATH_PRESTATE_PROGRAM_PUBLISHER may publish.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "data/jarvise/session-calendar-xnys-v3/XNYS/2023/session-calendar-core.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "P3: audited-candidate destination for a JARVISE_DH_2011 WU2B Calendar V3 (WHEEL_JARVISE_US_EQUITY_XNYS_CALENDAR/3) deterministic output; candidate bytes are held outside this path and require independent audit (P4) and Owner publication admission (P5/P6) before PATH_PRESTATE_PROGRAM_PUBLISHER may publish.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "data/jarvise/session-calendar-xnys-v3/XNYS/2023/timezone-ruleset.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "P3: audited-candidate destination for a JARVISE_DH_2011 WU2B Calendar V3 (WHEEL_JARVISE_US_EQUITY_XNYS_CALENDAR/3) deterministic output; candidate bytes are held outside this path and require independent audit (P4) and Owner publication admission (P5/P6) before PATH_PRESTATE_PROGRAM_PUBLISHER may publish.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "data/jarvise/session-calendar-xnys-v3/XNYS/2024/PROVENANCE.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "P3: audited-candidate destination for a JARVISE_DH_2011 WU2B Calendar V3 (WHEEL_JARVISE_US_EQUITY_XNYS_CALENDAR/3) deterministic output; candidate bytes are held outside this path and require independent audit (P4) and Owner publication admission (P5/P6) before PATH_PRESTATE_PROGRAM_PUBLISHER may publish.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "data/jarvise/session-calendar-xnys-v3/XNYS/2024/normalized-source.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "P3: audited-candidate destination for a JARVISE_DH_2011 WU2B Calendar V3 (WHEEL_JARVISE_US_EQUITY_XNYS_CALENDAR/3) deterministic output; candidate bytes are held outside this path and require independent audit (P4) and Owner publication admission (P5/P6) before PATH_PRESTATE_PROGRAM_PUBLISHER may publish.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "data/jarvise/session-calendar-xnys-v3/XNYS/2024/session-calendar-core.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "P3: audited-candidate destination for a JARVISE_DH_2011 WU2B Calendar V3 (WHEEL_JARVISE_US_EQUITY_XNYS_CALENDAR/3) deterministic output; candidate bytes are held outside this path and require independent audit (P4) and Owner publication admission (P5/P6) before PATH_PRESTATE_PROGRAM_PUBLISHER may publish.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "data/jarvise/session-calendar-xnys-v3/XNYS/2024/timezone-ruleset.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "P3: audited-candidate destination for a JARVISE_DH_2011 WU2B Calendar V3 (WHEEL_JARVISE_US_EQUITY_XNYS_CALENDAR/3) deterministic output; candidate bytes are held outside this path and require independent audit (P4) and Owner publication admission (P5/P6) before PATH_PRESTATE_PROGRAM_PUBLISHER may publish.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "data/jarvise/session-calendar-xnys-v3/XNYS/2025/PROVENANCE.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "P3: audited-candidate destination for a JARVISE_DH_2011 WU2B Calendar V3 (WHEEL_JARVISE_US_EQUITY_XNYS_CALENDAR/3) deterministic output; candidate bytes are held outside this path and require independent audit (P4) and Owner publication admission (P5/P6) before PATH_PRESTATE_PROGRAM_PUBLISHER may publish.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "data/jarvise/session-calendar-xnys-v3/XNYS/2025/normalized-source.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "P3: audited-candidate destination for a JARVISE_DH_2011 WU2B Calendar V3 (WHEEL_JARVISE_US_EQUITY_XNYS_CALENDAR/3) deterministic output; candidate bytes are held outside this path and require independent audit (P4) and Owner publication admission (P5/P6) before PATH_PRESTATE_PROGRAM_PUBLISHER may publish.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "data/jarvise/session-calendar-xnys-v3/XNYS/2025/session-calendar-core.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "P3: audited-candidate destination for a JARVISE_DH_2011 WU2B Calendar V3 (WHEEL_JARVISE_US_EQUITY_XNYS_CALENDAR/3) deterministic output; candidate bytes are held outside this path and require independent audit (P4) and Owner publication admission (P5/P6) before PATH_PRESTATE_PROGRAM_PUBLISHER may publish.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "data/jarvise/session-calendar-xnys-v3/XNYS/2025/timezone-ruleset.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "P3: audited-candidate destination for a JARVISE_DH_2011 WU2B Calendar V3 (WHEEL_JARVISE_US_EQUITY_XNYS_CALENDAR/3) deterministic output; candidate bytes are held outside this path and require independent audit (P4) and Owner publication admission (P5/P6) before PATH_PRESTATE_PROGRAM_PUBLISHER may publish.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "data/jarvise/session-calendar-xnys-v3/XNYS/2026/PROVENANCE.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "P3: audited-candidate destination for a JARVISE_DH_2011 WU2B Calendar V3 (WHEEL_JARVISE_US_EQUITY_XNYS_CALENDAR/3) deterministic output; candidate bytes are held outside this path and require independent audit (P4) and Owner publication admission (P5/P6) before PATH_PRESTATE_PROGRAM_PUBLISHER may publish.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "data/jarvise/session-calendar-xnys-v3/XNYS/2026/normalized-source.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "P3: audited-candidate destination for a JARVISE_DH_2011 WU2B Calendar V3 (WHEEL_JARVISE_US_EQUITY_XNYS_CALENDAR/3) deterministic output; candidate bytes are held outside this path and require independent audit (P4) and Owner publication admission (P5/P6) before PATH_PRESTATE_PROGRAM_PUBLISHER may publish.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "data/jarvise/session-calendar-xnys-v3/XNYS/2026/session-calendar-core.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "P3: audited-candidate destination for a JARVISE_DH_2011 WU2B Calendar V3 (WHEEL_JARVISE_US_EQUITY_XNYS_CALENDAR/3) deterministic output; candidate bytes are held outside this path and require independent audit (P4) and Owner publication admission (P5/P6) before PATH_PRESTATE_PROGRAM_PUBLISHER may publish.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "data/jarvise/session-calendar-xnys-v3/XNYS/2026/timezone-ruleset.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "P3: audited-candidate destination for a JARVISE_DH_2011 WU2B Calendar V3 (WHEEL_JARVISE_US_EQUITY_XNYS_CALENDAR/3) deterministic output; candidate bytes are held outside this path and require independent audit (P4) and Owner publication admission (P5/P6) before PATH_PRESTATE_PROGRAM_PUBLISHER may publish.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "data/jarvise/session-calendar-xnys-v3/XNYS/authority-policy.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "P3: audited-candidate destination for a JARVISE_DH_2011 WU2B Calendar V3 (WHEEL_JARVISE_US_EQUITY_XNYS_CALENDAR/3) deterministic output; candidate bytes are held outside this path and require independent audit (P4) and Owner publication admission (P5/P6) before PATH_PRESTATE_PROGRAM_PUBLISHER may publish.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "data/jarvise/session-calendar-xnys-v3/XNYS/registry/R0001/ANALOGUE_SEARCH_SCOPE.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "P3: audited-candidate destination for a JARVISE_DH_2011 WU2B Calendar V3 (WHEEL_JARVISE_US_EQUITY_XNYS_CALENDAR/3) deterministic output; candidate bytes are held outside this path and require independent audit (P4) and Owner publication admission (P5/P6) before PATH_PRESTATE_PROGRAM_PUBLISHER may publish.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "data/jarvise/session-calendar-xnys-v3/XNYS/registry/R0001/CALENDAR_WINDOW_BINDING.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "P3: audited-candidate destination for a JARVISE_DH_2011 WU2B Calendar V3 (WHEEL_JARVISE_US_EQUITY_XNYS_CALENDAR/3) deterministic output; candidate bytes are held outside this path and require independent audit (P4) and Owner publication admission (P5/P6) before PATH_PRESTATE_PROGRAM_PUBLISHER may publish.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "data/jarvise/session-calendar-xnys-v3/XNYS/registry/R0001/HORIZON_BINDINGS.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "P3: audited-candidate destination for a JARVISE_DH_2011 WU2B Calendar V3 (WHEEL_JARVISE_US_EQUITY_XNYS_CALENDAR/3) deterministic output; candidate bytes are held outside this path and require independent audit (P4) and Owner publication admission (P5/P6) before PATH_PRESTATE_PROGRAM_PUBLISHER may publish.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "data/jarvise/session-calendar-xnys-v3/XNYS/registry/R0001/PROVENANCE.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "P3: audited-candidate destination for a JARVISE_DH_2011 WU2B Calendar V3 (WHEEL_JARVISE_US_EQUITY_XNYS_CALENDAR/3) deterministic output; candidate bytes are held outside this path and require independent audit (P4) and Owner publication admission (P5/P6) before PATH_PRESTATE_PROGRAM_PUBLISHER may publish.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "data/jarvise/session-calendar-xnys-v3/XNYS/registry/R0001/V2_V3_DIFFERENTIAL.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "P3: audited-candidate destination for a JARVISE_DH_2011 WU2B Calendar V3 (WHEEL_JARVISE_US_EQUITY_XNYS_CALENDAR/3) deterministic output; candidate bytes are held outside this path and require independent audit (P4) and Owner publication admission (P5/P6) before PATH_PRESTATE_PROGRAM_PUBLISHER may publish.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "data/jarvise/session-calendar-xnys-v3/XNYS/registry/R0001/registry-manifest.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "P3: audited-candidate destination for a JARVISE_DH_2011 WU2B Calendar V3 (WHEEL_JARVISE_US_EQUITY_XNYS_CALENDAR/3) deterministic output; candidate bytes are held outside this path and require independent audit (P4) and Owner publication admission (P5/P6) before PATH_PRESTATE_PROGRAM_PUBLISHER may publish.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "data/jarvise/session-calendar-xnys-v3/evidence/ACCEPTED_EVIDENCE_COHORT.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "P3: audited-candidate destination for a JARVISE_DH_2011 WU2B Calendar V3 (WHEEL_JARVISE_US_EQUITY_XNYS_CALENDAR/3) deterministic output; candidate bytes are held outside this path and require independent audit (P4) and Owner publication admission (P5/P6) before PATH_PRESTATE_PROGRAM_PUBLISHER may publish.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "data/jarvise/session-calendar-xnys-v3/evidence/CALENDAR_SOURCE_EVIDENCE.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "P3: audited-candidate destination for a JARVISE_DH_2011 WU2B Calendar V3 (WHEEL_JARVISE_US_EQUITY_XNYS_CALENDAR/3) deterministic output; candidate bytes are held outside this path and require independent audit (P4) and Owner publication admission (P5/P6) before PATH_PRESTATE_PROGRAM_PUBLISHER may publish.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "data/jarvise/session-calendar-xnys-v3/evidence/EXCEPTIONAL_CLOSURE_SWEEP_2026.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "P3: audited-candidate destination for a JARVISE_DH_2011 WU2B Calendar V3 (WHEEL_JARVISE_US_EQUITY_XNYS_CALENDAR/3) deterministic output; candidate bytes are held outside this path and require independent audit (P4) and Owner publication admission (P5/P6) before PATH_PRESTATE_PROGRAM_PUBLISHER may publish.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "data/jarvise/session-calendar-xnys-v3/evidence/SPECIAL_CLOSURE_EVIDENCE.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "P3: audited-candidate destination for a JARVISE_DH_2011 WU2B Calendar V3 (WHEEL_JARVISE_US_EQUITY_XNYS_CALENDAR/3) deterministic output; candidate bytes are held outside this path and require independent audit (P4) and Owner publication admission (P5/P6) before PATH_PRESTATE_PROGRAM_PUBLISHER may publish.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "governance/historical-architecture/JARVISE_DH_2011_WU2_AUTHORITY_CONSUMPTION.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "P7: RESERVED_RECEIPT generated only by PATH_PRESTATE_PROGRAM_PUBLISHER during a separately admitted publication; never supplied as candidate bytes or hand-created.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "governance/sources/JARVISE_DH_2011_WU2_EXTERNAL_REINSPECTION_REPORT.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "P4: audited-candidate destination for the JARVISE_DH_2011 WU2 external reinspection report written by an independent main agent in a distinct manual session; this declaration grants no audit, admission or publication execution authority.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "research/directional-lab/test/jarvise-session-calendar-xnys-v3.test.mjs",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "P3: audited-candidate destination for JARVISE_DH_2011 WU2B Calendar V3 deterministic builder/validator code; candidate bytes are held outside this path and require independent audit (P4) and Owner publication admission (P5/P6) before PATH_PRESTATE_PROGRAM_PUBLISHER may publish.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "scripts/buildJarviseSessionCalendarXNYSV3.mjs",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "P3: audited-candidate destination for JARVISE_DH_2011 WU2B Calendar V3 deterministic builder/validator code; candidate bytes are held outside this path and require independent audit (P4) and Owner publication admission (P5/P6) before PATH_PRESTATE_PROGRAM_PUBLISHER may publish.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    }
+  ]
+}

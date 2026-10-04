@@ -18,6 +18,7 @@
 import assert from 'node:assert/strict';
 import crypto from 'node:crypto';
 import fs from 'node:fs';
+import module from 'node:module';
 import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
@@ -28,19 +29,25 @@ import {
   ADMISSION_REGISTRY_PATH,
   ADMISSION_DENIED_PERMISSIONS,
   ADMISSION_REQUIRED_PROHIBITED_OPERATIONS,
+  buildAdmittedPublicationInputs,
   computeAdmissionRegistryDigest,
+  computeAdmittedPublicationInputCohortDigest,
   computeMaintenancePublicationAdmissionDigest,
+  evaluateAdmittedPublicationInputs,
   evaluateMaintenancePublicationAdmission,
+  PUBLICATION_INPUT_COHORT_ALGORITHM,
   resolveMaintenancePublicationAdmission,
   validateAdmissionRegistryShape,
   validateMaintenancePublicationAdmissionShape
 } from '../gee-v1/core/maintenance-publication-admission.mjs';
+import { validateAgainstJsonSchema } from '../gee-v1/contracts/validate-against-json-schema.mjs';
 import {
   MODE_ADMISSION,
   MODE_PUBLICATION,
   evaluateMaintenanceSourceAdmissibility
 } from '../gee-v1/core/maintenance-publication-admissibility.mjs';
 import {
+  isExactMaintenancePath,
   REQUIRED_PROHIBITED_OPERATIONS,
   validateConsumptionRecordCoherence,
   validateMaintenanceAuthorizedPathManifest
@@ -197,10 +204,25 @@ function makeAuthority(fixture, manifestBytes, overrides = {}) {
  *  and nothing here admits anything in it.
  * =================================================================== */
 
+function defaultPublicationInputs(authorityBytes, manifestBytes, cohortOverrides = null) {
+  const rows = [
+    [AUTHORITY_PATH, authorityBytes],
+    [MANIFEST_PATH, manifestBytes],
+    [TRACKED_TARGET, CANDIDATE_TRACKED],
+    [NEW_TARGET, CANDIDATE_NEW]
+  ];
+  return buildAdmittedPublicationInputs(rows.map(([entryPath, bytes]) => ({
+    path: entryPath,
+    sha256: sha256(bytes),
+    byteLength: bytes.length,
+    inCandidateCohort: cohortOverrides?.get(entryPath) ?? true
+  })));
+}
+
 function makeAdmission(fixture, authority, authorityBytes, manifest, manifestBytes, overrides = {}, ownerAuthorizationPath = ADMISSION_REGISTRY_PATH) {
   const admission = {
     documentKind: 'MAINTENANCE_PUBLICATION_ADMISSION',
-    schemaVersion: 1,
+    schemaVersion: 2,
     authorityMode: 'LOCAL_EXPLICIT_AUTHORITY',
     issuedBy: 'PROJECT_OWNER',
     admissionId: ADMISSION_ID,
@@ -236,8 +258,10 @@ function makeAdmission(fixture, authority, authorityBytes, manifest, manifestByt
     derivedFromFinalGateIntegrityFindings: false,
     prohibitedOperations: [...ADMISSION_REQUIRED_PROHIBITED_OPERATIONS],
     successorRequirement: 'A future publication over changed bytes requires a NEW authority, a NEW pre-state and a NEW admission. This decision is never a shortcut.',
+    admittedPublicationInputs: defaultPublicationInputs(authorityBytes, manifestBytes),
     ...overrides
   };
+  if (admission.schemaVersion !== 2) delete admission.admittedPublicationInputs;
   admission.admissionDigest = computeMaintenancePublicationAdmissionDigest(admission);
   admission.ownerAuthorizationPath = ownerAuthorizationPath;
   return admission;
@@ -823,5 +847,467 @@ test('BR4 every denial an admission must carry is inside its own seal', () => {
     const resealed = validateMaintenancePublicationAdmissionShape(widened);
     assert.equal(resealed.valid, false);
     assert.equal(resealed.findings[0].detail, field);
+  }
+});
+
+function publishWith(fixture, candidates) {
+  return applyPathPrestateProgram({
+    root: fixture.root, authorityDocumentPath: AUTHORITY_PATH, candidates,
+    transactionId: 'FIXTURE_REPAIR_B_TRANSACTION', now: new Date('2026-08-18T12:00:00.000Z')
+  });
+}
+
+function assertNoPublicationWrite(fixture, beforeTracked) {
+  assert.equal(fs.existsSync(path.join(fixture.root, 'governance', 'transactions')), false);
+  assert.equal(fs.existsSync(path.join(fixture.root, ...CONSUMPTION_PATH.split('/'))), false);
+  assert.equal(sha256(fs.readFileSync(path.join(fixture.root, ...TRACKED_TARGET.split('/')))), beforeTracked);
+}
+
+test('B01 exact bound supplied cohort is APPLIED and the consumption receipt stays publisher-generated', () => {
+  const fixture = makeFixtureRepository();
+  const chain = installChain(fixture);
+  assert.equal(chain.admission.schemaVersion, 2);
+  assert.equal(chain.admission.admittedPublicationInputs.entries.some((entry) => entry.path === CONSUMPTION_PATH), false);
+  const report = publish(fixture);
+  assert.equal(report.decision, 'APPLIED', JSON.stringify(report.findings));
+  assert.equal(fs.existsSync(path.join(fixture.root, ...CONSUMPTION_PATH.split('/'))), true);
+});
+
+test('B02 one changed candidate byte stops before any transaction write', () => {
+  const fixture = makeFixtureRepository();
+  installChain(fixture);
+  const beforeTracked = sha256(fs.readFileSync(path.join(fixture.root, ...TRACKED_TARGET.split('/'))));
+  const candidates = candidateSet(fixture);
+  const original = Buffer.from(candidates.get(TRACKED_TARGET));
+  original[0] ^= 1;
+  candidates.set(TRACKED_TARGET, original);
+  const report = publishWith(fixture, candidates);
+  assert.equal(report.decision, 'BLOCKED');
+  assert.equal(report.findings[0].code, 'PUBLICATION_INPUT_BINDING_SHA256_MISMATCH');
+  assertNoPublicationWrite(fixture, beforeTracked);
+});
+
+test('B03 a substituted file on an authorized path stops before any transaction write', () => {
+  const fixture = makeFixtureRepository();
+  installChain(fixture);
+  const beforeTracked = sha256(fs.readFileSync(path.join(fixture.root, ...TRACKED_TARGET.split('/'))));
+  const candidates = candidateSet(fixture);
+  candidates.set(TRACKED_TARGET, Buffer.from('export const substituted = true;\n', 'utf8'));
+  const report = publishWith(fixture, candidates);
+  assert.equal(report.decision, 'BLOCKED');
+  assert.equal(report.findings[0].code, 'PUBLICATION_INPUT_BINDING_LENGTH_MISMATCH');
+  assertNoPublicationWrite(fixture, beforeTracked);
+});
+
+test('B04 one changed byte in an external non-cohort binding stops before any transaction write', () => {
+  const fixture = makeFixtureRepository();
+  const manifest = makeManifest();
+  const manifestBytes = bytesOf(manifest);
+  const authorityBytes = bytesOf(makeAuthority(fixture, manifestBytes));
+  const rows = defaultPublicationInputs(authorityBytes, manifestBytes).entries.map((entry) => (
+    entry.path === NEW_TARGET ? { ...entry, inCandidateCohort: false } : entry
+  ));
+  installChain(fixture, { manifest, admissionOverrides: { admittedPublicationInputs: buildAdmittedPublicationInputs(rows) } });
+  const beforeTracked = sha256(fs.readFileSync(path.join(fixture.root, ...TRACKED_TARGET.split('/'))));
+  const candidates = candidateSet(fixture);
+  const external = Buffer.from(candidates.get(NEW_TARGET));
+  external[0] ^= 1;
+  candidates.set(NEW_TARGET, external);
+  const report = publishWith(fixture, candidates);
+  assert.equal(report.decision, 'BLOCKED');
+  assert.equal(report.findings[0].code, 'PUBLICATION_INPUT_BINDING_SHA256_MISMATCH');
+  assert.equal(report.findings[0].detail, NEW_TARGET);
+  assertNoPublicationWrite(fixture, beforeTracked);
+});
+
+test('B05 omitting a required candidate binding stops before any transaction write', () => {
+  const fixture = makeFixtureRepository();
+  const manifest = makeManifest();
+  const manifestBytes = bytesOf(manifest);
+  const authorityBytes = bytesOf(makeAuthority(fixture, manifestBytes));
+  const partial = buildAdmittedPublicationInputs(
+    defaultPublicationInputs(authorityBytes, manifestBytes).entries.filter((entry) => entry.path !== NEW_TARGET)
+  );
+  installChain(fixture, { manifest, admissionOverrides: { admittedPublicationInputs: partial } });
+  const beforeTracked = sha256(fs.readFileSync(path.join(fixture.root, ...TRACKED_TARGET.split('/'))));
+  const report = publish(fixture);
+  assert.equal(report.decision, 'BLOCKED');
+  assert.equal(report.findings[0].code, 'PUBLICATION_INPUT_BINDING_PATH_MISSING');
+  assert.equal(report.findings[0].detail, NEW_TARGET);
+  assertNoPublicationWrite(fixture, beforeTracked);
+});
+
+test('B06 an unauthorized supplied path stops before any transaction write', () => {
+  const fixture = makeFixtureRepository();
+  installChain(fixture);
+  const beforeTracked = sha256(fs.readFileSync(path.join(fixture.root, ...TRACKED_TARGET.split('/'))));
+  const candidates = candidateSet(fixture);
+  candidates.set('governance/tools/fixture-smuggled.mjs', Buffer.from('export const smuggled = true;\n', 'utf8'));
+  const report = publishWith(fixture, candidates);
+  assert.equal(report.decision, 'BLOCKED');
+  assert.equal(report.findings[0].code, 'CANDIDATE_PATH_NOT_AUTHORIZED');
+  assertNoPublicationWrite(fixture, beforeTracked);
+});
+
+test('B07 correct paths with a wrong candidate cohort digest stop before any transaction write', () => {
+  const fixture = makeFixtureRepository();
+  const manifest = makeManifest();
+  const manifestBytes = bytesOf(manifest);
+  const authorityBytes = bytesOf(makeAuthority(fixture, manifestBytes));
+  const inputs = defaultPublicationInputs(authorityBytes, manifestBytes);
+  inputs.candidateCohort = { algorithm: PUBLICATION_INPUT_COHORT_ALGORITHM, digest: 'ab'.repeat(32) };
+  installChain(fixture, { manifest, admissionOverrides: { admittedPublicationInputs: inputs } });
+  const beforeTracked = sha256(fs.readFileSync(path.join(fixture.root, ...TRACKED_TARGET.split('/'))));
+  const report = publish(fixture);
+  assert.equal(report.decision, 'BLOCKED');
+  assert.equal(report.findings[0].code, 'PUBLICATION_INPUT_BINDING_COHORT_DIGEST_MISMATCH');
+  assertNoPublicationWrite(fixture, beforeTracked);
+});
+
+test('B08 altering admitted inputs or the admission digest stops before any transaction write', () => {
+  const fixture = makeFixtureRepository();
+  const chain = installChain(fixture);
+  const beforeTracked = sha256(fs.readFileSync(path.join(fixture.root, ...TRACKED_TARGET.split('/'))));
+  const tampered = structuredClone(chain.admission);
+  tampered.admittedPublicationInputs.entries[0].sha256 = 'c'.repeat(64);
+  tampered.admissionDigest = computeMaintenancePublicationAdmissionDigest(tampered);
+  assert.notEqual(tampered.admissionDigest, chain.admission.admissionDigest);
+  write(fixture.root, ADMISSION_PATH, bytesOf(tampered));
+  const report = publish(fixture);
+  assert.equal(report.decision, 'BLOCKED');
+  assertNoPublicationWrite(fixture, beforeTracked);
+
+  const resealedWrong = structuredClone(chain.admission);
+  resealedWrong.admissionDigest = 'd'.repeat(64);
+  write(fixture.root, ADMISSION_PATH, bytesOf(resealedWrong));
+  const digestReport = publish(fixture);
+  assert.equal(digestReport.decision, 'BLOCKED');
+  assert.equal(validateMaintenancePublicationAdmissionShape(resealedWrong).findings[0].code, 'ADMISSION_DIGEST_MISMATCH');
+  assertNoPublicationWrite(fixture, beforeTracked);
+});
+
+test('B09 binding a publisher-generated consumption path is forbidden', () => {
+  const fixture = makeFixtureRepository();
+  const chain = installChain(fixture);
+  const entries = [
+    ...chain.admission.admittedPublicationInputs.entries,
+    { path: CONSUMPTION_PATH, sha256: 'e'.repeat(64), byteLength: 1, inCandidateCohort: false }
+  ];
+  const evaluation = evaluateAdmittedPublicationInputs({
+    admission: { ...chain.admission, admittedPublicationInputs: buildAdmittedPublicationInputs(entries) },
+    targets: chain.admission.admittedPublicationInputs.entries.map((entry) => entry.path),
+    supplied: candidateSet(fixture),
+    generatedPaths: [CONSUMPTION_PATH]
+  });
+  assert.equal(evaluation.accepted, false);
+  assert.equal(evaluation.findings[0].code, 'PUBLICATION_INPUT_BINDING_GENERATED_PATH_FORBIDDEN');
+});
+
+test('B10 changing any sealed input field changes the admission identity', () => {
+  const fixture = makeFixtureRepository();
+  const chain = installChain(fixture);
+  const base = chain.admission.admissionDigest;
+  const mutations = [
+    (copy) => { copy.admittedPublicationInputs.entries[0].path = 'governance/tools/other-fixture.mjs'; },
+    (copy) => { copy.admittedPublicationInputs.entries[0].sha256 = 'f'.repeat(64); },
+    (copy) => { copy.admittedPublicationInputs.entries[0].byteLength += 1; },
+    (copy) => { copy.admittedPublicationInputs.entries[0].inCandidateCohort = false; },
+    (copy) => { copy.admittedPublicationInputs.candidateCohort.algorithm = 'OTHER_ALGORITHM'; },
+    (copy) => { copy.admittedPublicationInputs.candidateCohort.digest = 'a'.repeat(64); }
+  ];
+  for (const mutate of mutations) {
+    const copy = structuredClone(chain.admission);
+    mutate(copy);
+    assert.notEqual(computeMaintenancePublicationAdmissionDigest(copy), base);
+  }
+});
+
+test('B11 an already-applied schemaVersion 1 publication stays ALREADY_APPLIED', () => {
+  const fixture = makeFixtureRepository();
+  installChain(fixture, { admissionOverrides: { schemaVersion: 1 } });
+  const admission = readJson(fixture.root, ADMISSION_PATH);
+  assert.equal(admission.schemaVersion, 1);
+  assert.equal(Object.hasOwn(admission, 'admittedPublicationInputs'), false);
+  write(fixture.root, CONSUMPTION_PATH, bytesOf({
+    cohort: [{ path: TRACKED_TARGET, sha256: sha256(COMMITTED_BYTES) }]
+  }));
+  const report = publish(fixture);
+  assert.equal(report.decision, 'ALREADY_APPLIED', JSON.stringify(report.findings));
+  assert.equal(fs.existsSync(path.join(fixture.root, 'governance', 'transactions')), false);
+  assert.equal(sha256(fs.readFileSync(path.join(fixture.root, ...TRACKED_TARGET.split('/')))), sha256(COMMITTED_BYTES));
+});
+
+test('B12 a first-use schemaVersion 1 publication stops with PUBLICATION_INPUT_BINDING_ABSENT', () => {
+  const fixture = makeFixtureRepository();
+  installChain(fixture, { admissionOverrides: { schemaVersion: 1 } });
+  const beforeTracked = sha256(fs.readFileSync(path.join(fixture.root, ...TRACKED_TARGET.split('/'))));
+  const report = publish(fixture);
+  assert.equal(report.decision, 'BLOCKED');
+  assert.equal(report.findings[0].code, 'PUBLICATION_INPUT_BINDING_ABSENT');
+  assertNoPublicationWrite(fixture, beforeTracked);
+});
+
+test('B13 historical schemaVersion 1 admission digests recompute to their stored bytes', () => {
+  const samples = [
+    'governance/authority/publication-admissions/GATE20/GATE20_REPAIR_B_PUBLICATION_ADMISSION_R1.json',
+    'governance/authority/publication-admissions/GATE27/JARVISE_DH_2011_WU1_PUBLICATION_ADMISSION.json'
+  ];
+  for (const relativePath of samples) {
+    const admission = JSON.parse(fs.readFileSync(path.join(repoRoot, ...relativePath.split('/')), 'utf8'));
+    assert.equal(admission.schemaVersion, 1);
+    assert.equal(Object.hasOwn(admission, 'admittedPublicationInputs'), false);
+    assert.equal(computeMaintenancePublicationAdmissionDigest(admission), admission.admissionDigest, relativePath);
+  }
+});
+
+test('B14 schemaVersion 2 rejects a missing admittedPublicationInputs field and schemaVersion 1 rejects it as extra', () => {
+  const schema = JSON.parse(fs.readFileSync(path.join(repoRoot, 'governance', 'schemas', 'maintenance-publication-admission.schema.json'), 'utf8'));
+  const fixture = makeFixtureRepository();
+  const v2doc = installChain(fixture).admission;
+  const v2Result = validateAgainstJsonSchema(v2doc, schema.definitions.admissionV2);
+  assert.equal(v2Result.valid, true, JSON.stringify(v2Result.errors));
+  const missing = { ...v2doc };
+  delete missing.admittedPublicationInputs;
+  const missingResult = validateAgainstJsonSchema(missing, schema.definitions.admissionV2);
+  assert.equal(missingResult.valid, false);
+  assert.ok(missingResult.errors.some((error) => error.reason === 'MISSING_REQUIRED' && error.jsonPointer.endsWith('/admittedPublicationInputs')));
+
+  const v1doc = { ...v2doc, schemaVersion: 1 };
+  delete v1doc.admittedPublicationInputs;
+  v1doc.admissionDigest = computeMaintenancePublicationAdmissionDigest(v1doc);
+  const v1Result = validateAgainstJsonSchema(v1doc, schema.definitions.admissionV1);
+  assert.equal(v1Result.valid, true, JSON.stringify(v1Result.errors));
+  const extra = { ...v1doc, admittedPublicationInputs: v2doc.admittedPublicationInputs };
+  const extraResult = validateAgainstJsonSchema(extra, schema.definitions.admissionV1);
+  assert.equal(extraResult.valid, false);
+  assert.ok(extraResult.errors.some((error) => error.reason === 'ADDITIONAL_PROPERTY_FORBIDDEN' && error.jsonPointer.endsWith('/admittedPublicationInputs')));
+});
+
+test('B15 the prospective WU2 binding reproduces the audited P3 cohort digest and the P4 hash in memory', () => {
+  const buildRoot = 'C:/Users/melan/JarviseDurable/JARVISE_DH_2011_WU2B_BUILD_R6';
+  const p4Root = 'C:/Users/melan/JarviseDurable/JARVISE_DH_2011_WU2_P4_R6_AUDIT_PERSISTENCE_R1';
+  const authority = JSON.parse(fs.readFileSync(path.join(buildRoot, 'governing', 'GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_JARVISE_DH_2011_WU2.json'), 'utf8'));
+  const manifest = JSON.parse(fs.readFileSync(path.join(buildRoot, 'governing', 'JARVISE_DH_2011_WU2_AUTHORIZED_PATHS.json'), 'utf8'));
+  const p7 = authority.consumptionRecordPath;
+  const rows = [];
+  for (const item of manifest.paths) {
+    if (item.path === p7) continue;
+    const candidateFile = path.join(buildRoot, 'CANDIDATE_ROOT', ...item.path.split('/'));
+    const externalFile = path.join(p4Root, ...item.path.split('/'));
+    const candidateBytes = fs.existsSync(candidateFile) && fs.statSync(candidateFile).isFile() ? fs.readFileSync(candidateFile) : null;
+    const bytes = candidateBytes ?? fs.readFileSync(externalFile);
+    rows.push({
+      path: item.path,
+      sha256: sha256(bytes),
+      byteLength: bytes.length,
+      inCandidateCohort: candidateBytes !== null
+    });
+  }
+  const inputs = buildAdmittedPublicationInputs(rows);
+  const cohort = inputs.entries.filter((entry) => entry.inCandidateCohort);
+  const external = inputs.entries.filter((entry) => entry.inCandidateCohort === false);
+  assert.equal(cohort.length, 81);
+  assert.equal(inputs.candidateCohort.digest, '1a1cf5f77e55d0d7afe56c73f3c50960c20e7c82b796bec163ea78bb0e18cae9');
+  assert.equal(computeAdmittedPublicationInputCohortDigest(inputs.entries), inputs.candidateCohort.digest);
+  assert.equal(external.length, 1);
+  assert.equal(external[0].sha256, '0f4d4f43a07ec5e2b58c65fdfebd75cfbb7798dd9f58a39a8255da6f7e741538');
+  assert.equal(external[0].byteLength, 12282);
+  assert.equal(inputs.entries.some((entry) => entry.path === p7), false);
+});
+
+/* =================================================================== *
+ *  ADMISSION IDENTITY BETWEEN RESOLUTION AND BINDING ENFORCEMENT.
+ *
+ *  The substitution is deterministic: a filesystem hook fires on a fixed
+ *  publisher event and replaces the admission file on disk. No timing, no
+ *  second process. Every mutating fs call under the fixture root made by the
+ *  publisher is recorded; the hook's own write goes through the saved original.
+ * =================================================================== */
+
+const MUTATING_FS_METHODS = [
+  'writeFileSync', 'appendFileSync', 'mkdirSync', 'renameSync', 'rmSync', 'rmdirSync', 'unlinkSync',
+  'copyFileSync', 'cpSync', 'symlinkSync', 'linkSync', 'truncateSync', 'openSync'
+];
+let recorderPaused = false;
+/** The attacker write: through the original fs, and never counted as a publisher write. */
+function attackerWrite(file, bytes) {
+  recorderPaused = true;
+  try { ORIGINAL_FS.writeFileSync(file, bytes); } finally { recorderPaused = false; }
+}
+const ORIGINAL_FS = Object.fromEntries(['existsSync', 'readFileSync', ...MUTATING_FS_METHODS].map((name) => [name, fs[name]]));
+
+function underRoot(root, candidate) {
+  if (typeof candidate !== 'string') return false;
+  const relative = path.relative(root, path.resolve(candidate));
+  return relative === '' || (!relative.startsWith('..') && !path.isAbsolute(relative));
+}
+
+function withPublisherHooks(root, { onExists = null, afterRead = null }, run) {
+  const writes = [];
+  for (const name of MUTATING_FS_METHODS) {
+    fs[name] = function hooked(...args) {
+      const readOnlyOpen = name === 'openSync' && (args[1] === undefined || args[1] === 'r' || args[1] === fs.constants.O_RDONLY);
+      if (!recorderPaused && !readOnlyOpen && underRoot(root, args[0])) writes.push(`${name}:${path.relative(root, path.resolve(args[0])).split(path.sep).join('/')}`);
+      return ORIGINAL_FS[name].apply(this, args);
+    };
+  }
+  fs.existsSync = function hookedExists(candidate) {
+    if (onExists) onExists(candidate);
+    return ORIGINAL_FS.existsSync.call(this, candidate);
+  };
+  fs.readFileSync = function hookedRead(candidate, options) {
+    const result = ORIGINAL_FS.readFileSync.call(this, candidate, options);
+    if (afterRead) afterRead(candidate, options);
+    return result;
+  };
+  module.syncBuiltinESMExports();
+  try {
+    return { report: run(), writes };
+  } finally {
+    for (const [name, original] of Object.entries(ORIGINAL_FS)) fs[name] = original;
+    module.syncBuiltinESMExports();
+  }
+}
+
+function treeIdentity(root) {
+  const out = {};
+  const walk = (directory, relative) => {
+    for (const entry of ORIGINAL_FS.existsSync(directory) ? fs.readdirSync(directory, { withFileTypes: true }) : []) {
+      if (!relative && entry.name === '.git') continue;
+      const rel = relative ? `${relative}/${entry.name}` : entry.name;
+      const full = path.join(directory, entry.name);
+      if (entry.isDirectory()) { out[`${rel}/`] = 'DIR'; walk(full, rel); } else out[rel] = sha256(ORIGINAL_FS.readFileSync(full));
+    }
+  };
+  walk(root, '');
+  return out;
+}
+
+/** Admission B: syntactically valid, digest-consistent, but rebound to substitute bytes. */
+function substituteAdmission(admissionA, substituteBytes) {
+  const admissionB = JSON.parse(JSON.stringify(admissionA));
+  const entry = admissionB.admittedPublicationInputs.entries.find((item) => item.path === NEW_TARGET);
+  entry.sha256 = sha256(substituteBytes);
+  entry.byteLength = substituteBytes.length;
+  admissionB.admittedPublicationInputs.candidateCohort.digest = computeAdmittedPublicationInputCohortDigest(admissionB.admittedPublicationInputs.entries);
+  admissionB.admissionDigest = computeMaintenancePublicationAdmissionDigest(admissionB);
+  return admissionB;
+}
+
+const isFile = (candidate, relativePath) => typeof candidate === 'string'
+  && path.resolve(candidate).toLowerCase().endsWith(path.join(...relativePath.split('/')).toLowerCase());
+
+test('B16 TOCTOU: admission A validated, file replaced by a valid admission B before binding -> BLOCKED, zero writes', () => {
+  const fixture = makeFixtureRepository();
+  const chain = installChain(fixture);
+  const substitute = Buffer.from('export const created = "SUBSTITUTE";\n', 'utf8');
+  const admissionB = substituteAdmission(chain.admission, substitute);
+  assert.equal(validateMaintenancePublicationAdmissionShape(admissionB).valid, true, 'B must be a syntactically valid admission');
+  assert.notEqual(admissionB.admissionDigest, chain.admission.admissionDigest);
+  const candidates = candidateSet(fixture);
+  candidates.set(NEW_TARGET, substitute);
+  // B alone would bind the substitute: the attack is real only if the binding check is fed B.
+  const targets = [...candidates.keys()];
+  assert.equal(evaluateAdmittedPublicationInputs({ admission: admissionB, targets, supplied: candidates, generatedPaths: [CONSUMPTION_PATH] }).accepted, true);
+
+  const before = treeIdentity(fixture.root);
+  let replaced = 0;
+  // Fires on the publisher's consumption-record existence check: after the resolver
+  // accepted A, before the binding reads the admission again.
+  const { report, writes } = withPublisherHooks(fixture.root, {
+    onExists: (candidate) => {
+      if (replaced === 0 && isFile(candidate, CONSUMPTION_PATH)) {
+        replaced += 1;
+        attackerWrite(path.join(fixture.root, ...ADMISSION_PATH.split('/')), bytesOf(admissionB));
+      }
+    }
+  }, () => publishWith(fixture, candidates));
+  assert.equal(replaced, 1, 'the deterministic substitution must have fired');
+  assert.equal(report.decision, 'BLOCKED', JSON.stringify(report));
+  assert.equal(report.stage, 'PUBLICATION_INPUT');
+  assert.deepEqual(report.findings.map((finding) => finding.code), ['PUBLICATION_ADMISSION_BYTES_DRIFTED']);
+  assert.deepEqual(report.published, []);
+  assert.deepEqual(writes, [], 'no publisher write of any kind may precede the STOP');
+  assert.equal(fs.existsSync(path.join(fixture.root, 'governance', 'transactions')), false);
+  const after = treeIdentity(fixture.root);
+  const changed = Object.keys({ ...before, ...after }).filter((key) => before[key] !== after[key]);
+  assert.deepEqual(changed, [ADMISSION_PATH], 'only the attacker substitution itself differs');
+  assert.equal(git(fixture.root, ['rev-parse', 'HEAD']).trim(), fixture.head);
+});
+
+test('B17 TOCTOU inside resolution: A parsed, B hashed -> the digest identity check stops it, zero writes', () => {
+  const fixture = makeFixtureRepository();
+  const chain = installChain(fixture);
+  const substitute = Buffer.from('export const created = "SUBSTITUTE";\n', 'utf8');
+  const admissionB = substituteAdmission(chain.admission, substitute);
+  const candidates = candidateSet(fixture);
+  candidates.set(NEW_TARGET, substitute);
+  const before = treeIdentity(fixture.root);
+  let replaced = 0;
+  // Fires right after the resolver parses A, so the resolver's later file hash is of B
+  // and the byte check alone would pass: the identity digest must refuse it.
+  const { report, writes } = withPublisherHooks(fixture.root, {
+    afterRead: (candidate, options) => {
+      const encoding = typeof options === 'string' ? options : options?.encoding;
+      if (replaced === 0 && encoding === 'utf8' && isFile(candidate, ADMISSION_PATH)) {
+        replaced += 1;
+        attackerWrite(path.join(fixture.root, ...ADMISSION_PATH.split('/')), bytesOf(admissionB));
+      }
+    }
+  }, () => publishWith(fixture, candidates));
+  assert.equal(replaced, 1);
+  assert.equal(report.decision, 'BLOCKED', JSON.stringify(report));
+  assert.equal(report.stage, 'PUBLICATION_INPUT');
+  assert.deepEqual(report.findings.map((finding) => finding.code), ['PUBLICATION_ADMISSION_DIGEST_DRIFTED']);
+  assert.deepEqual(report.published, []);
+  assert.deepEqual(writes, []);
+  assert.equal(fs.existsSync(path.join(fixture.root, 'governance', 'transactions')), false);
+  const after = treeIdentity(fixture.root);
+  assert.deepEqual(Object.keys({ ...before, ...after }).filter((key) => before[key] !== after[key]), [ADMISSION_PATH]);
+});
+
+test('B18 the unchanged validated admission under the same hook is APPLIED, and the write recorder sees the transaction', () => {
+  const fixture = makeFixtureRepository();
+  installChain(fixture);
+  const admissionBytes = fs.readFileSync(path.join(fixture.root, ...ADMISSION_PATH.split('/')));
+  let rewritten = 0;
+  const { report, writes } = withPublisherHooks(fixture.root, {
+    onExists: (candidate) => {
+      if (rewritten === 0 && isFile(candidate, CONSUMPTION_PATH)) {
+        rewritten += 1;
+        attackerWrite(path.join(fixture.root, ...ADMISSION_PATH.split('/')), admissionBytes);
+      }
+    }
+  }, () => publish(fixture));
+  assert.equal(rewritten, 1);
+  assert.equal(report.decision, 'APPLIED', JSON.stringify(report.findings));
+  assert.ok(writes.some((entry) => entry.includes('governance/transactions')), 'the recorder must observe transactional writes');
+  assert.equal(fs.existsSync(path.join(fixture.root, ...CONSUMPTION_PATH.split('/'))), true);
+});
+
+test('B19 the bound-input path pattern matches the production literal-path rule', () => {
+  const schema = JSON.parse(fs.readFileSync(path.join(repoRoot, 'governance', 'schemas', 'maintenance-publication-admission.schema.json'), 'utf8'));
+  const fixture = makeFixtureRepository();
+  const v2doc = installChain(fixture).admission;
+  const withPath = (entryPath) => {
+    const doc = JSON.parse(JSON.stringify(v2doc));
+    doc.admittedPublicationInputs.entries[0].path = entryPath;
+    return validateAgainstJsonSchema(doc, schema.definitions.admissionV2);
+  };
+  for (const accepted of [
+    'governance/sources/JARVISE_DH_2011_WU2_EXTERNAL_REINSPECTION_REPORT.json',
+    'data/jarvise/session-calendar-xnys-v3/XNYS/2010/PROVENANCE.json',
+    'research/directional-lab/test/jarvise-session-calendar-xnys-v3.test.mjs',
+    'scripts/buildJarviseSessionCalendarXNYSV3.mjs'
+  ]) {
+    assert.equal(isExactMaintenancePath(accepted), true, accepted);
+    const result = withPath(accepted);
+    assert.equal(result.valid, true, `${accepted} ${JSON.stringify(result.errors)}`);
+  }
+  for (const rejected of ['/abs/x.json', 'data//x.json', 'data/x/', '../escape.json', 'data/./x.json']) {
+    assert.equal(isExactMaintenancePath(rejected), false, rejected);
+    const result = withPath(rejected);
+    assert.equal(result.valid, false, rejected);
+    assert.ok(result.errors.some((error) => error.reason === 'PATTERN_MISMATCH' && error.jsonPointer.endsWith('/entries/0/path')), rejected);
   }
 });

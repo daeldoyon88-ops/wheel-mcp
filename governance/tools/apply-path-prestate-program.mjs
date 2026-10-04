@@ -57,7 +57,9 @@ import {
 } from '../gee-v1/core/post-freeze-maintenance-authority.mjs';
 import { evaluateMaintenanceSourceAdmissibility, MODE_PUBLICATION } from '../gee-v1/core/maintenance-publication-admissibility.mjs';
 import { resolveHistoricalIdentityDecision } from '../gee-v1/core/historical-admission-bridge.mjs';
-import { admissionCitation, resolveMaintenancePublicationAdmission } from '../gee-v1/core/maintenance-publication-admission.mjs';
+import {
+  admissionCitation, computeMaintenancePublicationAdmissionDigest, evaluateAdmittedPublicationInputs, resolveMaintenancePublicationAdmission
+} from '../gee-v1/core/maintenance-publication-admission.mjs';
 import { applyCandidate } from './gate-lifecycle-orchestrator.mjs';
 import { MAINTENANCE_PROGRAM_CASE_TYPE } from './transaction-provenance.mjs';
 import { collectPostFreezeMaintenanceObservation, resolveMaintenancePath } from './post-freeze-maintenance-observation.mjs';
@@ -209,6 +211,43 @@ export function applyPathPrestateProgram({
   if (bootstrapReceiptPresent) {
     return blocked('REPLAY', [{ code: 'AUTHORITY_ALREADY_CONSUMED' }, { code: 'BOOTSTRAP_RECEIPT_PRESENT_WITHOUT_V2_RECEIPT', detail: bootstrapReceiptPath }]);
   }
+
+  // Content binding is enforced only for a first publication. An already-applied
+  // schemaVersion 1 receipt returned above and is not re-bound. A mismatch here
+  // is before bootstrap composition, the consumption receipt, and every
+  // transaction or canonical write.
+  //
+  // THE BINDING IS READ FROM THE ADMISSION THE RESOLVER ACCEPTED, AND PROVEN TO BE IT.
+  // This read is a second observation of a mutable path, so the record is never
+  // trusted for being at the admitted path. Its exact bytes must hash to the record
+  // the resolver accepted, and the record parsed FROM THOSE BYTES must seal to the
+  // identity digest the Owner registry bound. Either difference is admission drift.
+  const admissionRecordFile = resolveMaintenancePath(root, publicationAdmission.admissionPath);
+  if (!admissionRecordFile || !fs.existsSync(admissionRecordFile)) {
+    return blocked('PUBLICATION_INPUT', [{ code: 'PUBLICATION_INPUT_BINDING_ABSENT', detail: publicationAdmission.admissionPath ?? null }]);
+  }
+  const admissionRecordBytes = fs.readFileSync(admissionRecordFile);
+  if (!/^[0-9a-f]{64}$/.test(publicationAdmission.admissionSha256 ?? '') || sha256(admissionRecordBytes) !== publicationAdmission.admissionSha256) {
+    return blocked('PUBLICATION_INPUT', [{ code: 'PUBLICATION_ADMISSION_BYTES_DRIFTED', detail: publicationAdmission.admissionPath }]);
+  }
+  let admissionRecord;
+  try {
+    admissionRecord = JSON.parse(admissionRecordBytes.toString('utf8').replace(/^﻿/, ''));
+  } catch {
+    return blocked('PUBLICATION_INPUT', [{ code: 'PUBLICATION_ADMISSION_DIGEST_DRIFTED', detail: publicationAdmission.admissionPath }]);
+  }
+  if (!/^[0-9a-f]{64}$/.test(publicationAdmission.admissionDigest ?? '')
+    || admissionRecord?.admissionDigest !== publicationAdmission.admissionDigest
+    || computeMaintenancePublicationAdmissionDigest(admissionRecord) !== publicationAdmission.admissionDigest) {
+    return blocked('PUBLICATION_INPUT', [{ code: 'PUBLICATION_ADMISSION_DIGEST_DRIFTED', detail: publicationAdmission.admissionPath }]);
+  }
+  const inputBinding = evaluateAdmittedPublicationInputs({
+    admission: admissionRecord,
+    targets,
+    supplied: candidates,
+    generatedPaths: [consumptionPath, ...(bootstrapReceiptReserved ? [bootstrapReceiptPath] : [])]
+  });
+  if (!inputBinding.accepted) return blocked('PUBLICATION_INPUT', inputBinding.findings);
 
   /* ---- 0. BOOTSTRAP TRUST BOUNDARY ----------------------------------- */
   //

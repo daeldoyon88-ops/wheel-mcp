@@ -69,7 +69,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
 
-import { sha256Canonical } from '../../tools/canonical-json.mjs';
+import { canonicalize, sha256Bytes, sha256Canonical } from '../../tools/canonical-json.mjs';
+import { isExactMaintenancePath } from './post-freeze-maintenance-authority.mjs';
 
 export const MAINTENANCE_PUBLICATION_ADMISSION_DOCUMENT = 'MAINTENANCE_PUBLICATION_ADMISSION';
 export const MAINTENANCE_PUBLICATION_ADMISSION_VERSION = 'R1';
@@ -188,6 +189,167 @@ export const ADMISSION_FIELDS = Object.freeze([
 
 export const ADMISSION_BOUND_OBJECT_FIELDS = Object.freeze(['path', 'sha256', 'byteLength', 'schemaVersion', 'documentId']);
 
+/** schemaVersion 2 adds one sealed field. schemaVersion 1 keeps ADMISSION_FIELDS exactly. */
+export const ADMISSION_V2_FIELDS = Object.freeze([
+  ...ADMISSION_FIELDS.slice(0, ADMISSION_FIELDS.indexOf('admissionStatement') + 1),
+  'admittedPublicationInputs',
+  ...ADMISSION_FIELDS.slice(ADMISSION_FIELDS.indexOf('admissionStatement') + 1)
+]);
+
+export const PUBLICATION_INPUT_COHORT_ALGORITHM = 'SHA256_CANONICAL_JSON_SORTED_BYTES_PATH_SHA_LF_V1';
+const PUBLICATION_INPUT_FIELDS = Object.freeze(['entries', 'candidateCohort']);
+const PUBLICATION_INPUT_ENTRY_FIELDS = Object.freeze(['path', 'sha256', 'byteLength', 'inCandidateCohort']);
+const PUBLICATION_INPUT_COHORT_FIELDS = Object.freeze(['algorithm', 'digest']);
+
+function compareOrdinalPath(left, right) {
+  if (left < right) return -1;
+  if (left > right) return 1;
+  return 0;
+}
+
+function projectAdmittedPublicationInputs(inputs) {
+  const sourceEntries = Array.isArray(inputs?.entries) ? inputs.entries : [];
+  const entries = sourceEntries.map((entry) => ({
+    path: entry?.path ?? null,
+    sha256: entry?.sha256 ?? null,
+    byteLength: entry?.byteLength ?? null,
+    inCandidateCohort: entry?.inCandidateCohort ?? null
+  })).sort((left, right) => compareOrdinalPath(String(left.path), String(right.path)));
+  return {
+    candidateCohort: {
+      algorithm: inputs?.candidateCohort?.algorithm ?? null,
+      digest: inputs?.candidateCohort?.digest ?? null
+    },
+    entries
+  };
+}
+
+/**
+ * SHA256_CANONICAL_JSON_SORTED_BYTES_PATH_SHA_LF_V1.
+ * Project inCandidateCohort entries to {bytes, path, sha256}, sort by ordinal
+ * path, canonicalize, append one LF, then SHA-256. The WU2 P3 digest is a
+ * reference input for tests, not a constant of this function.
+ */
+export function computeAdmittedPublicationInputCohortDigest(entries) {
+  const projected = [];
+  for (const entry of entries ?? []) {
+    if (entry?.inCandidateCohort !== true) continue;
+    projected.push({ bytes: entry.byteLength, path: entry.path, sha256: entry.sha256 });
+  }
+  projected.sort((left, right) => compareOrdinalPath(left.path, right.path));
+  const canonical = canonicalize(projected);
+  return sha256Bytes(Buffer.concat([Buffer.from(canonical, 'utf8'), Buffer.from([0x0A])]));
+}
+
+export function buildAdmittedPublicationInputs(entries) {
+  const normalized = entries.map((entry) => ({
+    path: entry.path,
+    sha256: entry.sha256,
+    byteLength: entry.byteLength,
+    inCandidateCohort: entry.inCandidateCohort === true
+  })).sort((left, right) => compareOrdinalPath(left.path, right.path));
+  return {
+    entries: normalized,
+    candidateCohort: {
+      algorithm: PUBLICATION_INPUT_COHORT_ALGORITHM,
+      digest: computeAdmittedPublicationInputCohortDigest(normalized)
+    }
+  };
+}
+
+export function validateAdmittedPublicationInputsShape(inputs) {
+  if (!inputs || typeof inputs !== 'object' || Array.isArray(inputs)) return shapeFinding('PUBLICATION_INPUT_BINDING_ABSENT');
+  const unknown = firstUnknownField(inputs, PUBLICATION_INPUT_FIELDS);
+  if (unknown !== null) return shapeFinding('ADMISSION_UNKNOWN_FIELD', 'admittedPublicationInputs.' + unknown);
+  if (!Array.isArray(inputs.entries)) return shapeFinding('PUBLICATION_INPUT_BINDING_ABSENT', 'entries');
+  const seen = new Set();
+  let previousPath = null;
+  for (const entry of inputs.entries) {
+    if (!entry || typeof entry !== 'object' || Array.isArray(entry)) return shapeFinding('PUBLICATION_INPUT_BINDING_ABSENT', 'entry');
+    const unknownEntry = firstUnknownField(entry, PUBLICATION_INPUT_ENTRY_FIELDS);
+    if (unknownEntry !== null) return shapeFinding('ADMISSION_UNKNOWN_FIELD', 'admittedPublicationInputs.entries.' + unknownEntry);
+    if (!isExactMaintenancePath(entry.path)) return shapeFinding('PUBLICATION_INPUT_BINDING_PATH_INVALID', entry.path ?? null);
+    if (!SHA256_RE.test(entry.sha256 ?? '')) return shapeFinding('PUBLICATION_INPUT_BINDING_SHA256_MISMATCH', entry.path);
+    if (!Number.isInteger(entry.byteLength) || entry.byteLength < 0) return shapeFinding('PUBLICATION_INPUT_BINDING_LENGTH_MISMATCH', entry.path);
+    if (typeof entry.inCandidateCohort !== 'boolean') return shapeFinding('PUBLICATION_INPUT_BINDING_ABSENT', entry.path);
+    if (seen.has(entry.path)) return shapeFinding('PUBLICATION_INPUT_BINDING_DUPLICATE_PATH', entry.path);
+    seen.add(entry.path);
+    if (previousPath !== null && compareOrdinalPath(previousPath, entry.path) >= 0) {
+      return shapeFinding('PUBLICATION_INPUT_BINDING_ENTRIES_UNSORTED', entry.path);
+    }
+    previousPath = entry.path;
+  }
+  const cohort = inputs.candidateCohort;
+  if (!cohort || typeof cohort !== 'object' || Array.isArray(cohort)) return shapeFinding('PUBLICATION_INPUT_BINDING_COHORT_DIGEST_MISMATCH');
+  const unknownCohort = firstUnknownField(cohort, PUBLICATION_INPUT_COHORT_FIELDS);
+  if (unknownCohort !== null) return shapeFinding('ADMISSION_UNKNOWN_FIELD', 'admittedPublicationInputs.candidateCohort.' + unknownCohort);
+  if (cohort.algorithm !== PUBLICATION_INPUT_COHORT_ALGORITHM) {
+    return shapeFinding('PUBLICATION_INPUT_BINDING_COHORT_ALGORITHM_UNSUPPORTED', cohort.algorithm ?? null);
+  }
+  if (!SHA256_RE.test(cohort.digest ?? '')) return shapeFinding('PUBLICATION_INPUT_BINDING_COHORT_DIGEST_MISMATCH', cohort.digest ?? null);
+  return { valid: true, findings: [] };
+}
+
+/**
+ * Compare caller-supplied publication bytes with the sealed v2 binding.
+ * targets are the authorized caller paths, excluding publisher-generated paths.
+ * generatedPaths must not appear in the binding.
+ */
+export function evaluateAdmittedPublicationInputs({ admission, targets, supplied, generatedPaths = [] }) {
+  if (!admission || admission.schemaVersion !== 2) {
+    return { accepted: false, findings: [{ code: 'PUBLICATION_INPUT_BINDING_ABSENT', detail: admission?.schemaVersion ?? null }] };
+  }
+  const shape = validateAdmittedPublicationInputsShape(admission.admittedPublicationInputs);
+  if (!shape.valid) return { accepted: false, findings: shape.findings };
+  const generated = new Set((generatedPaths ?? []).filter((value) => typeof value === 'string' && value.length > 0));
+  const targetList = Array.isArray(targets) ? targets : [];
+  const targetSet = new Set(targetList);
+  const entries = admission.admittedPublicationInputs.entries;
+  for (const entry of entries) {
+    if (generated.has(entry.path)) {
+      return { accepted: false, findings: [{ code: 'PUBLICATION_INPUT_BINDING_GENERATED_PATH_FORBIDDEN', detail: entry.path }] };
+    }
+  }
+  for (const target of targetList) {
+    if (generated.has(target)) {
+      return { accepted: false, findings: [{ code: 'PUBLICATION_INPUT_BINDING_GENERATED_PATH_FORBIDDEN', detail: target }] };
+    }
+  }
+  const byPath = new Map(entries.map((entry) => [entry.path, entry]));
+  for (const target of [...targetList].sort(compareOrdinalPath)) {
+    if (!byPath.has(target)) return { accepted: false, findings: [{ code: 'PUBLICATION_INPUT_BINDING_PATH_MISSING', detail: target }] };
+  }
+  for (const entry of entries) {
+    if (!targetSet.has(entry.path)) {
+      return { accepted: false, findings: [{ code: 'PUBLICATION_INPUT_BINDING_PATH_UNEXPECTED', detail: entry.path }] };
+    }
+  }
+  if (supplied && typeof supplied.keys === 'function') {
+    for (const suppliedPath of [...supplied.keys()].sort(compareOrdinalPath)) {
+      if (!targetSet.has(suppliedPath)) {
+        return { accepted: false, findings: [{ code: 'PUBLICATION_INPUT_BINDING_PATH_UNEXPECTED', detail: suppliedPath }] };
+      }
+    }
+  }
+  for (const target of [...targetList].sort(compareOrdinalPath)) {
+    const entry = byPath.get(target);
+    const bytes = supplied?.get?.(target);
+    if (!bytes) return { accepted: false, findings: [{ code: 'PUBLICATION_INPUT_BINDING_PATH_MISSING', detail: target }] };
+    if (bytes.length !== entry.byteLength) {
+      return { accepted: false, findings: [{ code: 'PUBLICATION_INPUT_BINDING_LENGTH_MISMATCH', detail: target }] };
+    }
+    const actual = crypto.createHash('sha256').update(bytes).digest('hex');
+    if (actual !== entry.sha256) {
+      return { accepted: false, findings: [{ code: 'PUBLICATION_INPUT_BINDING_SHA256_MISMATCH', detail: target }] };
+    }
+  }
+  const expectedCohort = computeAdmittedPublicationInputCohortDigest(entries);
+  if (admission.admittedPublicationInputs.candidateCohort.digest !== expectedCohort) {
+    return { accepted: false, findings: [{ code: 'PUBLICATION_INPUT_BINDING_COHORT_DIGEST_MISMATCH', detail: expectedCohort }] };
+  }
+  return { accepted: true, findings: [] };
+}
+
 export const ADMISSION_REGISTRY_FIELDS = Object.freeze([
   'document', 'schemaVersion', 'authorityId', 'authorityClass', 'authorityMode', 'issuedBy',
   'issuedAtUtc', 'decisionId', 'purpose', 'reexecutionAuthorized', 'grantsFutureBytePermission',
@@ -232,6 +394,10 @@ function isExactOwnerAuthorizationPath(value) {
  * admitted cannot be edited without the record failing its own recomputation, and
  * the back-reference stays outside the seal so the mutual binding is not
  * recursive.
+ *
+ * schemaVersion 1 seals exactly the object above. schemaVersion 2 adds
+ * admittedPublicationInputs and nothing else, so an existing v1 admissionDigest
+ * recomputes to the same bytes.
  */
 export function computeMaintenancePublicationAdmissionDigest(admission) {
   const bound = {};
@@ -248,7 +414,7 @@ export function computeMaintenancePublicationAdmissionDigest(admission) {
   for (const field of ADMITTED_PRESTATE_FIELDS) prestate[field] = admission?.admittedPrestate?.[field] ?? null;
   const denied = {};
   for (const field of ADMISSION_DENIED_PERMISSIONS) denied[field] = admission?.[field] ?? null;
-  return sha256Canonical({
+  const payload = {
     documentKind: MAINTENANCE_PUBLICATION_ADMISSION_DOCUMENT,
     admissionId: admission?.admissionId ?? null,
     decisionId: admission?.decisionId ?? null,
@@ -264,7 +430,9 @@ export function computeMaintenancePublicationAdmissionDigest(admission) {
     admittedPrestate: prestate,
     ...denied,
     ...bound
-  });
+  };
+  if (admission?.schemaVersion === 2) payload.admittedPublicationInputs = projectAdmittedPublicationInputs(admission.admittedPublicationInputs);
+  return sha256Canonical(payload);
 }
 
 /**
@@ -276,9 +444,10 @@ export function computeMaintenancePublicationAdmissionDigest(admission) {
 export function validateMaintenancePublicationAdmissionShape(admission) {
   if (!admission || typeof admission !== 'object' || Array.isArray(admission)) return shapeFinding('ADMISSION_ABSENT_OR_UNREADABLE');
   if (admission.documentKind !== MAINTENANCE_PUBLICATION_ADMISSION_DOCUMENT) return shapeFinding('ADMISSION_DOCUMENT_KIND_INVALID', admission.documentKind ?? null);
-  const unknownAdmissionField = firstUnknownField(admission, ADMISSION_FIELDS);
+  if (admission.schemaVersion !== 1 && admission.schemaVersion !== 2) return shapeFinding('ADMISSION_SCHEMA_VERSION_UNSUPPORTED', admission.schemaVersion ?? null);
+  const allowedAdmissionFields = admission.schemaVersion === 2 ? ADMISSION_V2_FIELDS : ADMISSION_FIELDS;
+  const unknownAdmissionField = firstUnknownField(admission, allowedAdmissionFields);
   if (unknownAdmissionField !== null) return shapeFinding('ADMISSION_UNKNOWN_FIELD', unknownAdmissionField);
-  if (admission.schemaVersion !== 1) return shapeFinding('ADMISSION_SCHEMA_VERSION_UNSUPPORTED', admission.schemaVersion ?? null);
   if (admission.authorityMode !== 'LOCAL_EXPLICIT_AUTHORITY') return shapeFinding('ADMISSION_AUTHORITY_MODE_INVALID', admission.authorityMode ?? null);
   if (admission.issuedBy !== 'PROJECT_OWNER') return shapeFinding('ADMISSION_ISSUER_INVALID', admission.issuedBy ?? null);
   if (!TOKEN_RE.test(admission.admissionId ?? '')) return shapeFinding('ADMISSION_ID_INVALID', admission.admissionId ?? null);
@@ -363,6 +532,11 @@ export function validateMaintenancePublicationAdmissionShape(admission) {
   // hash to seal itself.
   if (!isExactOwnerAuthorizationPath(admission.ownerAuthorizationPath)) return shapeFinding('ADMISSION_OWNER_AUTHORIZATION_PATH_INVALID', admission.ownerAuthorizationPath ?? null);
   if (!SHA256_RE.test(admission.ownerAuthorizationSha256 ?? '')) return shapeFinding('ADMISSION_OWNER_AUTHORIZATION_SHA_INVALID');
+
+  if (admission.schemaVersion === 2) {
+    const inputsShape = validateAdmittedPublicationInputsShape(admission.admittedPublicationInputs);
+    if (!inputsShape.valid) return inputsShape;
+  }
 
   const expected = computeMaintenancePublicationAdmissionDigest(admission);
   if (admission.admissionDigest !== expected) return shapeFinding('ADMISSION_DIGEST_MISMATCH', expected);
@@ -692,6 +866,9 @@ export function resolveMaintenancePublicationAdmission({
     ...evaluation,
     admissionPath: entry.path,
     admissionSha256: entry.sha256,
+    // The identity digest the Owner registry bound. A later reader of the record
+    // proves it holds this exact admission by recomputing it.
+    admissionDigest: admission.admissionDigest,
     ownerAuthorizationPath,
     ownerAuthorizationSha256: registryObserved.sha256,
     governingPaths

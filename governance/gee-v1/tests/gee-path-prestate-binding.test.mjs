@@ -27,7 +27,7 @@ import {
 } from '../core/post-freeze-maintenance-authority.mjs';
 import { collectPathPrestates, collectPostFreezeMaintenanceObservation, reconstructPathPrestates } from '../../tools/post-freeze-maintenance-observation.mjs';
 import { applyPathPrestateProgram } from '../../tools/apply-path-prestate-program.mjs';
-import { computeAdmissionRegistryDigest, computeMaintenancePublicationAdmissionDigest } from '../core/maintenance-publication-admission.mjs';
+import { buildAdmittedPublicationInputs, computeAdmissionRegistryDigest, computeMaintenancePublicationAdmissionDigest } from '../core/maintenance-publication-admission.mjs';
 
 const sha256 = (bytes) => crypto.createHash('sha256').update(bytes).digest('hex');
 
@@ -45,6 +45,7 @@ const ADMISSION_PATH = 'governance/authority/publication-admissions/GATE19/FIXTU
 const COMMITTED_BYTES = Buffer.from('export const value = 1;\n', 'utf8');
 const CANDIDATE_TRACKED = Buffer.from('export const value = 2;\n', 'utf8');
 const CANDIDATE_NEW = Buffer.from('export const created = true;\n', 'utf8');
+const CANDIDATE_NESTED = Buffer.from('export const nested = true;\n', 'utf8');
 
 function git(root, args) {
   return execFileSync('git', args, { cwd: root, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
@@ -156,7 +157,7 @@ function makeAuthority(fixture, manifestBytes) {
 /** Installs authority + manifest on disk, as every real program must. */
 function installPublicationAdmission(fixture, authority, manifest, manifestBytes, authorityBytes) {
   const admission = {
-    documentKind: 'MAINTENANCE_PUBLICATION_ADMISSION', schemaVersion: 1, authorityMode: 'LOCAL_EXPLICIT_AUTHORITY', issuedBy: 'PROJECT_OWNER',
+    documentKind: 'MAINTENANCE_PUBLICATION_ADMISSION', schemaVersion: 2, authorityMode: 'LOCAL_EXPLICIT_AUTHORITY', issuedBy: 'PROJECT_OWNER',
     admissionId: 'FIXTURE_PUBLICATION_ADMISSION_R1', decisionId: 'FIXTURE_PUBLICATION_OWNER_DECISION_R1', issuedAtUtc: '2026-08-15T00:00:00.000Z', expiresAtUtc: null,
     projectId: 'WHEEL', repositoryId: 'WHEEL_MCP_CANONICAL', gateId: 'GATE19', programId: authority.programId,
     purpose: 'MAINTENANCE_PUBLICATION_ADMISSION', publicationClass: 'PATH_PRESTATE_PROGRAM_PUBLISHER', authorityPurpose: 'NORMAL_MAINTENANCE', maxUse: 1,
@@ -168,6 +169,13 @@ function installPublicationAdmission(fixture, authority, manifest, manifestBytes
     grantsHistoricalAdmissionWidening: false, genericV1Admission: false, derivedFromGitDelta: false, derivedFromFinalGateIntegrityFindings: false,
     prohibitedOperations: ['START', 'SECOND_START', 'GATE_AUTHORIZATION', 'STATUS_TRANSITION', 'ACTIVE_GATE_SWITCH', 'GEE_R8', 'GIT_PUSH', 'HISTORY_REWRITE', 'GENERIC_V1_ADMISSION', 'HISTORICAL_ADMISSION_WIDENING', 'SELF_ADMISSION'],
     successorRequirement: 'A later publication requires a new exact Owner admission over a new exact pre-state.',
+    admittedPublicationInputs: buildAdmittedPublicationInputs([
+      [AUTHORITY_PATH, authorityBytes],
+      [MANIFEST_PATH, manifestBytes],
+      [TRACKED_TARGET, CANDIDATE_TRACKED],
+      [NEW_TARGET, CANDIDATE_NEW],
+      [NESTED_TARGET, CANDIDATE_NESTED]
+    ].map(([entryPath, bytes]) => ({ path: entryPath, sha256: sha256(bytes), byteLength: bytes.length, inCandidateCohort: true }))),
     admissionDigest: null, ownerAuthorizationPath: OWNER_AUTHORIZATION_PATH, ownerAuthorizationSha256: null
   };
   admission.admissionDigest = computeMaintenancePublicationAdmissionDigest(admission);
@@ -202,7 +210,7 @@ function candidateSet(fixture) {
     [MANIFEST_PATH, fs.readFileSync(path.join(fixture.root, ...MANIFEST_PATH.split('/')))],
     [TRACKED_TARGET, CANDIDATE_TRACKED],
     [NEW_TARGET, CANDIDATE_NEW],
-    [NESTED_TARGET, Buffer.from('export const nested = true;\n', 'utf8')]
+    [NESTED_TARGET, CANDIDATE_NESTED]
   ]);
 }
 

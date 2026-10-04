@@ -57,7 +57,7 @@ import {
   validateMaintenanceAuthorizedPathManifest,
   validatePostFreezeMaintenanceAuthorityV2Shape
 } from '../core/post-freeze-maintenance-authority.mjs';
-import { computeAdmissionRegistryDigest, computeMaintenancePublicationAdmissionDigest } from '../core/maintenance-publication-admission.mjs';
+import { buildAdmittedPublicationInputs, computeAdmissionRegistryDigest, computeMaintenancePublicationAdmissionDigest } from '../core/maintenance-publication-admission.mjs';
 import { collectPostFreezeMaintenanceObservation, observeCanonicalPreState } from '../../tools/post-freeze-maintenance-observation.mjs';
 import { applyPathPrestateProgram } from '../../tools/apply-path-prestate-program.mjs';
 
@@ -275,7 +275,7 @@ function buildRepairProgram(fixture, {
   const v2AuthorityBytes = jsonBytes(v2Authority);
 
   const admission = {
-    documentKind: 'MAINTENANCE_PUBLICATION_ADMISSION', schemaVersion: 1, authorityMode: 'LOCAL_EXPLICIT_AUTHORITY',
+    documentKind: 'MAINTENANCE_PUBLICATION_ADMISSION', schemaVersion: 2, authorityMode: 'LOCAL_EXPLICIT_AUTHORITY',
     issuedBy: 'PROJECT_OWNER', admissionId: `${programId}_PUBLICATION_ADMISSION`, decisionId: `OWNER_ADMIT_${programId}`,
     issuedAtUtc: V2_CREATED_AT, expiresAtUtc: null, projectId: 'WHEEL', repositoryId: 'WHEEL_MCP_CANONICAL',
     gateId: 'GATE26', programId, purpose: 'MAINTENANCE_PUBLICATION_ADMISSION', publicationClass: 'PATH_PRESTATE_PROGRAM_PUBLISHER',
@@ -289,18 +289,6 @@ function buildRepairProgram(fixture, {
     prohibitedOperations: ['START', 'SECOND_START', 'GATE_AUTHORIZATION', 'STATUS_TRANSITION', 'ACTIVE_GATE_SWITCH', 'GEE_R8', 'GIT_PUSH', 'HISTORY_REWRITE', 'GENERIC_V1_ADMISSION', 'HISTORICAL_ADMISSION_WIDENING', 'SELF_ADMISSION'],
     successorRequirement: 'fixture', admissionDigest: null, ownerAuthorizationPath: registryPath, ownerAuthorizationSha256: null
   };
-  admission.admissionDigest = computeMaintenancePublicationAdmissionDigest(admission);
-  const registry = {
-    document: 'MAINTENANCE_PUBLICATION_ADMISSION_OWNER_AUTHORIZATION', schemaVersion: 1, authorityId: `${programId}_OWNER_AUTHORIZATION`,
-    authorityClass: 'PROJECT_OWNER_MAINTENANCE_PUBLICATION_ADMISSION_AUTHORITY', authorityMode: 'LOCAL_EXPLICIT_AUTHORITY',
-    issuedBy: 'PROJECT_OWNER', issuedAtUtc: V2_CREATED_AT, decisionId: admission.decisionId, purpose: 'MAINTENANCE_PUBLICATION_ADMISSION',
-    reexecutionAuthorized: false, grantsFutureBytePermission: false, genericV1Admission: false,
-    admittedPublications: [{ admissionId: admission.admissionId, projectId: 'WHEEL', gateId: 'GATE26', programId, admissionPath, admissionDigest: admission.admissionDigest }],
-    registryDigest: null
-  };
-  registry.registryDigest = computeAdmissionRegistryDigest(registry);
-  const registryBytes = jsonBytes(registry);
-  admission.ownerAuthorizationSha256 = sha256(registryBytes);
 
   // The residual identity the Owner binds: recomputed from the fixture, the same
   // way the evaluator will recompute it. On an empty residual there is no subject:
@@ -336,6 +324,31 @@ function buildRepairProgram(fixture, {
     ...authorityOverrides
   };
 
+  const targetBytes = Buffer.from(`${JSON.stringify({ fixtureRepair: programId })}\n`, 'utf8');
+  // The self-excluded authority and manifest are still cohort members: their
+  // candidate bytes are the bytes already on disk, exactly as in the V2 battery.
+  // The bootstrap receipt is publisher-generated and is not pre-bound.
+  const candidates = new Map([
+    [v2AuthorityPath, v2AuthorityBytes], [manifestPath, manifestBytes], [targetPath, targetBytes],
+    ...extraEntries.filter((item) => item.operation === 'CREATE' && item.path !== paths.receiptPath).map((item) => [item.path, Buffer.from('fixture\n')]),
+    ...extraCandidates.filter((item) => item[0] !== paths.receiptPath)
+  ]);
+  admission.admittedPublicationInputs = buildAdmittedPublicationInputs([...candidates].map(([entryPath, bytes]) => ({
+    path: entryPath, sha256: sha256(bytes), byteLength: bytes.length, inCandidateCohort: true
+  })));
+  admission.admissionDigest = computeMaintenancePublicationAdmissionDigest(admission);
+  const registry = {
+    document: 'MAINTENANCE_PUBLICATION_ADMISSION_OWNER_AUTHORIZATION', schemaVersion: 1, authorityId: `${programId}_OWNER_AUTHORIZATION`,
+    authorityClass: 'PROJECT_OWNER_MAINTENANCE_PUBLICATION_ADMISSION_AUTHORITY', authorityMode: 'LOCAL_EXPLICIT_AUTHORITY',
+    issuedBy: 'PROJECT_OWNER', issuedAtUtc: V2_CREATED_AT, decisionId: admission.decisionId, purpose: 'MAINTENANCE_PUBLICATION_ADMISSION',
+    reexecutionAuthorized: false, grantsFutureBytePermission: false, genericV1Admission: false,
+    admittedPublications: [{ admissionId: admission.admissionId, projectId: 'WHEEL', gateId: 'GATE26', programId, admissionPath, admissionDigest: admission.admissionDigest }],
+    registryDigest: null
+  };
+  registry.registryDigest = computeAdmissionRegistryDigest(registry);
+  const registryBytes = jsonBytes(registry);
+  admission.ownerAuthorizationSha256 = sha256(registryBytes);
+
   const written = [manifestPath, v2AuthorityPath, admissionPath, registryPath];
   writeBytes(root, manifestPath, manifestBytes);
   writeBytes(root, v2AuthorityPath, v2AuthorityBytes);
@@ -343,14 +356,6 @@ function buildRepairProgram(fixture, {
   writeBytes(root, registryPath, registryBytes);
   if (writeDecision) { writeBytes(root, paths.ownerDecisionPath, decisionBytes); written.push(paths.ownerDecisionPath); }
   if (writeBootstrapAuthority) { writeBytes(root, paths.authorityPath, jsonBytes(bootstrapAuthority)); written.push(paths.authorityPath); }
-  const targetBytes = Buffer.from(`${JSON.stringify({ fixtureRepair: programId })}\n`, 'utf8');
-  // The self-excluded authority and manifest are still cohort members: their
-  // candidate bytes are the bytes already on disk, exactly as in the V2 battery.
-  const candidates = new Map([
-    [v2AuthorityPath, v2AuthorityBytes], [manifestPath, manifestBytes], [targetPath, targetBytes],
-    ...extraEntries.filter((item) => item.operation === 'CREATE').map((item) => [item.path, Buffer.from('fixture\n')]),
-    ...extraCandidates
-  ]);
   const cleanup = () => {
     for (const relativePath of [...written, consumptionPath, paths.receiptPath, targetPath, ...extraEntries.map((item) => item.path)]) {
       if (!BOOTSTRAP_PROTECTED_CONTROL_SURFACE.includes(relativePath) && relativePath !== LEDGER_PATH) remove(root, relativePath);
@@ -365,7 +370,7 @@ function buildRepairProgram(fixture, {
   });
   return {
     paths, programId, v2AuthorityPath, v2Authority, manifestPath, manifest, manifestBytes, consumptionPath, targetPath,
-    decision, bootstrapAuthority, residualIdentitySha256, candidates, cleanup, evaluate, publish
+    admissionPath, admission, decision, bootstrapAuthority, residualIdentitySha256, candidates, cleanup, evaluate, publish
   };
 }
 
@@ -890,6 +895,18 @@ test('G05 after Genesis, a second publisher succession on an empty FULL residual
 /* ======================================================================== */
 /* PUBLISHER: receipts, replay, closure                                       */
 /* ======================================================================== */
+
+test('R00 the publisher-generated bootstrap receipt and consumption record stay unbound and are still written', () => {
+  withProgram({}, (program) => {
+    const bound = program.admission.admittedPublicationInputs.entries.map((entry) => entry.path);
+    assert.equal(bound.includes(program.paths.receiptPath), false);
+    assert.equal(bound.includes(program.consumptionPath), false);
+    const report = program.publish();
+    assert.equal(report.decision, 'APPLIED', JSON.stringify(report.findings));
+    assert.equal(exists(shared.root, program.paths.receiptPath), true);
+    assert.equal(exists(shared.root, program.consumptionPath), true);
+  });
+});
 
 test('R01 a forged or pre-existing bootstrap receipt before publication is a consumed authority; nothing is written', () => {
   for (const forged of [Buffer.from('not json'), null]) {

@@ -1,0 +1,2141 @@
+{
+  "generatedAt": "2026-06-05T23:28:21.467Z",
+  "baseline": {
+    "ret": 4386.81,
+    "dd": -42.36,
+    "crit": -26.95199504552669
+  },
+  "tvReference": {
+    "baseline": {
+      "ret": 3894,
+      "dd": -35.94,
+      "trades": 21
+    },
+    "L": {
+      "ret": 2372,
+      "dd": -27.45,
+      "trades": 22
+    },
+    "K": {
+      "ret": 1402,
+      "dd": -23.8,
+      "trades": 31
+    }
+  },
+  "criticalWindow": {
+    "from": "2026-01-28",
+    "to": "2026-03-30",
+    "baselineCritDD": -26.95199504552669
+  },
+  "constraints": {
+    "maxTrades": 60,
+    "idealTrades": 45
+  },
+  "allVariants": [
+    {
+      "key": "L5+R2",
+      "over": {
+        "protExit": "L",
+        "exitLLen": 5,
+        "reentryRule": "R2"
+      },
+      "ret": 4371,
+      "dd": -37.99,
+      "crit": -16.94620644271273,
+      "trades": 23,
+      "pf": 5.93,
+      "expo": 23.88,
+      "win": 60.87,
+      "reentries": 1,
+      "score": 0.6033959801035309,
+      "passConstraints": true,
+      "ideal": true
+    },
+    {
+      "key": "L5+R4",
+      "over": {
+        "protExit": "L",
+        "exitLLen": 5,
+        "reentryRule": "R4"
+      },
+      "ret": 4371,
+      "dd": -37.99,
+      "crit": -16.94620644271273,
+      "trades": 23,
+      "pf": 5.93,
+      "expo": 23.88,
+      "win": 60.87,
+      "reentries": 1,
+      "score": 0.6033959801035309,
+      "passConstraints": true,
+      "ideal": true
+    },
+    {
+      "key": "L5+R6",
+      "over": {
+        "protExit": "L",
+        "exitLLen": 5,
+        "reentryRule": "R6"
+      },
+      "ret": 4371,
+      "dd": -37.99,
+      "crit": -16.94620644271273,
+      "trades": 23,
+      "pf": 5.93,
+      "expo": 23.88,
+      "win": 60.87,
+      "reentries": 1,
+      "score": 0.6033959801035309,
+      "passConstraints": true,
+      "ideal": true
+    },
+    {
+      "key": "L7+R2",
+      "over": {
+        "protExit": "L",
+        "exitLLen": 7,
+        "reentryRule": "R2"
+      },
+      "ret": 4371,
+      "dd": -37.99,
+      "crit": -16.94620644271273,
+      "trades": 23,
+      "pf": 5.93,
+      "expo": 23.88,
+      "win": 60.87,
+      "reentries": 1,
+      "score": 0.6033959801035309,
+      "passConstraints": true,
+      "ideal": true
+    },
+    {
+      "key": "L7+R4",
+      "over": {
+        "protExit": "L",
+        "exitLLen": 7,
+        "reentryRule": "R4"
+      },
+      "ret": 4371,
+      "dd": -37.99,
+      "crit": -16.94620644271273,
+      "trades": 23,
+      "pf": 5.93,
+      "expo": 23.88,
+      "win": 60.87,
+      "reentries": 1,
+      "score": 0.6033959801035309,
+      "passConstraints": true,
+      "ideal": true
+    },
+    {
+      "key": "L7+R6",
+      "over": {
+        "protExit": "L",
+        "exitLLen": 7,
+        "reentryRule": "R6"
+      },
+      "ret": 4371,
+      "dd": -37.99,
+      "crit": -16.94620644271273,
+      "trades": 23,
+      "pf": 5.93,
+      "expo": 23.88,
+      "win": 60.87,
+      "reentries": 1,
+      "score": 0.6033959801035309,
+      "passConstraints": true,
+      "ideal": true
+    },
+    {
+      "key": "L10+R2",
+      "over": {
+        "protExit": "L",
+        "exitLLen": 10,
+        "reentryRule": "R2"
+      },
+      "ret": 4371,
+      "dd": -37.99,
+      "crit": -16.94620644271273,
+      "trades": 23,
+      "pf": 5.93,
+      "expo": 23.88,
+      "win": 60.87,
+      "reentries": 1,
+      "score": 0.6033959801035309,
+      "passConstraints": true,
+      "ideal": true
+    },
+    {
+      "key": "L10+R4",
+      "over": {
+        "protExit": "L",
+        "exitLLen": 10,
+        "reentryRule": "R4"
+      },
+      "ret": 4371,
+      "dd": -37.99,
+      "crit": -16.94620644271273,
+      "trades": 23,
+      "pf": 5.93,
+      "expo": 23.88,
+      "win": 60.87,
+      "reentries": 1,
+      "score": 0.6033959801035309,
+      "passConstraints": true,
+      "ideal": true
+    },
+    {
+      "key": "L10+R6",
+      "over": {
+        "protExit": "L",
+        "exitLLen": 10,
+        "reentryRule": "R6"
+      },
+      "ret": 4371,
+      "dd": -37.99,
+      "crit": -16.94620644271273,
+      "trades": 23,
+      "pf": 5.93,
+      "expo": 23.88,
+      "win": 60.87,
+      "reentries": 1,
+      "score": 0.6033959801035309,
+      "passConstraints": true,
+      "ideal": true
+    },
+    {
+      "key": "L15+R2",
+      "over": {
+        "protExit": "L",
+        "exitLLen": 15,
+        "reentryRule": "R2"
+      },
+      "ret": 4371,
+      "dd": -37.99,
+      "crit": -16.94620644271273,
+      "trades": 23,
+      "pf": 5.93,
+      "expo": 23.88,
+      "win": 60.87,
+      "reentries": 1,
+      "score": 0.6033959801035309,
+      "passConstraints": true,
+      "ideal": true
+    },
+    {
+      "key": "L15+R4",
+      "over": {
+        "protExit": "L",
+        "exitLLen": 15,
+        "reentryRule": "R4"
+      },
+      "ret": 4371,
+      "dd": -37.99,
+      "crit": -16.94620644271273,
+      "trades": 23,
+      "pf": 5.93,
+      "expo": 23.88,
+      "win": 60.87,
+      "reentries": 1,
+      "score": 0.6033959801035309,
+      "passConstraints": true,
+      "ideal": true
+    },
+    {
+      "key": "L15+R6",
+      "over": {
+        "protExit": "L",
+        "exitLLen": 15,
+        "reentryRule": "R6"
+      },
+      "ret": 4371,
+      "dd": -37.99,
+      "crit": -16.94620644271273,
+      "trades": 23,
+      "pf": 5.93,
+      "expo": 23.88,
+      "win": 60.87,
+      "reentries": 1,
+      "score": 0.6033959801035309,
+      "passConstraints": true,
+      "ideal": true
+    },
+    {
+      "key": "L20+R2",
+      "over": {
+        "protExit": "L",
+        "exitLLen": 20,
+        "reentryRule": "R2"
+      },
+      "ret": 4371,
+      "dd": -37.99,
+      "crit": -16.94620644271273,
+      "trades": 23,
+      "pf": 5.93,
+      "expo": 23.88,
+      "win": 60.87,
+      "reentries": 1,
+      "score": 0.6033959801035309,
+      "passConstraints": true,
+      "ideal": true
+    },
+    {
+      "key": "L20+R4",
+      "over": {
+        "protExit": "L",
+        "exitLLen": 20,
+        "reentryRule": "R4"
+      },
+      "ret": 4371,
+      "dd": -37.99,
+      "crit": -16.94620644271273,
+      "trades": 23,
+      "pf": 5.93,
+      "expo": 23.88,
+      "win": 60.87,
+      "reentries": 1,
+      "score": 0.6033959801035309,
+      "passConstraints": true,
+      "ideal": true
+    },
+    {
+      "key": "L20+R6",
+      "over": {
+        "protExit": "L",
+        "exitLLen": 20,
+        "reentryRule": "R6"
+      },
+      "ret": 4371,
+      "dd": -37.99,
+      "crit": -16.94620644271273,
+      "trades": 23,
+      "pf": 5.93,
+      "expo": 23.88,
+      "win": 60.87,
+      "reentries": 1,
+      "score": 0.6033959801035309,
+      "passConstraints": true,
+      "ideal": true
+    },
+    {
+      "key": "L5+R1",
+      "over": {
+        "protExit": "L",
+        "exitLLen": 5,
+        "reentryRule": "R1"
+      },
+      "ret": 4277.91,
+      "dd": -37.99,
+      "crit": -16.94620644271273,
+      "trades": 23,
+      "pf": 5.83,
+      "expo": 23.81,
+      "win": 60.87,
+      "reentries": 1,
+      "score": 0.5927857644798773,
+      "passConstraints": true,
+      "ideal": true
+    },
+    {
+      "key": "L5+R3",
+      "over": {
+        "protExit": "L",
+        "exitLLen": 5,
+        "reentryRule": "R3"
+      },
+      "ret": 4277.91,
+      "dd": -37.99,
+      "crit": -16.94620644271273,
+      "trades": 23,
+      "pf": 5.83,
+      "expo": 23.81,
+      "win": 60.87,
+      "reentries": 1,
+      "score": 0.5927857644798773,
+      "passConstraints": true,
+      "ideal": true
+    },
+    {
+      "key": "L5+R5",
+      "over": {
+        "protExit": "L",
+        "exitLLen": 5,
+        "reentryRule": "R5"
+      },
+      "ret": 4277.91,
+      "dd": -37.99,
+      "crit": -16.94620644271273,
+      "trades": 23,
+      "pf": 5.83,
+      "expo": 23.81,
+      "win": 60.87,
+      "reentries": 1,
+      "score": 0.5927857644798773,
+      "passConstraints": true,
+      "ideal": true
+    },
+    {
+      "key": "L7+R1",
+      "over": {
+        "protExit": "L",
+        "exitLLen": 7,
+        "reentryRule": "R1"
+      },
+      "ret": 4277.91,
+      "dd": -37.99,
+      "crit": -16.94620644271273,
+      "trades": 23,
+      "pf": 5.83,
+      "expo": 23.81,
+      "win": 60.87,
+      "reentries": 1,
+      "score": 0.5927857644798773,
+      "passConstraints": true,
+      "ideal": true
+    },
+    {
+      "key": "L7+R3",
+      "over": {
+        "protExit": "L",
+        "exitLLen": 7,
+        "reentryRule": "R3"
+      },
+      "ret": 4277.91,
+      "dd": -37.99,
+      "crit": -16.94620644271273,
+      "trades": 23,
+      "pf": 5.83,
+      "expo": 23.81,
+      "win": 60.87,
+      "reentries": 1,
+      "score": 0.5927857644798773,
+      "passConstraints": true,
+      "ideal": true
+    },
+    {
+      "key": "L7+R5",
+      "over": {
+        "protExit": "L",
+        "exitLLen": 7,
+        "reentryRule": "R5"
+      },
+      "ret": 4277.91,
+      "dd": -37.99,
+      "crit": -16.94620644271273,
+      "trades": 23,
+      "pf": 5.83,
+      "expo": 23.81,
+      "win": 60.87,
+      "reentries": 1,
+      "score": 0.5927857644798773,
+      "passConstraints": true,
+      "ideal": true
+    },
+    {
+      "key": "L10+R1",
+      "over": {
+        "protExit": "L",
+        "exitLLen": 10,
+        "reentryRule": "R1"
+      },
+      "ret": 4277.91,
+      "dd": -37.99,
+      "crit": -16.94620644271273,
+      "trades": 23,
+      "pf": 5.83,
+      "expo": 23.81,
+      "win": 60.87,
+      "reentries": 1,
+      "score": 0.5927857644798773,
+      "passConstraints": true,
+      "ideal": true
+    },
+    {
+      "key": "L10+R3",
+      "over": {
+        "protExit": "L",
+        "exitLLen": 10,
+        "reentryRule": "R3"
+      },
+      "ret": 4277.91,
+      "dd": -37.99,
+      "crit": -16.94620644271273,
+      "trades": 23,
+      "pf": 5.83,
+      "expo": 23.81,
+      "win": 60.87,
+      "reentries": 1,
+      "score": 0.5927857644798773,
+      "passConstraints": true,
+      "ideal": true
+    },
+    {
+      "key": "L10+R5",
+      "over": {
+        "protExit": "L",
+        "exitLLen": 10,
+        "reentryRule": "R5"
+      },
+      "ret": 4277.91,
+      "dd": -37.99,
+      "crit": -16.94620644271273,
+      "trades": 23,
+      "pf": 5.83,
+      "expo": 23.81,
+      "win": 60.87,
+      "reentries": 1,
+      "score": 0.5927857644798773,
+      "passConstraints": true,
+      "ideal": true
+    },
+    {
+      "key": "L15+R1",
+      "over": {
+        "protExit": "L",
+        "exitLLen": 15,
+        "reentryRule": "R1"
+      },
+      "ret": 4277.91,
+      "dd": -37.99,
+      "crit": -16.94620644271273,
+      "trades": 23,
+      "pf": 5.83,
+      "expo": 23.81,
+      "win": 60.87,
+      "reentries": 1,
+      "score": 0.5927857644798773,
+      "passConstraints": true,
+      "ideal": true
+    },
+    {
+      "key": "L15+R3",
+      "over": {
+        "protExit": "L",
+        "exitLLen": 15,
+        "reentryRule": "R3"
+      },
+      "ret": 4277.91,
+      "dd": -37.99,
+      "crit": -16.94620644271273,
+      "trades": 23,
+      "pf": 5.83,
+      "expo": 23.81,
+      "win": 60.87,
+      "reentries": 1,
+      "score": 0.5927857644798773,
+      "passConstraints": true,
+      "ideal": true
+    },
+    {
+      "key": "L15+R5",
+      "over": {
+        "protExit": "L",
+        "exitLLen": 15,
+        "reentryRule": "R5"
+      },
+      "ret": 4277.91,
+      "dd": -37.99,
+      "crit": -16.94620644271273,
+      "trades": 23,
+      "pf": 5.83,
+      "expo": 23.81,
+      "win": 60.87,
+      "reentries": 1,
+      "score": 0.5927857644798773,
+      "passConstraints": true,
+      "ideal": true
+    },
+    {
+      "key": "L20+R1",
+      "over": {
+        "protExit": "L",
+        "exitLLen": 20,
+        "reentryRule": "R1"
+      },
+      "ret": 4277.91,
+      "dd": -37.99,
+      "crit": -16.94620644271273,
+      "trades": 23,
+      "pf": 5.83,
+      "expo": 23.81,
+      "win": 60.87,
+      "reentries": 1,
+      "score": 0.5927857644798773,
+      "passConstraints": true,
+      "ideal": true
+    },
+    {
+      "key": "L20+R3",
+      "over": {
+        "protExit": "L",
+        "exitLLen": 20,
+        "reentryRule": "R3"
+      },
+      "ret": 4277.91,
+      "dd": -37.99,
+      "crit": -16.94620644271273,
+      "trades": 23,
+      "pf": 5.83,
+      "expo": 23.81,
+      "win": 60.87,
+      "reentries": 1,
+      "score": 0.5927857644798773,
+      "passConstraints": true,
+      "ideal": true
+    },
+    {
+      "key": "L20+R5",
+      "over": {
+        "protExit": "L",
+        "exitLLen": 20,
+        "reentryRule": "R5"
+      },
+      "ret": 4277.91,
+      "dd": -37.99,
+      "crit": -16.94620644271273,
+      "trades": 23,
+      "pf": 5.83,
+      "expo": 23.81,
+      "win": 60.87,
+      "reentries": 1,
+      "score": 0.5927857644798773,
+      "passConstraints": true,
+      "ideal": true
+    },
+    {
+      "key": "K3+R1",
+      "over": {
+        "protExit": "K",
+        "kConfirmDays": 3,
+        "reentryRule": "R1"
+      },
+      "ret": 3087.15,
+      "dd": -37.99,
+      "crit": -7.680896265574266,
+      "trades": 30,
+      "pf": 6.1,
+      "expo": 22.88,
+      "win": 50,
+      "reentries": 2,
+      "score": 0.5258194445928024,
+      "passConstraints": true,
+      "ideal": true
+    },
+    {
+      "key": "K2+R1",
+      "over": {
+        "protExit": "K",
+        "kConfirmDays": 2,
+        "reentryRule": "R1"
+      },
+      "ret": 3062.1,
+      "dd": -37.99,
+      "crit": -7.680896265574266,
+      "trades": 30,
+      "pf": 5.88,
+      "expo": 22.83,
+      "win": 46.67,
+      "reentries": 1,
+      "score": 0.5229642947230793,
+      "passConstraints": true,
+      "ideal": true
+    },
+    {
+      "key": "K2+R3",
+      "over": {
+        "protExit": "K",
+        "kConfirmDays": 2,
+        "reentryRule": "R3"
+      },
+      "ret": 2889.44,
+      "dd": -37.99,
+      "crit": -7.680896265574266,
+      "trades": 32,
+      "pf": 5.92,
+      "expo": 22.93,
+      "win": 43.75,
+      "reentries": 6,
+      "score": 0.5032848465591515,
+      "passConstraints": true,
+      "ideal": true
+    },
+    {
+      "key": "K2+R5",
+      "over": {
+        "protExit": "K",
+        "kConfirmDays": 2,
+        "reentryRule": "R5"
+      },
+      "ret": 2889.44,
+      "dd": -37.99,
+      "crit": -7.680896265574266,
+      "trades": 32,
+      "pf": 5.92,
+      "expo": 22.93,
+      "win": 43.75,
+      "reentries": 6,
+      "score": 0.5032848465591515,
+      "passConstraints": true,
+      "ideal": true
+    },
+    {
+      "key": "K3+R3",
+      "over": {
+        "protExit": "K",
+        "kConfirmDays": 3,
+        "reentryRule": "R3"
+      },
+      "ret": 2735.35,
+      "dd": -37.99,
+      "crit": -7.680896265574266,
+      "trades": 31,
+      "pf": 4.69,
+      "expo": 23.05,
+      "win": 45.16,
+      "reentries": 6,
+      "score": 0.4857219705740962,
+      "passConstraints": true,
+      "ideal": true
+    },
+    {
+      "key": "K3+R5",
+      "over": {
+        "protExit": "K",
+        "kConfirmDays": 3,
+        "reentryRule": "R5"
+      },
+      "ret": 2735.35,
+      "dd": -37.99,
+      "crit": -7.680896265574266,
+      "trades": 31,
+      "pf": 4.69,
+      "expo": 23.05,
+      "win": 45.16,
+      "reentries": 6,
+      "score": 0.4857219705740962,
+      "passConstraints": true,
+      "ideal": true
+    },
+    {
+      "key": "K2+R4",
+      "over": {
+        "protExit": "K",
+        "kConfirmDays": 2,
+        "reentryRule": "R4"
+      },
+      "ret": 2538.31,
+      "dd": -37.99,
+      "crit": -7.680896265574266,
+      "trades": 34,
+      "pf": 4.88,
+      "expo": 22.96,
+      "win": 44.12,
+      "reentries": 8,
+      "score": 0.4632637378263821,
+      "passConstraints": true,
+      "ideal": true
+    },
+    {
+      "key": "K2+R6",
+      "over": {
+        "protExit": "K",
+        "kConfirmDays": 2,
+        "reentryRule": "R6"
+      },
+      "ret": 2538.31,
+      "dd": -37.99,
+      "crit": -7.680896265574266,
+      "trades": 34,
+      "pf": 4.88,
+      "expo": 22.96,
+      "win": 44.12,
+      "reentries": 8,
+      "score": 0.4632637378263821,
+      "passConstraints": true,
+      "ideal": true
+    },
+    {
+      "key": "K1+R1",
+      "over": {
+        "protExit": "K",
+        "kConfirmDays": 1,
+        "reentryRule": "R1"
+      },
+      "ret": 2751.8,
+      "dd": -41.44,
+      "crit": -7.680896265574266,
+      "trades": 32,
+      "pf": 5.91,
+      "expo": 22.69,
+      "win": 40.63,
+      "reentries": 1,
+      "score": 0.4631634815488608,
+      "passConstraints": true,
+      "ideal": true
+    },
+    {
+      "key": "K3+R4",
+      "over": {
+        "protExit": "K",
+        "kConfirmDays": 3,
+        "reentryRule": "R4"
+      },
+      "ret": 2402.19,
+      "dd": -37.99,
+      "crit": -7.680896265574266,
+      "trades": 33,
+      "pf": 3.99,
+      "expo": 23.08,
+      "win": 45.45,
+      "reentries": 8,
+      "score": 0.44774904719697256,
+      "passConstraints": true,
+      "ideal": true
+    },
+    {
+      "key": "K3+R6",
+      "over": {
+        "protExit": "K",
+        "kConfirmDays": 3,
+        "reentryRule": "R6"
+      },
+      "ret": 2402.19,
+      "dd": -37.99,
+      "crit": -7.680896265574266,
+      "trades": 33,
+      "pf": 3.99,
+      "expo": 23.08,
+      "win": 45.45,
+      "reentries": 8,
+      "score": 0.44774904719697256,
+      "passConstraints": true,
+      "ideal": true
+    },
+    {
+      "key": "K3+R2",
+      "over": {
+        "protExit": "K",
+        "kConfirmDays": 3,
+        "reentryRule": "R2"
+      },
+      "ret": 1664.53,
+      "dd": -37.99,
+      "crit": -7.680896265574266,
+      "trades": 32,
+      "pf": 3.46,
+      "expo": 22.18,
+      "win": 50,
+      "reentries": 4,
+      "score": 0.3636720071610467,
+      "passConstraints": true,
+      "ideal": true
+    },
+    {
+      "key": "K2+R2",
+      "over": {
+        "protExit": "K",
+        "kConfirmDays": 2,
+        "reentryRule": "R2"
+      },
+      "ret": 1650.84,
+      "dd": -37.99,
+      "crit": -7.680896265574266,
+      "trades": 32,
+      "pf": 3.36,
+      "expo": 22.13,
+      "win": 46.88,
+      "reentries": 3,
+      "score": 0.36211164781108623,
+      "passConstraints": true,
+      "ideal": true
+    },
+    {
+      "key": "L5",
+      "over": {
+        "protExit": "L",
+        "exitLLen": 5,
+        "reentryRule": null
+      },
+      "ret": 2185.89,
+      "dd": -37.99,
+      "crit": -16.94620644271273,
+      "trades": 22,
+      "pf": 3.47,
+      "expo": 22.88,
+      "win": 59.09,
+      "reentries": 0,
+      "score": 0.35434142793464285,
+      "passConstraints": true,
+      "ideal": true
+    },
+    {
+      "key": "L7",
+      "over": {
+        "protExit": "L",
+        "exitLLen": 7,
+        "reentryRule": null
+      },
+      "ret": 2185.89,
+      "dd": -37.99,
+      "crit": -16.94620644271273,
+      "trades": 22,
+      "pf": 3.47,
+      "expo": 22.88,
+      "win": 59.09,
+      "reentries": 0,
+      "score": 0.35434142793464285,
+      "passConstraints": true,
+      "ideal": true
+    },
+    {
+      "key": "L10",
+      "over": {
+        "protExit": "L",
+        "exitLLen": 10,
+        "reentryRule": null
+      },
+      "ret": 2185.89,
+      "dd": -37.99,
+      "crit": -16.94620644271273,
+      "trades": 22,
+      "pf": 3.47,
+      "expo": 22.88,
+      "win": 59.09,
+      "reentries": 0,
+      "score": 0.35434142793464285,
+      "passConstraints": true,
+      "ideal": true
+    },
+    {
+      "key": "L15",
+      "over": {
+        "protExit": "L",
+        "exitLLen": 15,
+        "reentryRule": null
+      },
+      "ret": 2185.89,
+      "dd": -37.99,
+      "crit": -16.94620644271273,
+      "trades": 22,
+      "pf": 3.47,
+      "expo": 22.88,
+      "win": 59.09,
+      "reentries": 0,
+      "score": 0.35434142793464285,
+      "passConstraints": true,
+      "ideal": true
+    },
+    {
+      "key": "L20",
+      "over": {
+        "protExit": "L",
+        "exitLLen": 20,
+        "reentryRule": null
+      },
+      "ret": 2185.89,
+      "dd": -37.99,
+      "crit": -16.94620644271273,
+      "trades": 22,
+      "pf": 3.47,
+      "expo": 22.88,
+      "win": 59.09,
+      "reentries": 0,
+      "score": 0.35434142793464285,
+      "passConstraints": true,
+      "ideal": true
+    },
+    {
+      "key": "K3",
+      "over": {
+        "protExit": "K",
+        "kConfirmDays": 3,
+        "reentryRule": null
+      },
+      "ret": 1563.76,
+      "dd": -37.99,
+      "crit": -7.680896265574266,
+      "trades": 28,
+      "pf": 3.59,
+      "expo": 21.93,
+      "win": 46.43,
+      "reentries": 0,
+      "score": 0.3521864402000887,
+      "passConstraints": true,
+      "ideal": true
+    },
+    {
+      "key": "K2",
+      "over": {
+        "protExit": "K",
+        "kConfirmDays": 2,
+        "reentryRule": null
+      },
+      "ret": 1551.17,
+      "dd": -37.99,
+      "crit": -7.680896265574266,
+      "trades": 29,
+      "pf": 3.47,
+      "expo": 21.91,
+      "win": 44.83,
+      "reentries": 0,
+      "score": 0.3507514566927109,
+      "passConstraints": true,
+      "ideal": true
+    },
+    {
+      "key": "K1+R2",
+      "over": {
+        "protExit": "K",
+        "kConfirmDays": 1,
+        "reentryRule": "R2"
+      },
+      "ret": 1479.07,
+      "dd": -41.44,
+      "crit": -7.680896265574266,
+      "trades": 34,
+      "pf": 3.37,
+      "expo": 21.98,
+      "win": 41.18,
+      "reentries": 3,
+      "score": 0.3181002123395721,
+      "passConstraints": true,
+      "ideal": true
+    },
+    {
+      "key": "K1",
+      "over": {
+        "protExit": "K",
+        "kConfirmDays": 1,
+        "reentryRule": null
+      },
+      "ret": 1389.17,
+      "dd": -41.44,
+      "crit": -7.680896265574266,
+      "trades": 31,
+      "pf": 3.48,
+      "expo": 21.76,
+      "win": 38.71,
+      "reentries": 0,
+      "score": 0.3078535866594081,
+      "passConstraints": true,
+      "ideal": true
+    },
+    {
+      "key": "K1+R3",
+      "over": {
+        "protExit": "K",
+        "kConfirmDays": 1,
+        "reentryRule": "R3"
+      },
+      "ret": 2389.55,
+      "dd": -43.3,
+      "crit": -7.680896265574266,
+      "trades": 34,
+      "pf": 5.63,
+      "expo": 22.81,
+      "win": 38.24,
+      "reentries": 7,
+      "score": 0.4087021324930417,
+      "passConstraints": false,
+      "ideal": true
+    },
+    {
+      "key": "K1+R5",
+      "over": {
+        "protExit": "K",
+        "kConfirmDays": 1,
+        "reentryRule": "R5"
+      },
+      "ret": 2389.55,
+      "dd": -43.3,
+      "crit": -7.680896265574266,
+      "trades": 34,
+      "pf": 5.63,
+      "expo": 22.81,
+      "win": 38.24,
+      "reentries": 7,
+      "score": 0.4087021324930417,
+      "passConstraints": false,
+      "ideal": true
+    },
+    {
+      "key": "K1+R4",
+      "over": {
+        "protExit": "K",
+        "kConfirmDays": 1,
+        "reentryRule": "R4"
+      },
+      "ret": 2096.99,
+      "dd": -43.3,
+      "crit": -7.680896265574266,
+      "trades": 36,
+      "pf": 4.67,
+      "expo": 22.83,
+      "win": 38.89,
+      "reentries": 9,
+      "score": 0.3753567174876049,
+      "passConstraints": false,
+      "ideal": true
+    },
+    {
+      "key": "K1+R6",
+      "over": {
+        "protExit": "K",
+        "kConfirmDays": 1,
+        "reentryRule": "R6"
+      },
+      "ret": 2096.99,
+      "dd": -43.3,
+      "crit": -7.680896265574266,
+      "trades": 36,
+      "pf": 4.67,
+      "expo": 22.83,
+      "win": 38.89,
+      "reentries": 9,
+      "score": 0.3753567174876049,
+      "passConstraints": false,
+      "ideal": true
+    }
+  ],
+  "top20": [
+    {
+      "key": "L5+R2",
+      "over": {
+        "protExit": "L",
+        "exitLLen": 5,
+        "reentryRule": "R2"
+      },
+      "ret": 4371,
+      "dd": -37.99,
+      "crit": -16.94620644271273,
+      "trades": 23,
+      "pf": 5.93,
+      "expo": 23.88,
+      "win": 60.87,
+      "reentries": 1,
+      "score": 0.6033959801035309,
+      "passConstraints": true,
+      "ideal": true
+    },
+    {
+      "key": "L5+R4",
+      "over": {
+        "protExit": "L",
+        "exitLLen": 5,
+        "reentryRule": "R4"
+      },
+      "ret": 4371,
+      "dd": -37.99,
+      "crit": -16.94620644271273,
+      "trades": 23,
+      "pf": 5.93,
+      "expo": 23.88,
+      "win": 60.87,
+      "reentries": 1,
+      "score": 0.6033959801035309,
+      "passConstraints": true,
+      "ideal": true
+    },
+    {
+      "key": "L5+R6",
+      "over": {
+        "protExit": "L",
+        "exitLLen": 5,
+        "reentryRule": "R6"
+      },
+      "ret": 4371,
+      "dd": -37.99,
+      "crit": -16.94620644271273,
+      "trades": 23,
+      "pf": 5.93,
+      "expo": 23.88,
+      "win": 60.87,
+      "reentries": 1,
+      "score": 0.6033959801035309,
+      "passConstraints": true,
+      "ideal": true
+    },
+    {
+      "key": "L7+R2",
+      "over": {
+        "protExit": "L",
+        "exitLLen": 7,
+        "reentryRule": "R2"
+      },
+      "ret": 4371,
+      "dd": -37.99,
+      "crit": -16.94620644271273,
+      "trades": 23,
+      "pf": 5.93,
+      "expo": 23.88,
+      "win": 60.87,
+      "reentries": 1,
+      "score": 0.6033959801035309,
+      "passConstraints": true,
+      "ideal": true
+    },
+    {
+      "key": "L7+R4",
+      "over": {
+        "protExit": "L",
+        "exitLLen": 7,
+        "reentryRule": "R4"
+      },
+      "ret": 4371,
+      "dd": -37.99,
+      "crit": -16.94620644271273,
+      "trades": 23,
+      "pf": 5.93,
+      "expo": 23.88,
+      "win": 60.87,
+      "reentries": 1,
+      "score": 0.6033959801035309,
+      "passConstraints": true,
+      "ideal": true
+    },
+    {
+      "key": "L7+R6",
+      "over": {
+        "protExit": "L",
+        "exitLLen": 7,
+        "reentryRule": "R6"
+      },
+      "ret": 4371,
+      "dd": -37.99,
+      "crit": -16.94620644271273,
+      "trades": 23,
+      "pf": 5.93,
+      "expo": 23.88,
+      "win": 60.87,
+      "reentries": 1,
+      "score": 0.6033959801035309,
+      "passConstraints": true,
+      "ideal": true
+    },
+    {
+      "key": "L10+R2",
+      "over": {
+        "protExit": "L",
+        "exitLLen": 10,
+        "reentryRule": "R2"
+      },
+      "ret": 4371,
+      "dd": -37.99,
+      "crit": -16.94620644271273,
+      "trades": 23,
+      "pf": 5.93,
+      "expo": 23.88,
+      "win": 60.87,
+      "reentries": 1,
+      "score": 0.6033959801035309,
+      "passConstraints": true,
+      "ideal": true
+    },
+    {
+      "key": "L10+R4",
+      "over": {
+        "protExit": "L",
+        "exitLLen": 10,
+        "reentryRule": "R4"
+      },
+      "ret": 4371,
+      "dd": -37.99,
+      "crit": -16.94620644271273,
+      "trades": 23,
+      "pf": 5.93,
+      "expo": 23.88,
+      "win": 60.87,
+      "reentries": 1,
+      "score": 0.6033959801035309,
+      "passConstraints": true,
+      "ideal": true
+    },
+    {
+      "key": "L10+R6",
+      "over": {
+        "protExit": "L",
+        "exitLLen": 10,
+        "reentryRule": "R6"
+      },
+      "ret": 4371,
+      "dd": -37.99,
+      "crit": -16.94620644271273,
+      "trades": 23,
+      "pf": 5.93,
+      "expo": 23.88,
+      "win": 60.87,
+      "reentries": 1,
+      "score": 0.6033959801035309,
+      "passConstraints": true,
+      "ideal": true
+    },
+    {
+      "key": "L15+R2",
+      "over": {
+        "protExit": "L",
+        "exitLLen": 15,
+        "reentryRule": "R2"
+      },
+      "ret": 4371,
+      "dd": -37.99,
+      "crit": -16.94620644271273,
+      "trades": 23,
+      "pf": 5.93,
+      "expo": 23.88,
+      "win": 60.87,
+      "reentries": 1,
+      "score": 0.6033959801035309,
+      "passConstraints": true,
+      "ideal": true
+    },
+    {
+      "key": "L15+R4",
+      "over": {
+        "protExit": "L",
+        "exitLLen": 15,
+        "reentryRule": "R4"
+      },
+      "ret": 4371,
+      "dd": -37.99,
+      "crit": -16.94620644271273,
+      "trades": 23,
+      "pf": 5.93,
+      "expo": 23.88,
+      "win": 60.87,
+      "reentries": 1,
+      "score": 0.6033959801035309,
+      "passConstraints": true,
+      "ideal": true
+    },
+    {
+      "key": "L15+R6",
+      "over": {
+        "protExit": "L",
+        "exitLLen": 15,
+        "reentryRule": "R6"
+      },
+      "ret": 4371,
+      "dd": -37.99,
+      "crit": -16.94620644271273,
+      "trades": 23,
+      "pf": 5.93,
+      "expo": 23.88,
+      "win": 60.87,
+      "reentries": 1,
+      "score": 0.6033959801035309,
+      "passConstraints": true,
+      "ideal": true
+    },
+    {
+      "key": "L20+R2",
+      "over": {
+        "protExit": "L",
+        "exitLLen": 20,
+        "reentryRule": "R2"
+      },
+      "ret": 4371,
+      "dd": -37.99,
+      "crit": -16.94620644271273,
+      "trades": 23,
+      "pf": 5.93,
+      "expo": 23.88,
+      "win": 60.87,
+      "reentries": 1,
+      "score": 0.6033959801035309,
+      "passConstraints": true,
+      "ideal": true
+    },
+    {
+      "key": "L20+R4",
+      "over": {
+        "protExit": "L",
+        "exitLLen": 20,
+        "reentryRule": "R4"
+      },
+      "ret": 4371,
+      "dd": -37.99,
+      "crit": -16.94620644271273,
+      "trades": 23,
+      "pf": 5.93,
+      "expo": 23.88,
+      "win": 60.87,
+      "reentries": 1,
+      "score": 0.6033959801035309,
+      "passConstraints": true,
+      "ideal": true
+    },
+    {
+      "key": "L20+R6",
+      "over": {
+        "protExit": "L",
+        "exitLLen": 20,
+        "reentryRule": "R6"
+      },
+      "ret": 4371,
+      "dd": -37.99,
+      "crit": -16.94620644271273,
+      "trades": 23,
+      "pf": 5.93,
+      "expo": 23.88,
+      "win": 60.87,
+      "reentries": 1,
+      "score": 0.6033959801035309,
+      "passConstraints": true,
+      "ideal": true
+    },
+    {
+      "key": "L5+R1",
+      "over": {
+        "protExit": "L",
+        "exitLLen": 5,
+        "reentryRule": "R1"
+      },
+      "ret": 4277.91,
+      "dd": -37.99,
+      "crit": -16.94620644271273,
+      "trades": 23,
+      "pf": 5.83,
+      "expo": 23.81,
+      "win": 60.87,
+      "reentries": 1,
+      "score": 0.5927857644798773,
+      "passConstraints": true,
+      "ideal": true
+    },
+    {
+      "key": "L5+R3",
+      "over": {
+        "protExit": "L",
+        "exitLLen": 5,
+        "reentryRule": "R3"
+      },
+      "ret": 4277.91,
+      "dd": -37.99,
+      "crit": -16.94620644271273,
+      "trades": 23,
+      "pf": 5.83,
+      "expo": 23.81,
+      "win": 60.87,
+      "reentries": 1,
+      "score": 0.5927857644798773,
+      "passConstraints": true,
+      "ideal": true
+    },
+    {
+      "key": "L5+R5",
+      "over": {
+        "protExit": "L",
+        "exitLLen": 5,
+        "reentryRule": "R5"
+      },
+      "ret": 4277.91,
+      "dd": -37.99,
+      "crit": -16.94620644271273,
+      "trades": 23,
+      "pf": 5.83,
+      "expo": 23.81,
+      "win": 60.87,
+      "reentries": 1,
+      "score": 0.5927857644798773,
+      "passConstraints": true,
+      "ideal": true
+    },
+    {
+      "key": "L7+R1",
+      "over": {
+        "protExit": "L",
+        "exitLLen": 7,
+        "reentryRule": "R1"
+      },
+      "ret": 4277.91,
+      "dd": -37.99,
+      "crit": -16.94620644271273,
+      "trades": 23,
+      "pf": 5.83,
+      "expo": 23.81,
+      "win": 60.87,
+      "reentries": 1,
+      "score": 0.5927857644798773,
+      "passConstraints": true,
+      "ideal": true
+    },
+    {
+      "key": "L7+R3",
+      "over": {
+        "protExit": "L",
+        "exitLLen": 7,
+        "reentryRule": "R3"
+      },
+      "ret": 4277.91,
+      "dd": -37.99,
+      "crit": -16.94620644271273,
+      "trades": 23,
+      "pf": 5.83,
+      "expo": 23.81,
+      "win": 60.87,
+      "reentries": 1,
+      "score": 0.5927857644798773,
+      "passConstraints": true,
+      "ideal": true
+    }
+  ],
+  "walkForward": {
+    "periods": [
+      {
+        "key": "2020-2021",
+        "from": "2020-01-01",
+        "to": "2021-12-31"
+      },
+      {
+        "key": "2022-2023",
+        "from": "2022-01-01",
+        "to": "2023-12-31"
+      },
+      {
+        "key": "2024-2026",
+        "from": "2024-01-01",
+        "to": "2026-12-31"
+      },
+      {
+        "key": "2021-2026",
+        "from": "2021-01-01",
+        "to": "2026-12-31"
+      },
+      {
+        "key": "2022-2026",
+        "from": "2022-01-01",
+        "to": "2026-12-31"
+      },
+      {
+        "key": "2020-2026",
+        "from": "2020-01-01",
+        "to": "2030-12-31"
+      }
+    ],
+    "grid": {
+      "baseline": {
+        "2020-2021": {
+          "ret": 326.76,
+          "dd": -37.99,
+          "trades": 8,
+          "pf": 7.72,
+          "crit": 0,
+          "expo": 9.17
+        },
+        "2022-2023": {
+          "ret": 130.33,
+          "dd": -19.91,
+          "trades": 4,
+          "pf": 166.32,
+          "crit": 0,
+          "expo": 4.03
+        },
+        "2024-2026": {
+          "ret": 417.15,
+          "dd": -42.32,
+          "trades": 11,
+          "pf": 11.35,
+          "crit": -26.95199504552669,
+          "expo": 10.71
+        },
+        "2021-2026": {
+          "ret": 1516,
+          "dd": -42.36,
+          "trades": 19,
+          "pf": 11.37,
+          "crit": -26.95199504552669,
+          "expo": 19.25
+        },
+        "2022-2026": {
+          "ret": 1106.96,
+          "dd": -42.35,
+          "trades": 14,
+          "pf": 12.66,
+          "crit": -26.95199504552669,
+          "expo": 14.83
+        },
+        "2020-2026": {
+          "ret": 4386.81,
+          "dd": -42.36,
+          "trades": 22,
+          "pf": 11.46,
+          "crit": -26.95199504552669,
+          "expo": 24.08
+        }
+      },
+      "L10": {
+        "2020-2021": {
+          "ret": 326.76,
+          "dd": -37.99,
+          "trades": 8,
+          "pf": 7.72,
+          "crit": 0,
+          "expo": 9.17
+        },
+        "2022-2023": {
+          "ret": 130.33,
+          "dd": -19.91,
+          "trades": 4,
+          "pf": 166.32,
+          "crit": 0,
+          "expo": 4.03
+        },
+        "2024-2026": {
+          "ret": 163.71,
+          "dd": -34.44,
+          "trades": 11,
+          "pf": 2.74,
+          "crit": -16.94620644271273,
+          "expo": 9.51
+        },
+        "2021-2026": {
+          "ret": 665.58,
+          "dd": -34.47,
+          "trades": 20,
+          "pf": 3.19,
+          "crit": -16.94620644271273,
+          "expo": 17.91
+        },
+        "2022-2026": {
+          "ret": 515.04,
+          "dd": -34.46,
+          "trades": 14,
+          "pf": 3.34,
+          "crit": -16.94620644271273,
+          "expo": 13.64
+        },
+        "2020-2026": {
+          "ret": 2185.89,
+          "dd": -37.99,
+          "trades": 22,
+          "pf": 3.47,
+          "crit": -16.94620644271273,
+          "expo": 22.88
+        }
+      },
+      "K1": {
+        "2020-2021": {
+          "ret": 228.64,
+          "dd": -41.44,
+          "trades": 13,
+          "pf": 3.9,
+          "crit": 0,
+          "expo": 8.69
+        },
+        "2022-2023": {
+          "ret": 101.68,
+          "dd": -25.27,
+          "trades": 5,
+          "pf": 5.55,
+          "crit": 0,
+          "expo": 3.9
+        },
+        "2024-2026": {
+          "ret": 154.51,
+          "dd": -25.08,
+          "trades": 14,
+          "pf": 3.24,
+          "crit": -7.680896265574266,
+          "expo": 9
+        },
+        "2021-2026": {
+          "ret": 477.84,
+          "dd": -25.27,
+          "trades": 28,
+          "pf": 3.26,
+          "crit": -7.680896265574266,
+          "expo": 16.83
+        },
+        "2022-2026": {
+          "ret": 420.22,
+          "dd": -25.27,
+          "trades": 18,
+          "pf": 3.57,
+          "crit": -7.680896265574266,
+          "expo": 13
+        },
+        "2020-2026": {
+          "ret": 1389.17,
+          "dd": -41.44,
+          "trades": 31,
+          "pf": 3.48,
+          "crit": -7.680896265574266,
+          "expo": 21.76
+        }
+      },
+      "L5+R2": {
+        "2020-2021": {
+          "ret": 326.76,
+          "dd": -37.99,
+          "trades": 8,
+          "pf": 7.72,
+          "crit": 0,
+          "expo": 9.17
+        },
+        "2022-2023": {
+          "ret": 130.33,
+          "dd": -19.91,
+          "trades": 4,
+          "pf": 166.32,
+          "crit": 0,
+          "expo": 4.03
+        },
+        "2024-2026": {
+          "ret": 415.82,
+          "dd": -34.44,
+          "trades": 12,
+          "pf": 5.42,
+          "crit": -16.94620644271273,
+          "expo": 10.51
+        },
+        "2021-2026": {
+          "ret": 1397.12,
+          "dd": -34.47,
+          "trades": 21,
+          "pf": 5.59,
+          "crit": -16.94620644271273,
+          "expo": 18.91
+        },
+        "2022-2026": {
+          "ret": 1102.75,
+          "dd": -34.46,
+          "trades": 15,
+          "pf": 6,
+          "crit": -16.94620644271273,
+          "expo": 14.64
+        },
+        "2020-2026": {
+          "ret": 4371,
+          "dd": -37.99,
+          "trades": 23,
+          "pf": 5.93,
+          "crit": -16.94620644271273,
+          "expo": 23.88
+        }
+      },
+      "L5+R4": {
+        "2020-2021": {
+          "ret": 326.76,
+          "dd": -37.99,
+          "trades": 8,
+          "pf": 7.72,
+          "crit": 0,
+          "expo": 9.17
+        },
+        "2022-2023": {
+          "ret": 130.33,
+          "dd": -19.91,
+          "trades": 4,
+          "pf": 166.32,
+          "crit": 0,
+          "expo": 4.03
+        },
+        "2024-2026": {
+          "ret": 415.82,
+          "dd": -34.44,
+          "trades": 12,
+          "pf": 5.42,
+          "crit": -16.94620644271273,
+          "expo": 10.51
+        },
+        "2021-2026": {
+          "ret": 1501.03,
+          "dd": -34.46,
+          "trades": 21,
+          "pf": 5.63,
+          "crit": -16.94620644271273,
+          "expo": 18.93
+        },
+        "2022-2026": {
+          "ret": 1102.75,
+          "dd": -34.46,
+          "trades": 15,
+          "pf": 6,
+          "crit": -16.94620644271273,
+          "expo": 14.64
+        },
+        "2020-2026": {
+          "ret": 4371,
+          "dd": -37.99,
+          "trades": 23,
+          "pf": 5.93,
+          "crit": -16.94620644271273,
+          "expo": 23.88
+        }
+      },
+      "L5+R6": {
+        "2020-2021": {
+          "ret": 326.76,
+          "dd": -37.99,
+          "trades": 8,
+          "pf": 7.72,
+          "crit": 0,
+          "expo": 9.17
+        },
+        "2022-2023": {
+          "ret": 130.33,
+          "dd": -19.91,
+          "trades": 4,
+          "pf": 166.32,
+          "crit": 0,
+          "expo": 4.03
+        },
+        "2024-2026": {
+          "ret": 415.82,
+          "dd": -34.44,
+          "trades": 12,
+          "pf": 5.42,
+          "crit": -16.94620644271273,
+          "expo": 10.51
+        },
+        "2021-2026": {
+          "ret": 1397.12,
+          "dd": -34.47,
+          "trades": 21,
+          "pf": 5.59,
+          "crit": -16.94620644271273,
+          "expo": 18.91
+        },
+        "2022-2026": {
+          "ret": 1102.75,
+          "dd": -34.46,
+          "trades": 15,
+          "pf": 6,
+          "crit": -16.94620644271273,
+          "expo": 14.64
+        },
+        "2020-2026": {
+          "ret": 4371,
+          "dd": -37.99,
+          "trades": 23,
+          "pf": 5.93,
+          "crit": -16.94620644271273,
+          "expo": 23.88
+        }
+      },
+      "L7+R2": {
+        "2020-2021": {
+          "ret": 326.76,
+          "dd": -37.99,
+          "trades": 8,
+          "pf": 7.72,
+          "crit": 0,
+          "expo": 9.17
+        },
+        "2022-2023": {
+          "ret": 130.33,
+          "dd": -19.91,
+          "trades": 4,
+          "pf": 166.32,
+          "crit": 0,
+          "expo": 4.03
+        },
+        "2024-2026": {
+          "ret": 415.82,
+          "dd": -34.44,
+          "trades": 12,
+          "pf": 5.42,
+          "crit": -16.94620644271273,
+          "expo": 10.51
+        },
+        "2021-2026": {
+          "ret": 1397.12,
+          "dd": -34.47,
+          "trades": 21,
+          "pf": 5.59,
+          "crit": -16.94620644271273,
+          "expo": 18.91
+        },
+        "2022-2026": {
+          "ret": 1102.75,
+          "dd": -34.46,
+          "trades": 15,
+          "pf": 6,
+          "crit": -16.94620644271273,
+          "expo": 14.64
+        },
+        "2020-2026": {
+          "ret": 4371,
+          "dd": -37.99,
+          "trades": 23,
+          "pf": 5.93,
+          "crit": -16.94620644271273,
+          "expo": 23.88
+        }
+      },
+      "L7+R4": {
+        "2020-2021": {
+          "ret": 326.76,
+          "dd": -37.99,
+          "trades": 8,
+          "pf": 7.72,
+          "crit": 0,
+          "expo": 9.17
+        },
+        "2022-2023": {
+          "ret": 130.33,
+          "dd": -19.91,
+          "trades": 4,
+          "pf": 166.32,
+          "crit": 0,
+          "expo": 4.03
+        },
+        "2024-2026": {
+          "ret": 415.82,
+          "dd": -34.44,
+          "trades": 12,
+          "pf": 5.42,
+          "crit": -16.94620644271273,
+          "expo": 10.51
+        },
+        "2021-2026": {
+          "ret": 1501.03,
+          "dd": -34.46,
+          "trades": 21,
+          "pf": 5.63,
+          "crit": -16.94620644271273,
+          "expo": 18.93
+        },
+        "2022-2026": {
+          "ret": 1102.75,
+          "dd": -34.46,
+          "trades": 15,
+          "pf": 6,
+          "crit": -16.94620644271273,
+          "expo": 14.64
+        },
+        "2020-2026": {
+          "ret": 4371,
+          "dd": -37.99,
+          "trades": 23,
+          "pf": 5.93,
+          "crit": -16.94620644271273,
+          "expo": 23.88
+        }
+      },
+      "L7+R6": {
+        "2020-2021": {
+          "ret": 326.76,
+          "dd": -37.99,
+          "trades": 8,
+          "pf": 7.72,
+          "crit": 0,
+          "expo": 9.17
+        },
+        "2022-2023": {
+          "ret": 130.33,
+          "dd": -19.91,
+          "trades": 4,
+          "pf": 166.32,
+          "crit": 0,
+          "expo": 4.03
+        },
+        "2024-2026": {
+          "ret": 415.82,
+          "dd": -34.44,
+          "trades": 12,
+          "pf": 5.42,
+          "crit": -16.94620644271273,
+          "expo": 10.51
+        },
+        "2021-2026": {
+          "ret": 1397.12,
+          "dd": -34.47,
+          "trades": 21,
+          "pf": 5.59,
+          "crit": -16.94620644271273,
+          "expo": 18.91
+        },
+        "2022-2026": {
+          "ret": 1102.75,
+          "dd": -34.46,
+          "trades": 15,
+          "pf": 6,
+          "crit": -16.94620644271273,
+          "expo": 14.64
+        },
+        "2020-2026": {
+          "ret": 4371,
+          "dd": -37.99,
+          "trades": 23,
+          "pf": 5.93,
+          "crit": -16.94620644271273,
+          "expo": 23.88
+        }
+      },
+      "L10+R2": {
+        "2020-2021": {
+          "ret": 326.76,
+          "dd": -37.99,
+          "trades": 8,
+          "pf": 7.72,
+          "crit": 0,
+          "expo": 9.17
+        },
+        "2022-2023": {
+          "ret": 130.33,
+          "dd": -19.91,
+          "trades": 4,
+          "pf": 166.32,
+          "crit": 0,
+          "expo": 4.03
+        },
+        "2024-2026": {
+          "ret": 415.82,
+          "dd": -34.44,
+          "trades": 12,
+          "pf": 5.42,
+          "crit": -16.94620644271273,
+          "expo": 10.51
+        },
+        "2021-2026": {
+          "ret": 1397.12,
+          "dd": -34.47,
+          "trades": 21,
+          "pf": 5.59,
+          "crit": -16.94620644271273,
+          "expo": 18.91
+        },
+        "2022-2026": {
+          "ret": 1102.75,
+          "dd": -34.46,
+          "trades": 15,
+          "pf": 6,
+          "crit": -16.94620644271273,
+          "expo": 14.64
+        },
+        "2020-2026": {
+          "ret": 4371,
+          "dd": -37.99,
+          "trades": 23,
+          "pf": 5.93,
+          "crit": -16.94620644271273,
+          "expo": 23.88
+        }
+      },
+      "L10+R4": {
+        "2020-2021": {
+          "ret": 326.76,
+          "dd": -37.99,
+          "trades": 8,
+          "pf": 7.72,
+          "crit": 0,
+          "expo": 9.17
+        },
+        "2022-2023": {
+          "ret": 130.33,
+          "dd": -19.91,
+          "trades": 4,
+          "pf": 166.32,
+          "crit": 0,
+          "expo": 4.03
+        },
+        "2024-2026": {
+          "ret": 415.82,
+          "dd": -34.44,
+          "trades": 12,
+          "pf": 5.42,
+          "crit": -16.94620644271273,
+          "expo": 10.51
+        },
+        "2021-2026": {
+          "ret": 1501.03,
+          "dd": -34.46,
+          "trades": 21,
+          "pf": 5.63,
+          "crit": -16.94620644271273,
+          "expo": 18.93
+        },
+        "2022-2026": {
+          "ret": 1102.75,
+          "dd": -34.46,
+          "trades": 15,
+          "pf": 6,
+          "crit": -16.94620644271273,
+          "expo": 14.64
+        },
+        "2020-2026": {
+          "ret": 4371,
+          "dd": -37.99,
+          "trades": 23,
+          "pf": 5.93,
+          "crit": -16.94620644271273,
+          "expo": 23.88
+        }
+      }
+    },
+    "robustness": {
+      "L10": {
+        "avgRetRetentionPct": 66,
+        "bullHarmPct": 0,
+        "avgCrisisProtectionPts": 10,
+        "tradeInflation": 1,
+        "ddWins": 3
+      },
+      "K1": {
+        "avgRetRetentionPct": 51,
+        "bullHarmPct": 26,
+        "avgCrisisProtectionPts": 19.3,
+        "tradeInflation": 22,
+        "ddWins": 3
+      },
+      "L5+R2": {
+        "avgRetRetentionPct": 98,
+        "bullHarmPct": 0,
+        "avgCrisisProtectionPts": 10,
+        "tradeInflation": 4,
+        "ddWins": 3
+      },
+      "L5+R4": {
+        "avgRetRetentionPct": 100,
+        "bullHarmPct": 0,
+        "avgCrisisProtectionPts": 10,
+        "tradeInflation": 4,
+        "ddWins": 3
+      },
+      "L5+R6": {
+        "avgRetRetentionPct": 98,
+        "bullHarmPct": 0,
+        "avgCrisisProtectionPts": 10,
+        "tradeInflation": 4,
+        "ddWins": 3
+      },
+      "L7+R2": {
+        "avgRetRetentionPct": 98,
+        "bullHarmPct": 0,
+        "avgCrisisProtectionPts": 10,
+        "tradeInflation": 4,
+        "ddWins": 3
+      },
+      "L7+R4": {
+        "avgRetRetentionPct": 100,
+        "bullHarmPct": 0,
+        "avgCrisisProtectionPts": 10,
+        "tradeInflation": 4,
+        "ddWins": 3
+      },
+      "L7+R6": {
+        "avgRetRetentionPct": 98,
+        "bullHarmPct": 0,
+        "avgCrisisProtectionPts": 10,
+        "tradeInflation": 4,
+        "ddWins": 3
+      },
+      "L10+R2": {
+        "avgRetRetentionPct": 98,
+        "bullHarmPct": 0,
+        "avgCrisisProtectionPts": 10,
+        "tradeInflation": 4,
+        "ddWins": 3
+      },
+      "L10+R4": {
+        "avgRetRetentionPct": 100,
+        "bullHarmPct": 0,
+        "avgCrisisProtectionPts": 10,
+        "tradeInflation": 4,
+        "ddWins": 3
+      }
+    }
+  },
+  "recommendation": "L10+R4"
+}

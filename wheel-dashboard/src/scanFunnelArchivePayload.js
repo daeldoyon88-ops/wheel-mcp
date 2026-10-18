@@ -13,7 +13,12 @@
  *   ibkr_sent · ibkr_rejected · ibkr_retained · ui_lost · ui_displayed
  */
 
+import { classifyYahooMotif } from "./tickerPipelineDiagnostic.js";
+
 export const MAX_FUNNEL_EVENTS = 800;
+
+/** Motifs Yahoo non transmis, séparés du plafond d'événements IBKR. Depth 400. */
+export const MAX_YAHOO_NON_TRANSMISSION = 400;
 
 /**
  * Plafond spécifique aux watchlist_rejected. Sans lui, excluded_by_watchlist_limit
@@ -184,7 +189,15 @@ function buildEvents(sources) {
     const sentIbkr = row?.sentIbkr === true;
     const status = String(row?.ibkrStatus ?? "").trim().toLowerCase();
 
-    if (row?.inShortlist === true || sentIbkr || status === "retained" || status === "rejected") {
+    const explicitlyNotReturned = row?.yahooReturned === false;
+    const treatAsYahooReturned =
+      !explicitlyNotReturned &&
+      (row?.yahooReturned === true ||
+        row?.inShortlist === true ||
+        sentIbkr ||
+        status === "retained" ||
+        status === "rejected");
+    if (treatAsYahooReturned) {
       push(sym, "yahoo_returned", { rank });
     }
     if (sentIbkr || row?.testedIbkr === true) {
@@ -346,6 +359,101 @@ function sanitizeMetadata(metadata) {
  *   dteAtScan:number|null, poolSource:string|null, captureSource:string|null,
  *   counts:object, metadata:object, events:Array}}
  */
+function errorText(value) {
+  if (typeof value === "string") {
+    const s = value.trim();
+    return s || null;
+  }
+  if (!value || typeof value !== "object") return null;
+  const s = String(value.error || value.message || value.reason || "").trim();
+  return s || null;
+}
+
+/**
+ * Motifs des titres non transmis, bornés à Depth 400.
+ * Cette liste n'entre pas dans le plafond de 800 événements.
+ */
+export function buildYahooNonTransmission(sources = {}) {
+  const requested = new Set(toSymbolList(sources.tickersForScan));
+  const returned = new Set(
+    (Array.isArray(sources.yahooReturnedCandidates) ? sources.yahooReturnedCandidates : [])
+      .map((row) => normalizeSymbol(row?.ticker ?? row?.symbol))
+      .filter(Boolean)
+  );
+  const funnelRows = Array.isArray(sources.funnelRows)
+    ? sources.funnelRows
+    : Array.isArray(sources.yahooIbkrFunnelList)
+      ? sources.yahooIbkrFunnelList
+      : [];
+  for (const row of funnelRows) {
+    const sym = normalizeSymbol(row?.ticker ?? row?.symbol);
+    if (!sym) continue;
+    if (row?.yahooReturned === true) returned.add(sym);
+    if (row?.yahooReturned === false) requested.add(sym);
+  }
+
+  /** @type {Map<string, { symbol: string, requested: boolean, observedReason: string|null, observedError: string|null }>} */
+  const bySym = new Map();
+  const put = (symbol, patch) => {
+    const sym = normalizeSymbol(symbol);
+    if (!sym || returned.has(sym)) return;
+    const prev = bySym.get(sym) || {
+      symbol: sym,
+      requested: requested.has(sym),
+      observedReason: null,
+      observedError: null,
+    };
+    const next = {
+      ...prev,
+      symbol: sym,
+      requested: patch.requested === true || prev.requested === true || requested.has(sym),
+    };
+    if (patch.observedReason) next.observedReason = patch.observedReason;
+    if (patch.observedError) next.observedError = patch.observedError;
+    bySym.set(sym, next);
+  };
+
+  for (const sym of requested) put(sym, { requested: true });
+  for (const [sym, val] of entriesOfMap(sources.yahooRejectedBySymbol)) {
+    put(sym, { requested: true, observedReason: reasonOf(val) });
+  }
+  for (const [sym, val] of entriesOfMap(sources.yahooErrorsBySymbol)) {
+    put(sym, { requested: true, observedError: errorText(val) });
+  }
+  for (const row of funnelRows) {
+    if (row?.yahooReturned !== false) continue;
+    put(row?.ticker ?? row?.symbol, {
+      requested: true,
+      observedReason: row?.observedReason ?? null,
+      observedError: row?.observedError ?? null,
+    });
+  }
+
+  const rows = [...bySym.values()]
+    .map((row) => {
+      const motif = classifyYahooMotif({
+        observedReason: row.observedReason,
+        observedError: row.observedError,
+        requested: row.requested === true,
+        returned: false,
+        capacityFlag: false,
+      });
+      return {
+        symbol: row.symbol,
+        class: motif.class,
+        observedReason: motif.observedReason,
+        display: motif.display,
+      };
+    })
+    .sort((a, b) => a.symbol.localeCompare(b.symbol));
+  return {
+    bound: MAX_YAHOO_NON_TRANSMISSION,
+    total: rows.length,
+    truncated: rows.length > MAX_YAHOO_NON_TRANSMISSION,
+    rows: rows.slice(0, MAX_YAHOO_NON_TRANSMISSION),
+  };
+}
+
 export function buildScanFunnelArchivePayload(sources = {}) {
   const events = buildEvents(sources);
   const derived = deriveCounts(events);
@@ -380,6 +488,7 @@ export function buildScanFunnelArchivePayload(sources = {}) {
     counts,
     metadata,
     events,
+    yahooNonTransmission: buildYahooNonTransmission(sources),
   };
 }
 

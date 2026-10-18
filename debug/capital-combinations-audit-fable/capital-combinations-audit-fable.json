@@ -1,0 +1,1151 @@
+{
+  "audit": {
+    "id": "capital-combinations-audit-fable",
+    "date": "2026-07-11",
+    "auteur": "Claude Fable 5 — audit indépendant (aucune lecture des conclusions de l'audit précédent après consigne ; constats dérivés du code source et de mes propres tests)",
+    "mode": "LECTURE SEULE — aucun fichier existant modifié, aucun git add/commit/push/checkout/restore/reset/stash, aucune installation",
+    "perimetre": "Combinaisons de capital SAFE / BALANCED / AGGRESSIVE : flux de données, isolation des jambes, calculs financiers, score/grade/métadonnées, allocation, concentration, UI, cas limites, déterminisme",
+    "verdictGlobal": "PARTIAL",
+    "verdictNFLX": "UI ONLY — la combinaison SAFE utilise bien la jambe SAFE (66 / 0,46 $ / 0,697 % / −10,1 % / POP 93,5) et le grade de jambe A avec la composante +24 = poids grade SAFE (24) ; seul pick.mode hérite du candidat principal AGGRESSIVE. Aucun impact sur les calculs, le classement ni l'allocation du portefeuille observé."
+  },
+  "etatGitInitial": {
+    "commande": "git rev-parse --show-toplevel && git status -sb",
+    "racine": "C:/Users/melan/Desktop/wheel-mcp-remote (conforme à l'attendu)",
+    "branche": "main...origin/main",
+    "fichiersSuivisModifies": 0,
+    "untrackedPreexistants": 180,
+    "note": "debug/capital-combinations-audit/ (audit antérieur) préexistant — non lu (après consigne), non modifié. Volumineux lot debug/* et scripts/* untracked préexistants, intacts."
+  },
+  "etatGitFinal": {
+    "commandes": "git diff --name-only (vide) ; git status -sb",
+    "fichiersSuivisModifies": 0,
+    "nouveauxFichiers": [
+      "debug/capital-combinations-audit-fable/capital-combinations-audit-fable.mjs",
+      "debug/capital-combinations-audit-fable/capital-combinations-audit-fable.json",
+      "debug/capital-combinations-audit-fable/capital-combinations-audit-fable.md"
+    ],
+    "confirmation": "Seul le dossier debug/capital-combinations-audit-fable/ a été ajouté (3 fichiers). Aucun backend, IBKR, scanner, Journal POP, package ou dépendance touché. Aucun git add/commit/push."
+  },
+  "fichiersAnalyses": [
+    "wheel-dashboard/src/capitalComboPortfolio.js (3141 lignes — lu intégralement)",
+    "wheel-dashboard/src/capitalComboEngineV2.js (202 lignes — lu intégralement)",
+    "wheel-dashboard/src/alternativeCompositionSimV1.js (977 lignes — lu intégralement)",
+    "wheel-dashboard/src/tickerMeta.js (référentiel tiers/secteurs)",
+    "app/watchlist/cryptoWheelFilter.js (listes crypto)",
+    "wheel-dashboard/src/dashboard.jsx (sections : ibkrStrikeToDashboardStrike 3935-4024, mergeIbkrIntoDashboardCandidate 4080-4310, computeModeRecommendation 467+, _INSP_BUCKETS 8994-9052, critères Inspector 9860-9866, weightedMetricByCapital 9976-9987, ComboDetailModal 9996-10169, RiskModalBody 10172-10244, PortfolioCombos 10246-10853, enrichedCandidates/filtered 13194-13270, appel buildPortfolioCombos 13367-13375)",
+    "app/scanners/wheelScanner.js (computeProScore 372-394, appel 731)",
+    "debug/phase-a3b-result-scan-7dte-20260710.json (snapshot rejoué)",
+    "result-scan-30.json (snapshot écarté — plus ancien)"
+  ],
+  "fonctionsAnalysees": [
+    "buildPortfolioCombos, buildCapitalComboCandidate, makeCombo (bucketResolvedPool, scoredStaging, tri), getModeStrike, buildCapitalComboScoreBreakdown, computeTickerQualityOverlay, gradeLeg, getAggressivePriorityGrade, getFinalDisplayRecommendation, getFinalSelectedLeg, getLeg* (premium/spread/yield/distance/pop/execution), computeBalancedInstitutionalV3, evaluateCandidate, pickBestCandidate, pickBestFillerCandidate, pickBestDensityLeftoverCandidate, createPick, applySelection, computePortfolioState, canAddByComposition, hasDiversifyingAlternative, projectDynamicPenalty, computeCrossModeOverlapLocal",
+    "getCapitalOptimizerV2Flags, compareLeftoverDensityOrder, premiumDensityScore, computeLeftoverActionThresholdUsd, buildNextBestResidualRows, buildScoredPoolNotSelectedDiagnostics",
+    "VirtualAllocator (alternativeCompositionSimV1 — vérifié sans mutation du baseline)",
+    "ibkrStrikeToDashboardStrike, mergeIbkrIntoDashboardCandidate, computeModeRecommendation (entrée), summaryFor, weightedMetricByCapital, dominant (carte RISQUE), handleSaveSnapshot, ComboDetailModal, PortfolioCombos",
+    "computeProScore (wheelScanner — toujours sur la jambe SAFE)"
+  ],
+  "snapshotChoisi": {
+    "fichier": "debug/phase-a3b-result-scan-7dte-20260710.json",
+    "raison": "Choisi par CONTENU : expiration interne 20260710 (la plus récente du dépôt), scanCompletedAt 2026-07-05T01:52Z, 25 tickers shortlist avec jambes safe/aggressive complètes (quotes frozen week-end). result-scan-30.json = expiration vide, scan 2026-06-04, 11 tickers — écarté.",
+    "limite": "AUCUN snapshot du dépôt ne contient le portefeuille SAFE observé (NFLX/TQQQ/CRWV/NOK/SOFI/RIVN — NFLX, CRWV, NOK absents des deux snapshots). Le portefeuille observé est validé arithmétiquement (formules recodées indépendamment) et mécaniquement (fixture NFLX contrôlée), pas rejoué à l'identique.",
+    "methodologieRejeu": "Mapper minimal réimplémenté en miroir documenté de ibkrStrikeToDashboardStrike (spread fraction×100, weeklyYield=premiumYield×100, distance=(strike−spot)/spot×100) ; grades stockés recalculés via les fonctions EXPORTÉES du moteur (gradeLeg / getAggressivePriorityGrade) avec POP indisponible (frozen). Approximation de computeModeRecommendation documentée comme telle."
+  },
+  "resultatsParMode": {
+    "SAFE": {
+      "isolationFinanciere": "PASS — bucket SAFE consomme exclusivement _safeLeg (strike, prime, spread, rendement, distance, POP, capital) ; vérifié par fixture NFLX (T1a) et par rejeu réel (T12c implicite : strikes des picks = strikes de jambe SAFE)",
+      "grade": "PASS nominal (safeGrade → grade de jambe, T1b) ; FAIL conditionnel : fallback vers le grade du candidat principal si safeGrade absent (T2b/T2c, AF-03)",
+      "mode": "FAIL métadonnée : pick.mode = finalDisplayMode source (T1d, AF-01)",
+      "portefeuilleObserve": "capital 25 400 $, libre 100 $, remplissage 99,6078 %, rendement 0,6118 %, distance pondérée −11,82 % ≈ −12 % — tous recalculés conformes (T11a-f)",
+      "rejeuA3b7dte": "1 position (SMCI×3), 6 900 $ utilisés (27,1 % de remplissage), concentration 100 % — double contrainte structurelle : cap ticker 30 % (7 650 $) exclut NVDA/INTC/PLTR/MRVL (contrats 9 900-19 000 $) et borne de bande 0,80 % période exclut le reste à 7 DTE (T12d/T12e, AF-17)"
+    },
+    "BALANCED": {
+      "choixDeJambe": "Bande [0,75;1,05) puis fallback AGGRESSIVE avant SAFE (:1546-1572) — le fallback peut exclure un candidat dont la jambe SAFE passerait le filtre V3 min 0,675 (T6a, AF-07)",
+      "V3": "computeBalancedInstitutionalV3 patch runtime : minWeeklyYield 0,675, maxSpreadPct 22, caps dynamiques (:589-670) — l'Inspector affiche encore 0,70/20 (AF-14)",
+      "rejeuA3b7dte": "3 positions (SOFI×4, SMCI×3, RBLX×1), 18 700 $ (73,3 %) — badges des 3 picks = AGGRESSIVE (mode source) y compris sur jambes SAFE en bande (AF-01)"
+    },
+    "AGGRESSIVE": {
+      "isolationFinanciere": "PASS — bucket consomme exclusivement _aggLeg (T1e, T13a) ; jambe SAFE absente ⇒ jamais de substitution",
+      "gradeDerive": "FAIL conditionnel : la chaîne aggGrade préfère le grade DÉRIVÉ au grade STOCKÉ ; avec POP null (coercion Number(null)=0) le dérivé vaut WATCH et écrase un A stocké ⇒ exclusion (T15c, AF-02)",
+      "rejeuA3b7dte": "4 positions (SMCI×2, RIVN×2, CVNA, HOOD), 24 900 $ (97,6 %), warnings « High beta 41 % » et « Ticker dominant 41 % » cohérents avec les formules codées"
+    }
+  },
+  "calculsIndependants": {
+    "capitalCSP": {
+      "attendue": "strike × 100 × contrats",
+      "codee": "capitalPerContract = strike×100 (:1583-1585,1226) ; capitalUsed incrémenté par contrat (:2235,2243)",
+      "exemple": "NFLX 66×100×1 = 6 600 $ ; total observé 25 400 $",
+      "verdict": "PASS"
+    },
+    "primeTotale": {
+      "attendue": "prime × 100 × contrats",
+      "codee": "premiumPerContract = premiumUnit×100 (:1602) ; premiumCollected cumulé (:2236)",
+      "exemple": "NFLX 0,46×100 = 46 $ ; total observé 156 $",
+      "verdict": "PASS"
+    },
+    "rendementExpiration": {
+      "attendue": "prime ÷ strike × 100",
+      "codee": "leg.weeklyYield = premiumYield×100 au merge (dashboard:3945-3955) ; fallback moteur (premium/strike)×100 (:790-800)",
+      "exemple": "0,46/66 = 0,6970 % (0,70 affiché)",
+      "verdict": "PASS — mais c'est un rendement PÉRIODE malgré le nom weeklyYield (AF-17)"
+    },
+    "rendementPortefeuille": {
+      "attendue": "Σ primes ÷ capital déployable × 100",
+      "codee": "summaryFor : totalPremium/usableCapital×100 (dashboard:10290-10296)",
+      "exemple": "156/25 500 = 0,6118 % ≈ 0,61 % affiché",
+      "verdict": "PASS"
+    },
+    "popMoyen": {
+      "attendue": "moyenne pondérée",
+      "codee": "Σ(POP×capitalUsed)/Σ(capitalUsed) (dashboard:9976-9987,10293)",
+      "exemple": "Non vérifiable : un seul POP fourni (NFLX 93,5) pour un affichage ~97 %",
+      "verdict": "PASS formule / NON VÉRIFIABLE valeur"
+    },
+    "distanceOTMMoyenne": {
+      "attendue": "moyenne pondérée par capital",
+      "codee": "weightedMetricByCapital(picks, distancePct) (dashboard:10540)",
+      "exemple": "−300 210/25 400 = −11,8193 % ≈ −12 % affiché (moyenne simple −11,02 % ne collerait pas)",
+      "verdict": "PASS"
+    },
+    "spreadPct": {
+      "attendue": "(ask−bid)/mid en % homogène",
+      "codee": "fraction IBKR ×100 au merge (dashboard:4014) ; resolveLegSpreadPctPercent sans double conversion (:25-54)",
+      "exemple": "NVDA 0,0426 → 4,26 %",
+      "verdict": "PASS — réserve : spread négatif (bid>ask) accepté et noté au max (AF-11)"
+    },
+    "remplissage": {
+      "attendue": "utilisé ÷ déployable × 100",
+      "codee": "usedPct = used/usableCapital×100 (:2658)",
+      "exemple": "25 400/25 500 = 99,6078 % ≈ 99,6 %",
+      "verdict": "PASS"
+    },
+    "capitalLibre": {
+      "attendue": "déployable − utilisé",
+      "codee": "combo.freeCapital = capital BRUT − utilisé (:3069) ; l'UI principale recalcule usable−totalCapital (10021/10556/10715) ; le snapshot SQLite persiste la valeur moteur (10336)",
+      "exemple": "capital 40 000, maxCapitalPct 50, utilisé 5 000 ⇒ freeCapital 35 000 au lieu de 15 000 (T9a)",
+      "verdict": "FAIL quand maxCapitalPct < 100 (AF-09) ; sans effet sur le scan observé (100 %)"
+    },
+    "concentration": {
+      "attendue": "max capital ticker ÷ dénominateur explicite",
+      "codee": "max(tickerCapitalUsed)/capital UTILISÉ ×100, seuil > 25 (:2728-2746)",
+      "exemple": "CRWV 7 600/25 400 = 29,921 % → « 30 % » ; sur déployable 29,804 % → aussi 30 % (indiscernable à l'affichage)",
+      "verdict": "PASS calcul / libellé « du capital » ambigu (AF-16)"
+    }
+  },
+  "provenanceChampsPick": {
+    "jambeBucket": [
+      "strike",
+      "premiumUnit",
+      "premiumCollected",
+      "capitalRequired",
+      "capitalUsed",
+      "weeklyReturn",
+      "spreadPct",
+      "distancePct",
+      "popEstimate",
+      "grade (si safeGrade/_aggGrade présent)",
+      "proExecutionScore (recalculé :1600)",
+      "_qualityOverlay (recalculé :1606-1611)",
+      "selectionScore/_comboScoreBreakdown (recalculé par bucket :1626)"
+    ],
+    "candidatPrincipal": [
+      "mode (finalDisplayMode — :2196)",
+      "grade en FALLBACK si grade de jambe absent (:1586)",
+      "_comboGradeScore (tie-break tri :1229→1716)",
+      "selectedStrike.mode (:1494)",
+      "proFinalScore/proDistanceScore dans qualityNorm (:949-951 ; scanner = jambe SAFE, wheelScanner:372,731)",
+      "source/premiumKind (:1255-1261 — jambe globale, pas bucket)"
+    ],
+    "absents": [
+      "expiration",
+      "bid",
+      "ask",
+      "finalRank/rang scanner (non consommés par l'allocateur)"
+    ]
+  },
+  "harnais": {
+    "fichier": "debug/capital-combinations-audit-fable/capital-combinations-audit-fable.mjs",
+    "execution": "node debug/capital-combinations-audit-fable/capital-combinations-audit-fable.mjs — exit 0 (aucun CRITICAL), sortie JSON déterministe (2 exécutions identiques)",
+    "resultats": "voir harnessResults ci-dessous (43 vérifications : 38 PASS, 0 FAIL, 5 INFO)"
+  },
+  "anomalies": [
+    {
+      "id": "AF-01",
+      "gravite": "UI ONLY",
+      "mode": "SAFE/BALANCED/AGGRESSIVE",
+      "ticker": "NFLX (exemple) ; rejeu réel : SMCI/SOFI/RBLX",
+      "categorie": "METADATA/UI",
+      "champ": "pick.mode",
+      "attendu": "mode de la jambe réellement utilisée (bucket)",
+      "reel": "finalDisplayMode du candidat principal (« AGGRESSIVE A » affiché sur une jambe SAFE)",
+      "impact": "Badge trompeur dans la modale (dashboard:10127) et l'accordéon (:10751) ; aucun effet calcul/classement/allocation (T14a : financier et score identiques quand on inverse le mode source)",
+      "fichier": "wheel-dashboard/src/capitalComboPortfolio.js",
+      "fonction": "makeCombo.bucketResolvedPool / createPick",
+      "lignes": "1588-1612 (mode non remplacé), 2196, 1494",
+      "preuveTest": "T1d, T12d (badgeModeDifferentDuBucket : 4 picks réels)",
+      "certitude": "CONFIRMÉ (test reproduit + code)",
+      "nature": "purement visuel",
+      "correctionMinimale": "Dans bucketResolvedPool, poser selectedLegMode = mode.label ; createPick.mode = selectedLegMode (conserver sourceMode = finalDisplayMode pour info) ; adapter les 2 rendus UI."
+    },
+    {
+      "id": "AF-02",
+      "gravite": "HIGH",
+      "mode": "AGGRESSIVE (le plus exposé) + recommandation dérivée tous modes",
+      "ticker": "tous (POP indisponible)",
+      "categorie": "SELECTION/SCORING",
+      "champ": "popDecimal → grade",
+      "attendu": "POP inconnu non bloquant (clause explicite pop == null || pop >= 80)",
+      "reel": "Number(null) === 0 ⇒ POP null traité comme 0 % ⇒ gradeLeg = WATCH ; en bucket AGGRESSIVE le grade DÉRIVÉ écrase le grade STOCKÉ A (chaîne :1192-1200) ⇒ candidat exclu",
+      "impact": "Exclusion démontrée d'un candidat A avec POP null (T15c : avec POP ⇒ pick A ; sans POP ⇒ combo vide) ; le mapping UI initialise justement popEstimate/popProfitEstimated à null (dashboard:3999-4001) quand l'estimation échoue (frozen/expected move manquant)",
+      "fichier": "wheel-dashboard/src/capitalComboPortfolio.js",
+      "fonction": "gradeLeg / getAggressivePriorityGrade / buildCapitalComboCandidate / getFinalDisplayRecommendation",
+      "lignes": "530 (coercion), 534-535 (clause morte), 543, 686-692 (?? null), 1186-1200 (dérivé avant stocké)",
+      "preuveTest": "T15a (null⇒WATCH vs undefined⇒A), T15b (exclusion SAFE via recommandation dérivée), T15c (grade stocké A écrasé, exclusion AGGRESSIVE)",
+      "certitude": "CONFIRMÉ — bug reproductible par test ; impact sur un portefeuille réel non démontré (requiert POP inestimable en séance ; le scan observé avait des POP)",
+      "nature": "bug reproductible par test",
+      "correctionMinimale": "gradeLeg/getAggressivePriorityGrade : const pop = popDecimal == null ? null : Number(popDecimal)*100 (préserver null) ; et/ou chaîne aggGrade : stocké avant dérivé quand le stocké est A/B."
+    },
+    {
+      "id": "AF-03",
+      "gravite": "HIGH",
+      "mode": "SAFE (et BALANCED via bucketGrade)",
+      "ticker": "tous (safeGrade absent)",
+      "categorie": "METADATA/SCORING",
+      "champ": "finalDisplayGrade (bucket)",
+      "attendu": "grade de la jambe du bucket, sinon dérivé de CETTE jambe",
+      "reel": "fallback vers finalDisplayGrade du candidat principal (grade AGGRESSIVE appliqué à une jambe SAFE)",
+      "impact": "Portefeuille modifié dans un cas contrôlé : safeGrade null ⇒ CRM scoré A (+24) et sélectionné ; safeGrade correct B ⇒ ORCL sélectionné (T2b/T2c)",
+      "fichier": "wheel-dashboard/src/capitalComboPortfolio.js",
+      "fonction": "makeCombo.bucketResolvedPool",
+      "lignes": "1586, 1603",
+      "preuveTest": "T2a/T2b/T2c (flip CRM↔ORCL)",
+      "certitude": "CONFIRMÉ — bug reproductible par test ; occurrence live Possible (le merge IBKR renseigne normalement safeGrade via computeModeRecommendation, dashboard:4277)",
+      "nature": "bug reproductible par test",
+      "correctionMinimale": "Fallback = gradeLeg(jambe bucket) au lieu de candidate.finalDisplayGrade à la ligne 1586."
+    },
+    {
+      "id": "AF-04",
+      "gravite": "MEDIUM",
+      "mode": "tous",
+      "ticker": "ex æquo exacts",
+      "categorie": "SCORING/METADATA",
+      "champ": "_comboGradeScore (tie-break)",
+      "attendu": "départage sur des attributs de la jambe du bucket",
+      "reel": "départage n°2 du tri sur le grade du candidat SOURCE, jamais recalculé au bucket",
+      "impact": "À score entier strictement égal (jambes identiques, score 75), la seule différence de classification source inverse le portefeuille (T3a : AAPL↔MSFT)",
+      "fichier": "wheel-dashboard/src/capitalComboPortfolio.js",
+      "fonction": "buildCapitalComboCandidate / tri scoredStaging",
+      "lignes": "1229, 1252, 1716",
+      "preuveTest": "T3a ; T12b : aucune égalité dans le pool réel a3b",
+      "certitude": "CONFIRMÉ — bug reproductible par test ; n'agit que sur égalité exacte du score arrondi",
+      "nature": "bug reproductible par test",
+      "correctionMinimale": "Recalculer _comboGradeScore après résolution bucket (ou départager sur resolvedGrade)."
+    },
+    {
+      "id": "AF-05",
+      "gravite": "MEDIUM",
+      "mode": "tous",
+      "ticker": "ex æquo exacts",
+      "categorie": "ALLOCATION/DATA FLOW",
+      "champ": "ordre de sélection",
+      "attendu": "tie-break final stable indépendant de l'ordre d'entrée",
+      "reel": "tri stable + comparaisons strictes ⇒ le premier candidat de l'ordre d'entrée gagne ; l'ordre d'entrée = liste triée/filtrée de l'UI",
+      "impact": "Ordre inversé ⇒ portefeuille différent (T4a) ; le tri d'affichage (sortBy/sortOrder) peut donc décider en cas d'égalité exacte",
+      "fichier": "wheel-dashboard/src/capitalComboPortfolio.js + dashboard.jsx",
+      "fonction": "tri scoredStaging / pickBestCandidate / useMemo filtered",
+      "lignes": "1714-1720, 2161-2170 ; dashboard:13249-13270",
+      "preuveTest": "T4a ; T5c et T12a/T12b : déterminisme confirmé hors égalités",
+      "certitude": "CONFIRMÉ — bug reproductible par test",
+      "nature": "bug reproductible par test",
+      "correctionMinimale": "Ajouter un dernier critère stable (ticker asc) au comparateur :1719 et au duel :2166."
+    },
+    {
+      "id": "AF-06",
+      "gravite": "MEDIUM",
+      "mode": "tous",
+      "ticker": "tous",
+      "categorie": "DATA FLOW/DESIGN AMBIGUITY",
+      "champ": "pool d'entrée des combos",
+      "attendu": "pool stable par expiration (indépendant des réglages d'affichage)",
+      "reel": "buildPortfolioCombos consomme `filtered` = recherche texte + filtre Mode UI + tri UI + filtre expiration",
+      "impact": "Taper une recherche ou filtrer « SAFE » reconstruit les 3 combos sur un sous-ensemble (une recherche « NF » réduit le pool aux tickers correspondants) ; mécanisme confirmé par le graphe de dépendances du useMemo",
+      "fichier": "wheel-dashboard/src/dashboard.jsx",
+      "fonction": "useMemo filtered / useMemo combos",
+      "lignes": "13209-13270 (filtre mode 13218-13221, expiration 13269), 13367-13375",
+      "preuveTest": "lecture de code (non exécutable hors React)",
+      "certitude": "CONFIRMÉ (mécanisme par code) — impact dépendant de l'état UI",
+      "nature": "mécanisme confirmé par code",
+      "correctionMinimale": "Baser les combos sur la liste expiration-scopée AVANT query/filter/tri, ou afficher clairement que les combos suivent les filtres."
+    },
+    {
+      "id": "AF-07",
+      "gravite": "MEDIUM",
+      "mode": "BALANCED",
+      "ticker": "candidats bi-jambes hors bande",
+      "categorie": "SELECTION/DESIGN AMBIGUITY",
+      "champ": "choix de jambe fallback",
+      "attendu": "choisir une jambe conforme aux bornes du mode si elle existe",
+      "reel": "hors bande [0,75;1,05), fallback AGGRESSIVE d'abord — sans vérifier que cette jambe passera le filtre — puis rejet ; la jambe SAFE conforme (≥ min V3 0,675) n'est jamais essayée",
+      "impact": "Candidat avec jambe AGG 2,0 % ⇒ EXCLU de BALANCED ; même jambe SAFE 0,70 % sans jambe AGG ⇒ INCLUS (T6a) — posséder une meilleure jambe AGGRESSIVE retire le ticker du mode",
+      "fichier": "wheel-dashboard/src/capitalComboPortfolio.js",
+      "fonction": "makeCombo.bucketResolvedPool (branche balanced)",
+      "lignes": "1546-1572 (fallback 1566-1571), 630 (min V3 0,675), 1659-1665",
+      "preuveTest": "T6a",
+      "certitude": "CONFIRMÉ — bug reproductible par test",
+      "nature": "bug reproductible par test",
+      "correctionMinimale": "Dans le fallback, ne retenir une jambe que si son rendement satisfait [minWeeklyYield_V3, maxWeeklyYield) ; sinon essayer l'autre jambe."
+    },
+    {
+      "id": "AF-08",
+      "gravite": "MEDIUM",
+      "mode": "tous",
+      "ticker": "gros contrats vs cap ticker",
+      "categorie": "ALLOCATION/DESIGN AMBIGUITY",
+      "champ": "soft caps ×1,1",
+      "attendu": "la passe soft (useSoftCaps) autorise ~10 % de dépassement du cap ticker",
+      "reel": "le re-check cluster (:2089) réapplique le cap STRICT sans le facteur ×1,1 ⇒ la tolérance est morte pour toute nouvelle ligne au-dessus du cap strict",
+      "impact": "Contrat à 32 % du déployable (≤ 33 % soft) : passe strict ET soft rejettent (ticker_cap_reached ×2), portefeuille vide (T8a)",
+      "fichier": "wheel-dashboard/src/capitalComboPortfolio.js",
+      "fonction": "evaluateCandidate",
+      "lignes": "2040-2043 (limites soft), 2058 (1er contrôle), 2086-2091 (re-check strict)",
+      "preuveTest": "T8a",
+      "certitude": "CONFIRMÉ — incohérence interne reproduite ; l'intention (strict partout ou soft partout) est ambiguë",
+      "nature": "bug reproductible par test / ambiguïté de conception",
+      "correctionMinimale": "Appliquer le même facteur (useSoftCaps ? ×1,1 : ×1) au re-check :2089, OU documenter que le soft-cap ne concerne que les renforts multi-contrats."
+    },
+    {
+      "id": "AF-09",
+      "gravite": "MEDIUM",
+      "mode": "tous",
+      "ticker": "n/a",
+      "categorie": "CALCULATION/DATA FLOW",
+      "champ": "combo.freeCapital",
+      "attendu": "capital déployable − capital utilisé",
+      "reel": "capital BRUT − capital utilisé (inclut la réserve non déployable)",
+      "impact": "maxCapitalPct 50 % : utilisé 5 000 ⇒ freeCapital 35 000 au lieu de 15 000 (T9a) ; l'UI principale recalcule juste, mais handleSaveSnapshot persiste la valeur moteur dans SQLite",
+      "fichier": "wheel-dashboard/src/capitalComboPortfolio.js + dashboard.jsx",
+      "fonction": "makeCombo (retour) / handleSaveSnapshot",
+      "lignes": "3069 ; dashboard:10336 (persistance), 10021/10556/10715 (recalculs UI corrects)",
+      "preuveTest": "T9a",
+      "certitude": "CONFIRMÉ — bug reproductible par test ; sans effet sur le scan observé (maxCapitalPct 100)",
+      "nature": "bug reproductible par test",
+      "correctionMinimale": "Retourner freeCapital = usableCapital − used (ou deux champs distincts freeDeployable/freeAccount) ; aligner la persistance."
+    },
+    {
+      "id": "AF-10",
+      "gravite": "UI ONLY",
+      "mode": "tous",
+      "ticker": "contrats > 1",
+      "categorie": "UI",
+      "champ": "ticker dominant (carte/modale RISQUE) + colonne Capital",
+      "attendu": "concentration et capital de ligne sur capitalUsed (= capitalRequired × contrats)",
+      "reel": "carte RISQUE agrège capitalRequired (coût d'UN lot) ; colonnes « Capital » affichent le coût d'un lot avec ×N séparé",
+      "impact": "NOK×3 + SOFI×1 : moteur 54,79 % vs affichage RISQUE 78,43 % (T10a) — mauvais ticker dominant possible ; totaux moteur corrects",
+      "fichier": "wheel-dashboard/src/dashboard.jsx",
+      "fonction": "dominant (PortfolioCombos) / ComboDetailModal / lignes accordéon",
+      "lignes": "10301-10310, 10140, 10779",
+      "preuveTest": "T10a (calcul UI rejoué sur picks moteur réels)",
+      "certitude": "CONFIRMÉ",
+      "nature": "purement visuel",
+      "correctionMinimale": "Remplacer capitalRequired par capitalUsed dans dominant et les agrégats de ligne."
+    },
+    {
+      "id": "AF-11",
+      "gravite": "LOW",
+      "mode": "tous",
+      "ticker": "quotes croisées",
+      "categorie": "CALCULATION/FALLBACK",
+      "champ": "spreadPct négatif",
+      "attendu": "bid > ask rejeté ou signalé",
+      "reel": "spread négatif finit ≤ maxSpreadPct, jambe valide, note de spread MAXIMALE (clamp01((15−(−22))/15)=1) et sélection",
+      "impact": "Donnée corrompue avantagée au lieu d'être bloquée (T7a) ; dépend d'une corruption amont — non observé en données réelles",
+      "fichier": "wheel-dashboard/src/capitalComboPortfolio.js",
+      "fonction": "hasSafeLegValid / normalizeComboSpreadScore",
+      "lignes": "1205, 914-919",
+      "preuveTest": "T7a",
+      "certitude": "CONFIRMÉ — mécanisme reproduit sur donnée synthétique",
+      "nature": "mécanisme théoriquement possible (donnée corrompue requise)",
+      "correctionMinimale": "Exiger spread ≥ 0 dans hasSafe/AggLegValid (ou clamp au max + warning)."
+    },
+    {
+      "id": "AF-12",
+      "gravite": "MEDIUM",
+      "mode": "AGGRESSIVE/BALANCED (jambe agg)",
+      "ticker": "tous",
+      "categorie": "SCORING/DATA FLOW",
+      "champ": "qualityNorm (proFinalScore, proDistanceScore)",
+      "attendu": "sous-scores contextualisés à la jambe du bucket (ou provenance documentée)",
+      "reel": "proFinalScore/proDistanceScore proviennent du scanner qui les calcule TOUJOURS sur la jambe SAFE (wheelScanner:372-394, appel 731) ; seul proExecutionScore est recalculé par jambe (:1600) ; en IBKR direct ils valent 0 (dashboard:4293-4295)",
+      "impact": "Jusqu'à ~3,6 pts de score (poids quality 12 × 0,30) issus d'une jambe différente de celle scorée — peut influencer un classement serré ; flip d'ordre non démontré par test",
+      "fichier": "wheel-dashboard/src/capitalComboPortfolio.js + app/scanners/wheelScanner.js",
+      "fonction": "buildCapitalComboScoreBreakdown / computeProScore",
+      "lignes": "949-951, 1600 ; wheelScanner 372-394, 731",
+      "preuveTest": "lecture de code (provenance prouvée)",
+      "certitude": "CONFIRMÉ (provenance) — impact sur l'ordre : Possible, non démontré",
+      "nature": "mécanisme théoriquement possible",
+      "correctionMinimale": "Recalculer les 2 sous-scores sur la jambe bucket (formule locale déjà disponible via getLegExecutionBreakdown/distance) ou retirer ces termes du qualityNorm combo."
+    },
+    {
+      "id": "AF-13",
+      "gravite": "LOW",
+      "mode": "tous",
+      "ticker": "n/a",
+      "categorie": "DESIGN AMBIGUITY/UI",
+      "champ": "modeConfigs.allowedModes",
+      "attendu": "configuration appliquée, ou absente",
+      "reel": "déclaré 3× (:1331,1396,1453), jamais consommé (aucun .has() ; T14a : inverser finalDisplayMode ne change ni financier ni score) ; l'Inspector l'affiche pourtant comme critère (« · modes SAFE »)",
+      "impact": "Lecture trompeuse : l'utilisateur croit à un filtre par mode source qui n'existe pas — d'autant plus visible qu'un badge AGGRESSIVE apparaît dans SAFE (AF-01)",
+      "fichier": "capitalComboPortfolio.js + dashboard.jsx",
+      "fonction": "modeConfigs / Inspector",
+      "lignes": "1331/1396/1453 ; dashboard:8997/9016/9035, 9862",
+      "preuveTest": "T14a + grep exhaustif",
+      "certitude": "CONFIRMÉ",
+      "nature": "purement visuel/documentaire",
+      "correctionMinimale": "Supprimer allowedModes des configs et du texte Inspector (ou documenter « réservé »)."
+    },
+    {
+      "id": "AF-14",
+      "gravite": "LOW",
+      "mode": "BALANCED",
+      "ticker": "n/a",
+      "categorie": "UI",
+      "champ": "critères affichés Inspector",
+      "attendu": "miroir des seuils runtime",
+      "reel": "_INSP_BUCKETS.BALANCED : minYield 0,70 / maxSpread 20, alors que le runtime V3 patche 0,675 / 22 et que la carte BALANCED affiche « ≥0,675 %–1,05 % · spread ≤22 % »",
+      "impact": "Deux écrans se contredisent ; diagnostics Inspector potentiellement faux près des bornes",
+      "fichier": "wheel-dashboard/src/dashboard.jsx + capitalComboPortfolio.js",
+      "fonction": "_INSP_BUCKETS / computeBalancedInstitutionalV3",
+      "lignes": "9014-9032 vs 630/639 ; texte carte 10558-10563",
+      "preuveTest": "lecture de code",
+      "certitude": "CONFIRMÉ",
+      "nature": "purement visuel",
+      "correctionMinimale": "Aligner _INSP_BUCKETS sur les valeurs V3 (ou les dériver du même objet)."
+    },
+    {
+      "id": "AF-15",
+      "gravite": "LOW",
+      "mode": "tous",
+      "ticker": "n/a",
+      "categorie": "DATA FLOW",
+      "champ": "expiration / bid / ask / rang dans le pick",
+      "attendu": "champs d'audit transportés ; expiration validée au boundary moteur",
+      "reel": "createPick ne transporte ni expiration ni bid/ask ni rang (T1g) ; le moteur n'a AUCUN contrôle d'expiration — barrière unique = filtre UI candidateRowMatchesSelectedExpiration (13269)",
+      "impact": "Défense en profondeur absente (un snapshot malformé mélangerait des expirations sans détection) ; audit ligne à ligne impossible depuis l'objet portefeuille seul",
+      "fichier": "capitalComboPortfolio.js + dashboard.jsx",
+      "fonction": "createPick / buildPortfolioCombos / filtered",
+      "lignes": "2193-2223 ; dashboard:13269",
+      "preuveTest": "T1g + lecture de code",
+      "certitude": "CONFIRMÉ (absence structurelle) ; aucune contamination réelle observée dans les snapshots",
+      "nature": "mécanisme théoriquement possible",
+      "correctionMinimale": "Copier expiration/bid/ask de selectedLeg dans le pick (lecture seule) ; optionnel : assert d'homogénéité d'expiration en tête de buildPortfolioCombos."
+    },
+    {
+      "id": "AF-16",
+      "gravite": "LOW",
+      "mode": "tous",
+      "ticker": "n/a",
+      "categorie": "UI",
+      "champ": "libellés agrégats",
+      "attendu": "libellés explicites sur les dénominateurs",
+      "reel": "« Ticker dominant X % du capital » = % du capital UTILISÉ (:2728,2746) sans le préciser ; « Rend. moy. » de la carte = prime totale/déployable (10427,10292), pas une moyenne de rendements",
+      "impact": "Ambiguïté de lecture (29,92 % utilisé vs 29,80 % déployable → tous deux « 30 % » ici)",
+      "fichier": "capitalComboPortfolio.js + dashboard.jsx",
+      "fonction": "clusterWarnings / summaryFor / carte résumé",
+      "lignes": "2746 ; dashboard:10427",
+      "preuveTest": "T11f",
+      "certitude": "CONFIRMÉ",
+      "nature": "purement visuel",
+      "correctionMinimale": "Préciser « du capital utilisé » et renommer « Rend. port. »."
+    },
+    {
+      "id": "AF-17",
+      "gravite": "MEDIUM",
+      "mode": "SAFE (surtout) et BALANCED",
+      "ticker": "tous à DTE ≠ 7",
+      "categorie": "DESIGN AMBIGUITY",
+      "champ": "bandes minWeeklyYield/maxWeeklyYield",
+      "attendu": "bandes appliquées à un rendement comparable entre DTE (ou bornes par DTE)",
+      "reel": "leg.weeklyYield = rendement PÉRIODE (merge 3945-3960) ; le moteur consomme ce champ (:790-800) — weeklyNormalizedYield existe mais n'est pas utilisé ; borne SAFE 0,80 % appliquée au rendement 7 jours de période",
+      "impact": "Rejeu réel 7 DTE : SAFE réduit à 1 position/27 % de remplissage (bande + cap ticker 30 % excluant NVDA/INTC/PLTR/MRVL) — reproduit indépendamment (T12d/T12e)",
+      "fichier": "dashboard.jsx + capitalComboPortfolio.js",
+      "fonction": "ibkrStrikeToDashboardStrike / getLegYieldPct / gates",
+      "lignes": "3945-3960 ; 790-800, 1449-1450, 1652-1665",
+      "preuveTest": "T12d/T12e (données réelles)",
+      "certitude": "CONFIRMÉ (comportement structurel, pas une erreur de calcul)",
+      "nature": "impact démontré sur portefeuille rejoué (données réelles)",
+      "correctionMinimale": "Décision produit : normaliser les bandes en rendement 7 j (weeklyNormalizedYield) ou déclarer les bornes par DTE — ne pas changer les seuils sans rejouer les harnais existants."
+    },
+    {
+      "id": "AF-18",
+      "gravite": "LOW",
+      "mode": "tous",
+      "ticker": "n/a",
+      "categorie": "FALLBACK",
+      "champ": "flags optimizerV2",
+      "attendu": "même input ⇒ même portefeuille, indépendamment de l'environnement",
+      "reel": "getCapitalOptimizerV2Flags fusionne silencieusement localStorage (wheelCapitalComboOptimizerV2Flags) quand aucun override n'est passé — l'appel UI n'en passe pas (13368-13374)",
+      "impact": "Deux navigateurs peuvent produire des passes leftover différentes ; atténué : flagsSnapshot exporté dans capDiagnosticsV2 (:2999)",
+      "fichier": "capitalComboEngineV2.js + capitalComboPortfolio.js",
+      "fonction": "getCapitalOptimizerV2Flags / resolveOptimizerV2ForCombo",
+      "lignes": "20-34 ; 56-61, 1500",
+      "preuveTest": "lecture de code (Node : défauts, harnais fige {})",
+      "certitude": "CONFIRMÉ (mécanisme documenté par le code)",
+      "nature": "mécanisme confirmé, transparent via flagsSnapshot",
+      "correctionMinimale": "Afficher les flags effectifs près des cartes combo ; injecter les flags dans tout replay."
+    }
+  ],
+  "hypotheses": [
+    {
+      "id": "H1",
+      "enonce": "La combinaison SAFE utilise correctement les valeurs financières de la jambe SAFE.",
+      "verdict": "CONFIRMÉE",
+      "preuve": "T1a (fixture NFLX : strike 66, prime 0,46, 0,6970 %, spread 4,3, −10,1, POP 93,5, 6 600 $) + bucketResolvedPool :1521-1613 + rejeu réel (strikes des picks = strikes de jambe)"
+    },
+    {
+      "id": "H2",
+      "enonce": "La combinaison SAFE conserve incorrectement le mode du candidat principal.",
+      "verdict": "CONFIRMÉE",
+      "preuve": "T1d + T12d (4 badges réels) ; finalDisplayMode jamais remplacé (:1588-1612), createPick.mode (:2196)"
+    },
+    {
+      "id": "H3",
+      "enonce": "La combinaison SAFE conserve incorrectement le grade du candidat principal.",
+      "verdict": "PARTIELLEMENT CONFIRMÉE",
+      "preuve": "Nominal : REJETÉE — grade remplacé par safeGrade (T1b). Fallback : CONFIRMÉE — safeGrade absent ⇒ grade source utilisé et portefeuille modifié (T2b/T2c, :1586)"
+    },
+    {
+      "id": "H4",
+      "enonce": "Le score de la combinaison SAFE utilise le bonus de grade AGGRESSIVE.",
+      "verdict": "REJETÉE",
+      "preuve": "T1c : composante +24 = poids grade SAFE (24, :1459) × gradeNorm(A)=1 ; AGGRESSIVE aurait donné +20 (:1350), BALANCED +22 (:1415) — le +24 observé PROUVE les poids SAFE"
+    },
+    {
+      "id": "H5",
+      "enonce": "Le mauvais grade peut modifier l'ordre des positions.",
+      "verdict": "CONFIRMÉE (en cas contrôlé)",
+      "preuve": "T2c (fallback grade ⇒ CRM↔ORCL) et T3a (tie-break grade source ⇒ AAPL↔MSFT) ; occurrence réelle non démontrée (T12b : aucune égalité dans le pool a3b)"
+    },
+    {
+      "id": "H6",
+      "enonce": "Le mauvais grade peut modifier le portefeuille final.",
+      "verdict": "CONFIRMÉE (en cas contrôlé)",
+      "preuve": "Mêmes tests : la composition change (pas seulement l'ordre) ; conditions : safeGrade absent (T2) ou égalité exacte de score (T3)"
+    },
+    {
+      "id": "H7",
+      "enonce": "Le problème est uniquement visuel.",
+      "verdict": "CONFIRMÉE pour le portefeuille observé",
+      "preuve": "Pour NFLX/SAFE observé : financier jambe SAFE (T1a), grade jambe (T1b), +24 SAFE (T1c), allocation inchangée quand le mode source varie (T14a) — seul le badge est faux. Les mécanismes non visuels (AF-02/03/04) exigent des conditions absentes du scan observé"
+    },
+    {
+      "id": "H8",
+      "enonce": "Le capital SAFE est calculé correctement.",
+      "verdict": "CONFIRMÉE",
+      "preuve": "T11a : 6600+6800+7600+1100+1700+1600 = 25 400 $ ; libre 100 $ ; remplissage 99,6078 %"
+    },
+    {
+      "id": "H9",
+      "enonce": "Le rendement portefeuille est calculé correctement.",
+      "verdict": "CONFIRMÉE",
+      "preuve": "T11b : 156/25 500 = 0,6118 % ≈ 0,61 % (formule summaryFor 10290-10296)"
+    },
+    {
+      "id": "H10",
+      "enonce": "Le POP moyen est calculé correctement.",
+      "verdict": "NON VÉRIFIABLE (formule confirmée)",
+      "preuve": "Formule pondérée par capitalUsed confirmée (9976-9987) ; un seul POP individuel fourni — « Non vérifiable avec le snapshot actuel »"
+    },
+    {
+      "id": "H11",
+      "enonce": "La concentration de 30 % est calculée correctement.",
+      "verdict": "CONFIRMÉE",
+      "preuve": "T11f : CRWV 7 600/25 400 = 29,921 % → « 30 % », seuil > 25 (:2746), dénominateur = capital utilisé (:2728)"
+    },
+    {
+      "id": "H12",
+      "enonce": "Les combinaisons SAFE, BALANCED et AGGRESSIVE sont isolées.",
+      "verdict": "CONFIRMÉE",
+      "preuve": "T1h (deep-freeze sans TypeError), T5a/T5b (aucune référence partagée), T5c/T12a (déterminisme), état local par makeCombo (:1735-1737) ; VirtualAllocator sim sans mutation du baseline"
+    }
+  ],
+  "casLimites": "40 cas couverts — voir harnessResults (T1-T15) : jambes absentes T13a, prime nulle/manquante T13b, spread absent T13c, bid>ask T7a, POP absent/nul T13d/T15, égalités T3/T4, ordre T4/T5c/T12b, double exécution T5a/T12a, multi-contrats T10a, capital insuffisant/limite ticker T8a, portefeuille ~100 % T11a, mode absent T12 (dérivation), grade absent T2, expiration divergente = non contrôlée structurellement (AF-15), scoreBreakdown absent = recalculé par bucket (:1626), finalRank scanner non consommé (grep + provenanceChampsPick)",
+  "limitesAudit": [
+    "Le scan exact ayant produit NFLX/TQQQ/CRWV/NOK/SOFI/RIVN n'existe pas dans le dépôt (NFLX/CRWV/NOK absents des 2 snapshots) : validation arithmétique + mécanique (fixture), pas de rejeu bit-à-bit ; bid/ask, POP complets et scores affichés de ce scan non vérifiables.",
+    "computeModeRecommendation (dashboard.jsx:467-~800) n'a pas été audité exhaustivement (production des grades stockés) — les fréquences live de AF-02/AF-03 en dépendent.",
+    "Le rejeu a3b passe par un mapper réimplémenté (documenté) : grades recalculés via gradeLeg sans POP (frozen) — fidèle au moteur, approximatif vs merge complet (POP/earnings absents).",
+    "UI non exécutée (pas de navigateur) : les constats UI sont des lectures de code, chiffrées en rejouant les formules sur des picks moteur réels (T10a).",
+    "Aucun serveur, scan live, IBKR ou frontend démarré ; localStorage non applicable sous Node (flags figés à {})."
+  ],
+  "recommandationsMinimales": [
+    {
+      "priorite": 1,
+      "cible": "AF-02",
+      "action": "Garde null dans gradeLeg/getAggressivePriorityGrade (popDecimal == null ⇒ pop = null) + réordonner la chaîne aggGrade (stocké A/B avant dérivé)",
+      "fichiers": "capitalComboPortfolio.js:530,543,1192-1200",
+      "risque": "faible (comportement POP présent inchangé)",
+      "tests": "T15a/b/c du harnais + rejeu a3b"
+    },
+    {
+      "priorite": 2,
+      "cible": "AF-01/AF-13",
+      "action": "selectedLegMode dans le pick + affichage ; retirer allowedModes de l'Inspector",
+      "fichiers": "capitalComboPortfolio.js:1588-1612,2196 ; dashboard.jsx:10127,10751,9862",
+      "risque": "faible (badges/snapshots sauvegardés à revalider)",
+      "tests": "T1d, T14a, T12d(badge=bucket)"
+    },
+    {
+      "priorite": 3,
+      "cible": "AF-03/AF-04",
+      "action": "Fallback grade = gradeLeg(jambe bucket) ; recalcul _comboGradeScore post-bucket",
+      "fichiers": "capitalComboPortfolio.js:1586,1229/1716",
+      "risque": "moyen (peut changer des sélections où safeGrade manquait)",
+      "tests": "T2, T3 + comparaison avant/après sur scans réels"
+    },
+    {
+      "priorite": 4,
+      "cible": "AF-05",
+      "action": "Tie-break final stable (ticker asc)",
+      "fichiers": "capitalComboPortfolio.js:1719,2166",
+      "risque": "faible",
+      "tests": "T4a (doit devenir indépendant de l'ordre)"
+    },
+    {
+      "priorite": 5,
+      "cible": "AF-09/AF-10/AF-14/AF-16",
+      "action": "freeCapital déployable (+ persistance) ; capitalUsed dans RISQUE/lignes ; aligner _INSP_BUCKETS ; libellés",
+      "fichiers": "capitalComboPortfolio.js:3069 ; dashboard.jsx:10301-10310,10336,9014-9032,2746",
+      "risque": "faible",
+      "tests": "T9a, T10a"
+    },
+    {
+      "priorite": 6,
+      "cible": "AF-06/AF-07/AF-08/AF-17",
+      "action": "Décisions produit à trancher AVANT patch (pool vs filtres UI ; fallback BALANCED ; portée du soft-cap ; normalisation DTE des bandes)",
+      "fichiers": "dashboard.jsx:13209-13375 ; capitalComboPortfolio.js:1546-1572,2089,1449-1450",
+      "risque": "moyen à fort (change des portefeuilles)",
+      "tests": "T6a, T8a, rejeux 1 DTE + 7 DTE existants avant/après"
+    }
+  ],
+  "harnessResults": {
+    "audit": "capital-combinations-audit-fable",
+    "generatedAt": "2026-07-11T05:56:09.817Z",
+    "engine": "wheel-dashboard/src/capitalComboPortfolio.js (import direct, lecture seule)",
+    "optimizerV2Flags": "override explicite {} ⇒ défauts CAPITAL_COMBO_OPTIMIZER_DEFAULTS (pas de localStorage sous Node)",
+    "totals": {
+      "checks": 43,
+      "pass": 38,
+      "fail": 0,
+      "info": 5,
+      "criticalConfirmed": 0
+    },
+    "checks": [
+      {
+        "id": "T1a",
+        "title": "SAFE/NFLX : valeurs financières = jambe SAFE (strike/prime/rendement/spread/distance/POP/capital)",
+        "status": "PASS",
+        "expected": "strike 66, prime 0.46, yield 0.6970%, spread 4.3, dist -10.1, POP 93.5, capital 6600, prime tot 46",
+        "actual": {
+          "strike": 66,
+          "premiumUnit": 0.46,
+          "weeklyReturn": 0.696969696969697,
+          "spreadPct": 4.3,
+          "distancePct": -10.1,
+          "popEstimate": 93.5,
+          "capitalRequired": 6600,
+          "premiumCollected": 46
+        },
+        "proof": "capitalComboPortfolio.js:1521-1613 (bucketResolvedPool SAFE→_safeLeg), createPick:2193-2223"
+      },
+      {
+        "id": "T1b",
+        "title": "SAFE/NFLX : pick.grade = grade de jambe SAFE (safeGrade A)",
+        "status": "PASS",
+        "actual": "A",
+        "proof": "resolvedGrade = bucketGrade(_safeGrade) ?? finalDisplayGrade — :1586,1603"
+      },
+      {
+        "id": "T1c",
+        "title": "SAFE/NFLX : composante grade du score = +24 (poids SAFE, PAS un bonus AGGRESSIVE)",
+        "status": "PASS",
+        "actual": 24,
+        "expected": 24,
+        "note": "poids grade : SAFE 24 (:1459), BALANCED 22 (:1415), AGGRESSIVE 20 (:1350) — un +24 observé prouve les poids SAFE",
+        "proof": "buildCapitalComboScoreBreakdown:943,971-993"
+      },
+      {
+        "id": "T1d",
+        "title": "DÉFAUT CONFIRMÉ — SAFE/NFLX : pick.mode hérite du candidat principal (AGGRESSIVE)",
+        "status": "PASS",
+        "actual": "AGGRESSIVE",
+        "expected": "AGGRESSIVE (défaut reproduit) — devrait refléter la jambe utilisée (SAFE)",
+        "severityIfFail": null,
+        "proof": "finalDisplayMode absent de la liste des champs remplacés au bucket (:1588-1612) ; createPick.mode=candidate.finalDisplayMode (:2196) ; affiché tel quel dashboard.jsx:10127,10751"
+      },
+      {
+        "id": "T1e",
+        "title": "AGGRESSIVE/NFLX : jambe AGGRESSIVE utilisée (68 / 0,82 / 1,206 %) et grade composante +20",
+        "status": "PASS",
+        "actual": {
+          "strike": 68,
+          "premiumUnit": 0.82,
+          "weeklyReturn": 1.2058823529411764,
+          "gradeComp": 20
+        }
+      },
+      {
+        "id": "T1f",
+        "title": "BALANCED/NFLX : absent (safe 0,697 hors bande [0,75;1,05), fallback → jambe AGG 1,206 ≥ 1,05 rejetée)",
+        "status": "INFO",
+        "actual": "absent (attendu)",
+        "proof": "choix de jambe :1546-1572 ; filtre maxWeeklyYield :1659-1665"
+      },
+      {
+        "id": "T1g",
+        "title": "createPick ne transporte ni expiration ni bid/ask ni rang scanner (audit ligne à ligne impossible depuis le pick seul)",
+        "status": "PASS",
+        "actual": "ticker,mode,grade,strike,source,premiumKind,premiumUnit,contracts,capitalRequired,capitalUsed,premiumCollected,weeklyReturn,spreadPct,distancePct,qualityTier,qualityScore,qualityWarnings,concentrationTheme,sectorKey,isHighBeta,premiumTrapPenalty,popEstimate,selectionScore,selectionSummary,selectionReason,selectionTooltip,comboAllocationPhase",
+        "proof": "createPick:2193-2223"
+      },
+      {
+        "id": "T1h",
+        "title": "Aucune mutation des candidats d'entrée (deep-freeze + exécution sans TypeError)",
+        "status": "PASS",
+        "note": "pool gelé récursivement avant l'appel ; toute écriture aurait levé en mode strict"
+      },
+      {
+        "id": "T2a",
+        "title": "gradeLeg(jambe SAFE de P) = B — le vrai grade de la jambe est B",
+        "status": "PASS",
+        "actual": "B",
+        "proof": "gradeLeg:526-538"
+      },
+      {
+        "id": "T2b",
+        "title": "DÉFAUT CONFIRMÉ — safeGrade absent ⇒ le bucket SAFE score la jambe avec le grade A du candidat principal (au lieu de B)",
+        "status": "PASS",
+        "actual": {
+          "safeComboPicks": "CRM",
+          "gradeCRM": "A"
+        },
+        "proof": "resolvedGrade = bucketGrade ?? candidate.finalDisplayGrade (:1586) ; gradeNorm A=1 vs B=0.72 (:943) × poids 24"
+      },
+      {
+        "id": "T2c",
+        "title": "DÉMONTRÉ — le portefeuille SAFE change quand seul safeGrade (présence/absence) change : CRM ↔ ORCL",
+        "status": "PASS",
+        "actual": {
+          "safeGradeNull": "CRM",
+          "safeGradeB": "ORCL"
+        },
+        "severityIfFail": null,
+        "note": "impact réel conditionné à l'absence de safeGrade en amont (le merge IBKR le renseigne via computeModeRecommendation, dashboard.jsx:4277) — mécanisme prouvé, occurrence live non démontrée"
+      },
+      {
+        "id": "T3a",
+        "title": "DÉMONTRÉ — à score bucket STRICTEMENT égal, le grade du candidat SOURCE décide du portefeuille (AAPL puis MSFT)",
+        "status": "PASS",
+        "actual": {
+          "run1Winner": "AAPL",
+          "run2Winner": "MSFT",
+          "scoreEgal": 75
+        },
+        "severityIfFail": null,
+        "note": "métadonnée source (hors jambe) modifie l'ordre puis la sélection — uniquement en cas d'égalité exacte du score entier",
+        "proof": "_comboGradeScore figé sur finalDisplayGrade source (:1229,1252), tie-break n°2 du tri (:1716)"
+      },
+      {
+        "id": "T4a",
+        "title": "DÉMONTRÉ — candidats parfaitement ex æquo : le premier de l'ordre d'entrée gagne (ordre inversé ⇒ portefeuille différent)",
+        "status": "PASS",
+        "actual": {
+          "ordreAB": "AAPL",
+          "ordreBA": "MSFT"
+        },
+        "note": "l'ordre d'entrée = ordre du tri UI (dashboard.jsx:13249-13270) ⇒ le tri d'affichage peut décider en cas d'égalité exacte",
+        "proof": "tri stable :1714-1720 (aucun tie-break final déterministe) + pickBestCandidate :2161-2170 (strictement >)"
+      },
+      {
+        "id": "T5a",
+        "title": "Même input ⇒ même output (2 exécutions, comparaison profonde hors diagnostics)",
+        "status": "PASS"
+      },
+      {
+        "id": "T5b",
+        "title": "Aucun objet pick partagé par référence entre SAFE et AGGRESSIVE",
+        "status": "PASS",
+        "proof": "picks/pickMap/used locaux à chaque makeCombo (:1735-1737) ; createPick crée un objet neuf (:2193)"
+      },
+      {
+        "id": "T5c",
+        "title": "Ordre d'entrée inversé (scores tous distincts) ⇒ portefeuilles identiques",
+        "status": "PASS"
+      },
+      {
+        "id": "T6a",
+        "title": "DÉMONTRÉ — BALANCED : candidat avec jambe AGG 2,0 % ⇒ EXCLU ; même jambe SAFE sans jambe AGG ⇒ INCLUS (0,70 % ≥ min V3 0,675)",
+        "status": "PASS",
+        "actual": {
+          "avecJambeAgg": "(combo null)",
+          "sansJambeAgg": "ORCL"
+        },
+        "note": "le fallback hors bande préfère AGGRESSIVE (:1566-1568) avant SAFE (:1569-1571) sans tester la bande/le filtre en aval ⇒ la jambe SAFE conforme n'est jamais essayée",
+        "proof": "bande jambe [0,75;1,05) :1546-1572 ; min V3 0,675 :630 ; rejet maxWeeklyYield :1659-1665"
+      },
+      {
+        "id": "T7a",
+        "title": "DÉFAUT CONFIRMÉ — spread négatif (bid>ask) accepté : jambe valide, sélectionnée, spread affiché −22 %",
+        "status": "PASS",
+        "actual": {
+          "spreadPct": -22,
+          "score": 91
+        },
+        "note": "hasSafeLegValid exige seulement spread ≤ 35 (:1205) ; normalizeComboSpreadScore donne la note MAXIMALE à un spread négatif (:914-919 → clamp01((15−(−22))/15)=1)",
+        "severityIfFail": null
+      },
+      {
+        "id": "T8a",
+        "title": "DÉFAUT CONFIRMÉ — la passe soft-cap ne peut jamais dépasser le cap ticker strict (re-check :2089 sans ×1,1) : portefeuille vide",
+        "status": "PASS",
+        "actual": {
+          "positions": 0,
+          "rejets": {
+            "ticker_cap_reached": 2
+          }
+        },
+        "note": "contrat 3 200 $ ≤ limite soft 3 300 $ (:2042) mais > cap strict 3 000 $ re-vérifié (:2089) ⇒ la tolérance ×1,1 est morte pour les nouvelles lignes",
+        "severityIfFail": null
+      },
+      {
+        "id": "T9a",
+        "title": "DÉFAUT CONFIRMÉ — combo.freeCapital = capital brut − utilisé (inclut la réserve non déployable)",
+        "status": "PASS",
+        "actual": {
+          "used": 5000,
+          "freeCapital": 35000,
+          "libreDeployableAttendu": 15000
+        },
+        "note": "l'UI principale recalcule correctement (dashboard.jsx:10021,10556,10715) mais handleSaveSnapshot persiste combo.freeCapital tel quel (:10336)",
+        "proof": "capitalComboPortfolio.js:3069 (freeCapital: capital - used)",
+        "severityIfFail": null
+      },
+      {
+        "id": "T10a",
+        "title": "DÉFAUT CONFIRMÉ — avec contrats > 1, la carte RISQUE (capitalRequired) diverge du moteur (capitalUsed)",
+        "status": "PASS",
+        "actual": {
+          "picks": [
+            "NOK×3",
+            "SOFI×1"
+          ],
+          "moteurPct": "54.79",
+          "uiRisquePct": "78.43"
+        },
+        "note": "même biais pour la colonne Capital des tableaux (capitalRequired affiché, ×N séparé) — dashboard.jsx:10140,10779 ; totaux moteur corrects",
+        "severityIfFail": null
+      },
+      {
+        "id": "T11a",
+        "title": "Capital utilisé recalculé = 25 400 $ (Σ strike×100), libre 100 $, remplissage 99,6078 %",
+        "status": "PASS",
+        "actual": {
+          "totalCap": 25400,
+          "libre": 100,
+          "fillPct": 99.6078431372549
+        }
+      },
+      {
+        "id": "T11b",
+        "title": "Rendement portefeuille = Σ primes / capital déployable = 156/25500 = 0,6118 % (≈ 0,61 % affiché)",
+        "status": "PASS",
+        "actual": {
+          "totalPrem": 156,
+          "portfolioReturnPct": 0.611764705882353
+        },
+        "proof": "formule UI summaryFor — dashboard.jsx:10290-10296"
+      },
+      {
+        "id": "T11c",
+        "title": "Rendements par jambe = prime/strike×100 cohérents avec l'affichage (0,70/0,59/0,59/0,64/0,53/0,56)",
+        "status": "PASS",
+        "actual": [
+          "0.6970",
+          "0.5882",
+          "0.5921",
+          "0.6364",
+          "0.5294",
+          "0.5625"
+        ]
+      },
+      {
+        "id": "T11d",
+        "title": "Toutes les jambes SAFE observées ∈ bande SAFE codée [0,45 ; 0,80) et spreads ≤ 15 % (4,3/7,2/8,5/13,3/10,5/10,5)",
+        "status": "PASS",
+        "actual": [
+          "0.697",
+          "0.588",
+          "0.592",
+          "0.636",
+          "0.529",
+          "0.563"
+        ],
+        "proof": "minWeeklyYield 0,45 :1449 ; maxWeeklyYield 0,80 :1450 ; maxSpreadPct 15 :1452"
+      },
+      {
+        "id": "T11e",
+        "title": "Distance OTM moyenne pondérée par capital = −300210/25400 = −11,8193 % ≈ −12 % affiché (moyenne simple = −11,02 %)",
+        "status": "PASS",
+        "actual": {
+          "pondereeCapital": -11.819291338582676,
+          "simple": -11.016666666666666
+        },
+        "proof": "weightedMetricByCapital — dashboard.jsx:9976-9987,10540"
+      },
+      {
+        "id": "T11f",
+        "title": "Concentration CRWV : 7600/25400 (capital UTILISÉ) = 29,92 % → affiché « 30 % » ; seuil > 25 %",
+        "status": "PASS",
+        "actual": {
+          "surUtilise": 29.92125984251969,
+          "surDeployable": 29.80392156862745
+        },
+        "note": "les deux dénominateurs arrondissent à 30 % ici — le code utilise le capital utilisé (:2728-2729) ; libellé « du capital » ambigu (:2746)"
+      },
+      {
+        "id": "T11g",
+        "title": "POP moyen ~97 % : NON VÉRIFIABLE — un seul POP fourni (NFLX 93,5) ; formule codée = Σ(POP×capitalUsed)/Σ(capitalUsed)",
+        "status": "INFO",
+        "proof": "dashboard.jsx:9976-9987 (weightedMetricByCapital), 10293"
+      },
+      {
+        "id": "T12a",
+        "title": "Rejeu a3b : déterminisme strict (2 runs identiques)",
+        "status": "PASS"
+      },
+      {
+        "id": "T12b",
+        "title": "Rejeu a3b : ordre d'entrée mélangé (seed 20260711)",
+        "status": "INFO",
+        "actual": "portefeuilles identiques (aucune égalité parfaite dans ce pool)"
+      },
+      {
+        "id": "T12e",
+        "title": "Rejeu a3b — pool SAFE : jambes SAFE valides / dans la bande [0,45;0,80) avec spread ≤ 15 %",
+        "status": "INFO",
+        "actual": {
+          "candidats": 25,
+          "jambesSafeValides": 21,
+          "dansBandeEtSpread": [
+            "TSLA",
+            "NVDA",
+            "SMCI",
+            "AMD",
+            "INTC",
+            "PLTR",
+            "MRVL"
+          ],
+          "yieldsSafePct": [
+            "TSLA:0.58",
+            "NVDA:0.62",
+            "SMCI:0.78",
+            "SOFI:0.88",
+            "AMD:0.62",
+            "INTC:0.71",
+            "PLTR:0.57",
+            "MRVL:0.75",
+            "RBLX:0.80",
+            "RIVN:1.24",
+            "HOOD:0.67",
+            "IONQ:1.07",
+            "TQQQ:0.61",
+            "CRM:0.63",
+            "CCL:0.72",
+            "CVNA:0.66",
+            "RKLB:0.78",
+            "MSTR:0.64",
+            "BABA:0.58",
+            "ALAB:0.85",
+            "CRDO:1.01"
+          ]
+        },
+        "note": "bande maxWeeklyYield 0,80 % appliquée au rendement PÉRIODE (7 DTE) sans normalisation DTE — cause structurelle d'un SAFE clairsemé à 7 DTE"
+      },
+      {
+        "id": "T12c-SAFE",
+        "title": "Rejeu a3b SAFE : Σ capitalUsed = totalCapital ; freeCapital = 25500 − utilisé ; strikes = jambe du bucket",
+        "status": "PASS",
+        "actual": {
+          "positions": 1,
+          "totalCapital": 6900,
+          "freeCapital": 18600,
+          "fillPct": "27.06"
+        }
+      },
+      {
+        "id": "T12c-BALANCED",
+        "title": "Rejeu a3b BALANCED : Σ capitalUsed = totalCapital ; freeCapital = 25500 − utilisé ; strikes = jambe du bucket",
+        "status": "PASS",
+        "actual": {
+          "positions": 3,
+          "totalCapital": 18700,
+          "freeCapital": 6800,
+          "fillPct": "73.33"
+        }
+      },
+      {
+        "id": "T12c-AGGRESSIVE",
+        "title": "Rejeu a3b AGGRESSIVE : Σ capitalUsed = totalCapital ; freeCapital = 25500 − utilisé ; strikes = jambe du bucket",
+        "status": "PASS",
+        "actual": {
+          "positions": 4,
+          "totalCapital": 24900,
+          "freeCapital": 600,
+          "fillPct": "97.65"
+        }
+      },
+      {
+        "id": "T12d",
+        "title": "Rejeu a3b — portefeuilles reconstruits (25 500 $, 100 %, 10 pos., POP indisponible/frozen)",
+        "status": "INFO",
+        "replay": {
+          "SAFE": {
+            "positions": 1,
+            "totalCapital": 6900,
+            "freeCapital": 18600,
+            "totalPremium": 54,
+            "largestTickerCapitalPct": 100,
+            "clusterWarnings": [
+              "Ticker dominant 100% du capital"
+            ],
+            "picks": [
+              "SMCI 23×3 mode=AGGRESSIVE grade=A y=0.78%"
+            ],
+            "badgeModeDifferentDuBucket": [
+              "SMCI:AGGRESSIVE"
+            ]
+          },
+          "BALANCED": {
+            "positions": 3,
+            "totalCapital": 18700,
+            "freeCapital": 6800,
+            "totalPremium": 154,
+            "largestTickerCapitalPct": 36.9,
+            "clusterWarnings": [
+              "Ticker dominant 37% du capital"
+            ],
+            "picks": [
+              "SOFI 17×4 mode=AGGRESSIVE grade=A y=0.88%",
+              "SMCI 23×3 mode=AGGRESSIVE grade=A y=0.78%",
+              "RBLX 50×1 mode=AGGRESSIVE grade=B y=0.80%"
+            ],
+            "badgeModeDifferentDuBucket": [
+              "SOFI:AGGRESSIVE",
+              "SMCI:AGGRESSIVE",
+              "RBLX:AGGRESSIVE"
+            ]
+          },
+          "AGGRESSIVE": {
+            "positions": 4,
+            "totalCapital": 24900,
+            "freeCapital": 600,
+            "totalPremium": 287,
+            "largestTickerCapitalPct": 41.37,
+            "clusterWarnings": [
+              "High beta 41% du capital",
+              "Ticker dominant 41% du capital"
+            ],
+            "picks": [
+              "SMCI 24.5×2 mode=AGGRESSIVE grade=A y=1.55%",
+              "RIVN 17×2 mode=AGGRESSIVE grade=B y=1.24%",
+              "CVNA 63×1 mode=AGGRESSIVE grade=B y=1.10%",
+              "HOOD 103×1 mode=AGGRESSIVE grade=A y=0.97%"
+            ],
+            "badgeModeDifferentDuBucket": []
+          }
+        }
+      },
+      {
+        "id": "T13a",
+        "title": "Jambe SAFE absente ⇒ aucun pick SAFE (pas de substitution par la jambe AGGRESSIVE)",
+        "status": "PASS",
+        "proof": "SAFE ⇒ exclusivement _safeLeg (:1529-1536) ; _hasBucketLeg=false ⇒ NO_BUCKET_LEG_FOR_MODE (:1616-1621)"
+      },
+      {
+        "id": "T13b",
+        "title": "Prime nulle ⇒ jambe invalide, candidat exclu de tous les buckets",
+        "status": "PASS",
+        "proof": "getLegPremiumValue exige > 0 (:775-784) ; hasSafeLegValid (:1202-1206)"
+      },
+      {
+        "id": "T13c",
+        "title": "Spread absent (null) ⇒ jambe invalide au combo (spread requis fini ≤ 35)",
+        "status": "PASS",
+        "proof": "Number.isFinite(safeSpreadPct) exigé (:1205)"
+      },
+      {
+        "id": "T13d",
+        "title": "POP absent/nul : non bloquant structurellement (pick possible, POP null|0 conservé)",
+        "status": "PASS",
+        "actual": {
+          "popEstimate": 0
+        },
+        "proof": "POP non exigé par hasSafeLegValid (:1202-1206)"
+      },
+      {
+        "id": "T14a",
+        "title": "finalDisplayMode inversé (AGGRESSIVE→SAFE) : financier et score SAFE identiques ; seul pick.mode change",
+        "status": "PASS",
+        "actual": {
+          "sourceAggressive": {
+            "strike": 66,
+            "premiumUnit": 0.46,
+            "score": 84,
+            "mode": "AGGRESSIVE"
+          },
+          "sourceSafe": {
+            "strike": 66,
+            "premiumUnit": 0.46,
+            "score": 84,
+            "mode": "SAFE"
+          }
+        },
+        "note": "confirme que `allowedModes` (:1331,1396,1453) n'est consommé nulle part — la sélection de bucket est purement par jambe ; le mode source ne sert qu'au badge (et au tie-break T3)"
+      },
+      {
+        "id": "T15a",
+        "title": "DÉFAUT CONFIRMÉ — gradeLeg : popDecimal null ⇒ WATCH ; popDecimal undefined ⇒ A (mêmes spread/yield)",
+        "status": "PASS",
+        "actual": {
+          "avecNull": "WATCH",
+          "avecUndefined": "A"
+        },
+        "proof": "Number(null)===0 ⇒ pop=0 (:530) ; clause pop==null inatteignable (:534-535)",
+        "severityIfFail": null
+      },
+      {
+        "id": "T15b",
+        "title": "DÉMONTRÉ — sans grades stockés : POP présent ⇒ pick SAFE grade A ; POP null ⇒ grade dérivé WATCH ⇒ candidat EXCLU du combo SAFE",
+        "status": "PASS",
+        "actual": {
+          "avecPop": [
+            "AAPL:A"
+          ],
+          "sansPop": "(combo null)"
+        },
+        "note": "SAFE n'a pas de watchPremiumFilter (:1438-1481) ⇒ WATCH y est toujours exclu ; conditions live : POP inestimable (expected move manquant/frozen, pas de fallback Yahoo) ET grades stockés absents/REJECT (getFinalDisplayRecommendation :727-736 n'utilise les grades dérivés que dans ce cas)",
+        "severityIfFail": null
+      },
+      {
+        "id": "T15c",
+        "title": "DÉMONTRÉ — bucket AGGRESSIVE : POP de jambe null ⇒ grade dérivé WATCH ÉCRASE le grade stocké A ⇒ candidat EXCLU (avec POP ⇒ pick A)",
+        "status": "PASS",
+        "actual": {
+          "avecPop": [
+            "MSFT:A"
+          ],
+          "sansPop": "(combo null)"
+        },
+        "note": "chaîne aggGrade : priorityGrade(null) ?? grade dérivé (WATCH par coercion POP null) ?? grade stocké — le stocké n'est jamais atteint (:1192-1200) ; introduit par le patch « derive grade from actual leg yield » (commentaire :1185)",
+        "severityIfFail": null
+      }
+    ]
+  }
+}

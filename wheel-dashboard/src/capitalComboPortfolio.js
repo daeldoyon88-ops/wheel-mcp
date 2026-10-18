@@ -893,30 +893,43 @@ export function getFinalDisplayRecommendation(item) {
   const aggressiveDistancePct =
     item?.aggressiveStrike?.distancePct ?? diag?.aggressiveDistancePctDisplay ?? diag?.aggressiveDistancePct ?? null;
 
-  const aggressivePriorityGrade = getAggressivePriorityGrade({
-    spreadPct: aggressiveSpreadPct,
-    weeklyYieldPct: aggressiveYieldPct,
-    popDecimal: aggressivePopDecimal,
-    distancePct: aggressiveDistancePct,
-  });
-  const effectiveAggressiveGrade = aggressivePriorityGrade ?? aggressiveGrade;
-  const safeRank = getModeGradeRank("SAFE", safeGrade);
+  const earningsVeto = diag?.earningsRisk === true;
+  const definitiveRejections =
+    diag?.definitiveRejections && typeof diag.definitiveRejections === "object"
+      ? diag.definitiveRejections
+      : null;
+  const aggressiveVetoed = earningsVeto || Boolean(definitiveRejections?.AGGRESSIVE);
+  const safeVetoed = Boolean(definitiveRejections?.SAFE);
+  const aggressivePriorityGrade = aggressiveVetoed
+    ? null
+    : getAggressivePriorityGrade({
+        spreadPct: aggressiveSpreadPct,
+        weeklyYieldPct: aggressiveYieldPct,
+        popDecimal: aggressivePopDecimal,
+        distancePct: aggressiveDistancePct,
+      });
+  const effectiveAggressiveGrade = aggressiveVetoed ? "REJECT" : aggressivePriorityGrade ?? aggressiveGrade;
+  const safeRank = getModeGradeRank("SAFE", safeVetoed ? "REJECT" : safeGrade);
   const aggressiveRank = getModeGradeRank("AGGRESSIVE", effectiveAggressiveGrade);
 
-  const derivedSafeGrade = gradeLeg({
-    spreadPct: safeSpreadPct,
-    weeklyYieldPct: safeYieldPct,
-    popDecimal: safePopDecimal,
-  });
-  const derivedAggressiveGrade = gradeLeg({
-    spreadPct: aggressiveSpreadPct,
-    weeklyYieldPct: aggressiveYieldPct,
-    popDecimal: aggressivePopDecimal,
-  });
+  const derivedSafeGrade = safeVetoed
+    ? "REJECT"
+    : gradeLeg({
+        spreadPct: safeSpreadPct,
+        weeklyYieldPct: safeYieldPct,
+        popDecimal: safePopDecimal,
+      });
+  const derivedAggressiveGrade = aggressiveVetoed
+    ? "REJECT"
+    : gradeLeg({
+        spreadPct: aggressiveSpreadPct,
+        weeklyYieldPct: aggressiveYieldPct,
+        popDecimal: aggressivePopDecimal,
+      });
   const fallbackSafeRank = getModeGradeRank("SAFE", derivedSafeGrade);
   const fallbackAggressiveRank = getModeGradeRank(
     "AGGRESSIVE",
-    aggressivePriorityGrade ?? derivedAggressiveGrade
+    aggressiveVetoed ? "REJECT" : aggressivePriorityGrade ?? derivedAggressiveGrade
   );
 
   let finalDisplayMode = "REJECT";

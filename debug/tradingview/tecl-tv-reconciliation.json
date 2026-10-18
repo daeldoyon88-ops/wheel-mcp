@@ -1,0 +1,1256 @@
+{
+  "generatedAt": "2026-06-06T02:00:50.306Z",
+  "scope": "TradingView / Pine / TECL — réconciliation (audit only, Pine non modifié, Wheel non touché, aucun commit)",
+  "tvTargets": {
+    "note": "Deux bases TV distinctes — le '23 vs 24' n'est pas une divergence : 23 trades fermés, le headline +7262,42 % inclut le trade ouvert #24.",
+    "closedOnly": {
+      "pnlPct": 3089.61,
+      "netProfitUsd": 308961,
+      "maxDDPct": 27.74,
+      "winners": 14,
+      "trades": 23,
+      "winRatePct": 60.87,
+      "profitFactor": 3.538
+    },
+    "includingOpen": {
+      "pnlPct": 7262.42,
+      "netProfitUsd": 726242.29,
+      "maxDDPct": 27.74,
+      "winners": 15,
+      "trades": 24,
+      "winRatePct": 62.5,
+      "profitFactor": 6.97
+    }
+  },
+  "comparisonBasis": "includingOpen (le moteur local porte la position #24 ouverte au 2026-06-05)",
+  "rootCause": {
+    "finding": "Le cache debug/ohlc-cache-TECL.json stocke adjclose dans le champ close mais O/H/L bruts.",
+    "evidence": "87,9 % des barres depuis 2020 ont close < low (impossible). Cache corrigé (close brut) : 0 barre.",
+    "impact": "La sortie de protection L compare close (ajusté, ~3-6 % sous les bruts) à lowest(low,10)[1] (brut) -> se déclenche à tort presque chaque barre baissière -> sorties protL prématurées -> réentrées R4 surnuméraires -> sur-trading (35 vs 23) + rendement amputé + DD aggravé.",
+    "fix": "fetchTeclCache.mjs ligne 35 : utiliser q.close (brut) et non q.adjclose. TradingView affiche les prix ajustés splits / NON ajustés dividendes = close brut Yahoo."
+  },
+  "data": {
+    "teclBad": {
+      "file": "debug/ohlc-cache-TECL.json",
+      "bars": 4385,
+      "closeBelowLowSince2020": "1420/1616 (87.9%)"
+    },
+    "teclFix": {
+      "file": "debug/tradingview/ohlc-cache-TECL-raw.json",
+      "bars": 4385,
+      "closeBelowLowSince2020": "0/1616"
+    },
+    "tqqqMaster": {
+      "file": "debug/ohlc-cache-TQQQ.json",
+      "bars": 4099,
+      "closeBelowLowSince2020": "0 (propre)"
+    }
+  },
+  "scenarios": [
+    {
+      "key": "bad_close",
+      "note": "TECL corrompu (close=adjclose), fill close — reproduit l'audit 35 trades",
+      "summary": {
+        "label": "bad_close",
+        "totalReturnPct": 6379.56,
+        "finalEquity": 647956.4,
+        "netProfitUsd": 637956.4,
+        "maxDrawdownPct": -39.91,
+        "numTrades": 24,
+        "winRatePct": 58.33,
+        "profitFactor": 5.54,
+        "reentryCount": 9,
+        "protExits": 10,
+        "maSell": 13,
+        "exposurePct": 22.92
+      },
+      "deltaVsTV": {
+        "dPnl": -882.86,
+        "dDD": 12.17,
+        "dTrades": 0,
+        "dWin": -4.17,
+        "dPF": -1.43
+      },
+      "trades": [
+        {
+          "n": 1,
+          "entryIso": "2020-04-08",
+          "exitIso": "2020-09-16",
+          "entryPrice": 13.38,
+          "exitPrice": 29.13,
+          "pnlPct": 117.67,
+          "barsHeld": 111,
+          "reason": "maSell"
+        },
+        {
+          "n": 2,
+          "entryIso": "2020-10-05",
+          "exitIso": "2020-10-28",
+          "entryPrice": 31.09,
+          "exitPrice": 26.13,
+          "pnlPct": -15.95,
+          "barsHeld": 17,
+          "reason": "maSell"
+        },
+        {
+          "n": 3,
+          "entryIso": "2020-11-04",
+          "exitIso": "2021-02-26",
+          "entryPrice": 30.37,
+          "exitPrice": 40.24,
+          "pnlPct": 32.5,
+          "barsHeld": 77,
+          "reason": "maSell"
+        },
+        {
+          "n": 4,
+          "entryIso": "2021-03-11",
+          "exitIso": "2021-05-10",
+          "entryPrice": 41.04,
+          "exitPrice": 43.4,
+          "pnlPct": 5.75,
+          "barsHeld": 41,
+          "reason": "maSell"
+        },
+        {
+          "n": 5,
+          "entryIso": "2021-05-20",
+          "exitIso": "2021-09-20",
+          "entryPrice": 44.42,
+          "exitPrice": 60.52,
+          "pnlPct": 36.24,
+          "barsHeld": 84,
+          "reason": "protL"
+        },
+        {
+          "n": 6,
+          "entryIso": "2021-09-23",
+          "exitIso": "2021-09-27",
+          "entryPrice": 65.59,
+          "exitPrice": 63.81,
+          "pnlPct": -2.71,
+          "barsHeld": 2,
+          "reason": "maSell"
+        },
+        {
+          "n": 7,
+          "entryIso": "2021-10-14",
+          "exitIso": "2022-01-07",
+          "entryPrice": 62.53,
+          "exitPrice": 74.49,
+          "pnlPct": 19.13,
+          "barsHeld": 59,
+          "reason": "maSell"
+        },
+        {
+          "n": 8,
+          "entryIso": "2023-03-14",
+          "exitIso": "2023-08-04",
+          "entryPrice": 29.62,
+          "exitPrice": 50.55,
+          "pnlPct": 70.66,
+          "barsHeld": 99,
+          "reason": "protL"
+        },
+        {
+          "n": 9,
+          "entryIso": "2023-08-15",
+          "exitIso": "2023-08-16",
+          "entryPrice": 47.43,
+          "exitPrice": 46.1,
+          "pnlPct": -2.8,
+          "barsHeld": 1,
+          "reason": "protL"
+        },
+        {
+          "n": 10,
+          "entryIso": "2023-08-21",
+          "exitIso": "2023-09-13",
+          "entryPrice": 47.44,
+          "exitPrice": 49.15,
+          "pnlPct": 3.6,
+          "barsHeld": 16,
+          "reason": "maSell"
+        },
+        {
+          "n": 11,
+          "entryIso": "2023-10-06",
+          "exitIso": "2023-10-20",
+          "entryPrice": 46.35,
+          "exitPrice": 42.53,
+          "pnlPct": -8.24,
+          "barsHeld": 10,
+          "reason": "protL"
+        },
+        {
+          "n": 12,
+          "entryIso": "2023-10-31",
+          "exitIso": "2024-04-04",
+          "entryPrice": 42.36,
+          "exitPrice": 75.22,
+          "pnlPct": 77.57,
+          "barsHeld": 106,
+          "reason": "protL"
+        },
+        {
+          "n": 13,
+          "entryIso": "2024-04-09",
+          "exitIso": "2024-04-15",
+          "entryPrice": 78.47,
+          "exitPrice": 71.86,
+          "pnlPct": -8.42,
+          "barsHeld": 4,
+          "reason": "protL"
+        },
+        {
+          "n": 14,
+          "entryIso": "2024-04-24",
+          "exitIso": "2024-07-19",
+          "entryPrice": 67.66,
+          "exitPrice": 89.06,
+          "pnlPct": 31.63,
+          "barsHeld": 59,
+          "reason": "protL"
+        },
+        {
+          "n": 15,
+          "entryIso": "2024-07-29",
+          "exitIso": "2024-07-30",
+          "entryPrice": 81.53,
+          "exitPrice": 75.33,
+          "pnlPct": -7.6,
+          "barsHeld": 1,
+          "reason": "protL"
+        },
+        {
+          "n": 16,
+          "entryIso": "2024-08-07",
+          "exitIso": "2024-08-29",
+          "entryPrice": 61.27,
+          "exitPrice": 80.29,
+          "pnlPct": 31.04,
+          "barsHeld": 16,
+          "reason": "maSell"
+        },
+        {
+          "n": 17,
+          "entryIso": "2024-09-11",
+          "exitIso": "2024-11-04",
+          "entryPrice": 78.71,
+          "exitPrice": 83.35,
+          "pnlPct": 5.9,
+          "barsHeld": 38,
+          "reason": "maSell"
+        },
+        {
+          "n": 18,
+          "entryIso": "2024-11-18",
+          "exitIso": "2024-12-31",
+          "entryPrice": 89.01,
+          "exitPrice": 90.55,
+          "pnlPct": 1.73,
+          "barsHeld": 29,
+          "reason": "maSell"
+        },
+        {
+          "n": 19,
+          "entryIso": "2025-01-17",
+          "exitIso": "2025-01-27",
+          "entryPrice": 91.38,
+          "exitPrice": 82.98,
+          "pnlPct": -9.19,
+          "barsHeld": 5,
+          "reason": "maSell"
+        },
+        {
+          "n": 20,
+          "entryIso": "2025-04-24",
+          "exitIso": "2025-11-17",
+          "entryPrice": 51.75,
+          "exitPrice": 122.08,
+          "pnlPct": 135.9,
+          "barsHeld": 143,
+          "reason": "maSell"
+        },
+        {
+          "n": 21,
+          "entryIso": "2025-12-19",
+          "exitIso": "2026-01-20",
+          "entryPrice": 118.94,
+          "exitPrice": 111.21,
+          "pnlPct": -6.5,
+          "barsHeld": 19,
+          "reason": "protL"
+        },
+        {
+          "n": 22,
+          "entryIso": "2026-01-23",
+          "exitIso": "2026-01-30",
+          "entryPrice": 118.85,
+          "exitPrice": 115.43,
+          "pnlPct": -2.88,
+          "barsHeld": 5,
+          "reason": "maSell"
+        },
+        {
+          "n": 23,
+          "entryIso": "2026-02-25",
+          "exitIso": "2026-03-20",
+          "entryPrice": 110.62,
+          "exitPrice": 92.32,
+          "pnlPct": -16.54,
+          "barsHeld": 17,
+          "reason": "protL"
+        },
+        {
+          "n": 24,
+          "entryIso": "2026-04-01",
+          "exitIso": "2026-06-05",
+          "entryPrice": 90.34,
+          "exitPrice": 202.59,
+          "pnlPct": 124.25,
+          "barsHeld": 45,
+          "reason": "endOfData"
+        }
+      ]
+    },
+    {
+      "key": "fix_close",
+      "note": "TECL corrigé (close brut), fill close",
+      "summary": {
+        "label": "fix_close",
+        "totalReturnPct": 6379.56,
+        "finalEquity": 647956.4,
+        "netProfitUsd": 637956.4,
+        "maxDrawdownPct": -39.91,
+        "numTrades": 24,
+        "winRatePct": 58.33,
+        "profitFactor": 5.54,
+        "reentryCount": 9,
+        "protExits": 10,
+        "maSell": 13,
+        "exposurePct": 22.92
+      },
+      "deltaVsTV": {
+        "dPnl": -882.86,
+        "dDD": 12.17,
+        "dTrades": 0,
+        "dWin": -4.17,
+        "dPF": -1.43
+      },
+      "trades": [
+        {
+          "n": 1,
+          "entryIso": "2020-04-08",
+          "exitIso": "2020-09-16",
+          "entryPrice": 13.38,
+          "exitPrice": 29.13,
+          "pnlPct": 117.67,
+          "barsHeld": 111,
+          "reason": "maSell"
+        },
+        {
+          "n": 2,
+          "entryIso": "2020-10-05",
+          "exitIso": "2020-10-28",
+          "entryPrice": 31.09,
+          "exitPrice": 26.13,
+          "pnlPct": -15.95,
+          "barsHeld": 17,
+          "reason": "maSell"
+        },
+        {
+          "n": 3,
+          "entryIso": "2020-11-04",
+          "exitIso": "2021-02-26",
+          "entryPrice": 30.37,
+          "exitPrice": 40.24,
+          "pnlPct": 32.5,
+          "barsHeld": 77,
+          "reason": "maSell"
+        },
+        {
+          "n": 4,
+          "entryIso": "2021-03-11",
+          "exitIso": "2021-05-10",
+          "entryPrice": 41.04,
+          "exitPrice": 43.4,
+          "pnlPct": 5.75,
+          "barsHeld": 41,
+          "reason": "maSell"
+        },
+        {
+          "n": 5,
+          "entryIso": "2021-05-20",
+          "exitIso": "2021-09-20",
+          "entryPrice": 44.42,
+          "exitPrice": 60.52,
+          "pnlPct": 36.24,
+          "barsHeld": 84,
+          "reason": "protL"
+        },
+        {
+          "n": 6,
+          "entryIso": "2021-09-23",
+          "exitIso": "2021-09-27",
+          "entryPrice": 65.59,
+          "exitPrice": 63.81,
+          "pnlPct": -2.71,
+          "barsHeld": 2,
+          "reason": "maSell"
+        },
+        {
+          "n": 7,
+          "entryIso": "2021-10-14",
+          "exitIso": "2022-01-07",
+          "entryPrice": 62.53,
+          "exitPrice": 74.49,
+          "pnlPct": 19.13,
+          "barsHeld": 59,
+          "reason": "maSell"
+        },
+        {
+          "n": 8,
+          "entryIso": "2023-03-14",
+          "exitIso": "2023-08-04",
+          "entryPrice": 29.62,
+          "exitPrice": 50.55,
+          "pnlPct": 70.66,
+          "barsHeld": 99,
+          "reason": "protL"
+        },
+        {
+          "n": 9,
+          "entryIso": "2023-08-15",
+          "exitIso": "2023-08-16",
+          "entryPrice": 47.43,
+          "exitPrice": 46.1,
+          "pnlPct": -2.8,
+          "barsHeld": 1,
+          "reason": "protL"
+        },
+        {
+          "n": 10,
+          "entryIso": "2023-08-21",
+          "exitIso": "2023-09-13",
+          "entryPrice": 47.44,
+          "exitPrice": 49.15,
+          "pnlPct": 3.6,
+          "barsHeld": 16,
+          "reason": "maSell"
+        },
+        {
+          "n": 11,
+          "entryIso": "2023-10-06",
+          "exitIso": "2023-10-20",
+          "entryPrice": 46.35,
+          "exitPrice": 42.53,
+          "pnlPct": -8.24,
+          "barsHeld": 10,
+          "reason": "protL"
+        },
+        {
+          "n": 12,
+          "entryIso": "2023-10-31",
+          "exitIso": "2024-04-04",
+          "entryPrice": 42.36,
+          "exitPrice": 75.22,
+          "pnlPct": 77.57,
+          "barsHeld": 106,
+          "reason": "protL"
+        },
+        {
+          "n": 13,
+          "entryIso": "2024-04-09",
+          "exitIso": "2024-04-15",
+          "entryPrice": 78.47,
+          "exitPrice": 71.86,
+          "pnlPct": -8.42,
+          "barsHeld": 4,
+          "reason": "protL"
+        },
+        {
+          "n": 14,
+          "entryIso": "2024-04-24",
+          "exitIso": "2024-07-19",
+          "entryPrice": 67.66,
+          "exitPrice": 89.06,
+          "pnlPct": 31.63,
+          "barsHeld": 59,
+          "reason": "protL"
+        },
+        {
+          "n": 15,
+          "entryIso": "2024-07-29",
+          "exitIso": "2024-07-30",
+          "entryPrice": 81.53,
+          "exitPrice": 75.33,
+          "pnlPct": -7.6,
+          "barsHeld": 1,
+          "reason": "protL"
+        },
+        {
+          "n": 16,
+          "entryIso": "2024-08-07",
+          "exitIso": "2024-08-29",
+          "entryPrice": 61.27,
+          "exitPrice": 80.29,
+          "pnlPct": 31.04,
+          "barsHeld": 16,
+          "reason": "maSell"
+        },
+        {
+          "n": 17,
+          "entryIso": "2024-09-11",
+          "exitIso": "2024-11-04",
+          "entryPrice": 78.71,
+          "exitPrice": 83.35,
+          "pnlPct": 5.9,
+          "barsHeld": 38,
+          "reason": "maSell"
+        },
+        {
+          "n": 18,
+          "entryIso": "2024-11-18",
+          "exitIso": "2024-12-31",
+          "entryPrice": 89.01,
+          "exitPrice": 90.55,
+          "pnlPct": 1.73,
+          "barsHeld": 29,
+          "reason": "maSell"
+        },
+        {
+          "n": 19,
+          "entryIso": "2025-01-17",
+          "exitIso": "2025-01-27",
+          "entryPrice": 91.38,
+          "exitPrice": 82.98,
+          "pnlPct": -9.19,
+          "barsHeld": 5,
+          "reason": "maSell"
+        },
+        {
+          "n": 20,
+          "entryIso": "2025-04-24",
+          "exitIso": "2025-11-17",
+          "entryPrice": 51.75,
+          "exitPrice": 122.08,
+          "pnlPct": 135.9,
+          "barsHeld": 143,
+          "reason": "maSell"
+        },
+        {
+          "n": 21,
+          "entryIso": "2025-12-19",
+          "exitIso": "2026-01-20",
+          "entryPrice": 118.94,
+          "exitPrice": 111.21,
+          "pnlPct": -6.5,
+          "barsHeld": 19,
+          "reason": "protL"
+        },
+        {
+          "n": 22,
+          "entryIso": "2026-01-23",
+          "exitIso": "2026-01-30",
+          "entryPrice": 118.85,
+          "exitPrice": 115.43,
+          "pnlPct": -2.88,
+          "barsHeld": 5,
+          "reason": "maSell"
+        },
+        {
+          "n": 23,
+          "entryIso": "2026-02-25",
+          "exitIso": "2026-03-20",
+          "entryPrice": 110.62,
+          "exitPrice": 92.32,
+          "pnlPct": -16.54,
+          "barsHeld": 17,
+          "reason": "protL"
+        },
+        {
+          "n": 24,
+          "entryIso": "2026-04-01",
+          "exitIso": "2026-06-05",
+          "entryPrice": 90.34,
+          "exitPrice": 202.59,
+          "pnlPct": 124.25,
+          "barsHeld": 45,
+          "reason": "endOfData"
+        }
+      ]
+    },
+    {
+      "key": "fix_nextopen",
+      "note": "TECL corrigé, fill open barre suivante",
+      "summary": {
+        "label": "fix_nextopen",
+        "totalReturnPct": 7104.66,
+        "finalEquity": 720465.52,
+        "netProfitUsd": 710465.52,
+        "maxDrawdownPct": -46.43,
+        "numTrades": 24,
+        "winRatePct": 62.5,
+        "profitFactor": 6.31,
+        "reentryCount": 9,
+        "protExits": 10,
+        "maSell": 13,
+        "exposurePct": 22.78
+      },
+      "deltaVsTV": {
+        "dPnl": -157.76,
+        "dDD": 18.69,
+        "dTrades": 0,
+        "dWin": 0,
+        "dPF": -0.66
+      },
+      "trades": [
+        {
+          "n": 1,
+          "entryIso": "2020-04-09",
+          "exitIso": "2020-09-17",
+          "entryPrice": 13.94,
+          "exitPrice": 27,
+          "pnlPct": 93.65,
+          "barsHeld": 111,
+          "reason": "maSell"
+        },
+        {
+          "n": 2,
+          "entryIso": "2020-10-06",
+          "exitIso": "2020-10-29",
+          "entryPrice": 30.82,
+          "exitPrice": 26.52,
+          "pnlPct": -13.95,
+          "barsHeld": 17,
+          "reason": "maSell"
+        },
+        {
+          "n": 3,
+          "entryIso": "2020-11-05",
+          "exitIso": "2021-03-01",
+          "entryPrice": 32.9,
+          "exitPrice": 42.17,
+          "pnlPct": 28.17,
+          "barsHeld": 77,
+          "reason": "maSell"
+        },
+        {
+          "n": 4,
+          "entryIso": "2021-03-12",
+          "exitIso": "2021-05-11",
+          "entryPrice": 39.61,
+          "exitPrice": 40.9,
+          "pnlPct": 3.26,
+          "barsHeld": 41,
+          "reason": "maSell"
+        },
+        {
+          "n": 5,
+          "entryIso": "2021-05-21",
+          "exitIso": "2021-09-21",
+          "entryPrice": 45.11,
+          "exitPrice": 61.56,
+          "pnlPct": 36.47,
+          "barsHeld": 84,
+          "reason": "protL"
+        },
+        {
+          "n": 6,
+          "entryIso": "2021-09-27",
+          "exitIso": "2021-09-28",
+          "entryPrice": 63.98,
+          "exitPrice": 61.3,
+          "pnlPct": -4.19,
+          "barsHeld": 1,
+          "reason": "maSell"
+        },
+        {
+          "n": 7,
+          "entryIso": "2021-10-15",
+          "exitIso": "2022-01-10",
+          "entryPrice": 63.27,
+          "exitPrice": 71.3,
+          "pnlPct": 12.69,
+          "barsHeld": 59,
+          "reason": "maSell"
+        },
+        {
+          "n": 8,
+          "entryIso": "2023-03-15",
+          "exitIso": "2023-08-07",
+          "entryPrice": 28.75,
+          "exitPrice": 51.07,
+          "pnlPct": 77.63,
+          "barsHeld": 99,
+          "reason": "protL"
+        },
+        {
+          "n": 9,
+          "entryIso": "2023-08-16",
+          "exitIso": "2023-08-17",
+          "entryPrice": 47.22,
+          "exitPrice": 46.55,
+          "pnlPct": -1.42,
+          "barsHeld": 1,
+          "reason": "protL"
+        },
+        {
+          "n": 10,
+          "entryIso": "2023-08-23",
+          "exitIso": "2023-09-14",
+          "entryPrice": 47.49,
+          "exitPrice": 49.96,
+          "pnlPct": 5.2,
+          "barsHeld": 15,
+          "reason": "maSell"
+        },
+        {
+          "n": 11,
+          "entryIso": "2023-10-09",
+          "exitIso": "2023-10-23",
+          "entryPrice": 45.53,
+          "exitPrice": 41.74,
+          "pnlPct": -8.32,
+          "barsHeld": 10,
+          "reason": "protL"
+        },
+        {
+          "n": 12,
+          "entryIso": "2023-11-01",
+          "exitIso": "2024-04-05",
+          "entryPrice": 42.59,
+          "exitPrice": 76,
+          "pnlPct": 78.45,
+          "barsHeld": 106,
+          "reason": "protL"
+        },
+        {
+          "n": 13,
+          "entryIso": "2024-04-12",
+          "exitIso": "2024-04-16",
+          "entryPrice": 77.21,
+          "exitPrice": 72.14,
+          "pnlPct": -6.57,
+          "barsHeld": 2,
+          "reason": "protL"
+        },
+        {
+          "n": 14,
+          "entryIso": "2024-04-25",
+          "exitIso": "2024-07-22",
+          "entryPrice": 65.08,
+          "exitPrice": 92.54,
+          "pnlPct": 42.19,
+          "barsHeld": 59,
+          "reason": "protL"
+        },
+        {
+          "n": 15,
+          "entryIso": "2024-07-30",
+          "exitIso": "2024-07-31",
+          "entryPrice": 82.35,
+          "exitPrice": 82.57,
+          "pnlPct": 0.27,
+          "barsHeld": 1,
+          "reason": "protL"
+        },
+        {
+          "n": 16,
+          "entryIso": "2024-08-08",
+          "exitIso": "2024-08-30",
+          "entryPrice": 64.62,
+          "exitPrice": 82.76,
+          "pnlPct": 28.07,
+          "barsHeld": 16,
+          "reason": "maSell"
+        },
+        {
+          "n": 17,
+          "entryIso": "2024-09-12",
+          "exitIso": "2024-11-05",
+          "entryPrice": 78.48,
+          "exitPrice": 84.04,
+          "pnlPct": 7.08,
+          "barsHeld": 38,
+          "reason": "maSell"
+        },
+        {
+          "n": 18,
+          "entryIso": "2024-11-19",
+          "exitIso": "2025-01-02",
+          "entryPrice": 87.41,
+          "exitPrice": 92.57,
+          "pnlPct": 5.9,
+          "barsHeld": 29,
+          "reason": "maSell"
+        },
+        {
+          "n": 19,
+          "entryIso": "2025-01-21",
+          "exitIso": "2025-01-28",
+          "entryPrice": 92.38,
+          "exitPrice": 84.65,
+          "pnlPct": -8.37,
+          "barsHeld": 5,
+          "reason": "maSell"
+        },
+        {
+          "n": 20,
+          "entryIso": "2025-04-25",
+          "exitIso": "2025-11-18",
+          "entryPrice": 51.27,
+          "exitPrice": 118.83,
+          "pnlPct": 131.77,
+          "barsHeld": 143,
+          "reason": "maSell"
+        },
+        {
+          "n": 21,
+          "entryIso": "2025-12-22",
+          "exitIso": "2026-01-21",
+          "entryPrice": 122.61,
+          "exitPrice": 113.46,
+          "pnlPct": -7.46,
+          "barsHeld": 19,
+          "reason": "protL"
+        },
+        {
+          "n": 22,
+          "entryIso": "2026-01-27",
+          "exitIso": "2026-02-02",
+          "entryPrice": 124.66,
+          "exitPrice": 114.49,
+          "pnlPct": -8.16,
+          "barsHeld": 4,
+          "reason": "maSell"
+        },
+        {
+          "n": 23,
+          "entryIso": "2026-02-26",
+          "exitIso": "2026-03-23",
+          "entryPrice": 110.51,
+          "exitPrice": 97.09,
+          "pnlPct": -12.14,
+          "barsHeld": 17,
+          "reason": "protL"
+        },
+        {
+          "n": 24,
+          "entryIso": "2026-04-02",
+          "exitIso": "2026-06-05",
+          "entryPrice": 84.38,
+          "exitPrice": 202.59,
+          "pnlPct": 140.09,
+          "barsHeld": 44,
+          "reason": "endOfData"
+        }
+      ]
+    },
+    {
+      "key": "fix_close_noR4",
+      "note": "TECL corrigé, fill close, R4 OFF",
+      "summary": {
+        "label": "fix_close_noR4",
+        "totalReturnPct": 1411.28,
+        "finalEquity": 151128.43,
+        "netProfitUsd": 141128.43,
+        "maxDrawdownPct": -39.91,
+        "numTrades": 19,
+        "winRatePct": 57.89,
+        "profitFactor": 3.03,
+        "reentryCount": 0,
+        "protExits": 8,
+        "maSell": 11,
+        "exposurePct": 20.05
+      },
+      "deltaVsTV": {
+        "dPnl": -5851.14,
+        "dDD": 12.17,
+        "dTrades": -5,
+        "dWin": -4.61,
+        "dPF": -3.94
+      },
+      "trades": [
+        {
+          "n": 1,
+          "entryIso": "2020-04-08",
+          "exitIso": "2020-09-16",
+          "entryPrice": 13.38,
+          "exitPrice": 29.13,
+          "pnlPct": 117.67,
+          "barsHeld": 111,
+          "reason": "maSell"
+        },
+        {
+          "n": 2,
+          "entryIso": "2020-10-05",
+          "exitIso": "2020-10-28",
+          "entryPrice": 31.09,
+          "exitPrice": 26.13,
+          "pnlPct": -15.95,
+          "barsHeld": 17,
+          "reason": "maSell"
+        },
+        {
+          "n": 3,
+          "entryIso": "2020-11-04",
+          "exitIso": "2021-02-26",
+          "entryPrice": 30.37,
+          "exitPrice": 40.24,
+          "pnlPct": 32.5,
+          "barsHeld": 77,
+          "reason": "maSell"
+        },
+        {
+          "n": 4,
+          "entryIso": "2021-03-11",
+          "exitIso": "2021-05-10",
+          "entryPrice": 41.04,
+          "exitPrice": 43.4,
+          "pnlPct": 5.75,
+          "barsHeld": 41,
+          "reason": "maSell"
+        },
+        {
+          "n": 5,
+          "entryIso": "2021-05-20",
+          "exitIso": "2021-09-20",
+          "entryPrice": 44.42,
+          "exitPrice": 60.52,
+          "pnlPct": 36.24,
+          "barsHeld": 84,
+          "reason": "protL"
+        },
+        {
+          "n": 6,
+          "entryIso": "2021-09-23",
+          "exitIso": "2021-09-27",
+          "entryPrice": 65.59,
+          "exitPrice": 63.81,
+          "pnlPct": -2.71,
+          "barsHeld": 2,
+          "reason": "maSell"
+        },
+        {
+          "n": 7,
+          "entryIso": "2021-10-14",
+          "exitIso": "2022-01-07",
+          "entryPrice": 62.53,
+          "exitPrice": 74.49,
+          "pnlPct": 19.13,
+          "barsHeld": 59,
+          "reason": "maSell"
+        },
+        {
+          "n": 8,
+          "entryIso": "2023-03-14",
+          "exitIso": "2023-08-04",
+          "entryPrice": 29.62,
+          "exitPrice": 50.55,
+          "pnlPct": 70.66,
+          "barsHeld": 99,
+          "reason": "protL"
+        },
+        {
+          "n": 9,
+          "entryIso": "2023-08-23",
+          "exitIso": "2023-09-13",
+          "entryPrice": 49.78,
+          "exitPrice": 49.15,
+          "pnlPct": -1.27,
+          "barsHeld": 14,
+          "reason": "maSell"
+        },
+        {
+          "n": 10,
+          "entryIso": "2023-10-06",
+          "exitIso": "2023-10-20",
+          "entryPrice": 46.35,
+          "exitPrice": 42.53,
+          "pnlPct": -8.24,
+          "barsHeld": 10,
+          "reason": "protL"
+        },
+        {
+          "n": 11,
+          "entryIso": "2024-01-08",
+          "exitIso": "2024-04-04",
+          "entryPrice": 62.52,
+          "exitPrice": 75.22,
+          "pnlPct": 20.31,
+          "barsHeld": 60,
+          "reason": "protL"
+        },
+        {
+          "n": 12,
+          "entryIso": "2024-04-11",
+          "exitIso": "2024-04-15",
+          "entryPrice": 79.98,
+          "exitPrice": 71.86,
+          "pnlPct": -10.15,
+          "barsHeld": 2,
+          "reason": "protL"
+        },
+        {
+          "n": 13,
+          "entryIso": "2024-05-03",
+          "exitIso": "2024-07-19",
+          "entryPrice": 71.72,
+          "exitPrice": 89.06,
+          "pnlPct": 24.18,
+          "barsHeld": 52,
+          "reason": "protL"
+        },
+        {
+          "n": 14,
+          "entryIso": "2024-09-11",
+          "exitIso": "2024-11-04",
+          "entryPrice": 78.71,
+          "exitPrice": 83.35,
+          "pnlPct": 5.9,
+          "barsHeld": 38,
+          "reason": "maSell"
+        },
+        {
+          "n": 15,
+          "entryIso": "2024-11-18",
+          "exitIso": "2024-12-31",
+          "entryPrice": 89.01,
+          "exitPrice": 90.55,
+          "pnlPct": 1.73,
+          "barsHeld": 29,
+          "reason": "maSell"
+        },
+        {
+          "n": 16,
+          "entryIso": "2025-01-17",
+          "exitIso": "2025-01-27",
+          "entryPrice": 91.38,
+          "exitPrice": 82.98,
+          "pnlPct": -9.19,
+          "barsHeld": 5,
+          "reason": "maSell"
+        },
+        {
+          "n": 17,
+          "entryIso": "2025-04-24",
+          "exitIso": "2025-11-17",
+          "entryPrice": 51.75,
+          "exitPrice": 122.08,
+          "pnlPct": 135.9,
+          "barsHeld": 143,
+          "reason": "maSell"
+        },
+        {
+          "n": 18,
+          "entryIso": "2025-12-19",
+          "exitIso": "2026-01-20",
+          "entryPrice": 118.94,
+          "exitPrice": 111.21,
+          "pnlPct": -6.5,
+          "barsHeld": 19,
+          "reason": "protL"
+        },
+        {
+          "n": 19,
+          "entryIso": "2026-02-25",
+          "exitIso": "2026-03-20",
+          "entryPrice": 110.62,
+          "exitPrice": 92.32,
+          "pnlPct": -16.54,
+          "barsHeld": 17,
+          "reason": "protL"
+        }
+      ]
+    },
+    {
+      "key": "fix_close_baseline",
+      "note": "TECL corrigé, fill close, sans L ni R4",
+      "summary": {
+        "label": "fix_close_baseline",
+        "totalReturnPct": 4775.39,
+        "finalEquity": 487539.49,
+        "netProfitUsd": 477539.49,
+        "maxDrawdownPct": -46.19,
+        "numTrades": 16,
+        "winRatePct": 75,
+        "profitFactor": 20.72,
+        "reentryCount": 0,
+        "protExits": 0,
+        "maSell": 15,
+        "exposurePct": 23.12
+      },
+      "deltaVsTV": {
+        "dPnl": -2487.03,
+        "dDD": 18.45,
+        "dTrades": -8,
+        "dWin": 12.5,
+        "dPF": 13.75
+      },
+      "trades": [
+        {
+          "n": 1,
+          "entryIso": "2020-04-08",
+          "exitIso": "2020-09-16",
+          "entryPrice": 13.38,
+          "exitPrice": 29.13,
+          "pnlPct": 117.67,
+          "barsHeld": 111,
+          "reason": "maSell"
+        },
+        {
+          "n": 2,
+          "entryIso": "2020-10-05",
+          "exitIso": "2020-10-28",
+          "entryPrice": 31.09,
+          "exitPrice": 26.13,
+          "pnlPct": -15.95,
+          "barsHeld": 17,
+          "reason": "maSell"
+        },
+        {
+          "n": 3,
+          "entryIso": "2020-11-04",
+          "exitIso": "2021-02-26",
+          "entryPrice": 30.37,
+          "exitPrice": 40.24,
+          "pnlPct": 32.5,
+          "barsHeld": 77,
+          "reason": "maSell"
+        },
+        {
+          "n": 4,
+          "entryIso": "2021-03-11",
+          "exitIso": "2021-05-10",
+          "entryPrice": 41.04,
+          "exitPrice": 43.4,
+          "pnlPct": 5.75,
+          "barsHeld": 41,
+          "reason": "maSell"
+        },
+        {
+          "n": 5,
+          "entryIso": "2021-05-20",
+          "exitIso": "2021-09-21",
+          "entryPrice": 44.42,
+          "exitPrice": 60.52,
+          "pnlPct": 36.24,
+          "barsHeld": 85,
+          "reason": "maSell"
+        },
+        {
+          "n": 6,
+          "entryIso": "2021-10-14",
+          "exitIso": "2022-01-07",
+          "entryPrice": 62.53,
+          "exitPrice": 74.49,
+          "pnlPct": 19.13,
+          "barsHeld": 59,
+          "reason": "maSell"
+        },
+        {
+          "n": 7,
+          "entryIso": "2023-03-14",
+          "exitIso": "2023-08-08",
+          "entryPrice": 29.62,
+          "exitPrice": 49.75,
+          "pnlPct": 67.96,
+          "barsHeld": 101,
+          "reason": "maSell"
+        },
+        {
+          "n": 8,
+          "entryIso": "2023-08-23",
+          "exitIso": "2023-09-13",
+          "entryPrice": 49.78,
+          "exitPrice": 49.15,
+          "pnlPct": -1.27,
+          "barsHeld": 14,
+          "reason": "maSell"
+        },
+        {
+          "n": 9,
+          "entryIso": "2023-10-06",
+          "exitIso": "2024-04-08",
+          "entryPrice": 46.35,
+          "exitPrice": 77.41,
+          "pnlPct": 67.01,
+          "barsHeld": 125,
+          "reason": "maSell"
+        },
+        {
+          "n": 10,
+          "entryIso": "2024-04-11",
+          "exitIso": "2024-07-24",
+          "entryPrice": 79.98,
+          "exitPrice": 82.61,
+          "pnlPct": 3.29,
+          "barsHeld": 71,
+          "reason": "maSell"
+        },
+        {
+          "n": 11,
+          "entryIso": "2024-09-11",
+          "exitIso": "2024-11-04",
+          "entryPrice": 78.71,
+          "exitPrice": 83.35,
+          "pnlPct": 5.9,
+          "barsHeld": 38,
+          "reason": "maSell"
+        },
+        {
+          "n": 12,
+          "entryIso": "2024-11-18",
+          "exitIso": "2024-12-31",
+          "entryPrice": 89.01,
+          "exitPrice": 90.55,
+          "pnlPct": 1.73,
+          "barsHeld": 29,
+          "reason": "maSell"
+        },
+        {
+          "n": 13,
+          "entryIso": "2025-01-17",
+          "exitIso": "2025-01-27",
+          "entryPrice": 91.38,
+          "exitPrice": 82.98,
+          "pnlPct": -9.19,
+          "barsHeld": 5,
+          "reason": "maSell"
+        },
+        {
+          "n": 14,
+          "entryIso": "2025-04-24",
+          "exitIso": "2025-11-17",
+          "entryPrice": 51.75,
+          "exitPrice": 122.08,
+          "pnlPct": 135.9,
+          "barsHeld": 143,
+          "reason": "maSell"
+        },
+        {
+          "n": 15,
+          "entryIso": "2025-12-19",
+          "exitIso": "2026-01-30",
+          "entryPrice": 118.94,
+          "exitPrice": 115.43,
+          "pnlPct": -2.95,
+          "barsHeld": 27,
+          "reason": "maSell"
+        },
+        {
+          "n": 16,
+          "entryIso": "2026-02-25",
+          "exitIso": "2026-06-05",
+          "entryPrice": 110.62,
+          "exitPrice": 202.59,
+          "pnlPct": 83.14,
+          "barsHeld": 70,
+          "reason": "endOfData"
+        }
+      ]
+    }
+  ]
+}

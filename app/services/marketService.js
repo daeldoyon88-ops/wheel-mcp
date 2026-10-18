@@ -8,6 +8,66 @@ import {
 import { deriveEarningsMoment } from "../utils/earningsMoment.js";
 import { round, toNumber } from "../utils/number.js";
 
+/** Date YYYY-MM-DD extraite d'un OCC `contractSymbol` (ex. TQQQ261030P00050000). */
+export function ymdFromOccOptionSymbol(contractSymbol) {
+  const m = String(contractSymbol || "").toUpperCase().match(/(\d{6})[CP]/);
+  if (!m) return null;
+  const yy = m[1].slice(0, 2);
+  const mo = m[1].slice(2, 4);
+  const dd = m[1].slice(4, 6);
+  const ymd = `20${yy}-${mo}-${dd}`;
+  if (!/^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/.test(ymd)) return null;
+  return ymd;
+}
+
+/** Normalise une expiration fournisseur (Date, unix s/ms, YYYY-MM-DD) sans inventer. */
+export function ymdFromProviderExpiration(value) {
+  if (value == null || value === "") return null;
+  if (typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value.trim())) return value.trim();
+  const parsed =
+    value instanceof Date
+      ? value
+      : typeof value === "number" && Number.isFinite(value)
+        ? new Date(value > 1e12 ? value : value * 1000)
+        : new Date(value);
+  if (Number.isNaN(parsed.getTime())) return null;
+  return parsed.toISOString().slice(0, 10);
+}
+
+/**
+ * Identité réelle de la chaîne Yahoo vs expiration demandée.
+ * Discordance seulement si une expiration réelle est connue ET différente.
+ */
+export function describeYahooChainIdentity({ requestedExpiration, optionsNode, firstPut, firstCall } = {}) {
+  const requested = requestedExpiration == null || requestedExpiration === ""
+    ? null
+    : String(requestedExpiration).trim();
+  const fromNode = ymdFromProviderExpiration(optionsNode?.expirationDate ?? optionsNode?.expiration);
+  const fromPut = ymdFromOccOptionSymbol(firstPut?.contractSymbol);
+  const fromCall = ymdFromOccOptionSymbol(firstCall?.contractSymbol);
+  const returnedExpiration = fromNode ?? fromPut ?? fromCall ?? null;
+  const expirationMismatch = Boolean(
+    requested && returnedExpiration && requested !== returnedExpiration
+  );
+  return {
+    requestedExpiration: requested,
+    returnedExpiration,
+    expirationMismatch,
+    expirationMismatchReason: expirationMismatch ? "yahoo_chain_expiration_mismatch" : null,
+  };
+}
+
+function serializeLastTradeDate(value) {
+  if (value == null || value === "") return null;
+  if (value instanceof Date && !Number.isNaN(value.getTime())) return value.toISOString();
+  if (typeof value === "number" && Number.isFinite(value)) {
+    const d = new Date(value > 1e12 ? value : value * 1000);
+    return Number.isNaN(d.getTime()) ? null : d.toISOString();
+  }
+  const s = String(value).trim();
+  return s || null;
+}
+
 export function createMarketService(provider) {
   function computeAnnualizedHv(closes, period) {
     if (!Array.isArray(closes) || closes.length < period + 1) return null;
@@ -131,24 +191,44 @@ export function createMarketService(provider) {
   async function getOptionChain(symbol, expiration) {
     const chain = await provider.getOptions(symbol, { date: expiration });
     const options = chain?.options?.[0] ?? {};
-
-    const mapOptionRow = (row) => ({
-      contractSymbol: row.contractSymbol,
-      strike: row.strike,
-      lastPrice: row.lastPrice,
-      bid: row.bid,
-      ask: row.ask,
-      mid:
-        row.bid != null && row.ask != null
-          ? (Number(row.bid) + Number(row.ask)) / 2
-          : row.lastPrice ?? null,
-      volume: row.volume,
-      openInterest: row.openInterest,
-      impliedVolatility: row.impliedVolatility,
-      inTheMoney: row.inTheMoney,
-      expiration,
+    const identity = describeYahooChainIdentity({
+      requestedExpiration: expiration,
+      optionsNode: options,
+      firstPut: Array.isArray(options.puts) ? options.puts[0] : null,
+      firstCall: Array.isArray(options.calls) ? options.calls[0] : null,
     });
+    const contractExpiration = identity.returnedExpiration ?? identity.requestedExpiration;
 
+    const mapOptionRow = (row) => {
+      const rowReturned =
+        ymdFromProviderExpiration(row?.expirationDate ?? row?.expiration) ??
+        ymdFromOccOptionSymbol(row?.contractSymbol) ??
+        contractExpiration;
+      return {
+        contractSymbol: row.contractSymbol,
+        strike: row.strike,
+        lastPrice: row.lastPrice,
+        bid: row.bid,
+        ask: row.ask,
+        mid:
+          row.bid != null && row.ask != null
+            ? (Number(row.bid) + Number(row.ask)) / 2
+            : row.lastPrice ?? null,
+        volume: row.volume,
+        openInterest: row.openInterest,
+        impliedVolatility: row.impliedVolatility,
+        inTheMoney: row.inTheMoney,
+        expiration: rowReturned,
+        requestedExpiration: identity.requestedExpiration,
+        returnedExpiration: identity.returnedExpiration,
+        multiplier: row.multiplier ?? row.contractMultiplier ?? null,
+        lastTradeDate: serializeLastTradeDate(row.lastTradeDate),
+        lastTradeDateIsNotBidAskTime: true,
+      };
+    };
+
+    const calls = Array.isArray(options.calls) ? options.calls.map(mapOptionRow) : [];
+    const puts = Array.isArray(options.puts) ? options.puts.map(mapOptionRow) : [];
     return {
       symbol,
       currentPrice:
@@ -156,9 +236,14 @@ export function createMarketService(provider) {
         chain?.quote?.postMarketPrice ??
         chain?.quote?.preMarketPrice ??
         null,
-      expiration,
-      calls: Array.isArray(options.calls) ? options.calls.map(mapOptionRow) : [],
-      puts: Array.isArray(options.puts) ? options.puts.map(mapOptionRow) : [],
+      expiration: identity.requestedExpiration,
+      requestedExpiration: identity.requestedExpiration,
+      returnedExpiration: identity.returnedExpiration,
+      expirationMismatch: identity.expirationMismatch,
+      expirationMismatchReason: identity.expirationMismatchReason,
+      contractCount: calls.length + puts.length,
+      calls,
+      puts,
     };
   }
 
@@ -244,6 +329,10 @@ export function createMarketService(provider) {
     return {
       symbol,
       expiration,
+      requestedExpiration: chain.requestedExpiration ?? expiration,
+      returnedExpiration: chain.returnedExpiration ?? null,
+      expirationMismatch: chain.expirationMismatch === true,
+      expirationMismatchReason: chain.expirationMismatchReason ?? null,
       currentPrice: price,
       atmStrike,
       method: "weighted_60_30_10",

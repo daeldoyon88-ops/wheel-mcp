@@ -1,0 +1,222 @@
+//@version=5
+// =============================================================================
+// TQQQ Top Risk Live — indicateur final
+// Config figée : E2_regime_entry_faiblesse (gagnante du backtest)
+//   scripts/backtestTopRiskLiveRules.mjs — lift top majeur 2.36x vs baseline.
+//
+// Règles (identiques au backtest) :
+//   WATCH      : combinedScore >= 55 & weeklyScore >= 40 & dailyScore >= 25
+//                + FAIBLESSE DAILY obligatoire
+//   TOP RISK   : combinedScore >= 65 & mtfBonus >= 15 (& weekly>=40 & daily>=25)
+//   TOP EXT    : combinedScore >= 80 & weeklyScore >= 55 & mtfBonus >= 15
+//   Déclenchement : ENTRÉE DE RÉGIME seulement (front montant), pas de cooldown.
+//   Weekly context : DERNIÈRE SEMAINE CLÔTURÉE (expr[1] + lookahead_off) — aucun lookahead.
+//
+// Poids des scores : repris à l'identique de SCORE_WEIGHTS du script de backtest.
+// Option : "Mode strict — MTF confirmé seulement".
+//
+// À appliquer sur un graphique TQQQ en DAILY.
+// =============================================================================
+
+indicator("TQQQ Top Risk Live", overlay = true, max_labels_count = 500)
+
+// ───────────────────────── Inputs ─────────────────────────
+strictMode = input.bool(false, "Mode strict : MTF confirmé seulement",
+     tooltip = "Si activé : ne déclenche qu'au passage en TOP RISK confirmé (mtfBonus>=15), sans exiger de faiblesse daily.")
+dispMode = input.string("Zone de risque", "Mode affichage", options = ["Zone de risque", "Action cassure"],
+     tooltip = "Zone de risque : affiche WATCH / TOP RISK / TOP EXT (comportement par défaut).\nAction cassure : affiche seulement TOP RISK / TOP EXT, et uniquement si une vraie cassure daily est présente (close<SMA8 ou close<SMA21 ou MACD hist baisse 3j). N'affecte QUE l'affichage et les alertes — les scores, poids, seuils et le moteur de régime restent inchangés.")
+showTable  = input.bool(true,  "Afficher le tableau")
+showShapes = input.bool(true,  "Afficher les marqueurs WATCH / TOP RISK / TOP EXT")
+showBg     = input.bool(true,  "Colorer le fond pendant le régime de risque")
+
+// ═════════════════════════ WEEKLY CONTEXT (dernière semaine clôturée) ═════════════════════════
+// Tout est calculé en timeframe weekly puis lagué de [1] => valeurs de la semaine
+// précédente entièrement terminée. lookahead_off => aucune fuite de futur.
+wkCalc() =>
+    r      = ta.rsi(close, 14)
+    s50    = ta.sma(close, 50)
+    ext    = s50 > 0 ? close / s50 - 1 : na
+    r8     = close / close[8]  - 1
+    r12    = close / close[12] - 1
+    basis  = ta.sma(close, 20)
+    upper  = basis + 2 * ta.stdev(close, 20)
+    aboveBb = close > upper
+    vma    = ta.sma(volume, 20)
+    relv   = vma > 0 ? volume / vma : na
+    volSpike = not na(relv) and relv > 2
+    rng    = high - low
+    longWick = rng > 0 and (high - math.max(open, close)) / rng > 0.4
+    rsi70  = not na(r) and r > 70
+    rsi75  = not na(r) and r > 75
+    ext15  = not na(ext) and ext > 0.15
+    ext25  = not na(ext) and ext > 0.25
+    sc = 0.0
+    sc := sc + (rsi70 ? 18 : 0) + (rsi75 ? 12 : 0)
+    sc := sc + (ext15 ? 16 : 0) + (ext25 ? 8 : 0)
+    sc := sc + ((not na(r8)  and r8  > 0.25) ? 14 : 0)
+    sc := sc + ((not na(r12) and r12 > 0.40) ? 8  : 0)
+    sc := sc + (aboveBb ? 14 : 0) + ((aboveBb and rsi70) ? 8 : 0)
+    sc := sc + (volSpike ? 10 : 0)
+    sc := sc + (longWick ? 8  : 0)
+    sc := math.min(100, sc)
+    // on renvoie la barre PRÉCÉDENTE (semaine clôturée) de chaque série
+    [sc[1], rsi70[1], rsi75[1], ext15[1], aboveBb[1], volSpike[1]]
+
+[weeklyScore, wRsi70, wRsi75, wExt15, wAboveBb, wVolSpike] =
+     request.security(syminfo.tickerid, "W", wkCalc(), lookahead = barmerge.lookahead_off)
+
+// ═════════════════════════ DAILY CONTEXT ═════════════════════════
+dRsi   = ta.rsi(close, 14)
+dSma8  = ta.sma(close, 8)
+dSma21 = ta.sma(close, 21)
+dSma50 = ta.sma(close, 50)
+[mLine, sLine, histLine] = ta.macd(close, 12, 26, 9)
+dUpper = ta.sma(close, 20) + 2 * ta.stdev(close, 20)
+dRet10 = close / close[10] - 1
+dRet20 = close / close[20] - 1
+dVma   = ta.sma(volume, 20)
+dRelV  = dVma > 0 ? volume / dVma : na
+dExt   = dSma50 > 0 ? close / dSma50 - 1 : na
+dExt21 = dSma21 > 0 ? close / dSma21 - 1 : na
+
+// indicateurs / chandeliers
+histFall3   = histLine < histLine[1] and histLine[1] < histLine[2] and histLine[2] < histLine[3]
+belowSma8   = close < dSma8
+belowSma21  = close < dSma21
+dAboveBb    = close > dUpper
+dRng        = high - low
+dLongWick   = dRng > 0 and (high - math.max(open, close)) / dRng > 0.4
+dBearEngulf = close < open and close[1] > open[1] and open >= close[1] and close <= open[1]
+dDistrib    = close < close[1] and not na(dRelV) and dRelV > 1.2 and not na(dExt21) and dExt21 > 0.05
+dVolSpike   = not na(dRelV) and dRelV > 2
+
+// faiblesse daily (config E2)
+weakness = histFall3 or belowSma8 or belowSma21 or dDistrib or dLongWick or dBearEngulf
+
+dRsi70 = not na(dRsi) and dRsi > 70
+dRsi75 = not na(dRsi) and dRsi > 75
+dExt15 = not na(dExt) and dExt > 0.15
+dExt25 = not na(dExt) and dExt > 0.25
+
+// dailyScore (mêmes poids que le backtest)
+dailyScore = 0.0
+dailyScore := dailyScore + (dRsi70 ? 14 : 0) + (dRsi75 ? 8 : 0)
+dailyScore := dailyScore + (dAboveBb ? 10 : 0) + ((dAboveBb and dRsi70) ? 6 : 0)
+dailyScore := dailyScore + ((not na(dRet10) and dRet10 > 0.15) ? 12 : 0)
+dailyScore := dailyScore + ((not na(dRet20) and dRet20 > 0.25) ? 8  : 0)
+dailyScore := dailyScore + (dExt15 ? 12 : 0) + (dExt25 ? 6 : 0)
+dailyScore := dailyScore + (histFall3 ? 8 : 0)
+dailyScore := dailyScore + (belowSma8 ? 6 : 0) + (belowSma21 ? 6 : 0)
+dailyScore := dailyScore + (dDistrib ? 8 : 0)
+dailyScore := dailyScore + (dLongWick ? 6 : 0)
+dailyScore := dailyScore + (dBearEngulf ? 8 : 0)
+dailyScore := dailyScore + (dVolSpike ? 6 : 0)
+dailyScore := math.min(100, dailyScore)
+
+// ═════════════════════════ MTF BONUS ═════════════════════════
+mtfBonus = 0.0
+mtfBonus := mtfBonus + ((wRsi70  and weakness) ? 8 : 0)
+mtfBonus := mtfBonus + ((wExt15  and (belowSma8 or belowSma21)) ? 8 : 0)
+mtfBonus := mtfBonus + ((wAboveBb and (dBearEngulf or dDistrib or dLongWick)) ? 7 : 0)
+mtfBonus := mtfBonus + ((wVolSpike and dLongWick) ? 5 : 0)
+mtfBonus := mtfBonus + ((wRsi75  and dDistrib) ? 7 : 0)
+
+// ═════════════════════════ COMBINED + NIVEAUX ═════════════════════════
+wScore = na(weeklyScore) ? 0.0 : weeklyScore
+combinedScore = math.round(math.min(100, 0.5 * wScore + 0.5 * dailyScore + mtfBonus))
+
+isExt       = combinedScore >= 80 and wScore >= 55 and mtfBonus >= 15
+isConfirmed = combinedScore >= 65 and mtfBonus >= 15 and wScore >= 40 and dailyScore >= 25
+isWatch     = combinedScore >= 55 and wScore >= 40 and dailyScore >= 25
+
+level = isExt ? 3 : isConfirmed ? 2 : isWatch ? 1 : 0
+levelLabel = level == 3 ? "TOP EXT" : level == 2 ? "TOP RISK" : level == 1 ? "WATCH" : "—"
+
+// ═════════════════════════ RÉGIME + ENTRÉE DE RÉGIME ═════════════════════════
+// En mode normal (E2) : WATCH+ ET faiblesse daily obligatoire.
+// En mode strict      : TOP RISK confirmé seulement (level>=2), sans faiblesse imposée.
+isQualified = strictMode ? (level >= 2) : (level >= 1 and weakness)
+
+// Déclenchement = front montant (passage hors-risque -> en-risque). Pas de cooldown.
+isSignal = isQualified and not isQualified[1]
+
+sigWatch = isSignal and level == 1
+sigRisk  = isSignal and level == 2
+sigExt   = isSignal and level == 3
+
+// Filtre d'AFFICHAGE seulement (ne touche ni scores, ni poids, ni seuils E2, ni régime).
+//   "Zone de risque" : WATCH / TOP RISK / TOP EXT comme le moteur les produit.
+//   "Action cassure" : seulement TOP RISK / TOP EXT, et uniquement si vraie cassure daily.
+breakoutMode = dispMode == "Action cassure"
+isBreakout   = belowSma8 or belowSma21 or histFall3
+dispWatch = breakoutMode ? false : sigWatch
+dispRisk  = breakoutMode ? (sigRisk and isBreakout) : sigRisk
+dispExt   = breakoutMode ? (sigExt and isBreakout)  : sigExt
+
+// ═════════════════════════ CAUSE (raison lisible) ═════════════════════════
+cause = ""
+cause := cause + (wRsi75 ? "W RSI>75; " : (wRsi70 ? "W RSI>70; " : ""))
+cause := cause + (wExt15 ? "W >SMA50; " : "")
+cause := cause + (wAboveBb ? "W BB+; " : "")
+cause := cause + (wVolSpike ? "W vol2x; " : "")
+cause := cause + (histFall3 ? "MACD-3j; " : "")
+cause := cause + (belowSma8 ? "<SMA8; " : "")
+cause := cause + (belowSma21 ? "<SMA21; " : "")
+cause := cause + (dDistrib ? "distrib; " : "")
+cause := cause + (dLongWick ? "mèche; " : "")
+cause := cause + (dBearEngulf ? "engulf; " : "")
+cause := cause == "" ? "—" : cause
+
+// ═════════════════════════ AFFICHAGE ═════════════════════════
+cWatch = color.yellow
+cRisk  = color.new(color.orange, 0)
+cExt   = color.red
+
+plotshape(showShapes and dispWatch, title = "WATCH", style = shape.triangledown,
+     location = location.abovebar, color = cWatch, text = "WATCH", textcolor = color.black, size = size.tiny)
+plotshape(showShapes and dispRisk, title = "TOP RISK", style = shape.triangledown,
+     location = location.abovebar, color = cRisk, text = "TOP RISK", textcolor = color.white, size = size.small)
+plotshape(showShapes and dispExt, title = "TOP EXT", style = shape.triangledown,
+     location = location.abovebar, color = cExt, text = "TOP EXT", textcolor = color.white, size = size.normal)
+
+bgcolor(showBg and isQualified ? color.new(level == 3 ? cExt : level == 2 ? cRisk : cWatch, 88) : na)
+
+// ───────────────────────── Tableau d'état ─────────────────────────
+var table tbl = table.new(position.top_right, 2, 8, border_width = 1, frame_color = color.gray, frame_width = 1)
+levelCellColor = level == 3 ? cExt : level == 2 ? cRisk : level == 1 ? cWatch : color.new(color.gray, 60)
+levelTxtColor  = level == 1 ? color.black : color.white
+
+if showTable and barstate.islast
+    table.cell(tbl, 0, 0, "TQQQ Top Risk", text_color = color.white, bgcolor = color.new(color.blue, 0), text_size = size.normal)
+    table.cell(tbl, 1, 0, strictMode ? "MODE STRICT" : "MODE E2", text_color = color.white, bgcolor = color.new(color.blue, 0), text_size = size.normal)
+
+    table.cell(tbl, 0, 1, "Top Risk", text_color = color.white, bgcolor = color.new(color.gray, 30))
+    table.cell(tbl, 1, 1, levelLabel, text_color = levelTxtColor, bgcolor = levelCellColor)
+
+    table.cell(tbl, 0, 2, "Régime", text_color = color.white, bgcolor = color.new(color.gray, 30))
+    table.cell(tbl, 1, 2, isQualified ? "EN RISQUE" : "hors risque",
+         text_color = color.white, bgcolor = isQualified ? color.new(color.orange, 20) : color.new(color.green, 40))
+
+    table.cell(tbl, 0, 3, "Weekly", text_color = color.white, bgcolor = color.new(color.gray, 30))
+    table.cell(tbl, 1, 3, str.tostring(wScore, "#") + " / 100",
+         text_color = color.white, bgcolor = wScore >= 55 ? color.new(color.red, 40) : wScore >= 40 ? color.new(color.orange, 40) : color.new(color.gray, 60))
+
+    table.cell(tbl, 0, 4, "Daily", text_color = color.white, bgcolor = color.new(color.gray, 30))
+    table.cell(tbl, 1, 4, str.tostring(dailyScore, "#") + " / 100",
+         text_color = color.white, bgcolor = dailyScore >= 35 ? color.new(color.red, 40) : dailyScore >= 25 ? color.new(color.orange, 40) : color.new(color.gray, 60))
+
+    table.cell(tbl, 0, 5, "MTF bonus", text_color = color.white, bgcolor = color.new(color.gray, 30))
+    table.cell(tbl, 1, 5, str.tostring(mtfBonus, "#"),
+         text_color = color.white, bgcolor = mtfBonus >= 15 ? color.new(color.red, 40) : color.new(color.gray, 60))
+
+    table.cell(tbl, 0, 6, "Faiblesse daily", text_color = color.white, bgcolor = color.new(color.gray, 30))
+    table.cell(tbl, 1, 6, weakness ? "OUI" : "non",
+         text_color = color.white, bgcolor = weakness ? color.new(color.orange, 30) : color.new(color.green, 40))
+
+    table.cell(tbl, 0, 7, "Cause", text_color = color.white, bgcolor = color.new(color.gray, 30))
+    table.cell(tbl, 1, 7, cause, text_color = color.white, bgcolor = color.new(color.gray, 70), text_size = size.small)
+
+// ═════════════════════════ ALERTES ═════════════════════════
+alertcondition(dispWatch, title = "WATCH",    message = "TQQQ Top Risk : WATCH (entrée de régime, faiblesse daily)")
+alertcondition(dispRisk,  title = "TOP RISK", message = "TQQQ Top Risk : TOP RISK confirmé (MTF)")
+alertcondition(dispExt,   title = "TOP EXT",  message = "TQQQ Top Risk : TOP EXT extrême")

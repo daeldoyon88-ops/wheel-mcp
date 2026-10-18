@@ -14,3 +14,29 @@ data/wheelValidationJournal.sqlite
 data/wheelValidationJournal.sqlite-*
 data/*.sqlite
 data/*.sqlite-*
+
+# Git cleanup batch 5 (2026-10-18): local market-data caches, archived with SHA-256 in wheel-archive/git-cleanup-batch5-snapshot-20261018
+/debug/ohlc-cache-APLD.json
+/debug/ohlc-cache-CL_F.json
+/debug/ohlc-cache-DIA.json
+/debug/ohlc-cache-DX-Y.NYB.json
+/debug/ohlc-cache-IONQ.json
+/debug/ohlc-cache-IWM.json
+/debug/ohlc-cache-QQQ-20260713.json
+/debug/ohlc-cache-QQQ.json
+/debug/ohlc-cache-SPY.json
+/debug/ohlc-cache-TECL.json
+/debug/ohlc-cache-TQQQ.json
+/debug/ohlc-cache-_IRX.json
+/debug/ohlc-cache-_NDX.json
+/debug/ohlc-cache-_TNX.json
+/debug/ohlc-cache-_VIX.json
+/debug/ohlc-cache-_VVIX.json
+# Overwritten output of scripts/auditTickerMetaCoverage.mjs
+/debug/ticker-meta-coverage-latest.json
+# Local SQLite data only (backups and stray empty journal)
+/debug/backups/*.sqlite
+/wheel-dashboard/data/*.sqlite
+# Git cleanup batch 10 (2026-10-18): local pilot input (snapshot in wheel-archive/git-cleanup-batch10-local-files-20261018) and local launcher
+/debug/tradingview/ohlc-cache-TQQQ-to-2026-07-09.json
+/start-wheel-lab.bat

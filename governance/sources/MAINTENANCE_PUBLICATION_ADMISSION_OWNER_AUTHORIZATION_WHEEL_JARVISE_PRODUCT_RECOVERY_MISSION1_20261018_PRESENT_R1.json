@@ -1,0 +1,25 @@
+{
+  "document": "MAINTENANCE_PUBLICATION_ADMISSION_OWNER_AUTHORIZATION",
+  "schemaVersion": 1,
+  "authorityId": "WHEEL_JARVISE_PRODUCT_RECOVERY_MISSION1_20261018_PRESENT_R1_PUBLICATION_OWNER_AUTHORIZATION",
+  "authorityClass": "PROJECT_OWNER_MAINTENANCE_PUBLICATION_ADMISSION_AUTHORITY",
+  "authorityMode": "LOCAL_EXPLICIT_AUTHORITY",
+  "issuedBy": "PROJECT_OWNER",
+  "issuedAtUtc": "2026-10-18T17:16:37.458Z",
+  "decisionId": "WHEEL_JARVISE_PRODUCT_RECOVERY_MISSION1_20261018_PRESENT_R1_OWNER_MANDATE",
+  "purpose": "MAINTENANCE_PUBLICATION_ADMISSION",
+  "reexecutionAuthorized": false,
+  "grantsFutureBytePermission": false,
+  "genericV1Admission": false,
+  "admittedPublications": [
+    {
+      "admissionId": "WHEEL_JARVISE_PRODUCT_RECOVERY_MISSION1_20261018_PRESENT_R1_PUBLICATION_ADMISSION_R1",
+      "projectId": "WHEEL",
+      "gateId": "GATE24",
+      "programId": "WHEEL_JARVISE_PRODUCT_RECOVERY_MISSION1_20261018_PRESENT_R1",
+      "admissionPath": "governance/authority/publication-admissions/GATE24/WHEEL_JARVISE_PRODUCT_RECOVERY_MISSION1_20261018_PRESENT_R1_PUBLICATION_ADMISSION_R1.json",
+      "admissionDigest": "a5476d1e6ff646aecf811d14e098f06a12b5ef8dc68436d114b6b755d5992791"
+    }
+  ],
+  "registryDigest": "838bb320978b137a0a52f9b7b0f3000f927f1d110d0ff23e0185bae61a9d97ed"
+}

@@ -299,6 +299,21 @@ import {
   normalizeSecFilingSourceDocumentCoreV1,
   normalizeXbrlCanonicalUnitCoreV1,
 } from '../contracts/earningsContractsL4CIV1.mjs';
+import {
+  EARNINGS_AS_OF_MATERIALIZATION_REPORT_SCHEMA_VERSION,
+  EARNINGS_AS_OF_RESOLUTION_POLICY_SCHEMA_VERSION,
+  EARNINGS_DATASET_BINDING_SCHEMA_VERSION,
+  EARNINGS_FISCAL_CLASSIFICATION_POLICY_SCHEMA_VERSION,
+  EARNINGS_FISCAL_CLASSIFICATION_REPORT_SCHEMA_VERSION,
+  EARNINGS_FISCAL_PERIOD_CLASSIFICATION_CORE_SCHEMA_VERSION,
+  EARNINGS_L4C_I2_SCHEMA_VERSIONS,
+  normalizeEarningsAsOfMaterializationReportV1,
+  normalizeEarningsAsOfResolutionPolicyV1,
+  normalizeEarningsDatasetBindingV1,
+  normalizeEarningsFiscalClassificationPolicyV1,
+  normalizeEarningsFiscalClassificationReportV1,
+  normalizeEarningsFiscalPeriodClassificationCoreV1,
+} from '../contracts/earningsContractsL4CIIV1.mjs';
 /**
  * Snapshot-metadata schemas the CAS `snapshots` namespace may store. The
  * legacy DatasetManifestV1 canonical copy is historical evidence only; the
@@ -351,6 +366,7 @@ export const SNAPSHOT_NAMESPACE_SCHEMA_VERSIONS = Object.freeze([
   ...MACRO_FEATURE_L4B_F2_SCHEMA_VERSIONS,
   ...MARKET_MACRO_FEATURE_PUBLICATION_L4BP_SCHEMA_VERSIONS,
   ...EARNINGS_L4C_I1_SCHEMA_VERSIONS,
+  ...EARNINGS_L4C_I2_SCHEMA_VERSIONS,
 ]);
 
 /** @param {string} schemaVersion @param {unknown} value */
@@ -629,6 +645,18 @@ export function normalizeCanonicalValue(schemaVersion, value) {
       return normalizeEarningsExtractionSetManifestV1(value);
     case EARNINGS_DATASET_SNAPSHOT_MANIFEST_SCHEMA_VERSION:
       return normalizeEarningsDatasetSnapshotManifestV1(value);
+    case EARNINGS_AS_OF_RESOLUTION_POLICY_SCHEMA_VERSION:
+      return normalizeEarningsAsOfResolutionPolicyV1(value);
+    case EARNINGS_FISCAL_CLASSIFICATION_POLICY_SCHEMA_VERSION:
+      return normalizeEarningsFiscalClassificationPolicyV1(value);
+    case EARNINGS_FISCAL_PERIOD_CLASSIFICATION_CORE_SCHEMA_VERSION:
+      return normalizeEarningsFiscalPeriodClassificationCoreV1(value);
+    case EARNINGS_FISCAL_CLASSIFICATION_REPORT_SCHEMA_VERSION:
+      return normalizeEarningsFiscalClassificationReportV1(value);
+    case EARNINGS_DATASET_BINDING_SCHEMA_VERSION:
+      return normalizeEarningsDatasetBindingV1(value);
+    case EARNINGS_AS_OF_MATERIALIZATION_REPORT_SCHEMA_VERSION:
+      return normalizeEarningsAsOfMaterializationReportV1(value);
     default:
       throw new CanonicalizationError('CANONICAL_SCHEMA_UNKNOWN', `unknown canonical schema: ${String(schemaVersion)}`);
   }

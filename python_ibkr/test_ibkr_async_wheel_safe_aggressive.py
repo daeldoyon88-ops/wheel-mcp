@@ -184,8 +184,24 @@ def _log_ibkr_two_phase_config(two_phase_enabled: bool, two_phase_put_window: in
     print(f"IBKR two phase put window: {two_phase_put_window}", file=sys.stderr, flush=True)
 
 
-def _emit(payload: dict) -> None:
+_FORENSIC_ATTACH_STATE = None
+
+
+def _emit_json(payload: dict) -> None:
     print(json.dumps(payload, ensure_ascii=False))
+
+
+def _emit(payload: dict) -> None:
+    state = _FORENSIC_ATTACH_STATE
+    if isinstance(payload, dict) and state is not None:
+        try:
+            _attach_forensic_trace(state, payload)
+        except Exception as exc:
+            payload["forensicTrace"] = {
+                "schemaVersion": FORENSIC_TRACE_SCHEMA_VERSION,
+                "error": f"forensic_trace_failed: {type(exc).__name__}",
+            }
+    _emit_json(payload)
 
 
 def _safe_attr(obj, name: str):
@@ -207,6 +223,263 @@ def _finite_number(value):
     if n < 0:
         return None
     return n
+
+
+# ---------------------------------------------------------------------------
+# R3 — trace forensic bornée (observabilité PURE : aucune requête supplémentaire,
+# aucune décision financière). Conserve ce qui a réellement été demandé à IBKR
+# et ce qui a réellement été observé sur les tickers, par contrat, avec les
+# codes d'erreur IBKR reçus pendant le ticker. Les valeurs absentes restent
+# absentes ; un vrai 0 reste 0 ; nan (non reçu) est classé "absent".
+# ---------------------------------------------------------------------------
+FORENSIC_TRACE_SCHEMA_VERSION = 1
+FORENSIC_QUOTE_TRACE_MAX = 24
+FORENSIC_ERROR_EVENTS_MAX = 30
+_MARKET_DATA_TYPE_LABELS = {1: "live", 2: "frozen", 3: "delayed", 4: "delayed_frozen"}
+
+
+def _json_number(value):
+    """Nombre JSON-sûr tel que reçu (0 et négatifs conservés) ; None si absent/nan/non numérique."""
+    if value is None or isinstance(value, bool):
+        return None
+    try:
+        n = float(value)
+    except (TypeError, ValueError):
+        return None
+    if not math.isfinite(n):
+        return None
+    return n
+
+
+def _classify_quote_value(value) -> str:
+    if value is None or isinstance(value, bool):
+        return "absent"
+    try:
+        n = float(value)
+    except (TypeError, ValueError):
+        return "non_numeric"
+    if not math.isfinite(n):
+        return "absent"
+    if n == 0:
+        return "zero"
+    if n < 0:
+        return "negative"
+    return "positive"
+
+
+def _iso_or_none(value):
+    if value is None:
+        return None
+    try:
+        if isinstance(value, datetime):
+            return value.isoformat()
+        return str(value)
+    except Exception:
+        return None
+
+
+def _contract_identity(contract) -> dict:
+    strike = _json_number(_safe_attr(contract, "strike"))
+    return {
+        "conId": _safe_attr(contract, "conId") or None,
+        "localSymbol": _safe_attr(contract, "localSymbol") or None,
+        "secType": _safe_attr(contract, "secType") or None,
+        "right": _safe_attr(contract, "right") or None,
+        "strike": strike if strike and strike > 0 else None,
+        "expiration": _safe_attr(contract, "lastTradeDateOrContractMonth") or None,
+        "multiplier": _safe_attr(contract, "multiplier") or None,
+        "exchange": _safe_attr(contract, "exchange") or None,
+    }
+
+
+def _new_forensic_state(started_at: float) -> dict:
+    return {
+        "startedAt": started_at,
+        "entries": [],
+        "droppedQuoteEntries": 0,
+        "errorEvents": [],
+        "droppedErrorEvents": 0,
+        "ib": None,
+        "ibkrCallMetrics": None,
+        "seq": 0,
+    }
+
+
+def _forensic_elapsed_ms(state: dict) -> int:
+    try:
+        return int(round((time.monotonic() - float(state.get("startedAt") or 0.0)) * 1000))
+    except Exception:
+        return 0
+
+
+def _forensic_record_request(state: dict, contract, ticker, option_kind) -> None:
+    """Appelé après chaque reqMktData réellement émis. Borné ; au-delà, on compte seulement."""
+    try:
+        state["seq"] = int(state.get("seq", 0)) + 1
+        if len(state["entries"]) >= FORENSIC_QUOTE_TRACE_MAX:
+            state["droppedQuoteEntries"] = int(state.get("droppedQuoteEntries", 0)) + 1
+            return
+        state["entries"].append(
+            {
+                "seq": state["seq"],
+                "stage": option_kind or "option",
+                "requestedAtMs": _forensic_elapsed_ms(state),
+                "identity": _contract_identity(contract),
+                "ticker": ticker,
+            }
+        )
+    except Exception:
+        pass
+
+
+def _make_ibkr_error_recorder(state: dict):
+    def _on_ibkr_error(*args) -> None:
+        try:
+            req_id = args[0] if len(args) > 0 else None
+            code = args[1] if len(args) > 1 else None
+            text = args[2] if len(args) > 2 else None
+            contract = args[3] if len(args) > 3 else None
+            if len(state["errorEvents"]) >= FORENSIC_ERROR_EVENTS_MAX:
+                state["droppedErrorEvents"] = int(state.get("droppedErrorEvents", 0)) + 1
+                return
+            event = {
+                "atMs": _forensic_elapsed_ms(state),
+                "reqId": req_id,
+                "errorCode": code,
+                "errorString": str(text)[:200] if text is not None else None,
+            }
+            if contract is not None:
+                ident = _contract_identity(contract)
+                event.update(
+                    {
+                        "conId": ident["conId"],
+                        "localSymbol": ident["localSymbol"],
+                        "secType": ident["secType"],
+                        "strike": ident["strike"],
+                        "right": ident["right"],
+                    }
+                )
+            state["errorEvents"].append(event)
+        except Exception:
+            pass
+
+    return _on_ibkr_error
+
+
+def _forensic_reqid_lookup(ib) -> dict:
+    """reqId -> ticker, uniquement si le wrapper l'expose réellement (sinon vide)."""
+    try:
+        wrapper = _safe_attr(ib, "wrapper")
+        mapping = _safe_attr(wrapper, "reqId2Ticker")
+        return dict(mapping) if isinstance(mapping, dict) else {}
+    except Exception:
+        return {}
+
+
+def _ticker_observation(entry: dict, reqid_lookup: dict, observed_at_ms: int) -> dict:
+    tk = entry.get("ticker")
+    ident = entry.get("identity") or {}
+    bid_raw = _safe_attr(tk, "bid")
+    ask_raw = _safe_attr(tk, "ask")
+    bid_status = _classify_quote_value(bid_raw)
+    ask_status = _classify_quote_value(ask_raw)
+    is_stock = (ident.get("secType") == "STK") or entry.get("stage") == "stock"
+    if is_stock:
+        usable = bool(has_valid_underlying_quote(tk)) if tk is not None else False
+    else:
+        usable = bool(has_valid_option_quote(tk)) if tk is not None else False
+    unusable_reason = None
+    if not usable:
+        if bid_status in ("absent", "non_numeric", "zero", "negative"):
+            unusable_reason = f"bid_{bid_status}"
+        elif ask_status in ("absent", "non_numeric", "negative"):
+            unusable_reason = f"ask_{ask_status}"
+        else:
+            b = _json_number(bid_raw)
+            a = _json_number(ask_raw)
+            unusable_reason = "ask_below_bid" if (a is not None and b is not None and a < b) else "quote_not_valid"
+    req_id = None
+    try:
+        for rid, t in reqid_lookup.items():
+            if t is tk:
+                req_id = rid
+                break
+    except Exception:
+        req_id = None
+    mdt = _safe_attr(tk, "marketDataType")
+    try:
+        mdt_int = int(mdt) if mdt is not None else 0
+    except Exception:
+        mdt_int = 0
+    return {
+        "seq": entry.get("seq"),
+        "stage": entry.get("stage"),
+        **ident,
+        "reqId": req_id,
+        "requestedAtMs": entry.get("requestedAtMs"),
+        "observedAtMs": observed_at_ms,
+        "bidRaw": _json_number(bid_raw),
+        "askRaw": _json_number(ask_raw),
+        "bidSize": _json_number(_safe_attr(tk, "bidSize")),
+        "askSize": _json_number(_safe_attr(tk, "askSize")),
+        "last": _json_number(_safe_attr(tk, "last")),
+        "close": _json_number(_safe_attr(tk, "close")),
+        "bidStatus": bid_status,
+        "askStatus": ask_status,
+        "usable": usable,
+        "unusableReason": unusable_reason,
+        "tickTime": _iso_or_none(_safe_attr(tk, "time")),
+        "marketDataTypeObserved": mdt_int if mdt_int > 0 else None,
+        "marketDataTypeObservedLabel": _MARKET_DATA_TYPE_LABELS.get(mdt_int) if mdt_int > 0 else None,
+    }
+
+
+def _build_forensic_trace(state: dict) -> dict:
+    observed_at_ms = _forensic_elapsed_ms(state)
+    lookup = _forensic_reqid_lookup(state.get("ib"))
+    quote_trace = [_ticker_observation(e, lookup, observed_at_ms) for e in state.get("entries", [])]
+    types = sorted({q["marketDataTypeObserved"] for q in quote_trace if q.get("marketDataTypeObserved")})
+    return {
+        "schemaVersion": FORENSIC_TRACE_SCHEMA_VERSION,
+        "quoteTrace": quote_trace,
+        "quoteTraceCount": len(quote_trace) + int(state.get("droppedQuoteEntries", 0)),
+        "quoteTraceTruncated": int(state.get("droppedQuoteEntries", 0)) > 0,
+        "ibkrErrorEvents": list(state.get("errorEvents", [])),
+        "ibkrErrorEventCount": len(state.get("errorEvents", [])) + int(state.get("droppedErrorEvents", 0)),
+        "ibkrErrorEventsTruncated": int(state.get("droppedErrorEvents", 0)) > 0,
+        "marketDataTypesObserved": types,
+        "marketDataTypesObservedLabels": [_MARKET_DATA_TYPE_LABELS.get(t, str(t)) for t in types],
+    }
+
+
+def _attach_forensic_trace(state: dict, payload: dict) -> None:
+    """Attache la trace forensic au payload, sans modifier ok/error/reason."""
+    trace = _build_forensic_trace(state)
+    payload["forensicTrace"] = trace
+    types = trace.get("marketDataTypesObserved") or []
+    if "marketDataTypeReceivedLabel" not in payload and "marketDataTypeReceived" not in payload:
+        if len(types) == 1:
+            payload["marketDataTypeReceived"] = types[0]
+            payload["marketDataTypeReceivedLabel"] = _MARKET_DATA_TYPE_LABELS.get(types[0], str(types[0]))
+        elif len(types) > 1:
+            payload["marketDataTypeReceivedLabel"] = "mixed:" + ",".join(str(t) for t in types)
+    metrics = state.get("ibkrCallMetrics")
+    if isinstance(metrics, dict) and not isinstance(payload.get("ibkrCallMetrics"), dict):
+        payload["ibkrCallMetrics"] = {**metrics, "durationMs": _forensic_elapsed_ms(state)}
+
+
+def _make_emit_with_forensics(state: dict):
+    def _emit_with_forensics(payload: dict) -> None:
+        try:
+            _attach_forensic_trace(state, payload)
+        except Exception as exc:
+            payload["forensicTrace"] = {
+                "schemaVersion": FORENSIC_TRACE_SCHEMA_VERSION,
+                "error": f"forensic_trace_failed: {type(exc).__name__}",
+            }
+        _emit_json(payload)
+
+    return _emit_with_forensics
 
 
 def _finite_signed_number(value):
@@ -648,6 +921,7 @@ def _find_leg_with_fallback(
 
 
 def main() -> int:
+    global _FORENSIC_ATTACH_STATE
     wheel_dev_scan = _parse_bool(os.environ.get("WHEEL_DEV_SCAN"), False)
     if wheel_dev_scan:
         print("[WHEEL_DEV_SCAN] enabled=true", file=sys.stderr, flush=True)
@@ -815,7 +1089,13 @@ def main() -> int:
         "softTimeoutTriggered": False,
         "lastSafeScanStage": None,
         "timeoutStage": None,
+        "unusablePutContractsQuoted": 0,
+        "putContractsQuotedTotal": 0,
     }
+    forensic_state = _new_forensic_state(started_at)
+    forensic_state["ib"] = ib
+    forensic_state["ibkrCallMetrics"] = ibkr_call_metrics
+    _FORENSIC_ATTACH_STATE = forensic_state
 
     def _safe_int(value):
         try:
@@ -846,7 +1126,9 @@ def main() -> int:
         else:
             _metric_add("optionMarketDataRequests")
         generic_ticks = "" if option_kind == "stock" else option_generic_ticks
-        return ib.reqMktData(contract, generic_ticks, False, False)
+        ticker = ib.reqMktData(contract, generic_ticks, False, False)
+        _forensic_record_request(forensic_state, contract, ticker, option_kind)
+        return ticker
 
     def _cancel_mkt_data(contract):
         _metric_add("cancelMarketDataCalls")
@@ -897,6 +1179,11 @@ def main() -> int:
 
         if hasattr(ib, "reqMarketDataType"):
             ib.reqMarketDataType(market_data_type)
+        try:
+            if hasattr(ib, "errorEvent"):
+                ib.errorEvent += _make_ibkr_error_recorder(forensic_state)
+        except Exception:
+            pass
 
         underlying = Stock(symbol, exchange, currency)
         qu = _qualify_stock(underlying)
@@ -1110,6 +1397,8 @@ def main() -> int:
                                 float(underlying_price) * MIN_PREMIUM_YIELD
                             ),
                             "error": "atm_straddle_unavailable",
+                            "errorDetail": "atm_straddle_contracts_absent",
+                            "failureStage": "atm_contract_missing",
                             "strikeValidation": strike_validation,
                             "rejected": rejected,
                             "putCandidates": [],
@@ -1194,6 +1483,8 @@ def main() -> int:
                                 float(underlying_price) * MIN_PREMIUM_YIELD
                             ),
                             "error": "atm_straddle_unavailable",
+                            "errorDetail": "atm_straddle_qualification_failed",
+                            "failureStage": "atm_qualification_failed",
                             "strikeValidation": strike_validation,
                             "rejected": rejected,
                             "putCandidates": [],
@@ -1355,6 +1646,8 @@ def main() -> int:
                             float(underlying_price) * MIN_PREMIUM_YIELD
                         ),
                         "error": "atm_straddle_unavailable",
+                        "errorDetail": "atm_straddle_quotes_missing",
+                        "failureStage": "atm_quotes_missing",
                         "strikeValidation": strike_validation,
                         "rejected": rejected,
                         "expectedMoveOptions": em_options_out,
@@ -1455,6 +1748,8 @@ def main() -> int:
                 # Garde-fous anti-illiquidité (voir constantes en tête de module).
                 unusable_quote_streak = 0
                 unusable_quote_count = 0
+                unusable_put_contracts_quoted = 0
+                put_contracts_quoted_total = 0
                 soft_timeout_triggered = False
                 last_safe_scan_stage: str | None = None
                 safe_scan_soft_timeout_s = safe_scan_soft_timeout_ms / 1000.0
@@ -1509,7 +1804,7 @@ def main() -> int:
                     requested_contracts.append(qc)
                     put_tickers.append((raw_strike, tk))
                     chosen_put_strikes.append(raw_strike)
-                    valid_put_contracts_checked += 1
+                    put_contracts_quoted_total += 1
 
                     wait_for_quotes(
                         ib,
@@ -1522,11 +1817,13 @@ def main() -> int:
                     probe_ask = _finite_number(_safe_attr(tk, "ask"))
 
                     # Quote inexploitable : bid absent / None / non numérique / <= 0,
-                    # ou bid/ask incohérent (ask < bid). L'absence d'ask seule, quand
-                    # le bid est valide, n'est PAS comptée inexploitable : on ne change
-                    # rien quand le bid est propre (sélection SAFE normale intacte).
-                    # N quotes inexploitables CONSÉCUTIVES stoppent la descente sur
-                    # chaîne illiquide (cas VG/WYNN : bids absents, asks larges).
+                    # ou bid/ask incohérent (ask < bid). Un bid 0 suit la même règle
+                    # qu'un bid absent : ce n'est PAS un arrêt financier under-target.
+                    # L'absence d'ask seule, quand le bid est valide, n'est PAS
+                    # comptée inexploitable. N quotes inexploitables CONSÉCUTIVES
+                    # stoppent la descente. Une cotation vraiment exploitable remet
+                    # le compteur à zéro. Les inutilisables n'entrent pas dans les
+                    # 12 PUT valides.
                     quote_unusable = (
                         probe_bid is None
                         or probe_bid <= 0
@@ -1535,39 +1832,31 @@ def main() -> int:
                     if quote_unusable:
                         unusable_quote_count += 1
                         unusable_quote_streak += 1
+                        unusable_put_contracts_quoted += 1
                         if unusable_quote_streak >= safe_scan_unusable_streak_limit:
                             last_safe_scan_stage = "unusable_quote_streak_abort"
                             safe_scan_stopped_at_strike = raw_strike
                             if safe_scan_last_above_target_strike is not None:
-                                # Un SAFE candidat valide existe déjà : on le conserve.
                                 safe_scan_stopped_reason = "illiquid_options_chain"
                             else:
                                 safe_scan_stopped_reason = "no_bid_ask_fast_abort"
                             break
-                    else:
-                        unusable_quote_streak = 0
+                        continue
+
+                    unusable_quote_streak = 0
+                    valid_put_contracts_checked += 1
 
                     if aggressive_reference_strike is None:
-                        # Premier vrai contrat sous lowerBound = AGRESSIF.
                         aggressive_reference_strike = raw_strike
                         if probe_bid is not None and probe_bid < target_premium:
-                            # Même l'agressif ne respecte pas la prime minimale :
-                            # rien en dessous ne peut être SAFE -> arrêt rapide.
                             safe_scan_stopped_reason = "aggressive_below_target_premium"
                             safe_scan_stopped_at_strike = raw_strike
                             break
                         continue
 
-                    # Contrats strictement sous l'agressif.
-                    if probe_bid is None:
-                        # Pas de quote exploitable : ce n'est pas « sous la cible »,
-                        # on continue la descente (le garde-fou borne le coût).
-                        continue
                     if probe_bid >= target_premium:
                         safe_scan_last_above_target_strike = raw_strike
                         continue
-                    # probe_bid < target_premium : cible franchie -> arrêt.
-                    # On ne cote PAS les contrats plus bas.
                     safe_scan_stopped_reason = "below_target_premium"
                     safe_scan_stopped_at_strike = raw_strike
                     break
@@ -1591,6 +1880,8 @@ def main() -> int:
                 ibkr_call_metrics["maxValidPutContractsToProbe"] = max_valid_puts_to_probe
                 ibkr_call_metrics["unusableQuoteStreak"] = unusable_quote_streak
                 ibkr_call_metrics["unusableQuoteCount"] = unusable_quote_count
+                ibkr_call_metrics["unusablePutContractsQuoted"] = unusable_put_contracts_quoted
+                ibkr_call_metrics["putContractsQuotedTotal"] = put_contracts_quoted_total
                 ibkr_call_metrics["softTimeoutTriggered"] = soft_timeout_triggered
                 ibkr_call_metrics["lastSafeScanStage"] = last_safe_scan_stage
             else:
@@ -2258,6 +2549,7 @@ def main() -> int:
                 ib.disconnect()
         except Exception:
             pass
+        _FORENSIC_ATTACH_STATE = None
 
 
 if __name__ == "__main__":

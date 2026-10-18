@@ -25,6 +25,7 @@ import {
   buildPreIbkrCutTickerList,
   buildTickerPipelineDiagnostic,
   buildWatchlistRejectedBySymbol,
+  buildYahooErrorsBySymbol,
   buildYahooIbkrFunnel,
   buildYahooRejectedBySymbol,
   isOtmRebuildRequired,
@@ -33,6 +34,7 @@ import {
   summarizeYahooIbkrFunnel,
 } from "./tickerPipelineDiagnostic.js";
 import { buildScanFunnelArchivePayload } from "./scanFunnelArchivePayload.js";
+import { compareYahooIbkrQuotes, projectObservedQuoteSide } from "./yahooIbkrQuoteComparison.js";
 import {
   FUNNEL_ARCHIVE_STAGE_ORDER,
   buildFunnelSessionSummary,
@@ -94,6 +96,7 @@ import {
   SAFE_ANNUAL_SIMPLE_MIN_PCT,
   SAFE_BASE_PERIOD_MIN_PCT,
 } from "./capitalComboPortfolio.js";
+import { selectPrincipalThreeLeg, selectPrincipalThreeLegFromRow } from "./threeLegSelection.js";
 import {
   formatCapBlockerReason,
   readCapitalOptimizerV2FlagsFromLocalStorage,
@@ -125,6 +128,7 @@ import {
   buildStrictWatchlistEmptyInfo,
   formatPoolSourceLabel,
   loadResearchExpandedPoolWithFallback,
+  readStoredPoolCapacity,
   readStoredPreIbkrPoolMode,
   readStoredResearchExpandedLimit,
   resolvePreIbkrTickers,
@@ -503,6 +507,15 @@ function computeIbkrPriorityScore(candidate) {
   return { score, reasons: reasons.slice(0, 6) };
 }
 
+function parseKnownEarningsDayCount(value) {
+  if (typeof value === "number") return Number.isFinite(value) ? value : null;
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  if (!/^[-+]?(?:\d+(?:\.\d+)?|\.\d+)(?:[eE][-+]?\d+)?$/.test(trimmed)) return null;
+  const parsed = Number(trimmed);
+  return Number.isFinite(parsed) ? parsed : null;
+}
 
 function computeModeRecommendation({
   safeStrike,
@@ -513,6 +526,8 @@ function computeModeRecommendation({
   hasEarningsBeforeExpiration,
   earningsDaysUntil,
   safeSpreadRescueDiagnostics = null,
+  balancedResolution = null,
+  candidate = null,
 }) {
   const safePremium = Number(
     safeStrike?.premiumUsed ?? safeStrike?.bid ?? safeStrike?.mid ?? safeStrike?.premium
@@ -540,12 +555,13 @@ function computeModeRecommendation({
       ? aggressivePremium / safePremium
       : null;
 
+  const knownEarningsDayCount = parseKnownEarningsDayCount(earningsDaysUntil);
   const earningsRisk =
     hasUpcomingEarningsBeforeExpiration === true ||
     hasEarningsBeforeExpiration === true ||
-    (Number.isFinite(Number(earningsDaysUntil)) &&
-      Number(earningsDaysUntil) >= 0 &&
-      Number(earningsDaysUntil) <= 7);
+    (knownEarningsDayCount != null &&
+      knownEarningsDayCount >= 0 &&
+      knownEarningsDayCount <= 7);
 
   const lowerBoundNearMax =
     Number.isFinite(lb) && Number.isFinite(px) && px > 0 ? lb + px * 0.02 : null;
@@ -648,6 +664,14 @@ function computeModeRecommendation({
     recommendedMode = "AGGRESSIVE";
     recommendedGrade = effectiveAggressiveGrade;
   }
+  const principalSelection = selectPrincipalThreeLeg({
+    safeLeg: safeStrike,
+    aggressiveLeg: aggressiveStrike,
+    balancedResolution,
+    candidate,
+    earningsRisk,
+    definitiveRejections: earningsRisk ? { AGGRESSIVE: "earningsRisk" } : null,
+  });
   const normalizedRecommendation = getFinalDisplayRecommendation({
     safeStrike,
     aggressiveStrike,
@@ -667,28 +691,50 @@ function computeModeRecommendation({
       aggressivePop: Number.isFinite(aggressivePop) ? Number(aggressivePop) : null,
       safeRank,
       aggressiveRank,
+      earningsRisk,
+      ...(earningsRisk ? { definitiveRejections: { AGGRESSIVE: "earningsRisk" } } : {}),
     },
   });
-  recommendedMode = normalizedRecommendation.finalDisplayMode;
-  recommendedGrade = normalizedRecommendation.finalDisplayGrade;
+  recommendedMode = principalSelection.finalDisplayMode;
+  recommendedGrade = principalSelection.finalDisplayGrade;
   const finalRank = normalizedRecommendation.finalRank ?? getModeGradeRank(recommendedMode, recommendedGrade);
+  const exclusionSuffix = principalSelection.exclusions.length
+    ? `. Exclus : ${principalSelection.exclusions.map((item) => `${item.mode} ${item.reasonCode}`).join("; ")}`
+    : "";
 
   const recommendedReason = (() => {
     if (recommendedMode === "REJECT") return "Rejeté — spread ou liquidité insuffisant sur les deux jambes";
     const isAggr = recommendedMode === "AGGRESSIVE";
-    const legYld = isAggr ? aggressiveWeeklyYieldPct : safeWeeklyYieldPct;
-    const legSp = isAggr ? aggressiveSpreadPct : safeSpreadPct;
-    const legPop = isAggr ? aggressivePop : safePopDecimal;
+    const isBalanced = recommendedMode === "BALANCED";
+    const balancedLeg = principalSelection.selectedLeg;
+    const legYld = isBalanced
+      ? Number(balancedLeg?.weeklyYield)
+      : isAggr
+        ? aggressiveWeeklyYieldPct
+        : safeWeeklyYieldPct;
+    const legSp = isBalanced
+      ? Number(balancedLeg?.liquidity?.spreadPct ?? balancedLeg?.spreadPct)
+      : isAggr
+        ? aggressiveSpreadPct
+        : safeSpreadPct;
+    const legPop = isBalanced
+      ? Number(balancedLeg?.popProfitEstimated ?? balancedLeg?.popEstimate)
+      : isAggr
+        ? aggressivePop
+        : safePopDecimal;
     const yldStr = Number.isFinite(legYld) && legYld > 0 ? `${legYld.toFixed(2)}%` : "—";
     const spStr = Number.isFinite(legSp) ? `${legSp.toFixed(1)}%` : "—";
     const popStr = Number.isFinite(legPop) && legPop > 0 ? `${(legPop * 100).toFixed(1)}%` : null;
+    if (isBalanced) {
+      return `BALANCED native : rendement ${yldStr}, spread ${spStr}${popStr ? `, POP ${popStr}` : ""}${exclusionSuffix}`;
+    }
     if (recommendedGrade === "WATCH") {
-      return `${isAggr ? "Agressif" : "Safe"} à surveiller : rendement ${yldStr}, spread ${spStr}${popStr ? `, POP ${popStr}` : ""}`;
+      return `${isAggr ? "Agressif" : "Safe"} à surveiller : rendement ${yldStr}, spread ${spStr}${popStr ? `, POP ${popStr}` : ""}${exclusionSuffix}`;
     }
     if (isAggr) {
-      return `Agressif meilleur : rendement ${yldStr}, spread ${spStr}${popStr ? `, POP ${popStr}` : ""}`;
+      return `Agressif meilleur : rendement ${yldStr}, spread ${spStr}${popStr ? `, POP ${popStr}` : ""}${exclusionSuffix}`;
     }
-    return earningsRisk ? "SAFE — risque earnings" : "SAFE — meilleur compromis risque/liquidité";
+    return `${earningsRisk ? "SAFE — risque earnings" : "SAFE — meilleur compromis risque/liquidité"}${exclusionSuffix}`;
   })();
 
   return {
@@ -699,6 +745,7 @@ function computeModeRecommendation({
     recommendedMode,
     recommendedGrade,
     recommendedReason,
+    principalSelection,
     recommendationDiagnostics: {
       premiumRatio: Number.isFinite(ratio) ? Number(ratio.toFixed(4)) : null,
       aggressiveSpreadPct: Number.isFinite(aggressiveSpreadPct) ? Number(aggressiveSpreadPct.toFixed(4)) : null,
@@ -728,6 +775,7 @@ function computeModeRecommendation({
       finalDisplayGrade: recommendedGrade,
       recommendedMode,
       recommendedGrade,
+      principalSelection,
       reasons,
       ...(safeSpreadRescueDiagnostics && typeof safeSpreadRescueDiagnostics === "object"
         ? safeSpreadRescueDiagnostics
@@ -1591,6 +1639,11 @@ function toDashboardCandidate_V12(item, index, selectedExpiration) {
     hasEarningsBeforeExpiration: item.hasEarningsBeforeExpiration ?? false,
     earningsDaysUntil,
     safeSpreadRescueDiagnostics,
+    candidate: {
+      ...item,
+      safeStrike: safeStrikeMapped,
+      aggressiveStrike: aggressiveStrikeMapped,
+    },
   });
   const finalDisplayRecommendation = getFinalDisplayRecommendation({
     safeStrike: safeStrikeMapped,
@@ -2147,7 +2200,11 @@ function FaceplateStrikeColumn({
   );
 }
 
-function BalancedFaceplateStrikeColumn({ viewModel }) {
+function BalancedFaceplateStrikeColumn({
+  viewModel,
+  isScanRecommended = false,
+  selectedGrade = null,
+}) {
   const vm = viewModel ?? null;
   if (!vm?.available) {
     const diag = vm?.unavailableDiagnostics ?? null;
@@ -2215,10 +2272,8 @@ function BalancedFaceplateStrikeColumn({ viewModel }) {
     label: vm.sourceLabel,
   };
   const diag = vm.diagnostics ?? null;
-  //
-  // Cas A (audit) : la recommandation canonique du scan ne vaut jamais
-  // BALANCED — cette carte n'a donc jamais le contour vert de recommandation.
-  // L'appartenance au portefeuille BALANCED reste un badge secondaire.
+  // L'anneau suit la jambe principale recommandée. Le badge de portefeuille
+  // reste secondaire et ne l'allume pas.
   return (
     <FaceplateStrikeColumn
       title="BALANCED"
@@ -2226,8 +2281,8 @@ function BalancedFaceplateStrikeColumn({ viewModel }) {
       tone="balanced"
       strikeData={strikeData}
       fallbackDte={vm.dteDays}
-      isScanRecommended={false}
-      selectedGrade={null}
+      isScanRecommended={isScanRecommended}
+      selectedGrade={selectedGrade}
       portfolioBadges={vm.selectedForBalanced === true ? [vm.badgeLabel ?? "Portefeuille BALANCED"] : []}
       allowAnnualizedFallback={false}
       footerContent={diag ? (
@@ -3304,6 +3359,7 @@ function FaceplateStrikeOpportunities({ item }) {
     scanRecommendationGrade,
     isSafeScanRecommended,
     isAggressiveScanRecommended,
+    isBalancedScanRecommended,
     isInSafePortfolio,
     isInBalancedPortfolio,
     isInAggressivePortfolio,
@@ -3337,6 +3393,8 @@ function FaceplateStrikeOpportunities({ item }) {
                 ? { ...balancedCardViewModel, selectedForBalanced: isInBalancedPortfolio || balancedCardViewModel.selectedForBalanced === true }
                 : balancedCardViewModel
             }
+            isScanRecommended={isBalancedScanRecommended}
+            selectedGrade={isBalancedScanRecommended ? scanRecommendationGrade : null}
           />
         </div>
         {hasAggressive && (
@@ -3993,6 +4051,11 @@ function buildIbkrRetainedViewModel(item) {
     hasUpcomingEarningsBeforeExpiration: item?.hasUpcomingEarningsBeforeExpiration ?? false,
     hasEarningsBeforeExpiration: item?.hasEarningsBeforeExpiration ?? false,
     earningsDaysUntil: item?.earningsDaysUntil ?? null,
+    candidate: {
+      ...(item ?? {}),
+      safeStrike,
+      aggressiveStrike,
+    },
   });
   const finalDisplayRecommendation = getFinalDisplayRecommendation({
     safeStrike,
@@ -4437,6 +4500,11 @@ function mergeIbkrIntoDashboardCandidate(yahooCandidate, ibkrCandidate, index, s
     hasEarningsBeforeExpiration:
       yahooCandidate?.hasEarningsBeforeExpiration ?? false,
     earningsDaysUntil: yahooCandidate?.earningsDaysUntil ?? null,
+    candidate: {
+      ...(ibkrDirectWithPop ?? yahooCandidate ?? {}),
+      safeStrike: safeStrikeWithPop,
+      aggressiveStrike: aggressiveStrikeWithPop,
+    },
   });
   const finalDisplayRecommendation = getFinalDisplayRecommendation({
     safeStrike: safeStrikeWithPop,
@@ -5434,7 +5502,7 @@ async function callBuildWatchlist(body) {
   return payload;
 }
 
-async function callScanShortlist({ expiration, topN, tickers, sort = "quality" }) {
+async function callScanShortlist({ expiration, topN, tickers, maxTickers = 400, sort = "quality" }) {
   const response = await fetch(`${API_BASE}/scan_shortlist`, {
     method: "POST",
     headers: {
@@ -5444,6 +5512,7 @@ async function callScanShortlist({ expiration, topN, tickers, sort = "quality" }
       expiration,
       topN,
       tickers,
+      maxTickers,
       sort,
     }),
   });
@@ -6094,20 +6163,21 @@ function getCreamQualityBucket(card) {
       reasons: [`spread extrême ${activeSpread.toFixed(0)}%`],
     };
   }
+  const principal = selectPrincipalThreeLegFromRow(card);
   const { finalDisplayMode: mode, finalDisplayGrade: recGrade } = getFinalDisplayRecommendation(card);
-  const isTopGrade = (mode === "SAFE" || mode === "AGGRESSIVE") && (recGrade === "A" || recGrade === "B");
   const isWatchable = (mode === "SAFE" || mode === "AGGRESSIVE") && recGrade === "WATCH";
 
-  if (isTopGrade) {
+  if (principal.topExecutableEligible) {
     const reasons = [];
-    const activeSpread = mode === "AGGRESSIVE" ? agg : safe;
+    const activeSpread = principal.spreadPct;
     if (activeSpread != null) {
       if (activeSpread <= 10) reasons.push("spread excellent");
       else if (activeSpread <= 20) reasons.push("spread acceptable");
-      else reasons.push("spread limite");
     }
-    reasons.push(`grade ${recGrade}`);
-    if (mode === "AGGRESSIVE") reasons.push("mode agressif");
+    reasons.push(`grade ${principal.finalDisplayGrade}`);
+    if (principal.finalDisplayMode === "AGGRESSIVE") reasons.push("mode agressif");
+    else if (principal.finalDisplayMode === "BALANCED") reasons.push("BALANCED native");
+    else if (principal.finalDisplayMode === "SAFE") reasons.push("mode safe");
     return { bucket: "topExecutable", label: "Top exécutables", reasons };
   }
   if (meta.isFavorite) {
@@ -6540,10 +6610,15 @@ function toIbkrRankLookupMap(rankMapRaw) {
 }
 
 function ibkrRejectedAggressiveStrikeForForensicExport(rej) {
+  const fromValue = Number(rej?.aggressiveStrikeValue);
+  if (Number.isFinite(fromValue) && fromValue > 0) return fromValue;
   const a = rej?.aggressiveStrike;
-  if (a && typeof a === "object" && Number.isFinite(Number(a.strike))) return Number(a.strike);
-  if (Number.isFinite(Number(a))) return Number(a);
-  return null;
+  if (a && typeof a === "object") {
+    const n = Number(a.strike);
+    return Number.isFinite(n) && n > 0 ? n : null;
+  }
+  const n = Number(a);
+  return Number.isFinite(n) && n > 0 ? n : null;
 }
 
 /** Champs diagnostics IBKR rejets uniquement — restitués par server.js sans logique métier. */
@@ -6579,6 +6654,24 @@ function pickIbkrRejectedObservabilityForForensicExport(rej) {
     putCandidatesCount: rej.putCandidatesCount ?? null,
     topPutCandidatesSummary: rej.topPutCandidatesSummary ?? null,
     probabilityOfProfit: rej.probabilityOfProfit ?? null,
+    forensicSchemaVersion: rej.forensicSchemaVersion ?? null,
+    errorDetail: rej.errorDetail ?? null,
+    failureStage: rej.failureStage ?? null,
+    safeScanStoppedReason: rej.safeScanStoppedReason ?? null,
+    safeScanStoppedAtStrike: rej.safeScanStoppedAtStrike ?? null,
+    lastSafeScanStage: rej.lastSafeScanStage ?? null,
+    validPutContractsChecked: rej.validPutContractsChecked ?? null,
+    unusablePutContractsQuoted: rej.unusablePutContractsQuoted ?? null,
+    unusableQuoteStreak: rej.unusableQuoteStreak ?? null,
+    unusableQuoteCount: rej.unusableQuoteCount ?? null,
+    marketDataTypeRequested: rej.marketDataTypeRequested ?? null,
+    marketDataTypeRequestedLabel: rej.marketDataTypeRequestedLabel ?? null,
+    marketDataTypeReceivedLabel: rej.marketDataTypeReceivedLabel ?? null,
+    timeoutStageMetric: rej.timeoutStageMetric ?? null,
+    strikeValidation: rej.strikeValidation ?? null,
+    expectedMoveOptionsSummary: rej.expectedMoveOptionsSummary ?? null,
+    forensicTrace: rej.forensicTrace ?? null,
+    units: rej.units ?? null,
   };
 }
 
@@ -6615,9 +6708,13 @@ function buildIbkrYahooIbkrForensicExportRows(opts) {
     if (sym && !rejFirstBySym.has(sym)) rejFirstBySym.set(sym, r);
   }
 
-  const poolFromYahoo = (opts?.yahooReturnedCandidates || [])
-    .map(pickYahooIbkrTickerFromRow)
-    .filter(Boolean);
+  const yahooRows = Array.isArray(opts?.yahooReturnedCandidates) ? opts.yahooReturnedCandidates : [];
+  const yahooBySym = new Map();
+  for (const row of yahooRows) {
+    const t = pickYahooIbkrTickerFromRow(row);
+    if (t && !yahooBySym.has(t)) yahooBySym.set(t, row);
+  }
+  const poolFromYahoo = [...yahooBySym.keys()];
   const poolOrder = [...new Set([...poolFromYahoo, ...testedOrder, ...rejFirstBySym.keys()])];
 
   /** @type {unknown[]} */
@@ -6654,6 +6751,61 @@ function buildIbkrYahooIbkrForensicExportRows(opts) {
     const forensicObs =
       disposition === "rejected" ? pickIbkrRejectedObservabilityForForensicExport(rej) : {};
 
+    const yahooRow = yahooBySym.get(sym) ?? null;
+    const ibkrSide = rej || retainedRow || null;
+    const yahooContract = yahooRow
+      ? yahooRow.safeStrike || yahooRow.aggressiveStrike || yahooRow
+      : null;
+    const ibkrContract = ibkrSide
+      ? ibkrSide.safeStrike || ibkrSide.aggressiveStrike || ibkrSide
+      : null;
+    const yahooIbkrComparison =
+      yahooContract || ibkrContract
+        ? compareYahooIbkrQuotes({
+            yahoo: yahooContract
+              ? projectObservedQuoteSide({
+                  symbol: sym,
+                  expiration: yahooRow?.expiration ?? yahooRow?.returnedExpiration ?? null,
+                  returnedExpiration: yahooRow?.returnedExpiration ?? null,
+                  right: yahooContract?.right ?? yahooContract?.optionRight ?? yahooRow?.right ?? null,
+                  strike: yahooContract?.strike ?? null,
+                  multiplier: yahooContract?.multiplier ?? null,
+                  contractSymbol: yahooContract?.contractSymbol ?? null,
+                  bid: yahooContract?.bid ?? null,
+                  ask: yahooContract?.ask ?? null,
+                  marketDataType: yahooContract?.marketDataType ?? yahooRow?.marketDataType ?? null,
+                  timestamp:
+                    yahooContract?.quoteTimestamp ??
+                    yahooContract?.timestamp ??
+                    yahooRow?.quoteTimestamp ??
+                    null,
+                })
+              : null,
+            ibkr: ibkrContract
+              ? projectObservedQuoteSide({
+                  symbol: sym,
+                  expiration: ibkrSide?.expiration ?? ibkrContract?.expiration ?? null,
+                  right: ibkrContract?.right ?? ibkrContract?.optionRight ?? ibkrSide?.right ?? null,
+                  strike: ibkrContract?.strike ?? null,
+                  multiplier: ibkrContract?.multiplier ?? null,
+                  localSymbol: ibkrContract?.localSymbol ?? null,
+                  bid: ibkrContract?.bid ?? null,
+                  ask: ibkrContract?.ask ?? null,
+                  marketDataType:
+                    ibkrContract?.marketDataType ??
+                    ibkrSide?.marketDataType ??
+                    ibkrSide?.marketDataTypeReceivedLabel ??
+                    null,
+                  timestamp:
+                    ibkrContract?.quoteTimestamp ??
+                    ibkrContract?.timestamp ??
+                    ibkrSide?.quoteTimestamp ??
+                    null,
+                })
+              : null,
+          })
+        : null;
+
     outRows.push({
       ticker: sym,
       yahooRank: yahooRankFor(sym),
@@ -6668,6 +6820,7 @@ function buildIbkrYahooIbkrForensicExportRows(opts) {
       rawError: disposition === "rejected" ? (rej?.error ?? null) : null,
       durationMs,
       ...forensicObs,
+      yahooIbkrComparison,
     });
   }
   return outRows;
@@ -6701,6 +6854,11 @@ function stringifyIbkrForensicRowsCsv(rows) {
     "underlyingPrice",
     "durationMs",
     "rawError",
+    "errorDetail",
+    "failureStage",
+    "safeScanStoppedReason",
+    "marketDataTypeReceivedLabel",
+    "yahooIbkrComparisonClass",
   ];
   const lines = [header.join(",")];
   for (const r of rows || []) {
@@ -6725,6 +6883,11 @@ function stringifyIbkrForensicRowsCsv(rows) {
         escapeCsvForensicCell(r?.underlyingPrice),
         escapeCsvForensicCell(r?.durationMs),
         escapeCsvForensicCell(r?.rawError),
+        escapeCsvForensicCell(r?.errorDetail),
+        escapeCsvForensicCell(r?.failureStage),
+        escapeCsvForensicCell(r?.safeScanStoppedReason),
+        escapeCsvForensicCell(r?.marketDataTypeReceivedLabel),
+        escapeCsvForensicCell(r?.yahooIbkrComparison?.class),
       ].join(",")
     );
   }
@@ -7336,13 +7499,26 @@ function IbkrDirectScanPanel({
   const stampForensicFilename = () => new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);
 
   const handleForensicExportJson = useCallback(() => {
+    const bySymbol = result?.ibkrCallMetrics?.bySymbol && typeof result.ibkrCallMetrics.bySymbol === "object"
+      ? result.ibkrCallMetrics.bySymbol
+      : null;
     const payloadObj = {
+      schemaVersion: "ibkr_rejection_forensics_v2",
       exportedAtIso: new Date().toISOString(),
+      units: {
+        aggressiveSpreadPct: "fraction_0_to_1",
+        bestSafeSpreadPct: "fraction_0_to_1",
+        aggressiveYieldPct: "percent",
+        note: "Les spreads internes Python sont des fractions (0.75 = 75 %). Les CSV historiques ne sont pas réinterprétés.",
+      },
       rejectionReasonCounts: result?.rejectionReasons ?? null,
       progressiveIbkrBatchCount: result?.progressiveIbkrBatchCount ?? null,
       progressiveSafeScanEnabled: result?.progressiveSafeScanEnabled ?? null,
       maxValidPutsEffective: result?.maxValidPutsEffective ?? null,
       ibkrCallMetricsPresent: Boolean(result?.ibkrCallMetrics),
+      ibkrCallMetricsBySymbol: bySymbol,
+      scanSessionId: result?.scanSessionId ?? null,
+      expiration: result?.expiration ?? null,
       rows: forensicExportRows,
     };
     triggerDashboardFileDownload(
@@ -13554,6 +13730,10 @@ export default function Dashboard() {
 
   /** null = chargement initial ; tableau (éventuellement vide) = watchlist résolue. */
   const [watchlistTickers, setWatchlistTickers] = useState(null);
+  const [strictWatchlistLimit, setStrictWatchlistLimit] = useState(() =>
+    readStoredPoolCapacity(window.localStorage.getItem("wheel.strictWatchlistLimit"), 150)
+  );
+  const [yahooScanCapacity, setYahooScanCapacity] = useState(null);
   const [watchlistLoading, setWatchlistLoading] = useState(true);
   const [watchlistSource, setWatchlistSource] = useState("loading");
   const [watchlistStats, setWatchlistStats] = useState(null);
@@ -13626,6 +13806,7 @@ export default function Dashboard() {
   const [yahooReturnedCandidates, setYahooReturnedCandidates] = useState([]);
   const [yahooDiagnostics, setYahooDiagnostics] = useState(() => createEmptyYahooDiagnostics());
   const [yahooRejectedBySymbol, setYahooRejectedBySymbol] = useState({});
+  const [yahooErrorsBySymbol, setYahooErrorsBySymbol] = useState({});
   const [watchlistRejectedBySymbol, setWatchlistRejectedBySymbol] = useState({});
   const [watchlistRejectedRows, setWatchlistRejectedRows] = useState([]);
   const [watchlistTruncatedSymbols, setWatchlistTruncatedSymbols] = useState([]);
@@ -13717,6 +13898,7 @@ export default function Dashboard() {
     setYahooReturnedCandidates([]);
     setYahooDiagnostics(createEmptyYahooDiagnostics());
     setYahooRejectedBySymbol({});
+    setYahooErrorsBySymbol({});
     setYahooSentToScanCount(0);
     setYahooScanErrorCount(0);
     setYahooRequestedTopN(0);
@@ -13960,6 +14142,8 @@ export default function Dashboard() {
     [watchlistTickers, preIbkrPoolMode, researchExpandedPool, researchExpandedLimit]
   );
 
+  const poolScanLimit = preIbkrPoolMode === "strict_watchlist"
+    ? strictWatchlistLimit : preIbkrPoolMode === "research_expanded" ? researchExpandedLimit : 400;
   const _rawWatchlist = resolvedPreIbkrPool.tickers;
   const cryptoRemovedFromPreIbkrPool = resolvedPreIbkrPool.cryptoRemovedFromPool ?? [];
   const tickersForScan = _rawWatchlist.filter((t) => !isCryptoDigitalAssetBlocked(t));
@@ -14038,7 +14222,7 @@ export default function Dashboard() {
     : 0;
   const ibkrFinalTarget = Number.isFinite(Number(ibkrDirectResult?.finalDisplayedTarget))
     ? Number(ibkrDirectResult.finalDisplayedTarget)
-    : Math.min(120, Math.max(10, Number(ibkrAutoMaxTickers) || 20));
+    : Math.min(400, Math.max(10, Number(ibkrAutoMaxTickers) || 20));
   const ibkrTotalKeptCollected = Number.isFinite(Number(ibkrDirectResult?.totalKeptCollected))
     ? Number(ibkrDirectResult.totalKeptCollected)
     : ibkrKeptCount;
@@ -14122,7 +14306,7 @@ export default function Dashboard() {
   const yahooNonSentCandidates = useMemo(() => {
     const offset = ibkrTestedCount > 0
       ? ibkrTestedCount
-      : Math.min(Number(ibkrAutoMaxTickers) || 20, 120);
+      : Math.min(Number(ibkrAutoMaxTickers) || 20, 400);
     return (yahooReturnedCandidates || [])
       .slice(offset, 30)
       .filter((item) => {
@@ -14605,6 +14789,7 @@ export default function Dashboard() {
         cryptoBlockedRemovedSymbols,
         tickersForScan,
         yahooRejectedBySymbol,
+        yahooErrorsBySymbol,
         yahooReturnedCandidates,
         ibkrDirectSentTickers,
         preIbkrPoolMode,
@@ -14617,6 +14802,7 @@ export default function Dashboard() {
       cryptoBlockedRemovedSymbols,
       tickersForScan,
       yahooRejectedBySymbol,
+      yahooErrorsBySymbol,
       yahooReturnedCandidates,
       ibkrDirectSentTickers,
       preIbkrPoolMode,
@@ -14674,6 +14860,7 @@ export default function Dashboard() {
         cryptoBlockedRemovedSymbols,
         tickersForScan,
         yahooRejectedBySymbol,
+        yahooErrorsBySymbol,
         yahooReturnedCandidates,
         ibkrDirectSentTickers,
         ibkrDirectResult,
@@ -14688,6 +14875,7 @@ export default function Dashboard() {
       cryptoBlockedRemovedSymbols,
       tickersForScan,
       yahooRejectedBySymbol,
+      yahooErrorsBySymbol,
       yahooReturnedCandidates,
       ibkrDirectSentTickers,
       ibkrDirectResult,
@@ -14710,6 +14898,9 @@ export default function Dashboard() {
       funnelRows: yahooIbkrFunnelList,
       displayedSymbols: Array.from(ibkrDisplayedSymbols || []),
       yahooRejectedBySymbol,
+      yahooErrorsBySymbol,
+      yahooReturnedCandidates,
+      tickersForScan,
       watchlistRejectedBySymbol,
       cryptoBlockedRemovedSymbols,
       ibkrDirectSentTickers,
@@ -14728,6 +14919,9 @@ export default function Dashboard() {
     yahooIbkrFunnelList,
     ibkrDisplayedSymbols,
     yahooRejectedBySymbol,
+    yahooErrorsBySymbol,
+    yahooReturnedCandidates,
+    tickersForScan,
     watchlistRejectedBySymbol,
     cryptoBlockedRemovedSymbols,
     ibkrDirectSentTickers,
@@ -15018,7 +15212,7 @@ export default function Dashboard() {
       }
 
       const finalTargetRaw = Number(ibkrAutoMaxTickers) || 20;
-      const finalTarget = Math.min(120, Math.max(10, finalTargetRaw));
+      const finalTarget = Math.min(400, Math.max(10, finalTargetRaw));
       const hardEvaluationCap = finalTarget;
       const desiredFromInput = Number(ibkrAutoInput?.finalDisplayedTarget);
       const desiredFinalKept = Number.isFinite(desiredFromInput)
@@ -15372,6 +15566,7 @@ export default function Dashboard() {
     const marketClosed = isUsMarketClosedNow();
     setClosedMarketCacheFallback(false);
     setBackendShortlistDevScan(false);
+    setYahooScanCapacity(null);
     setRefreshStage("Étape 1/2 : Yahoo/yfinance — contexte technique");
 
     let tickers = [];
@@ -15412,7 +15607,7 @@ export default function Dashboard() {
       ...prev,
       poolSource,
       preIbkrCount: tickers.length,
-      ibkrAuditDepth: Math.min(120, Math.max(10, Number(ibkrAutoMaxTickers) || 20)),
+      ibkrAuditDepth: Math.min(400, Math.max(10, Number(ibkrAutoMaxTickers) || 20)),
       usedFallbackUltimate,
       ibkrAutoLaunched: false,
       ibkrAutoSkipReason: "",
@@ -15448,7 +15643,7 @@ export default function Dashboard() {
       return;
     }
     console.log("[SCAN_DEBUG] tickers_sent_to_scan", tickers.length, "poolSource", poolSource);
-    setYahooSentToScanCount(tickers.length);
+    setYahooSentToScanCount(Math.min(tickers.length, poolScanLimit));
     setYahooScanErrorCount(0);
     setYahooRequestedTopN(Number(topN) || 0);
     setYahooChallengerCount(0);
@@ -15462,6 +15657,7 @@ export default function Dashboard() {
         expiration: lockedExpiration,
         topN,
         tickers,
+        maxTickers: poolScanLimit,
         sort: "quality",
       });
 
@@ -15483,6 +15679,7 @@ export default function Dashboard() {
         return;
       }
 
+      setYahooScanCapacity(payload.scanCapacity ?? null);
       const mappedRaw = (payload.shortlist || []).map((item, index) =>
         toDashboardCandidate(item, index, lockedExpiration)
       );
@@ -15518,8 +15715,10 @@ export default function Dashboard() {
         returned: payload.returned ?? mapped.length,
       });
       const nextYahooRejectedBySymbol = buildYahooRejectedBySymbol(payload?.rejected);
+      const nextYahooErrorsBySymbol = buildYahooErrorsBySymbol(payload?.errors);
       setYahooDiagnostics(nextYahooDiagnostics);
       setYahooRejectedBySymbol(nextYahooRejectedBySymbol);
+      setYahooErrorsBySymbol(nextYahooErrorsBySymbol);
 
       setLastScanPoolMeta((prev) => ({
         ...prev,
@@ -15527,7 +15726,7 @@ export default function Dashboard() {
         preIbkrCount: tickers.length,
         yahooSent: payload.scanned ?? tickers.length,
         yahooReturned: payload.returned ?? mapped.length,
-        ibkrAuditDepth: Math.min(120, Math.max(10, Number(ibkrAutoMaxTickers) || 20)),
+        ibkrAuditDepth: Math.min(400, Math.max(10, Number(ibkrAutoMaxTickers) || 20)),
       }));
 
       const yahooTop20 = (payload.shortlist || []).slice(0, 20).map((it) => it.symbol);
@@ -15542,6 +15741,13 @@ export default function Dashboard() {
         errorsCount: (payload.errors || []).length,
       });
 
+      if (payload.scanCapacity?.complete === false) {
+        const message = `Yahoo incomplet : ${payload.scanned}/${payload.scanCapacity.selected} examinés (${payload.scanCapacity.stopReason || "interrompu"}). IBKR auto non lancé.`;
+        setScanError(message);
+        setRefreshStage(message);
+        setLastScanPoolMeta(prev => ({ ...prev, ibkrAutoLaunched: false, ibkrAutoSkipReason: message }));
+        return;
+      }
       if (mapped.length > 0) {
         try {
           window.localStorage.setItem(
@@ -15682,7 +15888,7 @@ export default function Dashboard() {
           kept: 0,
           returned: 0,
         });
-        setYahooSentToScanCount(tickers.length);
+        setYahooSentToScanCount(Math.min(tickers.length, poolScanLimit));
         setYahooScanErrorCount(1);
         setYahooRequestedTopN(Number(topN) || 0);
         setYahooChallengerCount(0);
@@ -15695,6 +15901,7 @@ export default function Dashboard() {
           })
         );
         setYahooRejectedBySymbol({});
+        setYahooErrorsBySymbol({});
         setClosedMarketCacheFallback(false);
       }
       if (shouldRunAutoIbkr && runAutoIbkrDirectScanRef.current) {
@@ -15777,7 +15984,7 @@ export default function Dashboard() {
     } finally {
       isRefreshingRef.current = false;
     }
-  }, [watchlistTickers, preIbkrPoolMode, researchExpandedPool, researchExpandedLimit, selectedExpiration, topN, autoIbkrDirectScan, ibkrAutoMaxTickers, rememberTechnicalCandidates, displaySnapshotRef, captureWheelJournalSnapshot]);
+  }, [watchlistTickers, preIbkrPoolMode, researchExpandedPool, researchExpandedLimit, poolScanLimit, selectedExpiration, topN, autoIbkrDirectScan, ibkrAutoMaxTickers, rememberTechnicalCandidates, displaySnapshotRef, captureWheelJournalSnapshot]);
 
   useEffect(() => {
     rememberTechnicalCandidates(activeCandidates);
@@ -15820,7 +16027,7 @@ export default function Dashboard() {
     setWatchlistLoading(true);
     setWatchlistBuildError("");
     try {
-      const body = { ...DEFAULT_BUILD_WATCHLIST_BODY, liquidityOtmProbePct: watchlistOtmProbePct };
+      const body = { ...DEFAULT_BUILD_WATCHLIST_BODY, limit: strictWatchlistLimit, liquidityOtmProbePct: watchlistOtmProbePct };
       const payload = await callBuildWatchlist(body);
       setWatchlistTickers(Array.isArray(payload.watchlist) ? payload.watchlist : []);
       setWatchlistSource("backend");
@@ -15840,7 +16047,7 @@ export default function Dashboard() {
     } finally {
       setWatchlistLoading(false);
     }
-  }, [watchlistOtmProbePct]);
+  }, [watchlistOtmProbePct, strictWatchlistLimit]);
 
   const handleIbkrShadowTest = useCallback(async () => {
     setIbkrShadowLoading(true);
@@ -16278,7 +16485,7 @@ export default function Dashboard() {
       setWatchlistLoading(true);
       setWatchlistBuildError("");
       try {
-        const body = { ...DEFAULT_BUILD_WATCHLIST_BODY, liquidityOtmProbePct: watchlistOtmProbePct };
+        const body = { ...DEFAULT_BUILD_WATCHLIST_BODY, limit: strictWatchlistLimit, liquidityOtmProbePct: watchlistOtmProbePct };
         const payload = await callBuildWatchlist(body);
         if (cancelled) return;
         setWatchlistTickers(Array.isArray(payload.watchlist) ? payload.watchlist : []);
@@ -16326,6 +16533,14 @@ export default function Dashboard() {
     }
     setResearchExpandedEnabled(preIbkrPoolMode === "research_expanded");
   }, [preIbkrPoolMode]);
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem("wheel.strictWatchlistLimit", String(strictWatchlistLimit));
+    } catch {
+      /* quota / private mode */
+    }
+  }, [strictWatchlistLimit]);
 
   useEffect(() => {
     try {
@@ -16402,7 +16617,7 @@ export default function Dashboard() {
   }, [topN]);
 
   useEffect(() => {
-    const clamped = Math.min(120, Math.max(10, Number(ibkrAutoMaxTickers) || 20));
+    const clamped = Math.min(400, Math.max(10, Number(ibkrAutoMaxTickers) || 20));
     window.localStorage.setItem("wheel.ibkrAuditDepth", String(clamped));
   }, [ibkrAutoMaxTickers]);
 
@@ -16914,7 +17129,7 @@ export default function Dashboard() {
           <div className="mb-6 rounded-2xl border border-slate-700 bg-slate-900 p-4 text-sm text-slate-300 shadow-sm">
             <details>
               <summary className="cursor-pointer font-semibold text-slate-100">Candidats Yahoo non envoyés à IBKR</summary>
-            {yahooReturnedCount <= (ibkrTestedCount || Math.min(Number(ibkrAutoMaxTickers) || 20, 120)) ? (
+            {yahooReturnedCount <= (ibkrTestedCount || Math.min(Number(ibkrAutoMaxTickers) || 20, 400)) ? (
               <p className="mt-2 text-slate-500">
                 Impossible d’afficher les rangs 11-30 : /scan_shortlist retourne seulement le Top Yahoo actuel.
               </p>
@@ -17670,8 +17885,9 @@ export default function Dashboard() {
             <EditableScanInput
               label="Depth"
               value={ibkrAutoMaxTickers}
-              onChange={(e) => setIbkrAutoMaxTickers(Number(e.target.value || 0))}
+              onChange={(e) => setIbkrAutoMaxTickers(Math.min(400, Number(e.target.value || 0)))}
               min={1}
+              max={400}
               list="scan-depth-suggestions"
               wrapperClassName="w-[105px] shrink-0"
               title="IBKR Audit Depth — nombre de tickers audités via IBKR."
@@ -17682,6 +17898,11 @@ export default function Dashboard() {
               <option value="30" />
               <option value="50" />
               <option value="120" />
+              <option value="180" />
+              <option value="200" />
+              <option value="250" />
+              <option value="300" />
+              <option value="400" />
             </datalist>
 
             <EditableScanSelect
@@ -17695,6 +17916,19 @@ export default function Dashboard() {
               <option value="research_expanded">Research</option>
               <option value="fallback_65">Fallback</option>
             </EditableScanSelect>
+
+            {preIbkrPoolMode === "strict_watchlist" && (
+              <EditableScanInput
+                label="Strict max"
+                value={strictWatchlistLimit}
+                onChange={(e) => setStrictWatchlistLimit(readStoredPoolCapacity(e.target.value, 150))}
+                min={1}
+                max={400}
+                list="scan-depth-suggestions"
+                wrapperClassName="w-[105px] shrink-0"
+                title="Maximum du pool Strict et de titres à examiner (défaut 150). Rebuild watchlist applique la nouvelle taille du pool."
+              />
+            )}
 
             <EditableScanSelect
               label="OTM"
@@ -17713,9 +17947,9 @@ export default function Dashboard() {
             <EditableScanInput
               label="Yahoo"
               value={topN}
-              onChange={(e) => setTopN(Number(e.target.value || 1))}
+              onChange={(e) => setTopN(Math.min(400, Number(e.target.value || 1)))}
               min={1}
-              max={200}
+              max={400}
               wrapperClassName="w-[105px] shrink-0"
               title="Limite Yahoo — nombre maximal de candidats Yahoo gardés avant test IBKR."
             />
@@ -17837,6 +18071,16 @@ export default function Dashboard() {
                 {scanMeta.kept}/{scanMeta.scanned} IBKR
               </span>
             ) : null}
+            {yahooScanCapacity && (
+              <span data-testid="yahoo-scan-capacity">
+                Yahoo : demandé {yahooScanCapacity.requested}, disponible {yahooScanCapacity.available}, examiné {yahooScanCapacity.scanned}/{yahooScanCapacity.selected}
+                {" · "}{yahooScanCapacity.batches.map(b => b.scanned).join(" + ")} ({yahooScanCapacity.status})
+                {yahooScanCapacity.poolInsufficient ? " · pool insuffisant" : ""}
+              </span>
+            )}
+            {preIbkrPoolMode === "strict_watchlist" && watchlistStats?.limitApplied !== strictWatchlistLimit && (
+              <span className="text-amber-200">Strict max modifié — Rebuild watchlist requis.</span>
+            )}
             {lastScanPoolStale ? (
               <span className="inline-flex items-center rounded-full border border-amber-700/60 bg-amber-950/40 px-1.5 py-0.5 font-medium text-amber-200">
                 Mode changé — Refresh
@@ -17847,15 +18091,15 @@ export default function Dashboard() {
           {/* Patch 3A — contrôles research conservés, visibles seulement en mode Research Expanded. */}
           {preIbkrPoolMode === "research_expanded" && (
             <div className="mt-2 flex flex-wrap items-center gap-2">
-              <EditableScanSelect
+              <EditableScanInput
                 label="Research limit"
-                value={String(researchExpandedLimit)}
+                value={researchExpandedLimit}
                 onChange={(e) => setResearchExpandedLimit(readStoredResearchExpandedLimit(e.target.value))}
-                title="Plafond du pool Research Expanded."
-              >
-                <option value="150">150</option>
-                <option value="200">200</option>
-              </EditableScanSelect>
+                min={1}
+                max={400}
+                list="scan-depth-suggestions"
+                title="Maximum du pool Research et de titres à examiner (défaut 200)."
+              />
               <Button
                 type="button"
                 variant="outline"
@@ -17892,7 +18136,7 @@ export default function Dashboard() {
               <span>
                 {watchlistLoading
                   ? "…"
-                  : `${tickersForScan.length} tickers envoyés`}
+                  : `${Math.min(tickersForScan.length, poolScanLimit)} tickers envoyés`}
               </span>
             </div>
             <div className="mt-3">

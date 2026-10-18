@@ -1,0 +1,475 @@
+{
+  "generatedAt": "2026-06-05T21:12:42.362Z",
+  "criticalWindow": {
+    "from": "2026-01-28",
+    "to": "2026-03-30",
+    "baselineWorstDDPct": -26.95199504552669,
+    "baselineInPosDays": 30
+  },
+  "baselineTrades": 22,
+  "maxAllowedTrades": 33,
+  "results": {
+    "baseline": {
+      "label": "Baseline (EMA8↓EMA24 seul)",
+      "metrics": {
+        "totalReturnPct": 4386.81,
+        "finalEquity": 448681.45,
+        "maxDrawdownPct": -42.36,
+        "maxDDPeakIso": "2025-10-29",
+        "maxDDTroughIso": "2026-03-30",
+        "numTrades": 22,
+        "winRatePct": 63.64,
+        "profitFactor": 11.46,
+        "exposurePct": 24.08,
+        "barsInPosition": 987,
+        "totalBarsHeld": 986,
+        "avgBarsHeld": 44.8,
+        "avgTradePnlPct": 23.5
+      },
+      "win": {
+        "worstDDPct": -26.95199504552669,
+        "inPosDays": 30,
+        "windowDays": 43
+      },
+      "candidateExits": 0,
+      "extraTrades": 0,
+      "acceptance": {
+        "tradesOk": true,
+        "ddImproved": false,
+        "pfOk": true,
+        "pnlOk": true,
+        "critAvoided": false
+      },
+      "accepted": false
+    },
+    "A": {
+      "label": "A) MASTER OFF (état EMA8<EMA34 master)",
+      "metrics": {
+        "totalReturnPct": 87.13,
+        "finalEquity": 18713.05,
+        "maxDrawdownPct": -30.56,
+        "maxDDPeakIso": "2021-02-12",
+        "maxDDTroughIso": "2021-06-03",
+        "numTrades": 37,
+        "winRatePct": 45.95,
+        "profitFactor": 1.56,
+        "exposurePct": 12.56,
+        "barsInPosition": 515,
+        "totalBarsHeld": 515,
+        "avgBarsHeld": 13.9,
+        "avgTradePnlPct": 2.29
+      },
+      "win": {
+        "worstDDPct": -9.658684336720569,
+        "inPosDays": 10,
+        "windowDays": 43
+      },
+      "candidateExits": 22,
+      "extraTrades": 15,
+      "acceptance": {
+        "tradesOk": false,
+        "ddImproved": true,
+        "pfOk": false,
+        "pnlOk": false,
+        "critAvoided": true
+      },
+      "accepted": false
+    },
+    "B": {
+      "label": "B) MASTER OFF + close<MA8",
+      "metrics": {
+        "totalReturnPct": 1327.59,
+        "finalEquity": 142759.33,
+        "maxDrawdownPct": -41.44,
+        "maxDDPeakIso": "2020-09-02",
+        "maxDDTroughIso": "2020-11-10",
+        "numTrades": 29,
+        "winRatePct": 41.38,
+        "profitFactor": 3.02,
+        "exposurePct": 22.01,
+        "barsInPosition": 902,
+        "totalBarsHeld": 902,
+        "avgBarsHeld": 31.1,
+        "avgTradePnlPct": 13.44
+      },
+      "win": {
+        "worstDDPct": -7.680896265574266,
+        "inPosDays": 12,
+        "windowDays": 43
+      },
+      "candidateExits": 8,
+      "extraTrades": 7,
+      "acceptance": {
+        "tradesOk": true,
+        "ddImproved": false,
+        "pfOk": true,
+        "pnlOk": false,
+        "critAvoided": true
+      },
+      "accepted": false
+    },
+    "C": {
+      "label": "C) MASTER OFF + close<MA24",
+      "metrics": {
+        "totalReturnPct": 1389.17,
+        "finalEquity": 148917.26,
+        "maxDrawdownPct": -41.44,
+        "maxDDPeakIso": "2020-09-02",
+        "maxDDTroughIso": "2020-11-10",
+        "numTrades": 31,
+        "winRatePct": 38.71,
+        "profitFactor": 3.48,
+        "exposurePct": 21.76,
+        "barsInPosition": 892,
+        "totalBarsHeld": 892,
+        "avgBarsHeld": 28.8,
+        "avgTradePnlPct": 12.66
+      },
+      "win": {
+        "worstDDPct": -7.680896265574266,
+        "inPosDays": 10,
+        "windowDays": 43
+      },
+      "candidateExits": 10,
+      "extraTrades": 9,
+      "acceptance": {
+        "tradesOk": true,
+        "ddImproved": false,
+        "pfOk": true,
+        "pnlOk": false,
+        "critAvoided": true
+      },
+      "accepted": false
+    },
+    "D": {
+      "label": "D) close<MA8 + MACD hist baisse",
+      "metrics": {
+        "totalReturnPct": -1.96,
+        "finalEquity": 9804.36,
+        "maxDrawdownPct": -48.97,
+        "maxDDPeakIso": "2020-04-17",
+        "maxDDTroughIso": "2021-05-21",
+        "numTrades": 46,
+        "winRatePct": 45.65,
+        "profitFactor": 0.98,
+        "exposurePct": 6.81,
+        "barsInPosition": 279,
+        "totalBarsHeld": 279,
+        "avgBarsHeld": 6.1,
+        "avgTradePnlPct": 0.27
+      },
+      "win": {
+        "worstDDPct": -5.411853356231633,
+        "inPosDays": 9,
+        "windowDays": 43
+      },
+      "candidateExits": 41,
+      "extraTrades": 24,
+      "acceptance": {
+        "tradesOk": false,
+        "ddImproved": false,
+        "pfOk": false,
+        "pnlOk": false,
+        "critAvoided": true
+      },
+      "accepted": false
+    },
+    "E": {
+      "label": "E) close<MA8 + RSI baisse",
+      "metrics": {
+        "totalReturnPct": 16.64,
+        "finalEquity": 11663.9,
+        "maxDrawdownPct": -41.44,
+        "maxDDPeakIso": "2020-04-17",
+        "maxDDTroughIso": "2021-05-21",
+        "numTrades": 49,
+        "winRatePct": 44.9,
+        "profitFactor": 1.14,
+        "exposurePct": 6.93,
+        "barsInPosition": 284,
+        "totalBarsHeld": 284,
+        "avgBarsHeld": 5.8,
+        "avgTradePnlPct": 0.6
+      },
+      "win": {
+        "worstDDPct": -5.411853356231633,
+        "inPosDays": 9,
+        "windowDays": 43
+      },
+      "candidateExits": 43,
+      "extraTrades": 27,
+      "acceptance": {
+        "tradesOk": false,
+        "ddImproved": false,
+        "pfOk": false,
+        "pnlOk": false,
+        "critAvoided": true
+      },
+      "accepted": false
+    },
+    "F": {
+      "label": "F) close<MA8 + cassure plus-bas 5j",
+      "metrics": {
+        "totalReturnPct": 123.84,
+        "finalEquity": 22384.48,
+        "maxDrawdownPct": -37.45,
+        "maxDDPeakIso": "2025-10-29",
+        "maxDDTroughIso": "2026-03-20",
+        "numTrades": 37,
+        "winRatePct": 59.46,
+        "profitFactor": 1.55,
+        "exposurePct": 12.22,
+        "barsInPosition": 501,
+        "totalBarsHeld": 501,
+        "avgBarsHeld": 13.5,
+        "avgTradePnlPct": 2.86
+      },
+      "win": {
+        "worstDDPct": -16.94620644271273,
+        "inPosDays": 23,
+        "windowDays": 43
+      },
+      "candidateExits": 27,
+      "extraTrades": 15,
+      "acceptance": {
+        "tradesOk": false,
+        "ddImproved": true,
+        "pfOk": false,
+        "pnlOk": false,
+        "critAvoided": false
+      },
+      "accepted": false
+    },
+    "G": {
+      "label": "G) top protection (MA8+hist+RSI+break5)",
+      "metrics": {
+        "totalReturnPct": 123.84,
+        "finalEquity": 22384.48,
+        "maxDrawdownPct": -37.45,
+        "maxDDPeakIso": "2025-10-29",
+        "maxDDTroughIso": "2026-03-20",
+        "numTrades": 37,
+        "winRatePct": 59.46,
+        "profitFactor": 1.55,
+        "exposurePct": 12.22,
+        "barsInPosition": 501,
+        "totalBarsHeld": 501,
+        "avgBarsHeld": 13.5,
+        "avgTradePnlPct": 2.86
+      },
+      "win": {
+        "worstDDPct": -16.94620644271273,
+        "inPosDays": 23,
+        "windowDays": 43
+      },
+      "candidateExits": 27,
+      "extraTrades": 15,
+      "acceptance": {
+        "tradesOk": false,
+        "ddImproved": true,
+        "pfOk": false,
+        "pnlOk": false,
+        "critAvoided": false
+      },
+      "accepted": false
+    },
+    "H": {
+      "label": "H) post-extension (>10% MA50 puis close<MA8+hist baisse)",
+      "metrics": {
+        "totalReturnPct": 269.41,
+        "finalEquity": 36941.42,
+        "maxDrawdownPct": -44.56,
+        "maxDDPeakIso": "2025-05-19",
+        "maxDDTroughIso": "2026-03-30",
+        "numTrades": 36,
+        "winRatePct": 52.78,
+        "profitFactor": 2.79,
+        "exposurePct": 10.61,
+        "barsInPosition": 435,
+        "totalBarsHeld": 435,
+        "avgBarsHeld": 12.1,
+        "avgTradePnlPct": 4.4
+      },
+      "win": {
+        "worstDDPct": -26.95199504552669,
+        "inPosDays": 30,
+        "windowDays": 43
+      },
+      "candidateExits": 26,
+      "extraTrades": 14,
+      "acceptance": {
+        "tradesOk": false,
+        "ddImproved": false,
+        "pfOk": false,
+        "pnlOk": false,
+        "critAvoided": false
+      },
+      "accepted": false
+    },
+    "I": {
+      "label": "I) close<MA24 (état)",
+      "metrics": {
+        "totalReturnPct": 86.25,
+        "finalEquity": 18624.54,
+        "maxDrawdownPct": -39.04,
+        "maxDDPeakIso": "2020-04-17",
+        "maxDDTroughIso": "2021-06-03",
+        "numTrades": 46,
+        "winRatePct": 32.61,
+        "profitFactor": 1.66,
+        "exposurePct": 11.03,
+        "barsInPosition": 452,
+        "totalBarsHeld": 452,
+        "avgBarsHeld": 9.8,
+        "avgTradePnlPct": 1.94
+      },
+      "win": {
+        "worstDDPct": -3.5087714137303605,
+        "inPosDays": 7,
+        "windowDays": 43
+      },
+      "candidateExits": 42,
+      "extraTrades": 24,
+      "acceptance": {
+        "tradesOk": false,
+        "ddImproved": true,
+        "pfOk": false,
+        "pnlOk": false,
+        "critAvoided": true
+      },
+      "accepted": false
+    },
+    "J": {
+      "label": "J) close<MA50 (état lent)",
+      "metrics": {
+        "totalReturnPct": 42.89,
+        "finalEquity": 14288.71,
+        "maxDrawdownPct": -44.6,
+        "maxDDPeakIso": "2021-02-12",
+        "maxDDTroughIso": "2023-09-15",
+        "numTrades": 39,
+        "winRatePct": 33.33,
+        "profitFactor": 1.32,
+        "exposurePct": 13.78,
+        "barsInPosition": 565,
+        "totalBarsHeld": 565,
+        "avgBarsHeld": 14.5,
+        "avgTradePnlPct": 1.56
+      },
+      "win": {
+        "worstDDPct": -4.647787378699142,
+        "inPosDays": 9,
+        "windowDays": 43
+      },
+      "candidateExits": 31,
+      "extraTrades": 17,
+      "acceptance": {
+        "tradesOk": false,
+        "ddImproved": false,
+        "pfOk": false,
+        "pnlOk": false,
+        "critAvoided": true
+      },
+      "accepted": false
+    },
+    "K": {
+      "label": "K) EMA8<EMA24 ET close<MA24 (protège si bear)",
+      "metrics": {
+        "totalReturnPct": 1389.17,
+        "finalEquity": 148917.26,
+        "maxDrawdownPct": -41.44,
+        "maxDDPeakIso": "2020-09-02",
+        "maxDDTroughIso": "2020-11-10",
+        "numTrades": 31,
+        "winRatePct": 38.71,
+        "profitFactor": 3.48,
+        "exposurePct": 21.76,
+        "barsInPosition": 892,
+        "totalBarsHeld": 892,
+        "avgBarsHeld": 28.8,
+        "avgTradePnlPct": 12.66
+      },
+      "win": {
+        "worstDDPct": -7.680896265574266,
+        "inPosDays": 10,
+        "windowDays": 43
+      },
+      "candidateExits": 10,
+      "extraTrades": 9,
+      "acceptance": {
+        "tradesOk": true,
+        "ddImproved": false,
+        "pfOk": true,
+        "pnlOk": false,
+        "critAvoided": true
+      },
+      "accepted": false
+    },
+    "L": {
+      "label": "L) EMA8<EMA24 ET cassure plus-bas 10j (laisse courir)",
+      "metrics": {
+        "totalReturnPct": 2185.89,
+        "finalEquity": 228588.59,
+        "maxDrawdownPct": -37.99,
+        "maxDDPeakIso": "2020-09-02",
+        "maxDDTroughIso": "2020-11-10",
+        "numTrades": 22,
+        "winRatePct": 59.09,
+        "profitFactor": 3.47,
+        "exposurePct": 22.88,
+        "barsInPosition": 938,
+        "totalBarsHeld": 938,
+        "avgBarsHeld": 42.6,
+        "avgTradePnlPct": 19.87
+      },
+      "win": {
+        "worstDDPct": -16.94620644271273,
+        "inPosDays": 24,
+        "windowDays": 43
+      },
+      "candidateExits": 1,
+      "extraTrades": 0,
+      "acceptance": {
+        "tradesOk": true,
+        "ddImproved": true,
+        "pfOk": true,
+        "pnlOk": false,
+        "critAvoided": false
+      },
+      "accepted": false
+    },
+    "M": {
+      "label": "M) cassure plus-bas 10j seule (Donchian)",
+      "metrics": {
+        "totalReturnPct": 872.75,
+        "finalEquity": 97275.45,
+        "maxDrawdownPct": -41.08,
+        "maxDDPeakIso": "2020-09-02",
+        "maxDDTroughIso": "2020-09-23",
+        "numTrades": 30,
+        "winRatePct": 53.33,
+        "profitFactor": 2.38,
+        "exposurePct": 19.42,
+        "barsInPosition": 796,
+        "totalBarsHeld": 796,
+        "avgBarsHeld": 26.5,
+        "avgTradePnlPct": 10.39
+      },
+      "win": {
+        "worstDDPct": -16.94620644271273,
+        "inPosDays": 24,
+        "windowDays": 43
+      },
+      "candidateExits": 18,
+      "extraTrades": 8,
+      "acceptance": {
+        "tradesOk": true,
+        "ddImproved": true,
+        "pfOk": false,
+        "pnlOk": false,
+        "critAvoided": false
+      },
+      "accepted": false
+    }
+  }
+}

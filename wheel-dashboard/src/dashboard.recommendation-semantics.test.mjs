@@ -17,9 +17,14 @@ import {
   BALANCED_LEG_SOURCES,
   BALANCED_NATIVE_REASON_CODES,
   buildPortfolioCombos,
+  getAggressivePriorityGrade,
   getFinalDisplayRecommendation,
+  getModeGradeRank,
+  gradeLeg,
+  MODE_GRADE_RANK,
   resolveBalancedLegSelection,
 } from "./capitalComboPortfolio.js";
+import { selectPrincipalThreeLeg, selectPrincipalThreeLegFromRow } from "./threeLegSelection.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DASHBOARD = fs.readFileSync(path.join(__dirname, "dashboard.jsx"), "utf8");
@@ -234,7 +239,9 @@ test("4 — jambe recommandée garde son contour même hors de tout portefeuille
   assert.equal(semantics.isInSafePortfolio, false);
   assert.equal(semantics.isInBalancedPortfolio, false);
   assert.equal(semantics.isInAggressivePortfolio, false);
-  assert.equal(semantics.isAggressiveScanRecommended, true);
+  assert.equal(semantics.isBalancedScanRecommended, true);
+  assert.equal(semantics.isAggressiveScanRecommended, false);
+  assert.equal(semantics.isSafeScanRecommended, false);
 });
 
 test("5 — ticker absent des portefeuilles peut avoir une recommandation", () => {
@@ -303,25 +310,81 @@ test("13/14/15/16 — INTC : SAFE 97,5, BALANCED native 99, AGGRESSIVE 102, reco
   const scan = getFinalDisplayRecommendation(candidate);
   assert.equal(scan.finalDisplayMode, "AGGRESSIVE");
   assert.equal(scan.finalDisplayGrade, "A");
+  const principal = selectPrincipalThreeLegFromRow(candidate);
+  assert.equal(principal.finalDisplayMode, "BALANCED");
+  assert.equal(principal.selectedLegSource, BALANCED_LEG_SOURCES.NATIVE);
+  assert.equal(principal.strike, 99);
 });
 
-test("17/18 — INTC : contour sur la jambe recommandée seulement, BALANCED native visible sans contour", () => {
+test("17/18 — INTC : le contour suit la native, le fallback n'en a pas", () => {
   const row = withBalancedVm(makeIntc());
   const semantics = resolveScanRecommendationSemantics(row);
-  assert.equal(semantics.isAggressiveScanRecommended, true);
+  assert.equal(semantics.isBalancedScanRecommended, true);
+  assert.equal(semantics.isAggressiveScanRecommended, false);
   assert.equal(semantics.isSafeScanRecommended, false);
-  assert.equal(semantics.isBalancedScanRecommended, false);
 
-  // La jambe BALANCED native reste visible/valide (état « disponible »)…
   const balancedPresentation = resolveDashboardModePresentation(row, { modeFilter: "BALANCED" });
   assert.equal(balancedPresentation.bucketMode, "BALANCED");
-  assert.equal(balancedPresentation.status, "available");
-  assert.equal(balancedPresentation.isScanRecommended, false);
-  // …tandis que la jambe recommandée porte l'état « recommended ».
+  assert.equal(balancedPresentation.status, "recommended");
+  assert.equal(balancedPresentation.isScanRecommended, true);
   const scanPresentation = resolveDashboardModePresentation(row, { modeFilter: "all" });
-  assert.equal(scanPresentation.bucketMode, "AGGRESSIVE");
+  assert.equal(scanPresentation.bucketMode, "BALANCED");
   assert.equal(scanPresentation.status, "recommended");
   assert.equal(scanPresentation.isScanRecommended, true);
+  assert.equal(scanPresentation.strike, 99);
+});
+
+test("anneau — native A, native WATCH, SAFE, AGGRESSIVE, fallback et absence de native", () => {
+  const nativeA = resolveScanRecommendationSemantics(makeIntc());
+  assert.equal(nativeA.scanRecommendationMode, "BALANCED");
+  assert.equal(nativeA.scanRecommendationGrade, "A");
+  assert.equal(nativeA.isBalancedScanRecommended, true);
+  assert.equal(nativeA.isSafeScanRecommended, false);
+  assert.equal(nativeA.isAggressiveScanRecommended, false);
+
+  const watchNative = makeCandidate({
+    ticker: "INTC",
+    safeStrike: 90,
+    aggressiveStrike: 100,
+    safeYield: 0.2,
+    aggressiveYield: 0.2,
+    safeSpreadPct: 50,
+    aggressiveSpreadPct: 50,
+    chain: [makeLeg(95, 0.45, { ticker: "INTC", dteDays: 3, spreadPct: 12, pop: 0.9, distancePct: -8 })],
+  });
+  const watch = resolveScanRecommendationSemantics(watchNative);
+  assert.equal(watch.scanRecommendationMode, "BALANCED");
+  assert.equal(watch.scanRecommendationGrade, "WATCH");
+  assert.equal(watch.isBalancedScanRecommended, true);
+  assert.equal(watch.isSafeScanRecommended, false);
+  assert.equal(watch.isAggressiveScanRecommended, false);
+
+  const safeWinner = resolveScanRecommendationSemantics(makeCandidate({
+    ticker: "AAPL",
+    safeYield: 0.7,
+    aggressiveYield: 0.2,
+    safeSpreadPct: 8,
+    aggressiveSpreadPct: 50,
+    chain: [],
+  }));
+  assert.equal(safeWinner.isSafeScanRecommended, true);
+  assert.equal(safeWinner.isBalancedScanRecommended, false);
+  assert.equal(safeWinner.isAggressiveScanRecommended, false);
+
+  const aggressive = resolveScanRecommendationSemantics(makeNflx());
+  assert.equal(aggressive.isAggressiveScanRecommended, true);
+  assert.equal(aggressive.isBalancedScanRecommended, false);
+
+  const fallback = resolveScanRecommendationSemantics(makeSmci());
+  assert.equal(fallback.isBalancedScanRecommended, false);
+  assert.equal(fallback.isAggressiveScanRecommended, true);
+
+  const absent = resolveScanRecommendationSemantics(makeCandidate({
+    ticker: "AAPL",
+    chain: [],
+    chainAvailable: false,
+  }));
+  assert.equal(absent.isBalancedScanRecommended, false);
 });
 
 // 19–27 : NFLX — mode/grade cohérents et diagnostics séparés -------------------
@@ -433,14 +496,19 @@ test("23bis/27 — fullyEligible > 0 ⇒ native sélectionnée ; aucun contrat s
 
 test("28-32 — mode, grade, strike, prime et rendement proviennent de la jambe affichée", () => {
   const row = makeIntc();
+  const principal = selectPrincipalThreeLegFromRow(row);
   const presentation = resolveDashboardModePresentation(row, { modeFilter: "all" });
-  assert.equal(presentation.mode, "AGGRESSIVE");
-  assert.equal(presentation.leg, row.aggressiveStrike);
-  assert.equal(presentation.strike, row.aggressiveStrike.strike);
-  assert.equal(presentation.premium, row.aggressiveStrike.premiumUsed);
-  assert.equal(presentation.periodYieldPct, row.aggressiveStrike.weeklyYield);
-  assert.equal(presentation.spreadPct, row.aggressiveStrike.liquidity.spreadPct);
-  assert.equal(presentation.grade, getFinalDisplayRecommendation(row).finalDisplayGrade);
+  const chainLeg = row.balancedPutCandidates[0];
+  assert.equal(presentation.mode, "BALANCED");
+  assert.equal(presentation.leg.optionSymbol, chainLeg.optionSymbol);
+  assert.equal(presentation.leg.conId, chainLeg.conId);
+  assert.equal(presentation.strike, 99);
+  assert.equal(presentation.premium, presentation.leg.premiumUsed);
+  assert.equal(presentation.periodYieldPct, presentation.leg.weeklyYield);
+  assert.equal(presentation.spreadPct, presentation.leg.liquidity.spreadPct);
+  assert.equal(presentation.grade, principal.finalDisplayGrade);
+  assert.equal(presentation.strike, principal.strike);
+  assert.equal(getFinalDisplayRecommendation(row).finalDisplayMode, "AGGRESSIVE");
 
   const safeForced = resolveDashboardModePresentation(row, { modeFilter: "SAFE" });
   assert.equal(safeForced.leg, row.safeStrike);
@@ -448,27 +516,29 @@ test("28-32 — mode, grade, strike, prime et rendement proviennent de la jambe 
   assert.equal(safeForced.grade, resolveSafeLegDisplayGrade(row));
 });
 
-test("33bis — jambe AGGRESSIVE grade B (spread 8,7 % ≤ 15) reste AGRESSIF A/B, jamais REJET", () => {
+test("33bis — sans veto, le grade prioritaire A reste affiché sur la colonne AGRESSIF", () => {
   const row = { ...makeIntc(), aggressiveGrade: "REJECT" };
   const grade = resolveAggressiveLegDisplayGrade(row);
   assert.equal(grade, "A", "spread 8,7 ≤ 15 avec rendement 1,51 → grade prioritaire A");
+  const comboFacing = getFinalDisplayRecommendation(row);
+  assert.equal(comboFacing.finalDisplayMode, "AGGRESSIVE");
+  assert.equal(comboFacing.finalDisplayGrade, "A");
   const presentation = resolveDashboardModePresentation(row, { modeFilter: "all" });
-  assert.equal(`${presentation.bucketLabel} ${presentation.grade}`, "AGRESSIF A");
+  assert.equal(presentation.bucketMode, "BALANCED");
+  assert.equal(presentation.grade, "A");
+  const aggressiveColumn = resolveDashboardModePresentation(row, { modeFilter: "AGGRESSIVE" });
+  assert.equal(`${aggressiveColumn.bucketLabel} ${aggressiveColumn.grade}`, "AGRESSIF A");
 });
 
-test("34 — Top exécutables (grade effectif A/B) jamais présenté REJET sans raison canonique", () => {
-  // Même règle d'admission que getCreamQualityBucket : mode SAFE/AGGRESSIVE et
-  // grade effectif A/B ⇒ Top exécutables. La présentation doit refléter le
-  // même grade — aucun mélange avec le grade brut d'un autre objet.
+test("34 — Top exécutables suit la jambe principale admissible, jamais un REJET nu", () => {
   const row = { ...makeNflx(), aggressiveGrade: "REJECT" };
-  const scan = getFinalDisplayRecommendation(row);
-  const isTopExecutable =
-    (scan.finalDisplayMode === "SAFE" || scan.finalDisplayMode === "AGGRESSIVE") &&
-    (scan.finalDisplayGrade === "A" || scan.finalDisplayGrade === "B");
-  assert.equal(isTopExecutable, true);
+  const principal = selectPrincipalThreeLegFromRow(row);
+  assert.equal(principal.finalDisplayMode, "AGGRESSIVE");
+  assert.equal(principal.topExecutableEligible, true);
   const presentation = resolveDashboardModePresentation(row, { modeFilter: "all" });
   assert.notEqual(presentation.grade, "REJECT");
-  assert.equal(presentation.grade, scan.finalDisplayGrade);
+  assert.equal(presentation.grade, principal.finalDisplayGrade);
+  assert.equal(presentation.bucketMode, principal.finalDisplayMode);
 });
 
 // 35–41 : états visuels ---------------------------------------------------------
@@ -477,7 +547,7 @@ test("35/36/37 — recommandé → recommended ; disponible → available ; indi
   const row = withBalancedVm(makeIntc());
   assert.equal(resolveDashboardModePresentation(row, { modeFilter: "all" }).status, "recommended");
   assert.equal(resolveDashboardModePresentation(row, { modeFilter: "SAFE" }).status, "available");
-  assert.equal(resolveDashboardModePresentation(row, { modeFilter: "BALANCED" }).status, "available");
+  assert.equal(resolveDashboardModePresentation(row, { modeFilter: "BALANCED" }).status, "recommended");
 
   const rejected = makeCandidate({
     safeYield: 0.2,
@@ -514,6 +584,8 @@ test("source dashboard.jsx — contour piloté par le scan, badges portefeuille 
   assert.ok(section.includes("resolveScanRecommendationSemantics(item)"));
   assert.ok(section.includes("isScanRecommended={isSafeScanRecommended}"));
   assert.ok(section.includes("isScanRecommended={isAggressiveScanRecommended}"));
+  assert.ok(section.includes("isScanRecommended={isBalancedScanRecommended}"));
+  assert.ok(section.includes("selectedGrade={isBalancedScanRecommended ? scanRecommendationGrade : null}"));
   assert.ok(!section.includes("isScanRecommended={item.selectedFor"));
   assert.ok(!section.includes("isSelected={safeSelected}"));
   assert.ok(!section.includes("isSelected={aggressiveSelected}"));
@@ -526,6 +598,9 @@ test("source dashboard.jsx — contour piloté par le scan, badges portefeuille 
   // Le contour (ring émeraude/ambre) découle exclusivement de hasSelection,
   // lui-même dérivé de isScanRecommended.
   assert.ok(columnSection.includes('isScanRecommended && (selectedGrade === "A"'));
+  assert.ok(columnSection.includes('selectedGrade === "WATCH"'));
+  assert.ok(columnSection.includes("border-emerald-500"));
+  assert.ok(columnSection.includes("border-amber-500"));
   assert.ok(!columnSection.includes("selectionBadgeClass"));
   assert.ok(columnSection.includes("selectionAriaLabel"));
   assert.ok(!columnSection.includes("Sélectionné dans SAFE"));
@@ -534,8 +609,10 @@ test("source dashboard.jsx — contour piloté par le scan, badges portefeuille 
   const balancedStart = DASHBOARD.indexOf("function BalancedFaceplateStrikeColumn");
   const balancedEnd = DASHBOARD.indexOf("function MiniTradeLevelsChart", balancedStart);
   const balancedSection = DASHBOARD.slice(balancedStart, balancedEnd);
-  // Cas A : la carte BALANCED n'a jamais le contour de recommandation.
-  assert.ok(balancedSection.includes("isScanRecommended={false}"));
+  // L'anneau BALANCED reçoit le drapeau et le grade du choix principal.
+  assert.ok(balancedSection.includes("isScanRecommended={isScanRecommended}"));
+  assert.ok(balancedSection.includes("selectedGrade={selectedGrade}"));
+  assert.ok(!balancedSection.includes("isScanRecommended={false}"));
   assert.ok(balancedSection.includes("Raison finale :"));
 });
 
@@ -594,5 +671,200 @@ test("49 — aucune quote ni strike modifié : la présentation référence les 
 test("50 — aucun appel réseau dans la couche de projection UI", () => {
   for (const banned of ["fetch(", "axios", "XMLHttpRequest", "WebSocket("]) {
     assert.ok(!BALANCED_MODE_UI.includes(banned), `balancedModeUi.js ne doit pas contenir ${banned}`);
+  }
+});
+
+// Earnings null guard — fonction réelle extraite de dashboard.jsx.
+// La fixture ORCL 124/125 reprend des chiffres d'écran. Ce n'est pas une cotation historique.
+
+function loadComputeModeRecommendation() {
+  const start = DASHBOARD.indexOf("function parseKnownEarningsDayCount");
+  const end = DASHBOARD.indexOf("function clampNumber", start);
+  assert.ok(start >= 0 && end > start);
+  const source = DASHBOARD.slice(start, end);
+  assert.ok(!source.includes("Number(earningsDaysUntil)"));
+  return new Function(
+    "gradeLeg",
+    "getAggressivePriorityGrade",
+    "getModeGradeRank",
+    "MODE_GRADE_RANK",
+    "getFinalDisplayRecommendation",
+    "selectPrincipalThreeLeg",
+    `${source}\nreturn { computeModeRecommendation, parseKnownEarningsDayCount };`,
+  )(
+    gradeLeg,
+    getAggressivePriorityGrade,
+    getModeGradeRank,
+    MODE_GRADE_RANK,
+    getFinalDisplayRecommendation,
+    selectPrincipalThreeLeg,
+  );
+}
+
+const {
+  computeModeRecommendation,
+  parseKnownEarningsDayCount,
+} = loadComputeModeRecommendation();
+
+const ORCL_FIXTURE_KIND = "FIXTURE_UI_NOT_HISTORICAL_QUOTE";
+const orclSafeWatch = {
+  strike: 124,
+  bid: 0.78,
+  premiumUsed: 0.78,
+  spreadPct: 21.71,
+  weeklyYield: 0.63,
+  popProfitEstimated: 0.909,
+  distancePct: -7.5,
+};
+const orclAggressiveA = {
+  strike: 125,
+  bid: 1.02,
+  premiumUsed: 1.02,
+  spreadPct: 7.55,
+  weeklyYield: 0.82,
+  popProfitEstimated: 0.891,
+  distancePct: -6.7,
+};
+
+function recommendOrcl(extra = {}) {
+  return computeModeRecommendation({
+    safeStrike: orclSafeWatch,
+    aggressiveStrike: orclAggressiveA,
+    lowerBound: 125.75,
+    spot: 134,
+    ...extra,
+  });
+}
+
+test("earnings — null, vide, blanc, NaN et non numérique ne deviennent pas le jour 0", () => {
+  for (const value of [null, undefined, "", "  ", Number.NaN, "abc", false]) {
+    assert.equal(parseKnownEarningsDayCount(value), null, String(value));
+    const card = recommendOrcl({ earningsDaysUntil: value });
+    assert.equal(card.recommendationDiagnostics.earningsRisk, false);
+    assert.equal(card.safeGrade, "WATCH");
+    assert.equal(card.aggressiveGrade, "A");
+    assert.equal(card.recommendedMode, "AGGRESSIVE");
+    assert.equal(card.recommendedGrade, "A");
+  }
+  const omitted = recommendOrcl();
+  assert.equal(omitted.recommendationDiagnostics.earningsRisk, false);
+  assert.equal(omitted.recommendedMode, "AGGRESSIVE");
+  assert.equal(omitted.aggressiveGrade, "A");
+});
+
+test("earnings — 0, 3 et 7 protègent ; 8, 30 et une chaîne numérique hors fenêtre non", () => {
+  for (const value of [0, 3, 7, "0", "  7  "]) {
+    assert.equal(parseKnownEarningsDayCount(value), Number(String(value).trim()));
+    const card = recommendOrcl({ earningsDaysUntil: value });
+    assert.equal(card.recommendationDiagnostics.earningsRisk, true, String(value));
+    assert.equal(card.safeGrade, "WATCH");
+    assert.equal(card.aggressiveGrade, "REJECT");
+    assert.equal(card.recommendedMode, "SAFE");
+    assert.equal(card.recommendedGrade, "WATCH");
+  }
+  for (const value of [8, 30, "8"]) {
+    const card = recommendOrcl({ earningsDaysUntil: value });
+    assert.equal(card.recommendationDiagnostics.earningsRisk, false, String(value));
+    assert.equal(card.safeGrade, "WATCH");
+    assert.equal(card.aggressiveGrade, "A");
+    assert.equal(card.recommendedMode, "AGGRESSIVE");
+    assert.equal(card.recommendedGrade, "A");
+  }
+});
+
+test("earnings — les flags explicites restent prioritaires", () => {
+  for (const extra of [
+    { earningsDaysUntil: null, hasUpcomingEarningsBeforeExpiration: true },
+    { earningsDaysUntil: 30, hasEarningsBeforeExpiration: true },
+    { earningsDaysUntil: undefined, hasUpcomingEarningsBeforeExpiration: true, hasEarningsBeforeExpiration: true },
+  ]) {
+    const card = recommendOrcl(extra);
+    assert.equal(card.recommendationDiagnostics.earningsRisk, true);
+    assert.equal(card.aggressiveGrade, "REJECT");
+    assert.equal(card.recommendedMode, "SAFE");
+    assert.equal(card.safeGrade, "WATCH");
+  }
+});
+
+test("fixture ORCL 124/125 — earnings inconnus laissent gagner AGGRESSIVE A", () => {
+  assert.equal(ORCL_FIXTURE_KIND, "FIXTURE_UI_NOT_HISTORICAL_QUOTE");
+  const card = recommendOrcl({ earningsDaysUntil: null });
+  assert.equal(card.safeGrade, "WATCH");
+  assert.equal(card.aggressiveGrade, "A");
+  assert.equal(card.recommendedMode, "AGGRESSIVE");
+  assert.equal(card.recommendedGrade, "A");
+  assert.equal(orclSafeWatch.strike, 124);
+  assert.equal(orclAggressiveA.strike, 125);
+  assert.match(card.recommendedReason, /^Agressif meilleur/);
+});
+
+test("fixture ORCL 124/125 — earnings confirmés dans 0 à 7 jours conservent SAFE WATCH", () => {
+  for (const value of [0, 3, 7]) {
+    const card = recommendOrcl({ earningsDaysUntil: value });
+    assert.equal(card.safeGrade, "WATCH");
+    assert.equal(card.aggressiveGrade, "REJECT");
+    assert.equal(card.recommendedMode, "SAFE");
+    assert.equal(card.recommendedGrade, "WATCH");
+    assert.match(card.recommendedReason, /^Safe à surveiller/);
+  }
+});
+
+test("earnings — un rendement agressif de 1,20 ne réhabilite pas le veto", () => {
+  const safeStrike = {
+    strike: 90,
+    bid: 0.54,
+    premiumUsed: 0.54,
+    spreadPct: 8,
+    weeklyYield: 0.6,
+    popProfitEstimated: 0.9,
+    distancePct: -10,
+  };
+  const aggressiveStrike = {
+    strike: 100,
+    bid: 1.2,
+    premiumUsed: 1.2,
+    spreadPct: 12,
+    weeklyYield: 1.2,
+    popProfitEstimated: 0.92,
+    distancePct: -8,
+  };
+  const open = computeModeRecommendation({
+    safeStrike,
+    aggressiveStrike,
+    lowerBound: 101,
+    spot: 110,
+    earningsDaysUntil: null,
+  });
+  assert.equal(open.recommendationDiagnostics.earningsRisk, false);
+  const openCombo = getFinalDisplayRecommendation({
+    safeStrike,
+    aggressiveStrike,
+    safeGrade: open.safeGrade,
+    aggressiveGrade: open.aggressiveGrade,
+    recommendationDiagnostics: open.recommendationDiagnostics,
+  });
+  assert.equal(openCombo.finalDisplayMode, "AGGRESSIVE");
+
+  for (const earningsDaysUntil of [0, 3, 7]) {
+    const card = computeModeRecommendation({
+      safeStrike,
+      aggressiveStrike,
+      lowerBound: 101,
+      spot: 110,
+      earningsDaysUntil,
+    });
+    assert.equal(card.recommendationDiagnostics.earningsRisk, true);
+    assert.equal(card.aggressiveGrade, "REJECT");
+    assert.notEqual(card.recommendedMode, "AGGRESSIVE");
+    assert.equal(card.recommendedMode, "SAFE");
+    const comboFacing = getFinalDisplayRecommendation({
+      safeStrike,
+      aggressiveStrike,
+      safeGrade: card.safeGrade,
+      aggressiveGrade: card.aggressiveGrade,
+      recommendationDiagnostics: card.recommendationDiagnostics,
+    });
+    assert.notEqual(comboFacing.finalDisplayMode, "AGGRESSIVE");
+    assert.equal(comboFacing.finalDisplayMode, "SAFE");
   }
 });

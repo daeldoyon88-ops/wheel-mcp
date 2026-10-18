@@ -101,18 +101,128 @@ function minimalYahooRejectDebug(row) {
  * @param {unknown[]} rejectedRows payload.rejected complet
  */
 export function buildYahooRejectedBySymbol(rejectedRows) {
-  /** @type {Record<string, { reason: string, debug: object | null }>} */
+  /** @type {Record<string, { reason: string|null, debug: object | null }>} */
   const index = {};
   if (!Array.isArray(rejectedRows)) return index;
   for (const row of rejectedRows) {
     const sym = normalizeSym(row?.symbol || row?.ticker);
     if (!sym) continue;
+    const rawReason = String(row?.reason || row?.status || "").trim();
     index[sym] = {
-      reason: String(row?.reason || row?.status || "unknown").trim() || "unknown",
+      reason: rawReason || null,
       debug: minimalYahooRejectDebug(row),
     };
   }
   return index;
+}
+
+/**
+ * Erreurs Yahoo déjà reçues. Un message vide reste null : ce n'est pas une cause inventée.
+ * @param {unknown[]} errorRows payload.errors
+ */
+export function buildYahooErrorsBySymbol(errorRows) {
+  /** @type {Record<string, { error: string|null }>} */
+  const index = {};
+  if (!Array.isArray(errorRows)) return index;
+  for (const row of errorRows) {
+    const sym = normalizeSym(row?.symbol || row?.ticker);
+    if (!sym) continue;
+    const message = String(row?.error || row?.message || row?.reason || "").trim();
+    index[sym] = { error: message || null };
+  }
+  return index;
+}
+
+export const YAHOO_MOTIF = Object.freeze({
+  NOT_RETURNED: "NOT_RETURNED",
+  INVALID_RESPONSE: "INVALID_RESPONSE",
+  YAHOO_ERROR: "YAHOO_ERROR",
+  FINANCIAL_FILTER: "FINANCIAL_FILTER",
+  INTERNAL_EXCLUSION: "INTERNAL_EXCLUSION",
+  CAPACITY_LIMIT: "CAPACITY_LIMIT",
+  UNKNOWN: "UNKNOWN",
+});
+
+const YAHOO_FINANCIAL_REASONS = new Set([
+  "premium_below_target",
+  "yield_below_target",
+  "no_safe_strike",
+  "no_put_with_bid_below_lower_bound",
+  "no_liquid_strike_below_lower_bound",
+  "safe_strike_not_liquid",
+  "no_safe_strike_at_or_above_target_bid",
+  "no_safe_candidate_at_or_above_target_bid",
+]);
+
+const YAHOO_INVALID_RESPONSE_REASONS = new Set([
+  "expiration_not_available",
+  "no_spot_price",
+  "invalid_lower_bound",
+  "yahoo_chain_expiration_mismatch",
+]);
+
+const YAHOO_CAPACITY_REASONS = new Set([
+  "excluded_by_watchlist_limit",
+  "excluded_by_limit",
+  "watchlist_limit",
+]);
+
+const YAHOO_INTERNAL_REASONS = new Set([
+  "crypto_blocked",
+  "crypto_blocked_except_bitx",
+  "absent_from_strict_watchlist_after_rebuild",
+  "absent_from_research_expanded_pool",
+]);
+
+const YAHOO_UNPROVED_TOKENS = new Set([
+  "",
+  "unknown",
+  "not_ok",
+  "filtered_out",
+  "scan_failed",
+  "scan_failed / not_ok",
+]);
+
+/**
+ * Classe un motif déjà observé. N'invente jamais Depth/topN.
+ * NOT_RETURNED est le fait « demandé et absent de la réponse ».
+ * UNKNOWN signifie que la cause exacte n'est pas prouvée.
+ */
+export function classifyYahooMotif({
+  observedReason = null,
+  observedError = null,
+  requested = false,
+  returned = false,
+  capacityFlag = false,
+} = {}) {
+  const error = String(observedError || "").trim();
+  if (error) {
+    return { class: YAHOO_MOTIF.YAHOO_ERROR, observedReason: error, display: `YAHOO_ERROR: ${error}` };
+  }
+  const reason = String(observedReason || "").trim();
+  const key = reason.toLowerCase();
+  if (reason && !YAHOO_UNPROVED_TOKENS.has(key)) {
+    if (YAHOO_FINANCIAL_REASONS.has(key)) {
+      return { class: YAHOO_MOTIF.FINANCIAL_FILTER, observedReason: reason, display: `FINANCIAL_FILTER: ${reason}` };
+    }
+    if (YAHOO_INVALID_RESPONSE_REASONS.has(key)) {
+      return { class: YAHOO_MOTIF.INVALID_RESPONSE, observedReason: reason, display: `INVALID_RESPONSE: ${reason}` };
+    }
+    if (YAHOO_CAPACITY_REASONS.has(key)) {
+      return { class: YAHOO_MOTIF.CAPACITY_LIMIT, observedReason: reason, display: `CAPACITY_LIMIT: ${reason}` };
+    }
+    if (YAHOO_INTERNAL_REASONS.has(key) || key.includes("crypto_blocked")) {
+      return { class: YAHOO_MOTIF.INTERNAL_EXCLUSION, observedReason: reason, display: `INTERNAL_EXCLUSION: ${reason}` };
+    }
+    return { class: YAHOO_MOTIF.UNKNOWN, observedReason: reason, display: YAHOO_MOTIF.UNKNOWN };
+  }
+  if (capacityFlag) {
+    return { class: YAHOO_MOTIF.CAPACITY_LIMIT, observedReason: reason || null, display: YAHOO_MOTIF.CAPACITY_LIMIT };
+  }
+  if (requested && !returned) {
+    return { class: YAHOO_MOTIF.NOT_RETURNED, observedReason: null, display: YAHOO_MOTIF.NOT_RETURNED };
+  }
+  return { class: YAHOO_MOTIF.UNKNOWN, observedReason: reason || null, display: YAHOO_MOTIF.UNKNOWN };
 }
 
 /**
@@ -422,7 +532,15 @@ export function buildTickerPipelineTraceSteps(ticker, sources = {}) {
     {
       step: "envoyé IBKR auto",
       present: sentToIbkr,
-      reason: sentToIbkr ? "—" : inYahooShortlist ? "cap depth / scan non lancé" : "non qualifié Yahoo",
+      reason: sentToIbkr
+        ? "—"
+        : inYahooShortlist
+          ? YAHOO_MOTIF.UNKNOWN
+          : yahooReject
+            ? String(yahooReject)
+            : inPreScan
+              ? YAHOO_MOTIF.NOT_RETURNED
+              : YAHOO_MOTIF.UNKNOWN,
       source: "ibkrDirectSentTickers",
     },
   ];
@@ -439,7 +557,7 @@ export function categorizePreIbkrCut(entry) {
   if (stage === "pool_pre_scan" || reason.includes("research_expanded") || reason.includes("pre_scan")) {
     return "pool_pre_scan";
   }
-  if (stage === "yahoo_returned" || entry?.rejectedYahoo) {
+  if (stage === "yahoo_not_returned" || stage === "yahoo_returned" || entry?.rejectedYahoo) {
     if (reason.includes("expiration")) return "expiration_error";
     if (reason.includes("scan_failed") || reason.includes("not_ok")) return "yahoo_scan_failed";
     return "yahoo_rejected";
@@ -569,9 +687,20 @@ export function buildPreIbkrCutTickerList(sources = {}, opts = {}) {
     row.sentYahoo = true;
     if (yahooReturnedSet.has(sym)) continue;
     if (row.rejectedYahoo) continue;
-    row.stageLost = row.stageLost || "yahoo_returned";
-    row.reason = row.reason || "scan_failed / not_ok";
-    row.comment = row.comment || "Scanné mais ni shortlist ni rejected indexé";
+    const err = sources.yahooErrorsBySymbol?.[sym]?.error ?? null;
+    const motif = classifyYahooMotif({
+      observedReason: row.reason,
+      observedError: err,
+      requested: true,
+      returned: false,
+      capacityFlag: false,
+    });
+    row.stageLost = row.stageLost || "yahoo_not_returned";
+    row.reason = motif.display;
+    row.yahooDisposition = motif.class;
+    row.comment = motif.class === YAHOO_MOTIF.NOT_RETURNED
+      ? "Demandé à Yahoo, absent de la réponse. Cause exacte : UNKNOWN"
+      : motif.display;
   }
 
   const rows = [];
@@ -694,6 +823,8 @@ export function buildYahooIbkrFunnel(sources = {}, opts = {}) {
   for (const sym of retainedSet) allSymbols.add(sym);
   for (const sym of rejectedBySym.keys()) allSymbols.add(sym);
   for (const sym of errorBySym.keys()) allSymbols.add(sym);
+  for (const sym of Object.keys(sources.yahooRejectedBySymbol || {})) allSymbols.add(normalizeSym(sym));
+  for (const sym of Object.keys(sources.yahooErrorsBySymbol || {})) allSymbols.add(normalizeSym(sym));
 
   const rows = [];
   for (const sym of allSymbols) {
@@ -704,6 +835,7 @@ export function buildYahooIbkrFunnel(sources = {}, opts = {}) {
     const inShortlist = top ? top.keptBeforeLimit : shortlistSet.has(sym);
     const sentIbkr = sentSet.has(sym);
     const testedIbkr = sentIbkr || testedSet.has(sym);
+    const yahooReturned = yahooBySym.has(sym);
 
     const yahooRank = top?.rankBeforeLimit ?? yh?.rank ?? null;
     const yahooScore = top?.watchlistScore ?? yh?.score ?? null;
@@ -715,18 +847,44 @@ export function buildYahooIbkrFunnel(sources = {}, opts = {}) {
 
     let stageLost = null;
     let reason = "";
-    if (!inTop250 && !inShortlist) {
+    let yahooMotif = null;
+    const observedReject = sources.yahooRejectedBySymbol?.[sym]?.reason ?? resolveYahooAbsentReason(sym, sources);
+    const observedError = sources.yahooErrorsBySymbol?.[sym]?.error ?? null;
+    if (!inTop250 && !inShortlist && !yahooReturned) {
+      const pre = resolvePreScanAbsentReason(sym, sources);
+      yahooMotif = classifyYahooMotif({
+        observedReason: observedReject || pre?.reason || null,
+        observedError,
+        requested: shortlistSet.has(sym),
+        returned: false,
+        capacityFlag: pre?.reason === "excluded_by_watchlist_limit",
+      });
       stageLost = "top250";
-      reason =
-        resolveYahooAbsentReason(sym, sources) ||
-        resolvePreScanAbsentReason(sym, sources)?.display ||
-        "Hors Top 250 watchlist (rang > 250 ou non classé)";
-    } else if (!inShortlist) {
+      reason = yahooMotif.display;
+    } else if (!inShortlist && !yahooReturned) {
+      yahooMotif = classifyYahooMotif({
+        observedReason: top?.reason || observedReject || null,
+        observedError,
+        requested: shortlistSet.has(sym),
+        returned: false,
+        capacityFlag: top?.keptBeforeLimit === false,
+      });
       stageLost = "shortlist";
-      reason = top?.reason || "Hors shortlist demandée (exclu par la limite watchlist)";
+      reason = yahooMotif.display;
+    } else if (!yahooReturned && !sentIbkr && !testedIbkr) {
+      yahooMotif = classifyYahooMotif({
+        observedReason: observedReject,
+        observedError,
+        requested: shortlistSet.has(sym) || inShortlist,
+        returned: false,
+        capacityFlag: false,
+      });
+      stageLost = "yahoo_not_returned";
+      reason = yahooMotif.display;
     } else if (!sentIbkr && !testedIbkr) {
       stageLost = "ibkr_send";
-      reason = "Dans la shortlist mais non envoyé à IBKR (cap Audit Depth / topN ou scan non lancé)";
+      reason = YAHOO_MOTIF.UNKNOWN;
+      yahooMotif = classifyYahooMotif({ requested: true, returned: true });
     } else if (ibkrStatus === "rejected") {
       stageLost = "ibkr_rejected";
       reason = rejectedBySym.get(sym) || "Rejeté par IBKR";
@@ -741,7 +899,7 @@ export function buildYahooIbkrFunnel(sources = {}, opts = {}) {
       reason = "Retenu IBKR";
     } else {
       stageLost = "ibkr_send";
-      reason = "Non envoyé à IBKR";
+      reason = YAHOO_MOTIF.UNKNOWN;
     }
 
     rows.push({
@@ -750,6 +908,9 @@ export function buildYahooIbkrFunnel(sources = {}, opts = {}) {
       yahooScore,
       inTop250,
       inShortlist,
+      yahooReturned,
+      yahooDisposition: yahooMotif?.class ?? null,
+      observedReason: yahooMotif?.observedReason ?? null,
       sentIbkr,
       testedIbkr,
       ibkrStatus,
@@ -868,17 +1029,21 @@ function computeLostAtStep(flags) {
   }
   if (!presentInYahoo) {
     const yahooReason = String(flags.yahooRejectReason || "").trim();
-    return {
-      lostAtStep: "yahoo_returned",
-      likelyReason: yahooReason
-        ? `Rejet Yahoo : ${yahooReason}`
-        : "Absent du pool scanné par Yahoo / watchlist pré-scan",
-    };
+    if (yahooReason) {
+      return {
+        lostAtStep: "yahoo_returned",
+        likelyReason: `Rejet Yahoo : ${yahooReason}`,
+      };
+    }
+    if (inPreScanPool) {
+      return { lostAtStep: "yahoo_not_returned", likelyReason: YAHOO_MOTIF.NOT_RETURNED };
+    }
+    return { lostAtStep: "yahoo_returned", likelyReason: YAHOO_MOTIF.UNKNOWN };
   }
   if (!sentToIbkr && !ibkrTested) {
     return {
       lostAtStep: "ibkr_send",
-      likelyReason: "Non envoyé à IBKR auto (cap Audit Depth, priorité ou scan IBKR non lancé)",
+      likelyReason: YAHOO_MOTIF.UNKNOWN,
     };
   }
   if (presentInIbkrRejected && !presentInIbkrShortlist) {

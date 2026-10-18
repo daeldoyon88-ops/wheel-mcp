@@ -67,11 +67,15 @@ export function readStoredPreIbkrPoolMode(raw) {
 
 /**
  * @param {unknown} raw
- * @returns {150 | 200}
+ * @returns {number}
  */
 export function readStoredResearchExpandedLimit(raw) {
+  return readStoredPoolCapacity(raw, 200);
+}
+
+export function readStoredPoolCapacity(raw, fallback = 150) {
   const value = Number(raw);
-  return value === 150 ? 150 : 200;
+  return Number.isInteger(value) && value >= 1 && value <= 400 ? value : fallback;
 }
 
 /**
@@ -79,7 +83,7 @@ export function readStoredResearchExpandedLimit(raw) {
  *   watchlistTickers: string[] | null,
  *   preIbkrPoolMode: PreIbkrPoolMode,
  *   researchExpandedPool: string[],
- *   researchExpandedLimit: 150 | 200,
+ *   researchExpandedLimit: number,
  *   fallbackTickers: string[],
  * }} params
  * @returns {{ tickers: string[], poolSource: PreIbkrPoolMode | "strict_watchlist" | "research_expanded" | "fallback_65" | "unknown", requestedMode: PreIbkrPoolMode | "unknown", usedFallbackUltimate: boolean, researchExpandedDiagnostics?: ReturnType<typeof buildResearchExpandedPoolDiagnostics> }}
@@ -163,7 +167,7 @@ export function resolvePreIbkrTickers({
 
 /**
  * @param {{
- *   limit?: 150 | 200,
+ *   limit?: number,
  *   maxPrice?: number | null,
  *   includeAboveMaxPrice?: boolean,
  *   flagUnreliable?: boolean,
@@ -190,7 +194,7 @@ export async function callResearchExpandedPool(options = {}) {
 
 /**
  * @param {{
- *   limit?: 150 | 200,
+ *   limit?: number,
  *   maxPrice?: number | null,
  *   includeAboveMaxPrice?: boolean,
  *   flagUnreliable?: boolean,
@@ -207,7 +211,7 @@ export async function loadResearchExpandedPoolWithFallback(options = {}) {
       usedStaticFallback: false,
     };
   } catch (err) {
-    const limit = options.limit === 150 ? 150 : 200;
+    const limit = readStoredResearchExpandedLimit(options.limit);
     return {
       pool: applyResearchExpandedPinnedTickers(FALLBACK_RESEARCH_TICKERS, limit),
       stats: {

@@ -25,10 +25,10 @@ import {
 import { withOfficialL4Binding } from './marketFeaturesL4SyntheticPipeline.mjs';
 
 test('L4A foundation keeps its three additive schemas registered (129 total after L4C-I1)', () => {
-  assert.equal(SNAPSHOT_NAMESPACE_SCHEMA_VERSIONS.length, 129);
-  assert.equal(new Set(SNAPSHOT_NAMESPACE_SCHEMA_VERSIONS).size, 129);
+  assert.equal(SNAPSHOT_NAMESPACE_SCHEMA_VERSIONS.length, 135);
+  assert.equal(new Set(SNAPSHOT_NAMESPACE_SCHEMA_VERSIONS).size, 135);
   assert.deepEqual(
-    SNAPSHOT_NAMESPACE_SCHEMA_VERSIONS.slice(-52, -49),
+    SNAPSHOT_NAMESPACE_SCHEMA_VERSIONS.slice(-58, -55),
     [...MARKET_TECHNICAL_FEATURE_L4_SCHEMA_VERSIONS],
   );
 });

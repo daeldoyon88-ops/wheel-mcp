@@ -5,6 +5,7 @@ import {
   atmSpreadToLiquidityScore,
   buildScanFunnelDiagnosticsV1,
   buildWatchlistYahooFunnelFlags,
+  classifyYahooNonTransmission,
   computePreIbkrConfidenceScore,
   isYahooFunnelDiagnosticsV1Enabled,
   rejectionStageFromWatchlistReason,
@@ -109,6 +110,41 @@ test("buildScanFunnelDiagnosticsV1 — overflow shortlist vs rejects, JSON stabl
   const json = JSON.stringify(diag);
   assert.ok(json.includes("preIbkrConfidenceScore"));
   JSON.parse(json);
+});
+
+test("classifyYahooNonTransmission — n'invente pas de motif", () => {
+  assert.deepEqual(classifyYahooNonTransmission({}), { class: "unknown_unproven", explicit: false, reason: null });
+  assert.equal(classifyYahooNonTransmission({ reason: "premium_below_target" }).class, "financial_reject");
+  assert.equal(classifyYahooNonTransmission({ reason: "yahoo_chain_expiration_mismatch" }).class, "data_or_expiration");
+  assert.equal(classifyYahooNonTransmission({ error: "boom", reason: "scan_failed" }).class, "technical_error");
+});
+
+test("buildScanFunnelDiagnosticsV1 — yahooTrace et absents vs zéros", () => {
+  const scanBySymbol = new Map();
+  scanBySymbol.set("CCC", {
+    symbol: "CCC",
+    ok: false,
+    reason: "yahoo_chain_expiration_mismatch",
+    debug: {
+      requestedExpiration: "2026-10-23",
+      returnedExpiration: "2026-10-30",
+      expirationMismatch: true,
+      yahooContractCount: 12,
+    },
+  });
+  const diag = buildScanFunnelDiagnosticsV1({
+    cleanedTickers: ["CCC"],
+    shortlistFullSorted: [],
+    rejected: [{ symbol: "CCC", reason: "yahoo_chain_expiration_mismatch" }],
+    errors: [],
+    scanBySymbol,
+    returnLimit: 20,
+    completedScanCount: 1,
+  });
+  const row = diag.rejectedCandidatesDetailed[0];
+  assert.equal(row.yahooTrace.response.returnedExpiration, "2026-10-30");
+  assert.equal(row.nonTransmission.class, "data_or_expiration");
+  assert.equal(row.yahooTrace.response.contractCount, 12);
 });
 
 test("isYahooFunnelDiagnosticsV1Enabled — lecture env", () => {

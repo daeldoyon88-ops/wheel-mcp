@@ -2,8 +2,10 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   buildScanFunnelArchivePayload,
+  buildYahooNonTransmission,
   MAX_FUNNEL_EVENTS,
   MAX_WATCHLIST_REJECTED_EVENTS,
+  MAX_YAHOO_NON_TRANSMISSION,
 } from "./scanFunnelArchivePayload.js";
 
 /** Fixture 3 tickers : SOFI ui_displayed, RIOT crypto_blocked, XYZ yahoo_rejected. */
@@ -375,4 +377,77 @@ test("payload ne contient aucune chaîne d'options / objet candidat complet", ()
   assert.equal(json.includes("optionChain"), false);
   assert.equal(json.includes("greeks"), false);
   assert.equal(json.includes("rawJson"), false);
+});
+
+test("Depth 400 — les motifs Yahoo survivent à plus de 800 événements IBKR", () => {
+  const requested = Array.from({ length: 400 }, (_, i) => `T${String(i).padStart(3, "0")}`);
+  const returned = requested.slice(0, 264);
+  const missing = requested.slice(264);
+  const yahooRejectedBySymbol = {};
+  const yahooErrorsBySymbol = {};
+  const classes = [
+    ["premium_below_target", "FINANCIAL_FILTER"],
+    ["expiration_not_available", "INVALID_RESPONSE"],
+    ["excluded_by_watchlist_limit", "CAPACITY_LIMIT"],
+    ["crypto_blocked_except_bitx", "INTERNAL_EXCLUSION"],
+  ];
+  missing.forEach((sym, index) => {
+    if (index === 0) yahooErrorsBySymbol[sym] = { error: "yahoo http 500" };
+    else if (index < 5) yahooRejectedBySymbol[sym] = { reason: classes[index - 1][0] };
+    else if (index === 5) yahooRejectedBySymbol[sym] = { reason: "not_ok" };
+    else if (index === 6) yahooRejectedBySymbol[sym] = { reason: "mystery_token" };
+  });
+  const funnelRows = returned.map((ticker, index) => ({
+    ticker,
+    inShortlist: true,
+    yahooReturned: true,
+    sentIbkr: true,
+    ibkrStatus: index % 2 === 0 ? "retained" : "rejected",
+    reason: "premium_below_target",
+  }));
+  for (const sym of missing) {
+    funnelRows.push({
+      ticker: sym,
+      inShortlist: true,
+      yahooReturned: false,
+      sentIbkr: false,
+      ibkrStatus: "nonTested",
+    });
+  }
+  const started = Date.now();
+  const payload = buildScanFunnelArchivePayload({
+    scanSessionId: "depth-400",
+    tickersForScan: requested,
+    yahooReturnedCandidates: returned.map((ticker) => ({ ticker })),
+    yahooRejectedBySymbol,
+    yahooErrorsBySymbol,
+    funnelRows,
+    ibkrDirectSentTickers: returned,
+    displayedSymbols: returned.filter((_, index) => index % 2 === 0),
+  });
+  const elapsed = Date.now() - started;
+  assert.ok(payload.events.length > 800 || payload.events.length === MAX_FUNNEL_EVENTS);
+  assert.equal(payload.events.length, MAX_FUNNEL_EVENTS);
+  assert.equal(payload.yahooNonTransmission.bound, MAX_YAHOO_NON_TRANSMISSION);
+  assert.equal(payload.yahooNonTransmission.total, 136);
+  assert.equal(payload.yahooNonTransmission.truncated, false);
+  assert.equal(payload.yahooNonTransmission.rows.length, 136);
+  const bySymbol = new Map(payload.yahooNonTransmission.rows.map((row) => [row.symbol, row]));
+  assert.equal(bySymbol.get(missing[0]).class, "YAHOO_ERROR");
+  assert.equal(bySymbol.get(missing[1]).class, "FINANCIAL_FILTER");
+  assert.equal(bySymbol.get(missing[2]).class, "INVALID_RESPONSE");
+  assert.equal(bySymbol.get(missing[3]).class, "CAPACITY_LIMIT");
+  assert.equal(bySymbol.get(missing[4]).class, "INTERNAL_EXCLUSION");
+  assert.equal(bySymbol.get(missing[5]).class, "NOT_RETURNED");
+  assert.equal(bySymbol.get(missing[6]).class, "UNKNOWN");
+  assert.equal(bySymbol.get(missing[6]).observedReason, "mystery_token");
+  assert.equal(bySymbol.get(missing[7]).class, "NOT_RETURNED");
+  for (const row of payload.yahooNonTransmission.rows) {
+    assert.doesNotMatch(`${row.class} ${row.display}`, /depth|topN/i);
+  }
+  const direct = buildYahooNonTransmission({
+    tickersForScan: ["ONLY"],
+  });
+  assert.equal(direct.rows[0].class, "NOT_RETURNED");
+  assert.ok(elapsed < 1000, `construction hors ligne trop lente: ${elapsed}ms`);
 });

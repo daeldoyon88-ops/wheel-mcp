@@ -1,0 +1,21 @@
+date,note,toleranceDays
+# === Flèches jaunes TQQQ (1D) ===
+# IMPORTANT: les dates ci-dessous sont des ESTIMATIONS VISUELLES faites par l'assistant
+# à partir de la capture d'écran fournie. Elles sont APPROXIMATIVES.
+# Le script analyse une fenêtre [date - toleranceDays ; date + toleranceDays] autour de
+# chaque date, donc une petite erreur est absorbee. Corrige/affine librement puis relance.
+# Format strict: YYYY-MM-DD,note,toleranceDays  (toleranceDays optionnel -> defaut 10)
+# Les lignes commencant par # et les dates invalides sont ignorees.
+#
+# Note: la capture d'ecran est PLUS RECENTE que le cache OHLC (cache s'arrete au 2026-05-29,
+# encore en hausse a 84.56). La derniere fleche (~90$ puis repli vers 74$) a son sommet reel
+# AU-DELA du cache -> le script le signalera (donnees forward insuffisantes).
+2021-02-16,fleche utilisateur (top fev 2021 approx),12
+2021-11-19,fleche utilisateur (top nov 2021 / ATH approx),12
+2023-07-18,fleche utilisateur (top ete 2023 approx),12
+2024-03-21,fleche utilisateur (top printemps 2024 approx),18
+2024-07-10,fleche utilisateur (top ete 2024 approx),12
+2025-02-18,fleche utilisateur (top fev 2025 approx),12
+2025-10-29,fleche utilisateur (top automne 2025 / resistance approx),15
+2026-01-28,fleche utilisateur (top janvier 2026 / resistance approx),15
+2026-05-22,fleche utilisateur (top recent ~90$ approx - sommet hors cache),20

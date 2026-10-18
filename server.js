@@ -33,6 +33,11 @@ import { createMarketDataProvider } from "./app/data_providers/createMarketDataP
 import { createMarketService } from "./app/services/marketService.js";
 import { createWheelScanner } from "./app/scanners/wheelScanner.js";
 import {
+  finiteObservationOrNull,
+  positiveFiniteOrNull,
+  pickIbkrForensicDiagnostics,
+} from "./app/diagnostics/forensicObservation.js";
+import {
   getCalendarDte,
   WHEEL_MARKET_TIME_ZONE,
 } from "./app/calculations/wheelMetrics.js";
@@ -822,7 +827,7 @@ const buildWatchlistBodySchema = z.object({
 });
 
 const buildResearchExpandedBodySchema = z.object({
-  limit: z.union([z.literal(150), z.literal(200)]).optional().default(200),
+  limit: z.number().int().min(1).max(400).optional().default(200),
   maxPrice: z.number().positive().max(1000).optional().nullable(),
   includeAboveMaxPrice: z.boolean().optional().default(true),
   flagUnreliable: z.boolean().optional().default(true),
@@ -1483,9 +1488,9 @@ function buildIbkrTickerMetricRow(row) {
 
 /** Observabilité seulement : enrichit les rejets IBKR Shadow (pas de logique métier). */
 function roundFiniteObservation(value, decimals = 6) {
-  const n = Number(value);
-  if (!Number.isFinite(n)) return null;
-  return +n.toFixed(decimals);
+  // R3 : null / "" / non numérique -> null (Number(null) valait 0 et fabriquait
+  // de faux zéros dans l'export forensic). Un vrai 0 reçu reste 0.
+  return finiteObservationOrNull(value, decimals);
 }
 
 function ibkrShadowPutOtmPctFromUnderlying(underlying, strike) {
@@ -1503,10 +1508,10 @@ function yieldPctFromPythonPremiumYieldFraction(premiumYieldFrac) {
 
 function summarizeIbkrShadowPutForensicThin(p) {
   if (!p || typeof p !== "object") return null;
-  const tgt = numberOrNull(p.targetPremium);
-  const pu = numberOrNull(p.primeUsed);
+  const tgt = finiteObservationOrNull(p.targetPremium);
+  const pu = finiteObservationOrNull(p.primeUsed);
   return {
-    strike: numberOrNull(p.strike),
+    strike: positiveFiniteOrNull(p.strike),
     bid: roundFiniteObservation(p.bid),
     ask: roundFiniteObservation(p.ask),
     mid: roundFiniteObservation(p.mid),
@@ -1583,10 +1588,14 @@ function summarizeAggressiveStrikeForensics(aggObj, underlying) {
     aggressiveYieldPct: null,
     aggressiveOtmPct: null,
     aggressiveDistanceFromLowerBound: null,
+    // R3 : strike agressif effectivement établi (null si aucun contrat agressif),
+    // pour que l'export ne projette plus un strike absent comme 0.
+    aggressiveStrikeValue: null,
   };
   if (!aggObj || typeof aggObj !== "object") return empty;
   const strikeNum = numberOrNull(aggObj.strike);
   return {
+    aggressiveStrikeValue: positiveFiniteOrNull(aggObj.strike),
     aggressiveBid: roundFiniteObservation(aggObj.bid),
     aggressiveAsk: roundFiniteObservation(aggObj.ask),
     aggressiveMid: roundFiniteObservation(aggObj.mid),
@@ -1614,9 +1623,9 @@ function summarizeBestSafeNearMissForensics(best, underlying, targetPremiumRaw) 
     premiumCoveragePct: null,
   };
   if (!best || typeof best !== "object") return empty;
-  const strikeNum = numberOrNull(best.strike);
+  const strikeNum = positiveFiniteOrNull(best.strike);
   const prime = roundFiniteObservation(best.primeUsed);
-  const tgt = numberOrNull(targetPremiumRaw);
+  const tgt = finiteObservationOrNull(targetPremiumRaw);
   let premiumDeficitDollar = null;
   let premiumDeficitPct = null;
   let premiumCoveragePct = null;
@@ -1671,6 +1680,10 @@ function buildIbkrShadowRejectedForensics(row, rejectionReasonCode) {
     putCandidatesCount: Array.isArray(row?.putCandidates) ? row.putCandidates.length : 0,
     topPutCandidatesSummary: buildTopPutCandidatesForensicSummary(row, 5),
     probabilityOfProfit: null,
+    // R3 : diagnostics déjà produits par le moteur IBKR (motif d'arrêt SAFE, étape
+    // d'échec, type de données, trace de cotations bornée, erreurs IBKR). Relais
+    // pur : aucun recalcul, aucune requête, valeurs absentes conservées absentes.
+    ...pickIbkrForensicDiagnostics(row),
   };
 }
 
@@ -2257,9 +2270,9 @@ app.post("/ibkr/shadow/scan", async (req, res) => {
       body.auditDepth ?? body.ibkrValidationCount ?? body.maxTickers ?? body.topN,
       20
     );
-    const clampedAuditDepth = Math.min(Math.max(requestedAuditDepth, 10), 120);
-    const maxTickers = Math.min(Math.max(toPositiveInt(body.maxTickers, clampedAuditDepth), 10), 120);
-    const topN = Math.min(Math.max(toPositiveInt(body.topN, clampedAuditDepth), 10), 120);
+    const clampedAuditDepth = Math.min(Math.max(requestedAuditDepth, 10), 400);
+    const maxTickers = Math.min(Math.max(toPositiveInt(body.maxTickers, clampedAuditDepth), 10), 400);
+    const topN = Math.min(Math.max(toPositiveInt(body.topN, clampedAuditDepth), 10), 400);
     const tickers = [
       ...new Set(rawTickers.map((t) => String(t || "").trim().toUpperCase()).filter(Boolean)),
     ].slice(0, maxTickers);
@@ -2942,8 +2955,10 @@ app.post("/tools/analyze_trade_setup", async (req, res) => {
 app.post("/scan_shortlist", async (req, res) => {
   const yahooStartMs = Date.now();
   try {
-    const { expiration, tickers = [], topN = 20, sort = "yield" } = req.body ?? {};
-    const { status, payload } = await wheelScanner.scanShortlist({ expiration, tickers, topN, sort });
+    const { expiration, tickers = [], maxTickers = 400, topN = 20, sort = "yield" } = req.body ?? {};
+    const controller = new AbortController();
+    res.once("close", () => { if (!res.writableEnded) controller.abort(); });
+    const { status, payload } = await wheelScanner.scanShortlistContinued({ expiration, tickers, maxTickers, topN, sort, signal: controller.signal });
     const yahooMs = Date.now() - yahooStartMs;
     scanMetricsState.lastRefreshAt = new Date().toISOString();
     let enriched =

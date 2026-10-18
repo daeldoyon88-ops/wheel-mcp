@@ -886,7 +886,7 @@ function exerciseExactRejection(code, intent) {
 }
 
 function assertContractIntent(intent) {
-  if (/registry SNAPSHOT/.test(intent)) return assert.equal(SNAPSHOT_NAMESPACE_SCHEMA_VERSIONS.length, 129);
+  if (/registry SNAPSHOT/.test(intent)) return assert.equal(SNAPSHOT_NAMESPACE_SCHEMA_VERSIONS.length, 135);
   if (/registry NORMALIZED/.test(intent)) return assert.equal(NORMALIZED_NAMESPACE_SCHEMA_VERSIONS.length, 5);
   if (/schemaVersion list/.test(intent)) return assert.equal(new Set(EARNINGS_L4C_I1_SCHEMA_VERSIONS).size, 16);
   if (/ExtractionSet/.test(intent)) {
@@ -1284,7 +1284,7 @@ function assertPositive(id, group, intent) {
   if (group === 'registry') {
     const n = Number(id.slice(-3));
     if (n % 4 === 0) assert.equal(EARNINGS_TRAVERSAL_EDGES_V1.length, EARNINGS_TRAVERSAL_EDGE_COUNT_V1);
-    else if (n % 4 === 1) assert.equal(SNAPSHOT_NAMESPACE_SCHEMA_VERSIONS.length, 129);
+    else if (n % 4 === 1) assert.equal(SNAPSHOT_NAMESPACE_SCHEMA_VERSIONS.length, 135);
     else if (n % 4 === 2) assert.equal(NORMALIZED_NAMESPACE_SCHEMA_VERSIONS.length, 5);
     else assert.equal(new Set(EARNINGS_L4C_I1_SCHEMA_VERSIONS).size, 16);
     return;

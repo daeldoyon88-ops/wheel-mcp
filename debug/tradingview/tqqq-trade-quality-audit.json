@@ -1,0 +1,1661 @@
+{
+  "generatedAt": "2026-06-06T01:00:07.173Z",
+  "scope": "TradingView / Pine / backtest technique TQQQ — audit qualité des trades. Aucun Pine modifié, aucun git.",
+  "dataSource": {
+    "ohlc": "debug/ohlc-cache-TQQQ.json",
+    "lastBar": "2026-05-29"
+  },
+  "config": "tvRealConfig + protExit L(10) + reentry R4 (MA 8/24/24, RSI 47/1, MASTER on, blockMMSlope on/LB100, recovery on, 100% cash, 0 add, cooldown 2, stops/trailing/scaling OFF, fill close)",
+  "baseline": {
+    "local": {
+      "totalReturnPct": 4371,
+      "finalEquity": 447100.29,
+      "maxDrawdownPct": -37.99,
+      "numTrades": 23,
+      "numWins": 14,
+      "numLosses": 9,
+      "winRatePct": 60.87,
+      "profitFactor": 5.93,
+      "exposurePct": 23.88,
+      "avgTradePnlPct": 23.16
+    },
+    "tradingViewReference": {
+      "totalReturnPct": 4213.73,
+      "maxDrawdownPct": 27.45,
+      "winRatePct": 59.09,
+      "profitFactor": 3.823,
+      "trades": 22,
+      "note": "Référence TradingView L10+R4 fournie par l'utilisateur. Écart vs moteur local attendu et documenté (surtout le calcul du max DD : TV = DD d'équité du strategy tester)."
+    }
+  },
+  "baselineTrades": [
+    {
+      "n": 1,
+      "entryDate": "2020-04-08",
+      "exitDate": "2020-09-11",
+      "days": 156,
+      "bars": 108,
+      "entryPrice": 6.8088,
+      "exitPrice": 15.2137,
+      "pnlPct": 123.44,
+      "outcome": "WIN",
+      "entryType": "RSI",
+      "exitType": "MA",
+      "intraTradeDDpct": 0,
+      "maxOpenProfitPct": 220.41,
+      "profitGivenBackPct": 96.97,
+      "ctx": {
+        "rsi": 49.31,
+        "rsiSlope3": 9.2,
+        "closeVsEMA8Pct": 11.78,
+        "closeVsEMA24Pct": 1.44,
+        "ema8GtEma24": false,
+        "macdHist": 0.3781,
+        "macdHistRising": "rising",
+        "masterRiskOn": true,
+        "mmSlopeBear": false,
+        "recoveryOk": false,
+        "distEMA50Pct": -16.58,
+        "distEMA200Pct": -23.6,
+        "entryType": "RSI",
+        "closeBelowEMA8": false,
+        "redCandle": false
+      }
+    },
+    {
+      "n": 2,
+      "entryDate": "2020-09-28",
+      "exitDate": "2020-10-28",
+      "days": 30,
+      "bars": 22,
+      "entryPrice": 16.215,
+      "exitPrice": 15.015,
+      "pnlPct": -7.4,
+      "outcome": "LOSS",
+      "entryType": "RSI",
+      "exitType": "MA",
+      "intraTradeDDpct": -7.4,
+      "maxOpenProfitPct": 18.93,
+      "profitGivenBackPct": 26.33,
+      "ctx": {
+        "rsi": 50.79,
+        "rsiSlope3": 10.9,
+        "closeVsEMA8Pct": 5.64,
+        "closeVsEMA24Pct": 1.21,
+        "ema8GtEma24": false,
+        "macdHist": -0.1377,
+        "macdHistRising": "rising",
+        "masterRiskOn": true,
+        "mmSlopeBear": false,
+        "recoveryOk": false,
+        "distEMA50Pct": 3.39,
+        "distEMA200Pct": 30.77,
+        "entryType": "RSI",
+        "closeBelowEMA8": false,
+        "redCandle": false
+      }
+    },
+    {
+      "n": 3,
+      "entryDate": "2020-11-04",
+      "exitDate": "2021-02-25",
+      "days": 113,
+      "bars": 76,
+      "entryPrice": 17.51,
+      "exitPrice": 21.975,
+      "pnlPct": 25.5,
+      "outcome": "WIN",
+      "entryType": "RSI",
+      "exitType": "MA",
+      "intraTradeDDpct": -3.99,
+      "maxOpenProfitPct": 57.21,
+      "profitGivenBackPct": 31.71,
+      "ctx": {
+        "rsi": 54.87,
+        "rsiSlope3": 16.24,
+        "closeVsEMA8Pct": 8.61,
+        "closeVsEMA24Pct": 5.85,
+        "ema8GtEma24": false,
+        "macdHist": -0.1468,
+        "macdHistRising": "rising",
+        "masterRiskOn": true,
+        "mmSlopeBear": false,
+        "recoveryOk": false,
+        "distEMA50Pct": 6.74,
+        "distEMA200Pct": 30.11,
+        "entryType": "RSI",
+        "closeBelowEMA8": false,
+        "redCandle": false
+      }
+    },
+    {
+      "n": 4,
+      "entryDate": "2021-03-11",
+      "exitDate": "2021-05-10",
+      "days": 60,
+      "bars": 41,
+      "entryPrice": 22.695,
+      "exitPrice": 24,
+      "pnlPct": 5.75,
+      "outcome": "WIN",
+      "entryType": "RSI",
+      "exitType": "MA",
+      "intraTradeDDpct": -6.48,
+      "maxOpenProfitPct": 23.17,
+      "profitGivenBackPct": 17.42,
+      "ctx": {
+        "rsi": 48.45,
+        "rsiSlope3": 15.16,
+        "closeVsEMA8Pct": 4.52,
+        "closeVsEMA24Pct": -1.4,
+        "ema8GtEma24": false,
+        "macdHist": -0.2429,
+        "macdHistRising": "rising",
+        "masterRiskOn": true,
+        "mmSlopeBear": false,
+        "recoveryOk": false,
+        "distEMA50Pct": -1.61,
+        "distEMA200Pct": 21.02,
+        "entryType": "RSI",
+        "closeBelowEMA8": false,
+        "redCandle": false
+      }
+    },
+    {
+      "n": 5,
+      "entryDate": "2021-05-20",
+      "exitDate": "2021-09-21",
+      "days": 124,
+      "bars": 85,
+      "entryPrice": 24.5175,
+      "exitPrice": 33.415,
+      "pnlPct": 36.29,
+      "outcome": "WIN",
+      "entryType": "RSI",
+      "exitType": "MA",
+      "intraTradeDDpct": -1.65,
+      "maxOpenProfitPct": 55.06,
+      "profitGivenBackPct": 18.77,
+      "ctx": {
+        "rsi": 49.06,
+        "rsiSlope3": 5.93,
+        "closeVsEMA8Pct": 2.93,
+        "closeVsEMA24Pct": -0.53,
+        "ema8GtEma24": false,
+        "macdHist": -0.1951,
+        "macdHistRising": "rising",
+        "masterRiskOn": true,
+        "mmSlopeBear": false,
+        "recoveryOk": false,
+        "distEMA50Pct": -0.5,
+        "distEMA200Pct": 16.2,
+        "entryType": "RSI",
+        "closeBelowEMA8": false,
+        "redCandle": false
+      }
+    },
+    {
+      "n": 6,
+      "entryDate": "2021-10-14",
+      "exitDate": "2021-12-03",
+      "days": 50,
+      "bars": 35,
+      "entryPrice": 33.31,
+      "exitPrice": 37.52,
+      "pnlPct": 12.64,
+      "outcome": "WIN",
+      "entryType": "RSI",
+      "exitType": "MA",
+      "intraTradeDDpct": 0,
+      "maxOpenProfitPct": 32.95,
+      "profitGivenBackPct": 20.31,
+      "ctx": {
+        "rsi": 51.4,
+        "rsiSlope3": 11.82,
+        "closeVsEMA8Pct": 4.29,
+        "closeVsEMA24Pct": 1.31,
+        "ema8GtEma24": false,
+        "macdHist": 0.0846,
+        "macdHistRising": "rising",
+        "masterRiskOn": true,
+        "mmSlopeBear": false,
+        "recoveryOk": false,
+        "distEMA50Pct": 0.21,
+        "distEMA200Pct": 16.92,
+        "entryType": "RSI",
+        "closeBelowEMA8": false,
+        "redCandle": false
+      }
+    },
+    {
+      "n": 7,
+      "entryDate": "2021-12-15",
+      "exitDate": "2021-12-16",
+      "days": 1,
+      "bars": 1,
+      "entryPrice": 41.4475,
+      "exitPrice": 38.285,
+      "pnlPct": -7.63,
+      "outcome": "LOSS",
+      "entryType": "MA+RSI",
+      "exitType": "MA",
+      "intraTradeDDpct": -7.63,
+      "maxOpenProfitPct": 0,
+      "profitGivenBackPct": 7.63,
+      "ctx": {
+        "rsi": 53.05,
+        "rsiSlope3": -1.4,
+        "closeVsEMA8Pct": 2.15,
+        "closeVsEMA24Pct": 2.47,
+        "ema8GtEma24": true,
+        "macdHist": -0.1985,
+        "macdHistRising": "rising",
+        "masterRiskOn": true,
+        "mmSlopeBear": false,
+        "recoveryOk": false,
+        "distEMA50Pct": 5.84,
+        "distEMA200Pct": 27.38,
+        "entryType": "MA+RSI",
+        "closeBelowEMA8": false,
+        "redCandle": false
+      }
+    },
+    {
+      "n": 8,
+      "entryDate": "2021-12-21",
+      "exitDate": "2022-01-06",
+      "days": 16,
+      "bars": 11,
+      "entryPrice": 39.0175,
+      "exitPrice": 37.235,
+      "pnlPct": -4.57,
+      "outcome": "LOSS",
+      "entryType": "RSI",
+      "exitType": "MA",
+      "intraTradeDDpct": -4.57,
+      "maxOpenProfitPct": 11.1,
+      "profitGivenBackPct": 15.67,
+      "ctx": {
+        "rsi": 48.24,
+        "rsiSlope3": 3.01,
+        "closeVsEMA8Pct": 0.27,
+        "closeVsEMA24Pct": -1.79,
+        "ema8GtEma24": false,
+        "macdHist": -0.4296,
+        "macdHistRising": "rising",
+        "masterRiskOn": true,
+        "mmSlopeBear": false,
+        "recoveryOk": false,
+        "distEMA50Pct": 0.11,
+        "distEMA200Pct": 19.15,
+        "entryType": "RSI",
+        "closeBelowEMA8": false,
+        "redCandle": false
+      }
+    },
+    {
+      "n": 9,
+      "entryDate": "2023-03-14",
+      "exitDate": "2023-08-09",
+      "days": 148,
+      "bars": 102,
+      "entryPrice": 11.39,
+      "exitPrice": 19.855,
+      "pnlPct": 74.32,
+      "outcome": "WIN",
+      "entryType": "RSI",
+      "exitType": "MA",
+      "intraTradeDDpct": 0,
+      "maxOpenProfitPct": 103.34,
+      "profitGivenBackPct": 29.02,
+      "ctx": {
+        "rsi": 50.98,
+        "rsiSlope3": 5.97,
+        "closeVsEMA8Pct": 2.62,
+        "closeVsEMA24Pct": 0.86,
+        "ema8GtEma24": false,
+        "macdHist": -0.0878,
+        "macdHistRising": "rising",
+        "masterRiskOn": true,
+        "mmSlopeBear": true,
+        "recoveryOk": true,
+        "distEMA50Pct": 2.15,
+        "distEMA200Pct": -16.51,
+        "entryType": "RSI",
+        "closeBelowEMA8": false,
+        "redCandle": false
+      }
+    },
+    {
+      "n": 10,
+      "entryDate": "2023-08-23",
+      "exitDate": "2023-09-19",
+      "days": 27,
+      "bars": 18,
+      "entryPrice": 19.89,
+      "exitPrice": 19.8,
+      "pnlPct": -0.45,
+      "outcome": "LOSS",
+      "entryType": "RSI",
+      "exitType": "MA",
+      "intraTradeDDpct": -6.59,
+      "maxOpenProfitPct": 6.69,
+      "profitGivenBackPct": 7.14,
+      "ctx": {
+        "rsi": 48.83,
+        "rsiSlope3": 15.31,
+        "closeVsEMA8Pct": 2.92,
+        "closeVsEMA24Pct": -0.58,
+        "ema8GtEma24": false,
+        "macdHist": -0.1413,
+        "macdHistRising": "rising",
+        "masterRiskOn": true,
+        "mmSlopeBear": false,
+        "recoveryOk": false,
+        "distEMA50Pct": 0.91,
+        "distEMA200Pct": 19.17,
+        "entryType": "RSI",
+        "closeBelowEMA8": false,
+        "redCandle": false
+      }
+    },
+    {
+      "n": 11,
+      "entryDate": "2023-10-06",
+      "exitDate": "2023-10-13",
+      "days": 7,
+      "bars": 5,
+      "entryPrice": 18.675,
+      "exitPrice": 18.705,
+      "pnlPct": 0.16,
+      "outcome": "WIN",
+      "entryType": "RSI",
+      "exitType": "MA",
+      "intraTradeDDpct": 0,
+      "maxOpenProfitPct": 5.33,
+      "profitGivenBackPct": 5.17,
+      "ctx": {
+        "rsi": 49.02,
+        "rsiSlope3": 12.83,
+        "closeVsEMA8Pct": 3.36,
+        "closeVsEMA24Pct": -0.14,
+        "ema8GtEma24": false,
+        "macdHist": 0.0271,
+        "macdHistRising": "rising",
+        "masterRiskOn": true,
+        "mmSlopeBear": false,
+        "recoveryOk": false,
+        "distEMA50Pct": -2.56,
+        "distEMA200Pct": 7.56,
+        "entryType": "RSI",
+        "closeBelowEMA8": false,
+        "redCandle": false
+      }
+    },
+    {
+      "n": 12,
+      "entryDate": "2023-11-02",
+      "exitDate": "2024-04-08",
+      "days": 158,
+      "bars": 106,
+      "entryPrice": 18.15,
+      "exitPrice": 29.95,
+      "pnlPct": 65.01,
+      "outcome": "WIN",
+      "entryType": "RSI",
+      "exitType": "MA",
+      "intraTradeDDpct": 0,
+      "maxOpenProfitPct": 73.91,
+      "profitGivenBackPct": 8.9,
+      "ctx": {
+        "rsi": 52.68,
+        "rsiSlope3": 14.82,
+        "closeVsEMA8Pct": 6.44,
+        "closeVsEMA24Pct": 2.85,
+        "ema8GtEma24": false,
+        "macdHist": 0.0383,
+        "macdHistRising": "rising",
+        "masterRiskOn": true,
+        "mmSlopeBear": false,
+        "recoveryOk": false,
+        "distEMA50Pct": -0.92,
+        "distEMA200Pct": 4.15,
+        "entryType": "RSI",
+        "closeBelowEMA8": false,
+        "redCandle": false
+      }
+    },
+    {
+      "n": 13,
+      "entryDate": "2024-04-11",
+      "exitDate": "2024-04-12",
+      "days": 1,
+      "bars": 1,
+      "entryPrice": 30.85,
+      "exitPrice": 29.36,
+      "pnlPct": -4.83,
+      "outcome": "LOSS",
+      "entryType": "MA+RSI",
+      "exitType": "MA",
+      "intraTradeDDpct": -4.83,
+      "maxOpenProfitPct": 0,
+      "profitGivenBackPct": 4.83,
+      "ctx": {
+        "rsi": 54.53,
+        "rsiSlope3": 5.25,
+        "closeVsEMA8Pct": 2.22,
+        "closeVsEMA24Pct": 2.33,
+        "ema8GtEma24": true,
+        "macdHist": -0.099,
+        "macdHistRising": "rising",
+        "masterRiskOn": true,
+        "mmSlopeBear": false,
+        "recoveryOk": false,
+        "distEMA50Pct": 5.23,
+        "distEMA200Pct": 27.98,
+        "entryType": "MA+RSI",
+        "closeBelowEMA8": false,
+        "redCandle": false
+      }
+    },
+    {
+      "n": 14,
+      "entryDate": "2024-04-29",
+      "exitDate": "2024-07-23",
+      "days": 85,
+      "bars": 58,
+      "entryPrice": 27.97,
+      "exitPrice": 36.68,
+      "pnlPct": 31.14,
+      "outcome": "WIN",
+      "entryType": "RSI",
+      "exitType": "MA",
+      "intraTradeDDpct": -7.76,
+      "maxOpenProfitPct": 51.82,
+      "profitGivenBackPct": 20.68,
+      "ctx": {
+        "rsi": 48.59,
+        "rsiSlope3": 6.67,
+        "closeVsEMA8Pct": 2.87,
+        "closeVsEMA24Pct": -0.55,
+        "ema8GtEma24": false,
+        "macdHist": -0.012,
+        "macdHistRising": "rising",
+        "masterRiskOn": true,
+        "mmSlopeBear": false,
+        "recoveryOk": false,
+        "distEMA50Pct": -1.59,
+        "distEMA200Pct": 14.48,
+        "entryType": "RSI",
+        "closeBelowEMA8": false,
+        "redCandle": true
+      }
+    },
+    {
+      "n": 15,
+      "entryDate": "2024-09-11",
+      "exitDate": "2024-11-04",
+      "days": 54,
+      "bars": 38,
+      "entryPrice": 32.285,
+      "exitPrice": 35.135,
+      "pnlPct": 8.83,
+      "outcome": "WIN",
+      "entryType": "RSI",
+      "exitType": "MA",
+      "intraTradeDDpct": 0,
+      "maxOpenProfitPct": 19.06,
+      "profitGivenBackPct": 10.24,
+      "ctx": {
+        "rsi": 49.65,
+        "rsiSlope3": 13.99,
+        "closeVsEMA8Pct": 3.36,
+        "closeVsEMA24Pct": 0.06,
+        "ema8GtEma24": false,
+        "macdHist": -0.2232,
+        "macdHistRising": "rising",
+        "masterRiskOn": true,
+        "mmSlopeBear": false,
+        "recoveryOk": false,
+        "distEMA50Pct": -2.05,
+        "distEMA200Pct": 7.71,
+        "entryType": "RSI",
+        "closeBelowEMA8": false,
+        "redCandle": false
+      }
+    },
+    {
+      "n": 16,
+      "entryDate": "2024-11-18",
+      "exitDate": "2024-12-31",
+      "days": 43,
+      "bars": 29,
+      "entryPrice": 37.885,
+      "exitPrice": 39.565,
+      "pnlPct": 4.43,
+      "outcome": "WIN",
+      "entryType": "RSI",
+      "exitType": "MA",
+      "intraTradeDDpct": 0,
+      "maxOpenProfitPct": 23.12,
+      "profitGivenBackPct": 18.69,
+      "ctx": {
+        "rsi": 49.66,
+        "rsiSlope3": -14.31,
+        "closeVsEMA8Pct": -2.89,
+        "closeVsEMA24Pct": -0.68,
+        "ema8GtEma24": true,
+        "macdHist": -0.1279,
+        "macdHistRising": "falling",
+        "masterRiskOn": true,
+        "mmSlopeBear": false,
+        "recoveryOk": false,
+        "distEMA50Pct": 2.71,
+        "distEMA200Pct": 16.13,
+        "entryType": "RSI",
+        "closeBelowEMA8": true,
+        "redCandle": false
+      }
+    },
+    {
+      "n": 17,
+      "entryDate": "2025-01-15",
+      "exitDate": "2025-02-03",
+      "days": 19,
+      "bars": 12,
+      "entryPrice": 40.44,
+      "exitPrice": 40.36,
+      "pnlPct": -0.2,
+      "outcome": "LOSS",
+      "entryType": "RSI",
+      "exitType": "MA",
+      "intraTradeDDpct": -2.15,
+      "maxOpenProfitPct": 9.22,
+      "profitGivenBackPct": 9.42,
+      "ctx": {
+        "rsi": 48.98,
+        "rsiSlope3": 7.69,
+        "closeVsEMA8Pct": 1.88,
+        "closeVsEMA24Pct": -0.73,
+        "ema8GtEma24": false,
+        "macdHist": -0.3984,
+        "macdHistRising": "rising",
+        "masterRiskOn": true,
+        "mmSlopeBear": false,
+        "recoveryOk": false,
+        "distEMA50Pct": 0.41,
+        "distEMA200Pct": 14.29,
+        "entryType": "RSI",
+        "closeBelowEMA8": false,
+        "redCandle": false
+      }
+    },
+    {
+      "n": 18,
+      "entryDate": "2025-04-24",
+      "exitDate": "2025-11-14",
+      "days": 204,
+      "bars": 142,
+      "entryPrice": 26.07,
+      "exitPrice": 52.37,
+      "pnlPct": 100.88,
+      "outcome": "WIN",
+      "entryType": "RSI",
+      "exitType": "MA",
+      "intraTradeDDpct": 0,
+      "maxOpenProfitPct": 131.32,
+      "profitGivenBackPct": 30.44,
+      "ctx": {
+        "rsi": 49.09,
+        "rsiSlope3": 13.44,
+        "closeVsEMA8Pct": 9.22,
+        "closeVsEMA24Pct": 0.47,
+        "ema8GtEma24": false,
+        "macdHist": 0.5101,
+        "macdHistRising": "rising",
+        "masterRiskOn": true,
+        "mmSlopeBear": false,
+        "recoveryOk": false,
+        "distEMA50Pct": -12.49,
+        "distEMA200Pct": -23.57,
+        "entryType": "RSI",
+        "closeBelowEMA8": false,
+        "redCandle": false
+      }
+    },
+    {
+      "n": 19,
+      "entryDate": "2025-11-25",
+      "exitDate": "2025-12-16",
+      "days": 21,
+      "bars": 14,
+      "entryPrice": 52.01,
+      "exitPrice": 52.33,
+      "pnlPct": 0.62,
+      "outcome": "WIN",
+      "entryType": "RSI",
+      "exitType": "MA",
+      "intraTradeDDpct": 0,
+      "maxOpenProfitPct": 8.92,
+      "profitGivenBackPct": 8.31,
+      "ctx": {
+        "rsi": 48.99,
+        "rsiSlope3": 14.58,
+        "closeVsEMA8Pct": 2.62,
+        "closeVsEMA24Pct": -0.7,
+        "ema8GtEma24": false,
+        "macdHist": -0.5451,
+        "macdHistRising": "rising",
+        "masterRiskOn": true,
+        "mmSlopeBear": false,
+        "recoveryOk": false,
+        "distEMA50Pct": 0.38,
+        "distEMA200Pct": 17.17,
+        "entryType": "RSI",
+        "closeBelowEMA8": false,
+        "redCandle": false
+      }
+    },
+    {
+      "n": 20,
+      "entryDate": "2025-12-19",
+      "exitDate": "2026-01-02",
+      "days": 14,
+      "bars": 8,
+      "entryPrice": 53.52,
+      "exitPrice": 52.35,
+      "pnlPct": -2.19,
+      "outcome": "LOSS",
+      "entryType": "RSI",
+      "exitType": "MA",
+      "intraTradeDDpct": -2.19,
+      "maxOpenProfitPct": 3.44,
+      "profitGivenBackPct": 5.62,
+      "ctx": {
+        "rsi": 50.4,
+        "rsiSlope3": 5.47,
+        "closeVsEMA8Pct": 1.39,
+        "closeVsEMA24Pct": 0.27,
+        "ema8GtEma24": false,
+        "macdHist": -0.3319,
+        "macdHistRising": "rising",
+        "masterRiskOn": true,
+        "mmSlopeBear": false,
+        "recoveryOk": false,
+        "distEMA50Pct": 1.24,
+        "distEMA200Pct": 16.58,
+        "entryType": "RSI",
+        "closeBelowEMA8": false,
+        "redCandle": false
+      }
+    },
+    {
+      "n": 21,
+      "entryDate": "2026-01-22",
+      "exitDate": "2026-02-04",
+      "days": 13,
+      "bars": 9,
+      "entryPrice": 53.9,
+      "exitPrice": 49.76,
+      "pnlPct": -7.68,
+      "outcome": "LOSS",
+      "entryType": "RSI",
+      "exitType": "MA",
+      "intraTradeDDpct": -7.68,
+      "maxOpenProfitPct": 5.86,
+      "profitGivenBackPct": 13.54,
+      "ctx": {
+        "rsi": 50.02,
+        "rsiSlope3": 0.42,
+        "closeVsEMA8Pct": 0.61,
+        "closeVsEMA24Pct": 0,
+        "ema8GtEma24": false,
+        "macdHist": -0.2121,
+        "macdHistRising": "rising",
+        "masterRiskOn": true,
+        "mmSlopeBear": false,
+        "recoveryOk": false,
+        "distEMA50Pct": 0.6,
+        "distEMA200Pct": 13.52,
+        "entryType": "RSI",
+        "closeBelowEMA8": false,
+        "redCandle": true
+      }
+    },
+    {
+      "n": 22,
+      "entryDate": "2026-02-25",
+      "exitDate": "2026-03-20",
+      "days": 23,
+      "bars": 17,
+      "entryPrice": 51.87,
+      "exitPrice": 43.08,
+      "pnlPct": -16.95,
+      "outcome": "LOSS",
+      "entryType": "RSI",
+      "exitType": "L",
+      "intraTradeDDpct": -16.95,
+      "maxOpenProfitPct": 0,
+      "profitGivenBackPct": 16.95,
+      "ctx": {
+        "rsi": 51.79,
+        "rsiSlope3": 6.42,
+        "closeVsEMA8Pct": 3.77,
+        "closeVsEMA24Pct": 1.6,
+        "ema8GtEma24": false,
+        "macdHist": 0.1405,
+        "macdHistRising": "rising",
+        "masterRiskOn": true,
+        "mmSlopeBear": false,
+        "recoveryOk": false,
+        "distEMA50Pct": -0.34,
+        "distEMA200Pct": 7.41,
+        "entryType": "RSI",
+        "closeBelowEMA8": false,
+        "redCandle": false
+      }
+    },
+    {
+      "n": 23,
+      "entryDate": "2026-04-01",
+      "exitDate": "2026-05-29",
+      "days": 58,
+      "bars": 40,
+      "entryPrice": 43.23,
+      "exitPrice": 84.56,
+      "pnlPct": 95.6,
+      "outcome": "WIN",
+      "entryType": "R4",
+      "exitType": "fin de données",
+      "intraTradeDDpct": 0,
+      "maxOpenProfitPct": 95.6,
+      "profitGivenBackPct": 0,
+      "ctx": {
+        "rsi": 44.57,
+        "rsiSlope3": 14.84,
+        "closeVsEMA8Pct": 2.52,
+        "closeVsEMA24Pct": -4.11,
+        "ema8GtEma24": false,
+        "macdHist": -0.2831,
+        "macdHistRising": "rising",
+        "masterRiskOn": false,
+        "mmSlopeBear": false,
+        "recoveryOk": false,
+        "distEMA50Pct": -9.36,
+        "distEMA200Pct": -9.46,
+        "entryType": "?",
+        "closeBelowEMA8": false,
+        "redCandle": false
+      }
+    }
+  ],
+  "winProfile": {
+    "count": 14,
+    "avgPnlPct": 41.76,
+    "avgDays": 91.5,
+    "avgRSI": 49.74,
+    "avgRsiSlope3": 10.08,
+    "avgCloseVsEMA8": 4.45,
+    "avgCloseVsEMA24": 0.34,
+    "pctEma8GtEma24": 7.1,
+    "avgMacdHist": -0.06,
+    "pctHistRising": 92.9,
+    "pctCloseBelowEMA8": 7.1,
+    "pctRedCandle": 7.1,
+    "avgDistEMA50": -2.53,
+    "avgDistEMA200": 5.59,
+    "byEntryType": {
+      "RSI": 13,
+      "R4": 1
+    },
+    "avgIntraDD": -1.42
+  },
+  "lossProfile": {
+    "count": 9,
+    "avgPnlPct": -5.77,
+    "avgDays": 16,
+    "avgRSI": 50.74,
+    "avgRsiSlope3": 5.9,
+    "avgCloseVsEMA8": 2.32,
+    "avgCloseVsEMA24": 0.53,
+    "pctEma8GtEma24": 22.2,
+    "avgMacdHist": -0.2,
+    "pctHistRising": 100,
+    "pctCloseBelowEMA8": 0,
+    "pctRedCandle": 11.1,
+    "avgDistEMA50": 1.93,
+    "avgDistEMA200": 19.58,
+    "byEntryType": {
+      "RSI": 7,
+      "MA+RSI": 2
+    },
+    "avgIntraDD": -6.67
+  },
+  "entryTypeStats": {
+    "RSI": {
+      "total": 20,
+      "wins": 13,
+      "sumPnl": 449.57,
+      "winRatePct": 65,
+      "avgPnlPct": 22.48
+    },
+    "MA+RSI": {
+      "total": 2,
+      "wins": 0,
+      "sumPnl": -12.46,
+      "winRatePct": 0,
+      "avgPnlPct": -6.23
+    },
+    "R4": {
+      "total": 1,
+      "wins": 1,
+      "sumPnl": 95.6,
+      "winRatePct": 100,
+      "avgPnlPct": 95.6
+    }
+  },
+  "filterResults": {
+    "F1": {
+      "key": "F1",
+      "label": "Bloquer entrée normale si close < EMA8",
+      "metrics": {
+        "totalReturnPct": 4181.49,
+        "finalEquity": 428149.25,
+        "maxDrawdownPct": -37.99,
+        "numTrades": 22,
+        "numWins": 13,
+        "numLosses": 9,
+        "winRatePct": 59.09,
+        "profitFactor": 5.9,
+        "exposurePct": 23.18,
+        "avgTradePnlPct": 24.01
+      },
+      "reentryCount": 1,
+      "blockedEntries": 3,
+      "deltaReturnPct": -189.51,
+      "deltaWinRatePct": -1.78,
+      "deltaDDpct": 0,
+      "bigWinners": {
+        "count": 5,
+        "sumPnlPct": 459.3,
+        "years": [
+          "2020",
+          "2023",
+          "2025",
+          "2026"
+        ]
+      },
+      "accept": {
+        "pass": false,
+        "checks": {
+          "returnNearOrBetter": true,
+          "ddNotWorse": true,
+          "tradesReasonable": true,
+          "winRateUp": false,
+          "pfHolds": true,
+          "bigWinnersKept": true
+        }
+      }
+    },
+    "F2": {
+      "key": "F2",
+      "label": "Bloquer entrée normale si EMA8<EMA24 (R4 exempté)",
+      "metrics": {
+        "totalReturnPct": 148.89,
+        "finalEquity": 24889.35,
+        "maxDrawdownPct": -31.51,
+        "numTrades": 16,
+        "numWins": 7,
+        "numLosses": 9,
+        "winRatePct": 43.75,
+        "profitFactor": 2.04,
+        "exposurePct": 14.15,
+        "avgTradePnlPct": 7.78
+      },
+      "reentryCount": 0,
+      "blockedEntries": 28,
+      "deltaReturnPct": -4222.11,
+      "deltaWinRatePct": -17.12,
+      "deltaDDpct": 6.48,
+      "bigWinners": {
+        "count": 2,
+        "sumPnlPct": 112.5,
+        "years": [
+          "2023"
+        ]
+      },
+      "accept": {
+        "pass": false,
+        "checks": {
+          "returnNearOrBetter": false,
+          "ddNotWorse": true,
+          "tradesReasonable": false,
+          "winRateUp": false,
+          "pfHolds": false,
+          "bigWinnersKept": false
+        }
+      }
+    },
+    "F3": {
+      "key": "F3",
+      "label": "Bloquer entrée RSI seule si MACD hist baisse",
+      "metrics": {
+        "totalReturnPct": 4102.09,
+        "finalEquity": 420209.43,
+        "maxDrawdownPct": -37.99,
+        "numTrades": 22,
+        "numWins": 13,
+        "numLosses": 9,
+        "winRatePct": 59.09,
+        "profitFactor": 5.73,
+        "exposurePct": 23.35,
+        "avgTradePnlPct": 23.93
+      },
+      "reentryCount": 1,
+      "blockedEntries": 2,
+      "deltaReturnPct": -268.91,
+      "deltaWinRatePct": -1.78,
+      "deltaDDpct": 0,
+      "bigWinners": {
+        "count": 5,
+        "sumPnlPct": 459.3,
+        "years": [
+          "2020",
+          "2023",
+          "2025",
+          "2026"
+        ]
+      },
+      "accept": {
+        "pass": false,
+        "checks": {
+          "returnNearOrBetter": true,
+          "ddNotWorse": true,
+          "tradesReasonable": true,
+          "winRateUp": false,
+          "pfHolds": true,
+          "bigWinnersKept": true
+        }
+      }
+    },
+    "F4": {
+      "key": "F4",
+      "label": "Bloquer entrée RSI seule si close < EMA8",
+      "metrics": {
+        "totalReturnPct": 4181.49,
+        "finalEquity": 428149.25,
+        "maxDrawdownPct": -37.99,
+        "numTrades": 22,
+        "numWins": 13,
+        "numLosses": 9,
+        "winRatePct": 59.09,
+        "profitFactor": 5.9,
+        "exposurePct": 23.18,
+        "avgTradePnlPct": 24.01
+      },
+      "reentryCount": 1,
+      "blockedEntries": 3,
+      "deltaReturnPct": -189.51,
+      "deltaWinRatePct": -1.78,
+      "deltaDDpct": 0,
+      "bigWinners": {
+        "count": 5,
+        "sumPnlPct": 459.3,
+        "years": [
+          "2020",
+          "2023",
+          "2025",
+          "2026"
+        ]
+      },
+      "accept": {
+        "pass": false,
+        "checks": {
+          "returnNearOrBetter": true,
+          "ddNotWorse": true,
+          "tradesReasonable": true,
+          "winRateUp": false,
+          "pfHolds": true,
+          "bigWinnersKept": true
+        }
+      }
+    },
+    "F5": {
+      "key": "F5",
+      "label": "Entrée RSI valide seulement si RSI>47 ET hist remonte",
+      "metrics": {
+        "totalReturnPct": 4102.09,
+        "finalEquity": 420209.43,
+        "maxDrawdownPct": -37.99,
+        "numTrades": 22,
+        "numWins": 13,
+        "numLosses": 9,
+        "winRatePct": 59.09,
+        "profitFactor": 5.73,
+        "exposurePct": 23.35,
+        "avgTradePnlPct": 23.93
+      },
+      "reentryCount": 1,
+      "blockedEntries": 2,
+      "deltaReturnPct": -268.91,
+      "deltaWinRatePct": -1.78,
+      "deltaDDpct": 0,
+      "bigWinners": {
+        "count": 5,
+        "sumPnlPct": 459.3,
+        "years": [
+          "2020",
+          "2023",
+          "2025",
+          "2026"
+        ]
+      },
+      "accept": {
+        "pass": false,
+        "checks": {
+          "returnNearOrBetter": true,
+          "ddNotWorse": true,
+          "tradesReasonable": true,
+          "winRateUp": false,
+          "pfHolds": true,
+          "bigWinnersKept": true
+        }
+      }
+    },
+    "F6": {
+      "key": "F6",
+      "label": "Entrée RSI valide seulement si RSI>47 ET close>EMA8",
+      "metrics": {
+        "totalReturnPct": 4181.49,
+        "finalEquity": 428149.25,
+        "maxDrawdownPct": -37.99,
+        "numTrades": 22,
+        "numWins": 13,
+        "numLosses": 9,
+        "winRatePct": 59.09,
+        "profitFactor": 5.9,
+        "exposurePct": 23.18,
+        "avgTradePnlPct": 24.01
+      },
+      "reentryCount": 1,
+      "blockedEntries": 3,
+      "deltaReturnPct": -189.51,
+      "deltaWinRatePct": -1.78,
+      "deltaDDpct": 0,
+      "bigWinners": {
+        "count": 5,
+        "sumPnlPct": 459.3,
+        "years": [
+          "2020",
+          "2023",
+          "2025",
+          "2026"
+        ]
+      },
+      "accept": {
+        "pass": false,
+        "checks": {
+          "returnNearOrBetter": true,
+          "ddNotWorse": true,
+          "tradesReasonable": true,
+          "winRateUp": false,
+          "pfHolds": true,
+          "bigWinnersKept": true
+        }
+      }
+    },
+    "F7": {
+      "key": "F7",
+      "label": "Entrée normale valide seulement si close>EMA8 OU MA8 croise MA24",
+      "metrics": {
+        "totalReturnPct": 4181.49,
+        "finalEquity": 428149.25,
+        "maxDrawdownPct": -37.99,
+        "numTrades": 22,
+        "numWins": 13,
+        "numLosses": 9,
+        "winRatePct": 59.09,
+        "profitFactor": 5.9,
+        "exposurePct": 23.18,
+        "avgTradePnlPct": 24.01
+      },
+      "reentryCount": 1,
+      "blockedEntries": 3,
+      "deltaReturnPct": -189.51,
+      "deltaWinRatePct": -1.78,
+      "deltaDDpct": 0,
+      "bigWinners": {
+        "count": 5,
+        "sumPnlPct": 459.3,
+        "years": [
+          "2020",
+          "2023",
+          "2025",
+          "2026"
+        ]
+      },
+      "accept": {
+        "pass": false,
+        "checks": {
+          "returnNearOrBetter": true,
+          "ddNotWorse": true,
+          "tradesReasonable": true,
+          "winRateUp": false,
+          "pfHolds": true,
+          "bigWinnersKept": true
+        }
+      }
+    },
+    "F8": {
+      "key": "F8",
+      "label": "Après une perte, cooldown 2 -> 5 barres",
+      "metrics": {
+        "totalReturnPct": 4249.86,
+        "finalEquity": 434985.93,
+        "maxDrawdownPct": -42.43,
+        "numTrades": 22,
+        "numWins": 14,
+        "numLosses": 8,
+        "winRatePct": 63.64,
+        "profitFactor": 6.04,
+        "exposurePct": 23.59,
+        "avgTradePnlPct": 24.01
+      },
+      "reentryCount": 1,
+      "blockedEntries": 0,
+      "deltaReturnPct": -121.14,
+      "deltaWinRatePct": 2.77,
+      "deltaDDpct": -4.44,
+      "bigWinners": {
+        "count": 5,
+        "sumPnlPct": 459.3,
+        "years": [
+          "2020",
+          "2023",
+          "2025",
+          "2026"
+        ]
+      },
+      "accept": {
+        "pass": false,
+        "checks": {
+          "returnNearOrBetter": true,
+          "ddNotWorse": false,
+          "tradesReasonable": true,
+          "winRateUp": true,
+          "pfHolds": true,
+          "bigWinnersKept": true
+        }
+      }
+    },
+    "F9": {
+      "key": "F9",
+      "label": "Pas d'entrée si bougie rouge ET MACD hist baisse",
+      "metrics": {
+        "totalReturnPct": 4371,
+        "finalEquity": 447100.29,
+        "maxDrawdownPct": -37.99,
+        "numTrades": 23,
+        "numWins": 14,
+        "numLosses": 9,
+        "winRatePct": 60.87,
+        "profitFactor": 5.93,
+        "exposurePct": 23.88,
+        "avgTradePnlPct": 23.16
+      },
+      "reentryCount": 1,
+      "blockedEntries": 0,
+      "deltaReturnPct": 0,
+      "deltaWinRatePct": 0,
+      "deltaDDpct": 0,
+      "bigWinners": {
+        "count": 5,
+        "sumPnlPct": 459.3,
+        "years": [
+          "2020",
+          "2023",
+          "2025",
+          "2026"
+        ]
+      },
+      "accept": {
+        "pass": false,
+        "checks": {
+          "returnNearOrBetter": true,
+          "ddNotWorse": true,
+          "tradesReasonable": true,
+          "winRateUp": false,
+          "pfHolds": true,
+          "bigWinnersKept": true
+        }
+      }
+    },
+    "F10": {
+      "key": "F10",
+      "label": "Pas d'entrée si close<EMA24 ET MACD hist baisse",
+      "metrics": {
+        "totalReturnPct": 4102.09,
+        "finalEquity": 420209.43,
+        "maxDrawdownPct": -37.99,
+        "numTrades": 22,
+        "numWins": 13,
+        "numLosses": 9,
+        "winRatePct": 59.09,
+        "profitFactor": 5.73,
+        "exposurePct": 23.35,
+        "avgTradePnlPct": 23.93
+      },
+      "reentryCount": 1,
+      "blockedEntries": 2,
+      "deltaReturnPct": -268.91,
+      "deltaWinRatePct": -1.78,
+      "deltaDDpct": 0,
+      "bigWinners": {
+        "count": 5,
+        "sumPnlPct": 459.3,
+        "years": [
+          "2020",
+          "2023",
+          "2025",
+          "2026"
+        ]
+      },
+      "accept": {
+        "pass": false,
+        "checks": {
+          "returnNearOrBetter": true,
+          "ddNotWorse": true,
+          "tradesReasonable": true,
+          "winRateUp": false,
+          "pfHolds": true,
+          "bigWinnersKept": true
+        }
+      }
+    }
+  },
+  "exitResults": {
+    "S1": {
+      "key": "S1",
+      "label": "Si perte <= -5% ET close<EMA8 -> sortir",
+      "metrics": {
+        "totalReturnPct": 1909.87,
+        "finalEquity": 200987.38,
+        "maxDrawdownPct": -37.99,
+        "numTrades": 25,
+        "numWins": 13,
+        "numLosses": 12,
+        "winRatePct": 52,
+        "profitFactor": 3.97,
+        "exposurePct": 22.18,
+        "avgTradePnlPct": 16.94
+      },
+      "reentryCount": 0,
+      "blockedEntries": 0,
+      "deltaReturnPct": -2461.13,
+      "deltaWinRatePct": -8.87,
+      "deltaDDpct": 0,
+      "bigWinners": {
+        "count": 4,
+        "sumPnlPct": 363.7,
+        "years": [
+          "2020",
+          "2023",
+          "2025"
+        ]
+      },
+      "accept": {
+        "pass": false,
+        "checks": {
+          "returnNearOrBetter": false,
+          "ddNotWorse": true,
+          "tradesReasonable": true,
+          "winRateUp": false,
+          "pfHolds": false,
+          "bigWinnersKept": false
+        }
+      }
+    },
+    "S2": {
+      "key": "S2",
+      "label": "Si perte <= -7% ET MACD hist baisse -> sortir",
+      "metrics": {
+        "totalReturnPct": 1695.44,
+        "finalEquity": 179543.61,
+        "maxDrawdownPct": -37.99,
+        "numTrades": 22,
+        "numWins": 12,
+        "numLosses": 10,
+        "winRatePct": 54.55,
+        "profitFactor": 4.08,
+        "exposurePct": 21.2,
+        "avgTradePnlPct": 18.54
+      },
+      "reentryCount": 0,
+      "blockedEntries": 0,
+      "deltaReturnPct": -2675.56,
+      "deltaWinRatePct": -6.32,
+      "deltaDDpct": 0,
+      "bigWinners": {
+        "count": 4,
+        "sumPnlPct": 363.7,
+        "years": [
+          "2020",
+          "2023",
+          "2025"
+        ]
+      },
+      "accept": {
+        "pass": false,
+        "checks": {
+          "returnNearOrBetter": false,
+          "ddNotWorse": true,
+          "tradesReasonable": true,
+          "winRateUp": false,
+          "pfHolds": false,
+          "bigWinnersKept": false
+        }
+      }
+    },
+    "S3": {
+      "key": "S3",
+      "label": "Si perte <= -8% ET close<EMA24 -> sortir",
+      "metrics": {
+        "totalReturnPct": 2422.53,
+        "finalEquity": 252253.34,
+        "maxDrawdownPct": -37.99,
+        "numTrades": 22,
+        "numWins": 13,
+        "numLosses": 9,
+        "winRatePct": 59.09,
+        "profitFactor": 4.73,
+        "exposurePct": 22.64,
+        "avgTradePnlPct": 20.26
+      },
+      "reentryCount": 0,
+      "blockedEntries": 0,
+      "deltaReturnPct": -1948.47,
+      "deltaWinRatePct": -1.78,
+      "deltaDDpct": 0,
+      "bigWinners": {
+        "count": 4,
+        "sumPnlPct": 363.7,
+        "years": [
+          "2020",
+          "2023",
+          "2025"
+        ]
+      },
+      "accept": {
+        "pass": false,
+        "checks": {
+          "returnNearOrBetter": false,
+          "ddNotWorse": true,
+          "tradesReasonable": true,
+          "winRateUp": false,
+          "pfHolds": false,
+          "bigWinnersKept": false
+        }
+      }
+    },
+    "S4": {
+      "key": "S4",
+      "label": "Si close casse low5 avant d'atteindre +10% -> sortir",
+      "metrics": {
+        "totalReturnPct": 3151.67,
+        "finalEquity": 325167.45,
+        "maxDrawdownPct": -37.99,
+        "numTrades": 26,
+        "numWins": 17,
+        "numLosses": 9,
+        "winRatePct": 65.38,
+        "profitFactor": 5.11,
+        "exposurePct": 22.62,
+        "avgTradePnlPct": 19.07
+      },
+      "reentryCount": 1,
+      "blockedEntries": 0,
+      "deltaReturnPct": -1219.33,
+      "deltaWinRatePct": 4.51,
+      "deltaDDpct": 0,
+      "bigWinners": {
+        "count": 5,
+        "sumPnlPct": 459.3,
+        "years": [
+          "2020",
+          "2023",
+          "2025",
+          "2026"
+        ]
+      },
+      "accept": {
+        "pass": false,
+        "checks": {
+          "returnNearOrBetter": false,
+          "ddNotWorse": true,
+          "tradesReasonable": true,
+          "winRateUp": true,
+          "pfHolds": true,
+          "bigWinnersKept": true
+        }
+      }
+    },
+    "S5": {
+      "key": "S5",
+      "label": "Si jamais +5% après 10j ET close<EMA8 -> sortir",
+      "metrics": {
+        "totalReturnPct": 2211.31,
+        "finalEquity": 231130.56,
+        "maxDrawdownPct": -37.99,
+        "numTrades": 23,
+        "numWins": 13,
+        "numLosses": 10,
+        "winRatePct": 56.52,
+        "profitFactor": 4.37,
+        "exposurePct": 22.64,
+        "avgTradePnlPct": 19.01
+      },
+      "reentryCount": 0,
+      "blockedEntries": 0,
+      "deltaReturnPct": -2159.69,
+      "deltaWinRatePct": -4.35,
+      "deltaDDpct": 0,
+      "bigWinners": {
+        "count": 4,
+        "sumPnlPct": 363.7,
+        "years": [
+          "2020",
+          "2023",
+          "2025"
+        ]
+      },
+      "accept": {
+        "pass": false,
+        "checks": {
+          "returnNearOrBetter": false,
+          "ddNotWorse": true,
+          "tradesReasonable": true,
+          "winRateUp": false,
+          "pfHolds": false,
+          "bigWinnersKept": false
+        }
+      }
+    },
+    "S6": {
+      "key": "S6",
+      "label": "Si négatif après 15j ET EMA8<EMA24 -> sortir",
+      "metrics": {
+        "totalReturnPct": 2346.13,
+        "finalEquity": 244612.69,
+        "maxDrawdownPct": -37.99,
+        "numTrades": 22,
+        "numWins": 13,
+        "numLosses": 9,
+        "winRatePct": 59.09,
+        "profitFactor": 4.23,
+        "exposurePct": 22.83,
+        "avgTradePnlPct": 20.13
+      },
+      "reentryCount": 0,
+      "blockedEntries": 0,
+      "deltaReturnPct": -2024.87,
+      "deltaWinRatePct": -1.78,
+      "deltaDDpct": 0,
+      "bigWinners": {
+        "count": 4,
+        "sumPnlPct": 363.7,
+        "years": [
+          "2020",
+          "2023",
+          "2025"
+        ]
+      },
+      "accept": {
+        "pass": false,
+        "checks": {
+          "returnNearOrBetter": false,
+          "ddNotWorse": true,
+          "tradesReasonable": true,
+          "winRateUp": false,
+          "pfHolds": false,
+          "bigWinnersKept": false
+        }
+      }
+    }
+  },
+  "best": {
+    "return": {
+      "key": "F8",
+      "label": "Après une perte, cooldown 2 -> 5 barres",
+      "metrics": {
+        "totalReturnPct": 4249.86,
+        "finalEquity": 434985.93,
+        "maxDrawdownPct": -42.43,
+        "numTrades": 22,
+        "numWins": 14,
+        "numLosses": 8,
+        "winRatePct": 63.64,
+        "profitFactor": 6.04,
+        "exposurePct": 23.59,
+        "avgTradePnlPct": 24.01
+      },
+      "deltaReturnPct": -121.14,
+      "deltaWinRatePct": 2.77,
+      "deltaDDpct": -4.44,
+      "accept": {
+        "pass": false,
+        "checks": {
+          "returnNearOrBetter": true,
+          "ddNotWorse": false,
+          "tradesReasonable": true,
+          "winRateUp": true,
+          "pfHolds": true,
+          "bigWinnersKept": true
+        }
+      },
+      "bigWinners": {
+        "count": 5,
+        "sumPnlPct": 459.3,
+        "years": [
+          "2020",
+          "2023",
+          "2025",
+          "2026"
+        ]
+      }
+    },
+    "winRate": {
+      "key": "S4",
+      "label": "Si close casse low5 avant d'atteindre +10% -> sortir",
+      "metrics": {
+        "totalReturnPct": 3151.67,
+        "finalEquity": 325167.45,
+        "maxDrawdownPct": -37.99,
+        "numTrades": 26,
+        "numWins": 17,
+        "numLosses": 9,
+        "winRatePct": 65.38,
+        "profitFactor": 5.11,
+        "exposurePct": 22.62,
+        "avgTradePnlPct": 19.07
+      },
+      "deltaReturnPct": -1219.33,
+      "deltaWinRatePct": 4.51,
+      "deltaDDpct": 0,
+      "accept": {
+        "pass": false,
+        "checks": {
+          "returnNearOrBetter": false,
+          "ddNotWorse": true,
+          "tradesReasonable": true,
+          "winRateUp": true,
+          "pfHolds": true,
+          "bigWinnersKept": true
+        }
+      },
+      "bigWinners": {
+        "count": 5,
+        "sumPnlPct": 459.3,
+        "years": [
+          "2020",
+          "2023",
+          "2025",
+          "2026"
+        ]
+      }
+    },
+    "compromise": {
+      "key": "F8",
+      "label": "Après une perte, cooldown 2 -> 5 barres",
+      "metrics": {
+        "totalReturnPct": 4249.86,
+        "finalEquity": 434985.93,
+        "maxDrawdownPct": -42.43,
+        "numTrades": 22,
+        "numWins": 14,
+        "numLosses": 8,
+        "winRatePct": 63.64,
+        "profitFactor": 6.04,
+        "exposurePct": 23.59,
+        "avgTradePnlPct": 24.01
+      },
+      "deltaReturnPct": -121.14,
+      "deltaWinRatePct": 2.77,
+      "deltaDDpct": -4.44,
+      "accept": {
+        "pass": false,
+        "checks": {
+          "returnNearOrBetter": true,
+          "ddNotWorse": false,
+          "tradesReasonable": true,
+          "winRateUp": true,
+          "pfHolds": true,
+          "bigWinnersKept": true
+        }
+      },
+      "bigWinners": {
+        "count": 5,
+        "sumPnlPct": 459.3,
+        "years": [
+          "2020",
+          "2023",
+          "2025",
+          "2026"
+        ]
+      }
+    },
+    "acceptedCount": 0,
+    "nearMiss": [
+      {
+        "key": "F8",
+        "fail": "ddNotWorse"
+      },
+      {
+        "key": "S4",
+        "fail": "returnNearOrBetter"
+      }
+    ],
+    "noopVariants": [
+      "F9"
+    ]
+  }
+}

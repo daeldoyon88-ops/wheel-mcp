@@ -74,9 +74,9 @@ function validPolicy() {
 
 test('L4B-I1 keeps exactly eight macro schemas registered: 129 total, all unique', () => {
   assert.equal(MACRO_INGESTION_L4B_SCHEMA_VERSIONS.length, 8);
-  assert.equal(SNAPSHOT_NAMESPACE_SCHEMA_VERSIONS.length, 129);
-  assert.equal(new Set(SNAPSHOT_NAMESPACE_SCHEMA_VERSIONS).size, 129);
-  assert.deepEqual(SNAPSHOT_NAMESPACE_SCHEMA_VERSIONS.slice(-40, -32),
+  assert.equal(SNAPSHOT_NAMESPACE_SCHEMA_VERSIONS.length, 135);
+  assert.equal(new Set(SNAPSHOT_NAMESPACE_SCHEMA_VERSIONS).size, 135);
+  assert.deepEqual(SNAPSHOT_NAMESPACE_SCHEMA_VERSIONS.slice(-46, -38),
     [...MACRO_INGESTION_L4B_SCHEMA_VERSIONS]);
 });
 

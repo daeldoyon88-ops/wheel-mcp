@@ -7,7 +7,11 @@ import {
   buildTickerPipelineDiagnostic,
   buildTickerPipelineTraceSteps,
   buildWatchlistRejectedBySymbol,
+  buildYahooErrorsBySymbol,
+  buildYahooIbkrFunnel,
   buildYahooRejectedBySymbol,
+  classifyYahooMotif,
+  YAHOO_MOTIF,
   isOtmRebuildRequired,
   normalizeTickerQueryForDiagnostic,
   resolveOtmProbeTraceability,
@@ -436,4 +440,62 @@ test("buildTickerPipelineDiagnostic — APLD compact IBKR + sélection ISO", () 
   });
   assert.notEqual(d.lostAtStep, "ui_expiration_filter");
   assert.equal(d.presentInFilteredCards, true);
+});
+
+test("classifyYahooMotif — six catégories et UNKNOWN, jamais Depth", () => {
+  assert.equal(classifyYahooMotif({ requested: true, returned: false }).class, YAHOO_MOTIF.NOT_RETURNED);
+  assert.equal(classifyYahooMotif({ observedReason: "expiration_not_available" }).class, YAHOO_MOTIF.INVALID_RESPONSE);
+  assert.equal(classifyYahooMotif({ observedError: "timeout yahoo" }).class, YAHOO_MOTIF.YAHOO_ERROR);
+  assert.equal(classifyYahooMotif({ observedReason: "premium_below_target" }).class, YAHOO_MOTIF.FINANCIAL_FILTER);
+  assert.equal(classifyYahooMotif({ observedReason: "crypto_blocked_except_bitx" }).class, YAHOO_MOTIF.INTERNAL_EXCLUSION);
+  assert.equal(classifyYahooMotif({ observedReason: "excluded_by_watchlist_limit" }).class, YAHOO_MOTIF.CAPACITY_LIMIT);
+  assert.equal(classifyYahooMotif({ observedReason: "not_ok", requested: true, returned: false }).class, YAHOO_MOTIF.NOT_RETURNED);
+  assert.equal(classifyYahooMotif({}).class, YAHOO_MOTIF.UNKNOWN);
+  assert.equal(classifyYahooMotif({ observedReason: "filtered_out" }).display, YAHOO_MOTIF.UNKNOWN);
+  for (const row of [
+    classifyYahooMotif({ requested: true, returned: false }),
+    classifyYahooMotif({}),
+  ]) {
+    assert.doesNotMatch(row.display, /depth|topN/i);
+  }
+});
+
+test("buildYahooIbkrFunnel — absence de réponse n'est pas une exclusion Depth", () => {
+  const requested = Array.from({ length: 400 }, (_, i) => `S${String(i).padStart(3, "0")}`);
+  const returned = requested.slice(0, 264).map((ticker) => ({ ticker }));
+  const yahooRejectedBySymbol = {
+    S264: { reason: "premium_below_target" },
+    S265: { reason: "expiration_not_available" },
+    S266: { reason: null },
+  };
+  const rows = buildYahooIbkrFunnel({
+    tickersForScan: requested,
+    yahooReturnedCandidates: returned,
+    yahooRejectedBySymbol,
+    yahooErrorsBySymbol: { S267: { error: "boom" } },
+    ibkrDirectSentTickers: requested.slice(0, 264),
+  }, { limit: 500 });
+  assert.equal(rows.length, 400);
+  const missing = rows.filter((row) => !row.yahooReturned);
+  assert.equal(missing.length, 136);
+  for (const row of missing) {
+    assert.equal(row.yahooReturned, false);
+    assert.doesNotMatch(String(row.reason), /depth|topN/i);
+    assert.notEqual(row.stageLost, "ibkr_send");
+  }
+  const byTicker = new Map(rows.map((row) => [row.ticker, row]));
+  assert.equal(byTicker.get("S264").yahooDisposition, YAHOO_MOTIF.FINANCIAL_FILTER);
+  assert.equal(byTicker.get("S265").yahooDisposition, YAHOO_MOTIF.INVALID_RESPONSE);
+  assert.equal(byTicker.get("S266").yahooDisposition, YAHOO_MOTIF.NOT_RETURNED);
+  assert.equal(byTicker.get("S267").yahooDisposition, YAHOO_MOTIF.YAHOO_ERROR);
+  assert.equal(byTicker.get("S300").yahooDisposition, YAHOO_MOTIF.NOT_RETURNED);
+  const cut = buildPreIbkrCutTickerList({
+    tickersForScan: ["S300"],
+    yahooReturnedCandidates: [],
+    yahooRejectedBySymbol: {},
+    ibkrDirectSentTickers: [],
+  });
+  assert.equal(cut.find((row) => row.ticker === "S300").reason, YAHOO_MOTIF.NOT_RETURNED);
+  assert.doesNotMatch(cut.find((row) => row.ticker === "S300").reason, /scan_failed|depth|topN/i);
+  assert.equal(buildYahooErrorsBySymbol([{ symbol: "S267", error: "boom" }]).S267.error, "boom");
 });

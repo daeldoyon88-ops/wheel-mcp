@@ -426,6 +426,21 @@ export function createWheelScanner(marketService) {
         : Promise.resolve({ symbol, diagnosticsV12Market: null }),
     ]);
 
+    if (optionChain?.expirationMismatch === true) {
+      return {
+        symbol,
+        ok: false,
+        reason: "yahoo_chain_expiration_mismatch",
+        debug: {
+          requestedExpiration: optionChain.requestedExpiration ?? normalizedExpiration,
+          returnedExpiration: optionChain.returnedExpiration ?? null,
+          expirationMismatchReason: optionChain.expirationMismatchReason,
+          contractCount: optionChain.contractCount ?? null,
+          expectedMoveMethod: expectedMove?.method ?? null,
+        },
+      };
+    }
+
     const spot =
       toNumber(quote?.regularMarketPrice) ||
       toNumber(optionChain?.currentPrice) ||
@@ -1014,11 +1029,43 @@ export function createWheelScanner(marketService) {
         reasonKept,
         safeSelectionMode: strikeSelection.safeSelectionMode,
         strikeDebug,
+        expectedMoveAbsSource: moveSource,
+        expectedMoveFallbacksTried: [
+          serviceExpectedMove > 0 ? "service_expected_move" : null,
+          weightedOptionsMoveAbs > 0 ? "weighted_options" : null,
+          straddleMoveAbs > 0 ? "atm_straddle" : null,
+          ivMoveAbs > 0 ? "iv_fallback" : null,
+          "minimum_fallback",
+        ].filter(Boolean),
+        requestedExpiration: optionChain?.requestedExpiration ?? normalizedExpiration,
+        returnedExpiration: optionChain?.returnedExpiration ?? null,
+        expirationMismatch: optionChain?.expirationMismatch === true,
+        yahooContractCount: optionChain?.contractCount ?? (puts.length + calls.length),
       },
     };
   }
 
-  async function scanShortlist({ expiration, tickers = [], topN = 20, sort = "yield" }) {
+  function sortShortlist(shortlist, sort) {
+    if (sort === "quality") {
+      shortlist.sort((a, b) => {
+        const qualityDiff = toNumber(b?.qualityScore) - toNumber(a?.qualityScore);
+        if (qualityDiff !== 0) return qualityDiff;
+        return toNumber(b?.safeStrike?.annualizedYield) - toNumber(a?.safeStrike?.annualizedYield);
+      });
+    } else if (sort === "score") {
+      shortlist.sort((a, b) => {
+        const scoreDiff = toNumber(b?.finalScore) - toNumber(a?.finalScore);
+        if (scoreDiff !== 0) return scoreDiff;
+        return toNumber(b?.safeStrike?.annualizedYield) - toNumber(a?.safeStrike?.annualizedYield);
+      });
+    } else {
+      shortlist.sort(
+        (a, b) => toNumber(b?.safeStrike?.annualizedYield) - toNumber(a?.safeStrike?.annualizedYield)
+      );
+    }
+  }
+
+  async function scanShortlist({ expiration, tickers = [], topN = 20, sort = "yield" }, context = {}) {
     const normalizedExpiration = normalizeExpirationInput(expiration);
     if (!normalizedExpiration) {
       return { status: 400, payload: { ok: false, error: "expiration is required" } };
@@ -1053,7 +1100,7 @@ export function createWheelScanner(marketService) {
 
     const funnelDiag = isYahooFunnelDiagnosticsV1Enabled();
     /** @type {Map<string, Record<string, unknown>> | null} */
-    const scanBySymbol = funnelDiag ? new Map() : null;
+    const scanBySymbol = funnelDiag ? context.scanBySymbol ?? new Map() : null;
     let completedScanCount = 0;
 
     function tagLiquiditySource(item, liquiditySource, noYahooLiquidity) {
@@ -1084,6 +1131,7 @@ export function createWheelScanner(marketService) {
     }
 
     for (let i = 0; i < cleanedTickers.length; i += BATCH_SIZE) {
+      if (context.signal?.aborted) break;
       const batch = cleanedTickers.slice(i, i + BATCH_SIZE);
       const batchResults = await Promise.allSettled(
         batch.map((symbol) => scanTicker(symbol, normalizedExpiration))
@@ -1138,23 +1186,7 @@ export function createWheelScanner(marketService) {
       }
     }
 
-    if (sort === "quality") {
-      shortlist.sort((a, b) => {
-        const qualityDiff = toNumber(b?.qualityScore) - toNumber(a?.qualityScore);
-        if (qualityDiff !== 0) return qualityDiff;
-        return toNumber(b?.safeStrike?.annualizedYield) - toNumber(a?.safeStrike?.annualizedYield);
-      });
-    } else if (sort === "score") {
-      shortlist.sort((a, b) => {
-        const scoreDiff = toNumber(b?.finalScore) - toNumber(a?.finalScore);
-        if (scoreDiff !== 0) return scoreDiff;
-        return toNumber(b?.safeStrike?.annualizedYield) - toNumber(a?.safeStrike?.annualizedYield);
-      });
-    } else {
-      shortlist.sort(
-        (a, b) => toNumber(b?.safeStrike?.annualizedYield) - toNumber(a?.safeStrike?.annualizedYield)
-      );
-    }
+    sortShortlist(shortlist, sort);
 
     const challengerCount = sort === "quality" && topN >= 30 ? 10 : 0;
     const returnLimit = topN + challengerCount;
@@ -1176,7 +1208,7 @@ export function createWheelScanner(marketService) {
       payload: {
         ok: true,
         expiration: normalizedExpiration,
-        scanned: cleanedTickers.length,
+        scanned: completedScanCount,
         kept: shortlist.length,
         returned: Math.min(returnLimit, shortlist.length),
         requestedTopN: topN,
@@ -1191,5 +1223,74 @@ export function createWheelScanner(marketService) {
     };
   }
 
-  return { scanTicker, scanShortlist };
+  // One HTTP request; the 200-symbol primitive and its eight workers stay bounded.
+  async function scanShortlistContinued({ expiration, tickers = [], maxTickers = 400, topN = 20, sort = "yield", signal } = {}) {
+    const normalizedExpiration = normalizeExpirationInput(expiration);
+    if (!normalizedExpiration) return { status: 400, payload: { ok: false, error: "expiration is required" } };
+    if (!Array.isArray(tickers) || !tickers.length) return { status: 400, payload: { ok: false, error: "tickers must be a non-empty array" } };
+    if (!Number.isInteger(maxTickers) || maxTickers < 1 || maxTickers > 400 ||
+        !Number.isInteger(topN) || topN < 1 || topN > 400) {
+      return { status: 400, payload: { ok: false, error: "maxTickers and topN must be integers from 1 to 400" } };
+    }
+    const available = [...new Set(tickers.map(t => String(t || "").trim().toUpperCase()).filter(Boolean))];
+    if (!available.length) return { status: 400, payload: { ok: false, error: "tickers must contain a symbol" } };
+    const selected = available.slice(0, maxTickers);
+    const shortlist = [], rejected = [], errors = [], batches = [];
+    const rejectionReasonCounts = {}, stageRejectCounts = {};
+    const scanBySymbol = new Map();
+    let scanned = 0, stopReason = null;
+    for (let cursor = 0; cursor < selected.length; cursor += MAX_SCAN_TICKERS) {
+      if (signal?.aborted) { stopReason = "aborted"; break; }
+      const batch = selected.slice(cursor, cursor + MAX_SCAN_TICKERS);
+      let result;
+      try {
+        // At most one candidate per symbol: topN=200 retains EVERY batch survivor.
+        result = await scanShortlist({ expiration: normalizedExpiration, tickers: batch, topN: MAX_SCAN_TICKERS, sort }, { scanBySymbol, signal });
+      } catch (error) {
+        stopReason = "batch_failed";
+        batches.push({ requested: batch.length, scanned: 0, complete: false, error: error?.message || "batch_failed" });
+        break;
+      }
+      if (result.status !== 200 || result.payload?.ok !== true) {
+        stopReason = "batch_failed";
+        batches.push({ requested: batch.length, scanned: 0, complete: false, error: result.payload?.error || "batch_failed" });
+        break;
+      }
+      const p = result.payload;
+      shortlist.push(...p.shortlist);
+      rejected.push(...p.rejected);
+      errors.push(...p.errors);
+      scanned += p.scanned;
+      for (const [key, value] of Object.entries(p.rejectionReasonCounts)) rejectionReasonCounts[key] = (rejectionReasonCounts[key] || 0) + value;
+      for (const [key, value] of Object.entries(p.stageRejectCounts)) stageRejectCounts[key] = (stageRejectCounts[key] || 0) + value;
+      batches.push({ requested: batch.length, scanned: p.scanned, complete: p.scanned === batch.length });
+      if (p.scanned !== batch.length) { stopReason = signal?.aborted ? "aborted" : "batch_incomplete"; break; }
+    }
+    sortShortlist(shortlist, sort);
+    const challengerCount = sort === "quality" && topN >= 30 ? 10 : 0;
+    const returnLimit = topN + challengerCount;
+    const complete = scanned === selected.length;
+    const scanFunnelDiagnosticsV1 = isYahooFunnelDiagnosticsV1Enabled()
+      ? buildScanFunnelDiagnosticsV1({ cleanedTickers: selected, shortlistFullSorted: shortlist, rejected, errors, scanBySymbol, returnLimit, completedScanCount: scanned })
+      : null;
+    return {
+      status: 200,
+      payload: {
+        ok: true, expiration: normalizedExpiration, scanned, kept: shortlist.length,
+        returned: Math.min(returnLimit, shortlist.length), requestedTopN: topN, challengerCount,
+        shortlist: shortlist.slice(0, returnLimit), rejected, errors, rejectionReasonCounts, stageRejectCounts,
+        ...(scanFunnelDiagnosticsV1 ? { scanFunnelDiagnosticsV1 } : {}),
+        scanCapacity: {
+          requested: maxTickers, available: available.length, selected: selected.length, scanned,
+          limitedByRequest: Math.max(0, available.length - selected.length),
+          poolInsufficient: available.length < maxTickers, complete, stopReason,
+          status: !complete ? "incomplete" : errors.length ? "partial_errors" : "complete",
+          plannedBatches: Math.ceil(selected.length / MAX_SCAN_TICKERS), batches,
+          unprocessedTickers: selected.slice(scanned),
+        },
+      },
+    };
+  }
+
+  return { scanTicker, scanShortlist, scanShortlistContinued };
 }

@@ -14,6 +14,7 @@ import {
   resolveLegExecutionLiquidity,
   resolveLegDte,
 } from "./capitalComboPortfolio.js";
+import { selectPrincipalThreeLegFromRow } from "./threeLegSelection.js";
 
 export const DASHBOARD_MODE_FILTER_OPTIONS = Object.freeze([
   Object.freeze({ value: "all", label: "Mode: Tous" }),
@@ -161,22 +162,24 @@ function resolveUnderlyingLegMode(source) {
  * - recommandation du scan (contour vert, badge principal) ;
  * - appartenances aux portefeuilles SAFE/BALANCED/AGGRESSIVE (informations
  *   secondaires uniquement, jamais le contour).
- * Cas A confirmé par audit : getFinalDisplayRecommendation ne retourne que
- * SAFE, AGGRESSIVE ou REJECT — la recommandation canonique du scan ne vaut
- * jamais BALANCED, donc isBalancedScanRecommended est toujours false.
+ * Le contour suit le choix principal à trois jambes. isBalancedScanRecommended
+ * n'est vrai que pour une gagnante BALANCED_NATIVE. Un fallback reste SAFE
+ * ou AGGRESSIVE. Les appartenances de portefeuille restent secondaires.
  */
 export function resolveScanRecommendationSemantics(row) {
-  const recommendation = getFinalDisplayRecommendation(row);
-  const scanRecommendationMode = recommendation.finalDisplayMode;
+  const principal = selectPrincipalThreeLegFromRow(row);
+  const scanRecommendationMode = principal.finalDisplayMode;
   const isInSafePortfolio = row?.selectedForSafe === true;
   const isInBalancedPortfolio = row?.selectedForBalanced === true;
   const isInAggressivePortfolio = row?.selectedForAggressive === true;
   return {
     scanRecommendationMode,
-    scanRecommendationGrade: recommendation.finalDisplayGrade,
+    scanRecommendationGrade: principal.finalDisplayGrade,
     isSafeScanRecommended: scanRecommendationMode === "SAFE",
     isAggressiveScanRecommended: scanRecommendationMode === "AGGRESSIVE",
-    isBalancedScanRecommended: false,
+    isBalancedScanRecommended:
+      scanRecommendationMode === "BALANCED" &&
+      principal.selectedLegSource === BALANCED_LEG_SOURCES.NATIVE,
     isInSafePortfolio,
     isInBalancedPortfolio,
     isInAggressivePortfolio,
@@ -216,9 +219,10 @@ export function resolveSafeLegDisplayGrade(row, recommendation = null) {
  * (cause du « AGRESSIF REJET » incohérent).
  */
 export function resolveAggressiveLegDisplayGrade(row, recommendation = null) {
+  const diag = row?.recommendationDiagnostics ?? null;
+  if (diag?.earningsRisk === true || diag?.definitiveRejections?.AGGRESSIVE) return "REJECT";
   if (!recommendation) recommendation = getFinalDisplayRecommendation(row);
   if (recommendation?.finalDisplayMode === "AGGRESSIVE") return recommendation.finalDisplayGrade;
-  const diag = row?.recommendationDiagnostics ?? null;
   const leg = row?.aggressiveStrike ?? null;
   const priorityGrade = getAggressivePriorityGrade({
     spreadPct:
@@ -257,9 +261,14 @@ function resolveLegDisplayFinancials(leg) {
 }
 
 function finalizeModePresentation(base, { scannerMode, scannerGrade, modeFilter }) {
+  const nativeContour =
+    base.bucketMode === "BALANCED" &&
+    base.legSource === BALANCED_LEG_SOURCES.NATIVE &&
+    scannerMode === "BALANCED";
   const isScanRecommended =
-    (base.bucketMode === "SAFE" || base.bucketMode === "AGGRESSIVE") &&
-    base.bucketMode === scannerMode;
+    nativeContour ||
+    ((base.bucketMode === "SAFE" || base.bucketMode === "AGGRESSIVE") &&
+      base.bucketMode === scannerMode);
   return {
     ...base,
     mode: base.bucketMode,
@@ -287,9 +296,30 @@ function finalizeModePresentation(base, { scannerMode, scannerGrade, modeFilter 
 export function resolveDashboardModePresentation(row, { modeFilter = "all" } = {}) {
   const { balancedVm, balancedSource, balancedAvailable } = resolveBalancedBucketContext(row);
   const recommendation = getFinalDisplayRecommendation(row);
-  const scannerMode = recommendation.finalDisplayMode;
-  const scannerGrade = recommendation.finalDisplayGrade;
+  const principal = selectPrincipalThreeLegFromRow(row);
+  const scannerMode = principal.finalDisplayMode;
+  const scannerGrade = principal.finalDisplayGrade;
   const context = { scannerMode, scannerGrade, modeFilter };
+
+  if (
+    modeFilter === "all" &&
+    scannerMode === "BALANCED" &&
+    principal.selectedLegSource === BALANCED_LEG_SOURCES.NATIVE
+  ) {
+    return finalizeModePresentation(
+      {
+        bucketMode: "BALANCED",
+        bucketLabel: "BALANCED",
+        grade: scannerGrade,
+        legSource: BALANCED_LEG_SOURCES.NATIVE,
+        legSourceLabel: LEG_SOURCE_LABELS[BALANCED_LEG_SOURCES.NATIVE] ?? "Native",
+        underlyingLegMode: "BALANCED",
+        filterMode: "BALANCED",
+        displayLeg: principal.selectedLeg,
+      },
+      context,
+    );
+  }
 
   if (balancedAvailable && modeFilter === "BALANCED") {
     const legSourceLabel = LEG_SOURCE_LABELS[balancedSource] ?? balancedVm?.sourceLabel ?? null;

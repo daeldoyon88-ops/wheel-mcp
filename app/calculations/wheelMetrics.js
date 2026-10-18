@@ -182,6 +182,14 @@ function dynamicMaxSpreadPctFromBid(bid) {
   return bid < 1 ? 50 : 20;
 }
 
+/** bid > ask seulement si les deux côtés sont vraiment présents et numériques. */
+function isCrossedMarket(row) {
+  if (row?.bid == null || row?.bid === "" || row?.ask == null || row?.ask === "") return false;
+  const bid = Number(row.bid);
+  const ask = Number(row.ask);
+  return Number.isFinite(bid) && Number.isFinite(ask) && bid > ask;
+}
+
 export function evaluateTradability(row) {
   const bid = toNumber(row?.bid);
   const ask = toNumber(row?.ask);
@@ -195,10 +203,10 @@ export function evaluateTradability(row) {
   const absoluteSpreadOk = absoluteSpread == null ? true : absoluteSpread <= MAX_ABSOLUTE_SPREAD;
   const maxSpreadPct = dynamicMaxSpreadPctFromBid(bid);
   const spreadPctOkCheck = spreadPct == null ? true : spreadPctOk(spreadPct, maxSpreadPct);
-  const crossedMarket = Number.isFinite(bid) && Number.isFinite(ask) && bid > ask;
+  const crossedMarket = isCrossedMarket(row);
 
   return {
-    isTradable: hasRealMarket && absoluteSpreadOk && spreadPctOkCheck,
+    isTradable: hasRealMarket && absoluteSpreadOk && spreadPctOkCheck && !crossedMarket,
     spreadPct: spreadPct != null ? round(spreadPct, 2) : null,
     absoluteSpread: absoluteSpread != null ? round(absoluteSpread, 3) : null,
     volume,
@@ -232,7 +240,7 @@ export function evaluateLiquidity(row) {
   const absoluteSpreadOk = absoluteSpread == null ? true : absoluteSpread <= MAX_ABSOLUTE_SPREAD;
   const maxSpreadPct = dynamicMaxSpreadPctFromBid(bid);
   const spreadPctOkCheck = spreadPct == null ? true : spreadPctOk(spreadPct, maxSpreadPct);
-  const crossedMarket = Number.isFinite(bid) && Number.isFinite(ask) && bid > ask;
+  const crossedMarket = isCrossedMarket(row);
   const volumeOk = volume >= 1;
   // Baseline souple : le seuil final est renforcé ensuite dans selectPutStrikes
   // selon la profondeur du strike par rapport à l'agressif.
@@ -240,7 +248,7 @@ export function evaluateLiquidity(row) {
   const hasBookQuality = absoluteSpreadOk && spreadPctOkCheck && volumeOk && openInterestOk;
 
   return {
-    isLiquid: hasRealMarket && hasBookQuality,
+    isLiquid: hasRealMarket && hasBookQuality && !crossedMarket,
     spreadPct: spreadPct != null ? round(spreadPct, 2) : null,
     absoluteSpread: absoluteSpread != null ? round(absoluteSpread, 3) : null,
     volume,

@@ -47,7 +47,7 @@ const CATEGORY_PRIORITY = {
 
 /**
  * @typedef {Object} BuildResearchExpandedCriteria
- * @property {150|200} [limit]
+ * @property {number} [limit] entier de 1 à 400, défaut 200
  * @property {number} [maxPrice] optionnel — filtre doux si prix connu dans le cache
  * @property {boolean} [includeAboveMaxPrice] si false, exclut les tickers au-dessus de maxPrice quand le prix est connu
  * @property {boolean} [flagUnreliable]
@@ -112,7 +112,7 @@ function finalizeResearchExpandedPool(symbols, limit) {
  */
 export function buildResearchExpandedPool(criteria = {}) {
   const limitRaw = Number(criteria.limit);
-  const limit = limitRaw === 150 ? 150 : 200;
+  const limit = Number.isInteger(limitRaw) && limitRaw >= 1 && limitRaw <= 400 ? limitRaw : 200;
   const maxPrice = toNumber(criteria.maxPrice);
   const hasMaxPrice = Number.isFinite(maxPrice) && maxPrice > 0;
   const includeAboveMaxPrice = criteria.includeAboveMaxPrice !== false;

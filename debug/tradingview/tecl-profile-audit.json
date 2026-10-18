@@ -1,0 +1,1567 @@
+{
+  "generatedAt": "2026-06-06T01:49:43.960Z",
+  "scope": "TradingView / Pine / TECL — audit only (ne touche pas Wheel ni Pine final)",
+  "data": {
+    "teclFile": "debug/ohlc-cache-TECL.json",
+    "teclRange": {
+      "first": "2008-12-30",
+      "last": "2026-06-05",
+      "bars": 4385
+    },
+    "tqqqMasterFile": "debug/ohlc-cache-TQQQ.json",
+    "tqqqRange": {
+      "first": "2010-02-11",
+      "last": "2026-05-29",
+      "bars": 4099
+    },
+    "strategyWindow": {
+      "fromISO": "2020-01-01",
+      "toISO": "2030-12-31"
+    }
+  },
+  "buyHoldTECL": {
+    "since2020": 693.8
+  },
+  "variants": [
+    {
+      "label": "A — TECL actuelle (MA 8/24/34, RSI46, blocPenteLocal OFF, L10+R4, MASTER TQQQ)",
+      "masterNote": "TQQQ (aligné as-of)",
+      "config": {
+        "maFastLen": 8,
+        "maMidLen": 24,
+        "maSlowLen": 34,
+        "rsiBuyThresh": 46,
+        "rsiSellThresh": 1,
+        "blockIfMMSlopeBear": false,
+        "mmSlopeLookback": 100,
+        "protExit": "L",
+        "exitLLen": 10,
+        "reentryRule": "R4",
+        "masterSource": "TQQQ"
+      },
+      "metrics": {
+        "totalReturnPct": 6379.56,
+        "finalEquity": 647956.4,
+        "maxDrawdownPct": -39.91,
+        "maxDDPeakIso": "2020-09-02",
+        "maxDDTroughIso": "2020-10-28",
+        "numTrades": 24,
+        "winRatePct": 58.33,
+        "profitFactor": 5.54,
+        "exposurePct": 22.92,
+        "barsInPosition": 1005,
+        "totalBarsHeld": 1004,
+        "avgBarsHeld": 41.8,
+        "avgTradePnlPct": 25.53,
+        "reentryCount": 9
+      },
+      "dd2022": {
+        "maxDDPct": -16,
+        "peakIso": "2022-01-03",
+        "troughIso": "2022-01-07",
+        "nBars": 251
+      },
+      "dd2026": {
+        "maxDDPct": -27.28,
+        "peakIso": "2026-01-12",
+        "troughIso": "2026-03-20",
+        "nBars": 107
+      },
+      "top5": [
+        {
+          "entryIso": "2025-04-24",
+          "exitIso": "2025-11-17",
+          "entryPrice": 51.75,
+          "exitPrice": 122.08,
+          "pnlPct": 135.9,
+          "barsHeld": 143,
+          "reason": "maSell"
+        },
+        {
+          "entryIso": "2026-04-01",
+          "exitIso": "2026-06-05",
+          "entryPrice": 90.34,
+          "exitPrice": 202.59,
+          "pnlPct": 124.25,
+          "barsHeld": 45,
+          "reason": "endOfData"
+        },
+        {
+          "entryIso": "2020-04-08",
+          "exitIso": "2020-09-16",
+          "entryPrice": 13.38,
+          "exitPrice": 29.13,
+          "pnlPct": 117.67,
+          "barsHeld": 111,
+          "reason": "maSell"
+        },
+        {
+          "entryIso": "2023-10-31",
+          "exitIso": "2024-04-04",
+          "entryPrice": 42.36,
+          "exitPrice": 75.22,
+          "pnlPct": 77.57,
+          "barsHeld": 106,
+          "reason": "protL"
+        },
+        {
+          "entryIso": "2023-03-14",
+          "exitIso": "2023-08-04",
+          "entryPrice": 29.62,
+          "exitPrice": 50.55,
+          "pnlPct": 70.66,
+          "barsHeld": 99,
+          "reason": "protL"
+        }
+      ],
+      "worst5": [
+        {
+          "entryIso": "2026-02-25",
+          "exitIso": "2026-03-20",
+          "entryPrice": 110.62,
+          "exitPrice": 92.32,
+          "pnlPct": -16.54,
+          "barsHeld": 17,
+          "reason": "protL"
+        },
+        {
+          "entryIso": "2020-10-05",
+          "exitIso": "2020-10-28",
+          "entryPrice": 31.09,
+          "exitPrice": 26.13,
+          "pnlPct": -15.95,
+          "barsHeld": 17,
+          "reason": "maSell"
+        },
+        {
+          "entryIso": "2025-01-17",
+          "exitIso": "2025-01-27",
+          "entryPrice": 91.38,
+          "exitPrice": 82.98,
+          "pnlPct": -9.19,
+          "barsHeld": 5,
+          "reason": "maSell"
+        },
+        {
+          "entryIso": "2024-04-09",
+          "exitIso": "2024-04-15",
+          "entryPrice": 78.47,
+          "exitPrice": 71.86,
+          "pnlPct": -8.42,
+          "barsHeld": 4,
+          "reason": "protL"
+        },
+        {
+          "entryIso": "2023-10-06",
+          "exitIso": "2023-10-20",
+          "entryPrice": 46.35,
+          "exitPrice": 42.53,
+          "pnlPct": -8.24,
+          "barsHeld": 10,
+          "reason": "protL"
+        }
+      ],
+      "nTrades": 24
+    },
+    {
+      "label": "B — A + blocage pente local ON (lookback 100)",
+      "masterNote": "TQQQ (aligné as-of)",
+      "config": {
+        "maFastLen": 8,
+        "maMidLen": 24,
+        "maSlowLen": 34,
+        "rsiBuyThresh": 46,
+        "rsiSellThresh": 1,
+        "blockIfMMSlopeBear": true,
+        "mmSlopeLookback": 100,
+        "protExit": "L",
+        "exitLLen": 10,
+        "reentryRule": "R4",
+        "masterSource": "TQQQ"
+      },
+      "metrics": {
+        "totalReturnPct": 3202.6,
+        "finalEquity": 330259.83,
+        "maxDrawdownPct": -39.91,
+        "maxDDPeakIso": "2020-09-02",
+        "maxDDTroughIso": "2020-10-28",
+        "numTrades": 24,
+        "winRatePct": 58.33,
+        "profitFactor": 4.36,
+        "exposurePct": 21.03,
+        "barsInPosition": 922,
+        "totalBarsHeld": 921,
+        "avgBarsHeld": 38.4,
+        "avgTradePnlPct": 20.71,
+        "reentryCount": 9
+      },
+      "dd2022": {
+        "maxDDPct": -16,
+        "peakIso": "2022-01-03",
+        "troughIso": "2022-01-07",
+        "nBars": 251
+      },
+      "dd2026": {
+        "maxDDPct": -27.28,
+        "peakIso": "2026-01-12",
+        "troughIso": "2026-03-20",
+        "nBars": 107
+      },
+      "top5": [
+        {
+          "entryIso": "2026-04-01",
+          "exitIso": "2026-06-05",
+          "entryPrice": 90.34,
+          "exitPrice": 202.59,
+          "pnlPct": 124.25,
+          "barsHeld": 45,
+          "reason": "endOfData"
+        },
+        {
+          "entryIso": "2020-04-08",
+          "exitIso": "2020-09-16",
+          "entryPrice": 13.38,
+          "exitPrice": 29.13,
+          "pnlPct": 117.67,
+          "barsHeld": 111,
+          "reason": "maSell"
+        },
+        {
+          "entryIso": "2023-10-31",
+          "exitIso": "2024-04-04",
+          "entryPrice": 42.36,
+          "exitPrice": 75.22,
+          "pnlPct": 77.57,
+          "barsHeld": 106,
+          "reason": "protL"
+        },
+        {
+          "entryIso": "2023-03-14",
+          "exitIso": "2023-08-04",
+          "entryPrice": 29.62,
+          "exitPrice": 50.55,
+          "pnlPct": 70.66,
+          "barsHeld": 99,
+          "reason": "protL"
+        },
+        {
+          "entryIso": "2021-05-20",
+          "exitIso": "2021-09-20",
+          "entryPrice": 44.42,
+          "exitPrice": 60.52,
+          "pnlPct": 36.24,
+          "barsHeld": 84,
+          "reason": "protL"
+        }
+      ],
+      "worst5": [
+        {
+          "entryIso": "2026-02-25",
+          "exitIso": "2026-03-20",
+          "entryPrice": 110.62,
+          "exitPrice": 92.32,
+          "pnlPct": -16.54,
+          "barsHeld": 17,
+          "reason": "protL"
+        },
+        {
+          "entryIso": "2020-10-05",
+          "exitIso": "2020-10-28",
+          "entryPrice": 31.09,
+          "exitPrice": 26.13,
+          "pnlPct": -15.95,
+          "barsHeld": 17,
+          "reason": "maSell"
+        },
+        {
+          "entryIso": "2025-01-17",
+          "exitIso": "2025-01-27",
+          "entryPrice": 91.38,
+          "exitPrice": 82.98,
+          "pnlPct": -9.19,
+          "barsHeld": 5,
+          "reason": "maSell"
+        },
+        {
+          "entryIso": "2024-04-09",
+          "exitIso": "2024-04-15",
+          "entryPrice": 78.47,
+          "exitPrice": 71.86,
+          "pnlPct": -8.42,
+          "barsHeld": 4,
+          "reason": "protL"
+        },
+        {
+          "entryIso": "2023-10-06",
+          "exitIso": "2023-10-20",
+          "entryPrice": 46.35,
+          "exitPrice": 42.53,
+          "pnlPct": -8.24,
+          "barsHeld": 10,
+          "reason": "protL"
+        }
+      ],
+      "nTrades": 24
+    },
+    {
+      "label": "C1 — MA slow 34 (=A)",
+      "masterNote": "TQQQ (aligné as-of)",
+      "config": {
+        "maFastLen": 8,
+        "maMidLen": 24,
+        "maSlowLen": 34,
+        "rsiBuyThresh": 46,
+        "rsiSellThresh": 1,
+        "blockIfMMSlopeBear": false,
+        "mmSlopeLookback": 100,
+        "protExit": "L",
+        "exitLLen": 10,
+        "reentryRule": "R4",
+        "masterSource": "TQQQ"
+      },
+      "metrics": {
+        "totalReturnPct": 6379.56,
+        "finalEquity": 647956.4,
+        "maxDrawdownPct": -39.91,
+        "maxDDPeakIso": "2020-09-02",
+        "maxDDTroughIso": "2020-10-28",
+        "numTrades": 24,
+        "winRatePct": 58.33,
+        "profitFactor": 5.54,
+        "exposurePct": 22.92,
+        "barsInPosition": 1005,
+        "totalBarsHeld": 1004,
+        "avgBarsHeld": 41.8,
+        "avgTradePnlPct": 25.53,
+        "reentryCount": 9
+      },
+      "dd2022": {
+        "maxDDPct": -16,
+        "peakIso": "2022-01-03",
+        "troughIso": "2022-01-07",
+        "nBars": 251
+      },
+      "dd2026": {
+        "maxDDPct": -27.28,
+        "peakIso": "2026-01-12",
+        "troughIso": "2026-03-20",
+        "nBars": 107
+      },
+      "top5": [
+        {
+          "entryIso": "2025-04-24",
+          "exitIso": "2025-11-17",
+          "entryPrice": 51.75,
+          "exitPrice": 122.08,
+          "pnlPct": 135.9,
+          "barsHeld": 143,
+          "reason": "maSell"
+        },
+        {
+          "entryIso": "2026-04-01",
+          "exitIso": "2026-06-05",
+          "entryPrice": 90.34,
+          "exitPrice": 202.59,
+          "pnlPct": 124.25,
+          "barsHeld": 45,
+          "reason": "endOfData"
+        },
+        {
+          "entryIso": "2020-04-08",
+          "exitIso": "2020-09-16",
+          "entryPrice": 13.38,
+          "exitPrice": 29.13,
+          "pnlPct": 117.67,
+          "barsHeld": 111,
+          "reason": "maSell"
+        },
+        {
+          "entryIso": "2023-10-31",
+          "exitIso": "2024-04-04",
+          "entryPrice": 42.36,
+          "exitPrice": 75.22,
+          "pnlPct": 77.57,
+          "barsHeld": 106,
+          "reason": "protL"
+        },
+        {
+          "entryIso": "2023-03-14",
+          "exitIso": "2023-08-04",
+          "entryPrice": 29.62,
+          "exitPrice": 50.55,
+          "pnlPct": 70.66,
+          "barsHeld": 99,
+          "reason": "protL"
+        }
+      ],
+      "worst5": [
+        {
+          "entryIso": "2026-02-25",
+          "exitIso": "2026-03-20",
+          "entryPrice": 110.62,
+          "exitPrice": 92.32,
+          "pnlPct": -16.54,
+          "barsHeld": 17,
+          "reason": "protL"
+        },
+        {
+          "entryIso": "2020-10-05",
+          "exitIso": "2020-10-28",
+          "entryPrice": 31.09,
+          "exitPrice": 26.13,
+          "pnlPct": -15.95,
+          "barsHeld": 17,
+          "reason": "maSell"
+        },
+        {
+          "entryIso": "2025-01-17",
+          "exitIso": "2025-01-27",
+          "entryPrice": 91.38,
+          "exitPrice": 82.98,
+          "pnlPct": -9.19,
+          "barsHeld": 5,
+          "reason": "maSell"
+        },
+        {
+          "entryIso": "2024-04-09",
+          "exitIso": "2024-04-15",
+          "entryPrice": 78.47,
+          "exitPrice": 71.86,
+          "pnlPct": -8.42,
+          "barsHeld": 4,
+          "reason": "protL"
+        },
+        {
+          "entryIso": "2023-10-06",
+          "exitIso": "2023-10-20",
+          "entryPrice": 46.35,
+          "exitPrice": 42.53,
+          "pnlPct": -8.24,
+          "barsHeld": 10,
+          "reason": "protL"
+        }
+      ],
+      "nTrades": 24
+    },
+    {
+      "label": "C2 — MA slow 24",
+      "masterNote": "TQQQ (aligné as-of)",
+      "config": {
+        "maFastLen": 8,
+        "maMidLen": 24,
+        "maSlowLen": 24,
+        "rsiBuyThresh": 46,
+        "rsiSellThresh": 1,
+        "blockIfMMSlopeBear": false,
+        "mmSlopeLookback": 100,
+        "protExit": "L",
+        "exitLLen": 10,
+        "reentryRule": "R4",
+        "masterSource": "TQQQ"
+      },
+      "metrics": {
+        "totalReturnPct": 856.62,
+        "finalEquity": 95661.79,
+        "maxDrawdownPct": -30.8,
+        "maxDDPeakIso": "2025-08-13",
+        "maxDDTroughIso": "2026-03-20",
+        "numTrades": 23,
+        "winRatePct": 52.17,
+        "profitFactor": 4.58,
+        "exposurePct": 15.94,
+        "barsInPosition": 699,
+        "totalBarsHeld": 698,
+        "avgBarsHeld": 30.3,
+        "avgTradePnlPct": 13.87,
+        "reentryCount": 4
+      },
+      "dd2022": {
+        "maxDDPct": -16,
+        "peakIso": "2022-01-03",
+        "troughIso": "2022-01-07",
+        "nBars": 251
+      },
+      "dd2026": {
+        "maxDDPct": -25.86,
+        "peakIso": "2026-06-02",
+        "troughIso": "2026-06-05",
+        "nBars": 107
+      },
+      "top5": [
+        {
+          "entryIso": "2026-04-01",
+          "exitIso": "2026-06-05",
+          "entryPrice": 90.34,
+          "exitPrice": 202.59,
+          "pnlPct": 124.25,
+          "barsHeld": 45,
+          "reason": "endOfData"
+        },
+        {
+          "entryIso": "2025-04-24",
+          "exitIso": "2025-09-02",
+          "entryPrice": 51.75,
+          "exitPrice": 98.17,
+          "pnlPct": 89.7,
+          "barsHeld": 89,
+          "reason": "maSell"
+        },
+        {
+          "entryIso": "2021-05-20",
+          "exitIso": "2021-09-20",
+          "entryPrice": 44.42,
+          "exitPrice": 60.52,
+          "pnlPct": 36.24,
+          "barsHeld": 84,
+          "reason": "maSell"
+        },
+        {
+          "entryIso": "2024-04-24",
+          "exitIso": "2024-07-19",
+          "entryPrice": 67.66,
+          "exitPrice": 89.06,
+          "pnlPct": 31.63,
+          "barsHeld": 59,
+          "reason": "maSell"
+        },
+        {
+          "entryIso": "2020-11-04",
+          "exitIso": "2021-02-25",
+          "entryPrice": 30.37,
+          "exitPrice": 39.6,
+          "pnlPct": 30.4,
+          "barsHeld": 76,
+          "reason": "maSell"
+        }
+      ],
+      "worst5": [
+        {
+          "entryIso": "2026-02-25",
+          "exitIso": "2026-03-20",
+          "entryPrice": 110.62,
+          "exitPrice": 92.32,
+          "pnlPct": -16.54,
+          "barsHeld": 17,
+          "reason": "protL"
+        },
+        {
+          "entryIso": "2021-09-23",
+          "exitIso": "2021-09-29",
+          "entryPrice": 65.59,
+          "exitPrice": 57.88,
+          "pnlPct": -11.75,
+          "barsHeld": 4,
+          "reason": "protL"
+        },
+        {
+          "entryIso": "2024-04-11",
+          "exitIso": "2024-04-15",
+          "entryPrice": 79.98,
+          "exitPrice": 71.86,
+          "pnlPct": -10.15,
+          "barsHeld": 2,
+          "reason": "protL"
+        },
+        {
+          "entryIso": "2025-01-03",
+          "exitIso": "2025-01-10",
+          "entryPrice": 94.17,
+          "exitPrice": 85.75,
+          "pnlPct": -8.94,
+          "barsHeld": 4,
+          "reason": "protL"
+        },
+        {
+          "entryIso": "2025-11-10",
+          "exitIso": "2025-11-14",
+          "entryPrice": 139.01,
+          "exitPrice": 128.36,
+          "pnlPct": -7.66,
+          "barsHeld": 4,
+          "reason": "maSell"
+        }
+      ],
+      "nTrades": 23
+    },
+    {
+      "label": "D1 — RSI achat 46 (=A)",
+      "masterNote": "TQQQ (aligné as-of)",
+      "config": {
+        "maFastLen": 8,
+        "maMidLen": 24,
+        "maSlowLen": 34,
+        "rsiBuyThresh": 46,
+        "rsiSellThresh": 1,
+        "blockIfMMSlopeBear": false,
+        "mmSlopeLookback": 100,
+        "protExit": "L",
+        "exitLLen": 10,
+        "reentryRule": "R4",
+        "masterSource": "TQQQ"
+      },
+      "metrics": {
+        "totalReturnPct": 6379.56,
+        "finalEquity": 647956.4,
+        "maxDrawdownPct": -39.91,
+        "maxDDPeakIso": "2020-09-02",
+        "maxDDTroughIso": "2020-10-28",
+        "numTrades": 24,
+        "winRatePct": 58.33,
+        "profitFactor": 5.54,
+        "exposurePct": 22.92,
+        "barsInPosition": 1005,
+        "totalBarsHeld": 1004,
+        "avgBarsHeld": 41.8,
+        "avgTradePnlPct": 25.53,
+        "reentryCount": 9
+      },
+      "dd2022": {
+        "maxDDPct": -16,
+        "peakIso": "2022-01-03",
+        "troughIso": "2022-01-07",
+        "nBars": 251
+      },
+      "dd2026": {
+        "maxDDPct": -27.28,
+        "peakIso": "2026-01-12",
+        "troughIso": "2026-03-20",
+        "nBars": 107
+      },
+      "top5": [
+        {
+          "entryIso": "2025-04-24",
+          "exitIso": "2025-11-17",
+          "entryPrice": 51.75,
+          "exitPrice": 122.08,
+          "pnlPct": 135.9,
+          "barsHeld": 143,
+          "reason": "maSell"
+        },
+        {
+          "entryIso": "2026-04-01",
+          "exitIso": "2026-06-05",
+          "entryPrice": 90.34,
+          "exitPrice": 202.59,
+          "pnlPct": 124.25,
+          "barsHeld": 45,
+          "reason": "endOfData"
+        },
+        {
+          "entryIso": "2020-04-08",
+          "exitIso": "2020-09-16",
+          "entryPrice": 13.38,
+          "exitPrice": 29.13,
+          "pnlPct": 117.67,
+          "barsHeld": 111,
+          "reason": "maSell"
+        },
+        {
+          "entryIso": "2023-10-31",
+          "exitIso": "2024-04-04",
+          "entryPrice": 42.36,
+          "exitPrice": 75.22,
+          "pnlPct": 77.57,
+          "barsHeld": 106,
+          "reason": "protL"
+        },
+        {
+          "entryIso": "2023-03-14",
+          "exitIso": "2023-08-04",
+          "entryPrice": 29.62,
+          "exitPrice": 50.55,
+          "pnlPct": 70.66,
+          "barsHeld": 99,
+          "reason": "protL"
+        }
+      ],
+      "worst5": [
+        {
+          "entryIso": "2026-02-25",
+          "exitIso": "2026-03-20",
+          "entryPrice": 110.62,
+          "exitPrice": 92.32,
+          "pnlPct": -16.54,
+          "barsHeld": 17,
+          "reason": "protL"
+        },
+        {
+          "entryIso": "2020-10-05",
+          "exitIso": "2020-10-28",
+          "entryPrice": 31.09,
+          "exitPrice": 26.13,
+          "pnlPct": -15.95,
+          "barsHeld": 17,
+          "reason": "maSell"
+        },
+        {
+          "entryIso": "2025-01-17",
+          "exitIso": "2025-01-27",
+          "entryPrice": 91.38,
+          "exitPrice": 82.98,
+          "pnlPct": -9.19,
+          "barsHeld": 5,
+          "reason": "maSell"
+        },
+        {
+          "entryIso": "2024-04-09",
+          "exitIso": "2024-04-15",
+          "entryPrice": 78.47,
+          "exitPrice": 71.86,
+          "pnlPct": -8.42,
+          "barsHeld": 4,
+          "reason": "protL"
+        },
+        {
+          "entryIso": "2023-10-06",
+          "exitIso": "2023-10-20",
+          "entryPrice": 46.35,
+          "exitPrice": 42.53,
+          "pnlPct": -8.24,
+          "barsHeld": 10,
+          "reason": "protL"
+        }
+      ],
+      "nTrades": 24
+    },
+    {
+      "label": "D2 — RSI achat 47",
+      "masterNote": "TQQQ (aligné as-of)",
+      "config": {
+        "maFastLen": 8,
+        "maMidLen": 24,
+        "maSlowLen": 34,
+        "rsiBuyThresh": 47,
+        "rsiSellThresh": 1,
+        "blockIfMMSlopeBear": false,
+        "mmSlopeLookback": 100,
+        "protExit": "L",
+        "exitLLen": 10,
+        "reentryRule": "R4",
+        "masterSource": "TQQQ"
+      },
+      "metrics": {
+        "totalReturnPct": 5726.49,
+        "finalEquity": 582648.98,
+        "maxDrawdownPct": -41.85,
+        "maxDDPeakIso": "2025-10-29",
+        "maxDDTroughIso": "2026-03-20",
+        "numTrades": 24,
+        "winRatePct": 54.17,
+        "profitFactor": 4.74,
+        "exposurePct": 22.17,
+        "barsInPosition": 972,
+        "totalBarsHeld": 971,
+        "avgBarsHeld": 40.5,
+        "avgTradePnlPct": 25.11,
+        "reentryCount": 9
+      },
+      "dd2022": {
+        "maxDDPct": -16,
+        "peakIso": "2022-01-03",
+        "troughIso": "2022-01-07",
+        "nBars": 251
+      },
+      "dd2026": {
+        "maxDDPct": -27.28,
+        "peakIso": "2026-01-12",
+        "troughIso": "2026-03-20",
+        "nBars": 107
+      },
+      "top5": [
+        {
+          "entryIso": "2025-04-24",
+          "exitIso": "2025-11-17",
+          "entryPrice": 51.75,
+          "exitPrice": 122.08,
+          "pnlPct": 135.9,
+          "barsHeld": 143,
+          "reason": "maSell"
+        },
+        {
+          "entryIso": "2026-04-01",
+          "exitIso": "2026-06-05",
+          "entryPrice": 90.34,
+          "exitPrice": 202.59,
+          "pnlPct": 124.25,
+          "barsHeld": 45,
+          "reason": "endOfData"
+        },
+        {
+          "entryIso": "2020-04-08",
+          "exitIso": "2020-09-16",
+          "entryPrice": 13.38,
+          "exitPrice": 29.13,
+          "pnlPct": 117.67,
+          "barsHeld": 111,
+          "reason": "maSell"
+        },
+        {
+          "entryIso": "2023-10-31",
+          "exitIso": "2024-04-04",
+          "entryPrice": 42.36,
+          "exitPrice": 75.22,
+          "pnlPct": 77.57,
+          "barsHeld": 106,
+          "reason": "protL"
+        },
+        {
+          "entryIso": "2023-03-14",
+          "exitIso": "2023-08-04",
+          "entryPrice": 29.62,
+          "exitPrice": 50.55,
+          "pnlPct": 70.66,
+          "barsHeld": 99,
+          "reason": "protL"
+        }
+      ],
+      "worst5": [
+        {
+          "entryIso": "2026-02-25",
+          "exitIso": "2026-03-20",
+          "entryPrice": 110.62,
+          "exitPrice": 92.32,
+          "pnlPct": -16.54,
+          "barsHeld": 17,
+          "reason": "protL"
+        },
+        {
+          "entryIso": "2020-10-05",
+          "exitIso": "2020-10-28",
+          "entryPrice": 31.09,
+          "exitPrice": 26.13,
+          "pnlPct": -15.95,
+          "barsHeld": 17,
+          "reason": "maSell"
+        },
+        {
+          "entryIso": "2026-01-06",
+          "exitIso": "2026-01-20",
+          "entryPrice": 123.94,
+          "exitPrice": 111.21,
+          "pnlPct": -10.27,
+          "barsHeld": 9,
+          "reason": "protL"
+        },
+        {
+          "entryIso": "2025-01-17",
+          "exitIso": "2025-01-27",
+          "entryPrice": 91.38,
+          "exitPrice": 82.98,
+          "pnlPct": -9.19,
+          "barsHeld": 5,
+          "reason": "maSell"
+        },
+        {
+          "entryIso": "2024-04-09",
+          "exitIso": "2024-04-15",
+          "entryPrice": 78.47,
+          "exitPrice": 71.86,
+          "pnlPct": -8.42,
+          "barsHeld": 4,
+          "reason": "protL"
+        }
+      ],
+      "nTrades": 24
+    },
+    {
+      "label": "E1 — MASTER = TQQQ (=A)",
+      "masterNote": "TQQQ (aligné as-of)",
+      "config": {
+        "maFastLen": 8,
+        "maMidLen": 24,
+        "maSlowLen": 34,
+        "rsiBuyThresh": 46,
+        "rsiSellThresh": 1,
+        "blockIfMMSlopeBear": false,
+        "mmSlopeLookback": 100,
+        "protExit": "L",
+        "exitLLen": 10,
+        "reentryRule": "R4",
+        "masterSource": "TQQQ"
+      },
+      "metrics": {
+        "totalReturnPct": 6379.56,
+        "finalEquity": 647956.4,
+        "maxDrawdownPct": -39.91,
+        "maxDDPeakIso": "2020-09-02",
+        "maxDDTroughIso": "2020-10-28",
+        "numTrades": 24,
+        "winRatePct": 58.33,
+        "profitFactor": 5.54,
+        "exposurePct": 22.92,
+        "barsInPosition": 1005,
+        "totalBarsHeld": 1004,
+        "avgBarsHeld": 41.8,
+        "avgTradePnlPct": 25.53,
+        "reentryCount": 9
+      },
+      "dd2022": {
+        "maxDDPct": -16,
+        "peakIso": "2022-01-03",
+        "troughIso": "2022-01-07",
+        "nBars": 251
+      },
+      "dd2026": {
+        "maxDDPct": -27.28,
+        "peakIso": "2026-01-12",
+        "troughIso": "2026-03-20",
+        "nBars": 107
+      },
+      "top5": [
+        {
+          "entryIso": "2025-04-24",
+          "exitIso": "2025-11-17",
+          "entryPrice": 51.75,
+          "exitPrice": 122.08,
+          "pnlPct": 135.9,
+          "barsHeld": 143,
+          "reason": "maSell"
+        },
+        {
+          "entryIso": "2026-04-01",
+          "exitIso": "2026-06-05",
+          "entryPrice": 90.34,
+          "exitPrice": 202.59,
+          "pnlPct": 124.25,
+          "barsHeld": 45,
+          "reason": "endOfData"
+        },
+        {
+          "entryIso": "2020-04-08",
+          "exitIso": "2020-09-16",
+          "entryPrice": 13.38,
+          "exitPrice": 29.13,
+          "pnlPct": 117.67,
+          "barsHeld": 111,
+          "reason": "maSell"
+        },
+        {
+          "entryIso": "2023-10-31",
+          "exitIso": "2024-04-04",
+          "entryPrice": 42.36,
+          "exitPrice": 75.22,
+          "pnlPct": 77.57,
+          "barsHeld": 106,
+          "reason": "protL"
+        },
+        {
+          "entryIso": "2023-03-14",
+          "exitIso": "2023-08-04",
+          "entryPrice": 29.62,
+          "exitPrice": 50.55,
+          "pnlPct": 70.66,
+          "barsHeld": 99,
+          "reason": "protL"
+        }
+      ],
+      "worst5": [
+        {
+          "entryIso": "2026-02-25",
+          "exitIso": "2026-03-20",
+          "entryPrice": 110.62,
+          "exitPrice": 92.32,
+          "pnlPct": -16.54,
+          "barsHeld": 17,
+          "reason": "protL"
+        },
+        {
+          "entryIso": "2020-10-05",
+          "exitIso": "2020-10-28",
+          "entryPrice": 31.09,
+          "exitPrice": 26.13,
+          "pnlPct": -15.95,
+          "barsHeld": 17,
+          "reason": "maSell"
+        },
+        {
+          "entryIso": "2025-01-17",
+          "exitIso": "2025-01-27",
+          "entryPrice": 91.38,
+          "exitPrice": 82.98,
+          "pnlPct": -9.19,
+          "barsHeld": 5,
+          "reason": "maSell"
+        },
+        {
+          "entryIso": "2024-04-09",
+          "exitIso": "2024-04-15",
+          "entryPrice": 78.47,
+          "exitPrice": 71.86,
+          "pnlPct": -8.42,
+          "barsHeld": 4,
+          "reason": "protL"
+        },
+        {
+          "entryIso": "2023-10-06",
+          "exitIso": "2023-10-20",
+          "entryPrice": 46.35,
+          "exitPrice": 42.53,
+          "pnlPct": -8.24,
+          "barsHeld": 10,
+          "reason": "protL"
+        }
+      ],
+      "nTrades": 24
+    },
+    {
+      "label": "E2 — MASTER = TECL",
+      "masterNote": "TECL (graphique)",
+      "config": {
+        "maFastLen": 8,
+        "maMidLen": 24,
+        "maSlowLen": 34,
+        "rsiBuyThresh": 46,
+        "rsiSellThresh": 1,
+        "blockIfMMSlopeBear": false,
+        "mmSlopeLookback": 100,
+        "protExit": "L",
+        "exitLLen": 10,
+        "reentryRule": "R4",
+        "masterSource": "TECL"
+      },
+      "metrics": {
+        "totalReturnPct": 1727.71,
+        "finalEquity": 182771.24,
+        "maxDrawdownPct": -49.47,
+        "maxDDPeakIso": "2025-10-29",
+        "maxDDTroughIso": "2026-03-20",
+        "numTrades": 27,
+        "winRatePct": 48.15,
+        "profitFactor": 2.7,
+        "exposurePct": 19.89,
+        "barsInPosition": 872,
+        "totalBarsHeld": 871,
+        "avgBarsHeld": 32.3,
+        "avgTradePnlPct": 15.68,
+        "reentryCount": 9
+      },
+      "dd2022": {
+        "maxDDPct": -15.99,
+        "peakIso": "2022-01-03",
+        "troughIso": "2022-01-07",
+        "nBars": 251
+      },
+      "dd2026": {
+        "maxDDPct": -27.27,
+        "peakIso": "2026-01-12",
+        "troughIso": "2026-03-20",
+        "nBars": 107
+      },
+      "top5": [
+        {
+          "entryIso": "2026-04-01",
+          "exitIso": "2026-06-05",
+          "entryPrice": 90.34,
+          "exitPrice": 202.59,
+          "pnlPct": 124.25,
+          "barsHeld": 45,
+          "reason": "endOfData"
+        },
+        {
+          "entryIso": "2020-04-22",
+          "exitIso": "2020-09-16",
+          "entryPrice": 14.17,
+          "exitPrice": 29.13,
+          "pnlPct": 105.53,
+          "barsHeld": 102,
+          "reason": "maSell"
+        },
+        {
+          "entryIso": "2023-10-31",
+          "exitIso": "2024-04-04",
+          "entryPrice": 42.36,
+          "exitPrice": 75.22,
+          "pnlPct": 77.57,
+          "barsHeld": 106,
+          "reason": "protL"
+        },
+        {
+          "entryIso": "2023-04-27",
+          "exitIso": "2023-08-04",
+          "entryPrice": 35.36,
+          "exitPrice": 50.55,
+          "pnlPct": 42.96,
+          "barsHeld": 68,
+          "reason": "protL"
+        },
+        {
+          "entryIso": "2021-05-20",
+          "exitIso": "2021-09-20",
+          "entryPrice": 44.42,
+          "exitPrice": 60.52,
+          "pnlPct": 36.24,
+          "barsHeld": 84,
+          "reason": "protL"
+        }
+      ],
+      "worst5": [
+        {
+          "entryIso": "2026-02-25",
+          "exitIso": "2026-03-20",
+          "entryPrice": 110.62,
+          "exitPrice": 92.32,
+          "pnlPct": -16.54,
+          "barsHeld": 17,
+          "reason": "protL"
+        },
+        {
+          "entryIso": "2020-10-05",
+          "exitIso": "2020-10-28",
+          "entryPrice": 31.09,
+          "exitPrice": 26.13,
+          "pnlPct": -15.95,
+          "barsHeld": 17,
+          "reason": "maSell"
+        },
+        {
+          "entryIso": "2025-12-05",
+          "exitIso": "2025-12-15",
+          "entryPrice": 133,
+          "exitPrice": 114.11,
+          "pnlPct": -14.2,
+          "barsHeld": 6,
+          "reason": "maSell"
+        },
+        {
+          "entryIso": "2025-01-17",
+          "exitIso": "2025-01-27",
+          "entryPrice": 91.38,
+          "exitPrice": 82.98,
+          "pnlPct": -9.19,
+          "barsHeld": 5,
+          "reason": "maSell"
+        },
+        {
+          "entryIso": "2026-01-09",
+          "exitIso": "2026-01-20",
+          "entryPrice": 122.41,
+          "exitPrice": 111.21,
+          "pnlPct": -9.15,
+          "barsHeld": 6,
+          "reason": "protL"
+        }
+      ],
+      "nTrades": 27
+    },
+    {
+      "label": "F1 — L10 + R4 (=A)",
+      "masterNote": "TQQQ (aligné as-of)",
+      "config": {
+        "maFastLen": 8,
+        "maMidLen": 24,
+        "maSlowLen": 34,
+        "rsiBuyThresh": 46,
+        "rsiSellThresh": 1,
+        "blockIfMMSlopeBear": false,
+        "mmSlopeLookback": 100,
+        "protExit": "L",
+        "exitLLen": 10,
+        "reentryRule": "R4",
+        "masterSource": "TQQQ"
+      },
+      "metrics": {
+        "totalReturnPct": 6379.56,
+        "finalEquity": 647956.4,
+        "maxDrawdownPct": -39.91,
+        "maxDDPeakIso": "2020-09-02",
+        "maxDDTroughIso": "2020-10-28",
+        "numTrades": 24,
+        "winRatePct": 58.33,
+        "profitFactor": 5.54,
+        "exposurePct": 22.92,
+        "barsInPosition": 1005,
+        "totalBarsHeld": 1004,
+        "avgBarsHeld": 41.8,
+        "avgTradePnlPct": 25.53,
+        "reentryCount": 9
+      },
+      "dd2022": {
+        "maxDDPct": -16,
+        "peakIso": "2022-01-03",
+        "troughIso": "2022-01-07",
+        "nBars": 251
+      },
+      "dd2026": {
+        "maxDDPct": -27.28,
+        "peakIso": "2026-01-12",
+        "troughIso": "2026-03-20",
+        "nBars": 107
+      },
+      "top5": [
+        {
+          "entryIso": "2025-04-24",
+          "exitIso": "2025-11-17",
+          "entryPrice": 51.75,
+          "exitPrice": 122.08,
+          "pnlPct": 135.9,
+          "barsHeld": 143,
+          "reason": "maSell"
+        },
+        {
+          "entryIso": "2026-04-01",
+          "exitIso": "2026-06-05",
+          "entryPrice": 90.34,
+          "exitPrice": 202.59,
+          "pnlPct": 124.25,
+          "barsHeld": 45,
+          "reason": "endOfData"
+        },
+        {
+          "entryIso": "2020-04-08",
+          "exitIso": "2020-09-16",
+          "entryPrice": 13.38,
+          "exitPrice": 29.13,
+          "pnlPct": 117.67,
+          "barsHeld": 111,
+          "reason": "maSell"
+        },
+        {
+          "entryIso": "2023-10-31",
+          "exitIso": "2024-04-04",
+          "entryPrice": 42.36,
+          "exitPrice": 75.22,
+          "pnlPct": 77.57,
+          "barsHeld": 106,
+          "reason": "protL"
+        },
+        {
+          "entryIso": "2023-03-14",
+          "exitIso": "2023-08-04",
+          "entryPrice": 29.62,
+          "exitPrice": 50.55,
+          "pnlPct": 70.66,
+          "barsHeld": 99,
+          "reason": "protL"
+        }
+      ],
+      "worst5": [
+        {
+          "entryIso": "2026-02-25",
+          "exitIso": "2026-03-20",
+          "entryPrice": 110.62,
+          "exitPrice": 92.32,
+          "pnlPct": -16.54,
+          "barsHeld": 17,
+          "reason": "protL"
+        },
+        {
+          "entryIso": "2020-10-05",
+          "exitIso": "2020-10-28",
+          "entryPrice": 31.09,
+          "exitPrice": 26.13,
+          "pnlPct": -15.95,
+          "barsHeld": 17,
+          "reason": "maSell"
+        },
+        {
+          "entryIso": "2025-01-17",
+          "exitIso": "2025-01-27",
+          "entryPrice": 91.38,
+          "exitPrice": 82.98,
+          "pnlPct": -9.19,
+          "barsHeld": 5,
+          "reason": "maSell"
+        },
+        {
+          "entryIso": "2024-04-09",
+          "exitIso": "2024-04-15",
+          "entryPrice": 78.47,
+          "exitPrice": 71.86,
+          "pnlPct": -8.42,
+          "barsHeld": 4,
+          "reason": "protL"
+        },
+        {
+          "entryIso": "2023-10-06",
+          "exitIso": "2023-10-20",
+          "entryPrice": 46.35,
+          "exitPrice": 42.53,
+          "pnlPct": -8.24,
+          "barsHeld": 10,
+          "reason": "protL"
+        }
+      ],
+      "nTrades": 24
+    },
+    {
+      "label": "F2 — L10 seul (sans R4)",
+      "masterNote": "TQQQ (aligné as-of)",
+      "config": {
+        "maFastLen": 8,
+        "maMidLen": 24,
+        "maSlowLen": 34,
+        "rsiBuyThresh": 46,
+        "rsiSellThresh": 1,
+        "blockIfMMSlopeBear": false,
+        "mmSlopeLookback": 100,
+        "protExit": "L",
+        "exitLLen": 10,
+        "reentryRule": null,
+        "masterSource": "TQQQ"
+      },
+      "metrics": {
+        "totalReturnPct": 1411.28,
+        "finalEquity": 151128.43,
+        "maxDrawdownPct": -39.91,
+        "maxDDPeakIso": "2020-09-02",
+        "maxDDTroughIso": "2020-10-28",
+        "numTrades": 19,
+        "winRatePct": 57.89,
+        "profitFactor": 3.03,
+        "exposurePct": 20.05,
+        "barsInPosition": 879,
+        "totalBarsHeld": 879,
+        "avgBarsHeld": 46.3,
+        "avgTradePnlPct": 21.02,
+        "reentryCount": 0
+      },
+      "dd2022": {
+        "maxDDPct": -16,
+        "peakIso": "2022-01-03",
+        "troughIso": "2022-01-07",
+        "nBars": 251
+      },
+      "dd2026": {
+        "maxDDPct": -25.12,
+        "peakIso": "2026-01-12",
+        "troughIso": "2026-03-20",
+        "nBars": 107
+      },
+      "top5": [
+        {
+          "entryIso": "2025-04-24",
+          "exitIso": "2025-11-17",
+          "entryPrice": 51.75,
+          "exitPrice": 122.08,
+          "pnlPct": 135.9,
+          "barsHeld": 143,
+          "reason": "maSell"
+        },
+        {
+          "entryIso": "2020-04-08",
+          "exitIso": "2020-09-16",
+          "entryPrice": 13.38,
+          "exitPrice": 29.13,
+          "pnlPct": 117.67,
+          "barsHeld": 111,
+          "reason": "maSell"
+        },
+        {
+          "entryIso": "2023-03-14",
+          "exitIso": "2023-08-04",
+          "entryPrice": 29.62,
+          "exitPrice": 50.55,
+          "pnlPct": 70.66,
+          "barsHeld": 99,
+          "reason": "protL"
+        },
+        {
+          "entryIso": "2021-05-20",
+          "exitIso": "2021-09-20",
+          "entryPrice": 44.42,
+          "exitPrice": 60.52,
+          "pnlPct": 36.24,
+          "barsHeld": 84,
+          "reason": "protL"
+        },
+        {
+          "entryIso": "2020-11-04",
+          "exitIso": "2021-02-26",
+          "entryPrice": 30.37,
+          "exitPrice": 40.24,
+          "pnlPct": 32.5,
+          "barsHeld": 77,
+          "reason": "maSell"
+        }
+      ],
+      "worst5": [
+        {
+          "entryIso": "2026-02-25",
+          "exitIso": "2026-03-20",
+          "entryPrice": 110.62,
+          "exitPrice": 92.32,
+          "pnlPct": -16.54,
+          "barsHeld": 17,
+          "reason": "protL"
+        },
+        {
+          "entryIso": "2020-10-05",
+          "exitIso": "2020-10-28",
+          "entryPrice": 31.09,
+          "exitPrice": 26.13,
+          "pnlPct": -15.95,
+          "barsHeld": 17,
+          "reason": "maSell"
+        },
+        {
+          "entryIso": "2024-04-11",
+          "exitIso": "2024-04-15",
+          "entryPrice": 79.98,
+          "exitPrice": 71.86,
+          "pnlPct": -10.15,
+          "barsHeld": 2,
+          "reason": "protL"
+        },
+        {
+          "entryIso": "2025-01-17",
+          "exitIso": "2025-01-27",
+          "entryPrice": 91.38,
+          "exitPrice": 82.98,
+          "pnlPct": -9.19,
+          "barsHeld": 5,
+          "reason": "maSell"
+        },
+        {
+          "entryIso": "2023-10-06",
+          "exitIso": "2023-10-20",
+          "entryPrice": 46.35,
+          "exitPrice": 42.53,
+          "pnlPct": -8.24,
+          "barsHeld": 10,
+          "reason": "protL"
+        }
+      ],
+      "nTrades": 19
+    },
+    {
+      "label": "F3 — baseline sans L/R4",
+      "masterNote": "TQQQ (aligné as-of)",
+      "config": {
+        "maFastLen": 8,
+        "maMidLen": 24,
+        "maSlowLen": 34,
+        "rsiBuyThresh": 46,
+        "rsiSellThresh": 1,
+        "blockIfMMSlopeBear": false,
+        "mmSlopeLookback": 100,
+        "protExit": null,
+        "exitLLen": 10,
+        "reentryRule": null,
+        "masterSource": "TQQQ"
+      },
+      "metrics": {
+        "totalReturnPct": 4775.39,
+        "finalEquity": 487539.49,
+        "maxDrawdownPct": -46.19,
+        "maxDDPeakIso": "2025-10-29",
+        "maxDDTroughIso": "2026-03-30",
+        "numTrades": 16,
+        "winRatePct": 75,
+        "profitFactor": 20.72,
+        "exposurePct": 23.12,
+        "barsInPosition": 1014,
+        "totalBarsHeld": 1013,
+        "avgBarsHeld": 63.3,
+        "avgTradePnlPct": 34.18,
+        "reentryCount": 0
+      },
+      "dd2022": {
+        "maxDDPct": -16,
+        "peakIso": "2022-01-03",
+        "troughIso": "2022-01-07",
+        "nBars": 251
+      },
+      "dd2026": {
+        "maxDDPct": -37.94,
+        "peakIso": "2026-01-28",
+        "troughIso": "2026-03-30",
+        "nBars": 107
+      },
+      "top5": [
+        {
+          "entryIso": "2025-04-24",
+          "exitIso": "2025-11-17",
+          "entryPrice": 51.75,
+          "exitPrice": 122.08,
+          "pnlPct": 135.9,
+          "barsHeld": 143,
+          "reason": "maSell"
+        },
+        {
+          "entryIso": "2020-04-08",
+          "exitIso": "2020-09-16",
+          "entryPrice": 13.38,
+          "exitPrice": 29.13,
+          "pnlPct": 117.67,
+          "barsHeld": 111,
+          "reason": "maSell"
+        },
+        {
+          "entryIso": "2026-02-25",
+          "exitIso": "2026-06-05",
+          "entryPrice": 110.62,
+          "exitPrice": 202.59,
+          "pnlPct": 83.14,
+          "barsHeld": 70,
+          "reason": "endOfData"
+        },
+        {
+          "entryIso": "2023-03-14",
+          "exitIso": "2023-08-08",
+          "entryPrice": 29.62,
+          "exitPrice": 49.75,
+          "pnlPct": 67.96,
+          "barsHeld": 101,
+          "reason": "maSell"
+        },
+        {
+          "entryIso": "2023-10-06",
+          "exitIso": "2024-04-08",
+          "entryPrice": 46.35,
+          "exitPrice": 77.41,
+          "pnlPct": 67.01,
+          "barsHeld": 125,
+          "reason": "maSell"
+        }
+      ],
+      "worst5": [
+        {
+          "entryIso": "2020-10-05",
+          "exitIso": "2020-10-28",
+          "entryPrice": 31.09,
+          "exitPrice": 26.13,
+          "pnlPct": -15.95,
+          "barsHeld": 17,
+          "reason": "maSell"
+        },
+        {
+          "entryIso": "2025-01-17",
+          "exitIso": "2025-01-27",
+          "entryPrice": 91.38,
+          "exitPrice": 82.98,
+          "pnlPct": -9.19,
+          "barsHeld": 5,
+          "reason": "maSell"
+        },
+        {
+          "entryIso": "2025-12-19",
+          "exitIso": "2026-01-30",
+          "entryPrice": 118.94,
+          "exitPrice": 115.43,
+          "pnlPct": -2.95,
+          "barsHeld": 27,
+          "reason": "maSell"
+        },
+        {
+          "entryIso": "2023-08-23",
+          "exitIso": "2023-09-13",
+          "entryPrice": 49.78,
+          "exitPrice": 49.15,
+          "pnlPct": -1.27,
+          "barsHeld": 14,
+          "reason": "maSell"
+        },
+        {
+          "entryIso": "2024-11-18",
+          "exitIso": "2024-12-31",
+          "entryPrice": 89.01,
+          "exitPrice": 90.55,
+          "pnlPct": 1.73,
+          "barsHeld": 29,
+          "reason": "maSell"
+        }
+      ],
+      "nTrades": 16
+    }
+  ]
+}

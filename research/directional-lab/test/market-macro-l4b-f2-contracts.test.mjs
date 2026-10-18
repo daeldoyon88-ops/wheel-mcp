@@ -44,8 +44,8 @@ test('F2 adds exactly the four required canonical schemas', () => {
 });
 
 test('canonical schema registry contains exactly 129 unique schemas', () => {
-  assert.equal(SNAPSHOT_NAMESPACE_SCHEMA_VERSIONS.length, 129);
-  assert.equal(new Set(SNAPSHOT_NAMESPACE_SCHEMA_VERSIONS).size, 129);
+  assert.equal(SNAPSHOT_NAMESPACE_SCHEMA_VERSIONS.length, 135);
+  assert.equal(new Set(SNAPSHOT_NAMESPACE_SCHEMA_VERSIONS).size, 135);
 });
 
 test('normalized schema namespace remains exactly five unique schemas', () => {

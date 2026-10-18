@@ -70,8 +70,57 @@ export function rejectionStageFromScanReason(reason) {
   if (r === "safe_strike_not_liquid") return "liquidity";
   if (r === "no_safe_strike_at_or_above_target_bid" || r === "no_safe_candidate_at_or_above_target_bid")
     return "safe_selection";
+  if (r === "yahoo_chain_expiration_mismatch") return "data_or_expiration";
   if (r === "filtered_out") return "unknown_filter";
   return "wheel_filter";
+}
+
+/**
+ * Classe un titre non transmis à IBKR sans inventer de motif.
+ * @param {{ reason?: string, error?: string, ok?: boolean, disposition?: string }} row
+ */
+export function classifyYahooNonTransmission(row) {
+  const reason = String(row?.reason || row?.error || "").trim();
+  if (!reason) {
+    return { class: "unknown_unproven", explicit: false, reason: null };
+  }
+  if (["scan_failed", "error"].includes(reason) || row?.error) {
+    return { class: "technical_error", explicit: true, reason };
+  }
+  if (["expiration_not_available", "no_spot_price", "invalid_lower_bound", "yahoo_chain_expiration_mismatch"].includes(reason)) {
+    return { class: "data_or_expiration", explicit: true, reason };
+  }
+  if (["premium_below_target", "yield_below_target", "no_safe_strike", "no_put_with_bid_below_lower_bound"].includes(reason)) {
+    return { class: "financial_reject", explicit: true, reason };
+  }
+  if (reason === "no_liquid_strike_below_lower_bound") {
+    return { class: "yahoo_unreliable_transmitted_or_liquidity", explicit: true, reason };
+  }
+  return { class: "other_explicit", explicit: true, reason };
+}
+
+function boundedYahooTrace(full) {
+  if (!full || typeof full !== "object") return null;
+  const dbg = full.debug && typeof full.debug === "object" ? full.debug : {};
+  return {
+    request: {
+      symbol: full.symbol ?? null,
+      endpoint: "provider.getOptions",
+      requestedExpiration: dbg.requestedExpiration ?? full.expiration ?? null,
+    },
+    response: {
+      returnedExpiration: dbg.returnedExpiration ?? null,
+      expirationMismatch: dbg.expirationMismatch === true,
+      contractCount: dbg.yahooContractCount ?? null,
+    },
+    wheel: {
+      expectedMoveAbsSource: dbg.expectedMoveAbsSource ?? full.expectedMoveSource ?? null,
+      expectedMoveFallbacksTried: dbg.expectedMoveFallbacksTried ?? null,
+      lowerBound: full.lowerBound ?? null,
+      targetPremium: full.targetPremium ?? null,
+      reason: full.reason ?? dbg.reasonKept ?? null,
+    },
+  };
 }
 
 /**
@@ -430,6 +479,8 @@ export function buildScanFunnelDiagnosticsV1(p) {
       supportFailure,
       dataQualityIssues,
       nearMissFlags,
+      nonTransmission: classifyYahooNonTransmission({ reason, ok: full?.ok }),
+      yahooTrace: boundedYahooTrace(full),
     });
   }
 

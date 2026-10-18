@@ -810,8 +810,8 @@ define('I1-O021', () => {
 /* -------------------------------------------------------------- registry -- */
 
 define('I1-M001', () => {
-  assert.equal(SNAPSHOT_NAMESPACE_SCHEMA_VERSIONS.length, 129);
-  assert.equal(new Set(SNAPSHOT_NAMESPACE_SCHEMA_VERSIONS).size, 129);
+  assert.equal(SNAPSHOT_NAMESPACE_SCHEMA_VERSIONS.length, 135);
+  assert.equal(new Set(SNAPSHOT_NAMESPACE_SCHEMA_VERSIONS).size, 135);
 });
 define('I1-M002', () => {
   assert.equal(NORMALIZED_NAMESPACE_SCHEMA_VERSIONS.length, 5);
@@ -899,7 +899,7 @@ define('I1-M013', () => {
 define('I1-M014', () => {
   // The PASS C checklist reduces to these closed design invariants.
   assert.equal(EARNINGS_L4C_I1_SCHEMA_VERSIONS.length, 16);
-  assert.equal(SNAPSHOT_NAMESPACE_SCHEMA_VERSIONS.length, 129);
+  assert.equal(SNAPSHOT_NAMESPACE_SCHEMA_VERSIONS.length, 135);
   assert.equal(NORMALIZED_NAMESPACE_SCHEMA_VERSIONS.length, 5);
   assert.equal(EARNINGS_TRAVERSAL_EDGES_V1.length, 35);
   assert.equal(officialCaseRows().length, 365);
@@ -917,7 +917,7 @@ define('I1-M016', () => {
   assert.ok(SNAPSHOT_NAMESPACE_SCHEMA_VERSIONS.includes(
     TRANSFORM_IMPLEMENTATION_MANIFEST_V2_SCHEMA_VERSION));
   assert.ok(!SNAPSHOT_NAMESPACE_SCHEMA_VERSIONS.includes('EarningsParserImplementationManifest/1'));
-  assert.equal(SNAPSHOT_NAMESPACE_SCHEMA_VERSIONS.length, 129);
+  assert.equal(SNAPSHOT_NAMESPACE_SCHEMA_VERSIONS.length, 135);
   assert.equal(NORMALIZED_NAMESPACE_SCHEMA_VERSIONS.length, 5);
 });
 

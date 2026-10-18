@@ -1,0 +1,1216 @@
+{
+  "documentKind": "POST_FREEZE_MAINTENANCE_AUTHORITY_CONSUMPTION",
+  "schemaVersion": 2,
+  "authorityId": "WHEEL_JARVISE_PRODUCT_RECOVERY_MISSION1_20261018_PRESENT_R1_AUTHORITY",
+  "programId": "WHEEL_JARVISE_PRODUCT_RECOVERY_MISSION1_20261018_PRESENT_R1",
+  "manifestSha256": "ad8c81e654ada4db5ecf02df756eaf6a2bae7836bd17c6a85263193895226c79",
+  "baseHead": "afe87589a426d579ff00f94008ca465d3c2f1bfb",
+  "consumedUse": 1,
+  "transactionId": "WHEEL_JARVISE_PRODUCT_RECOVERY_MISSION1_20261018_PRESENT_R1_TRANSACTION",
+  "recordedAt": "2026-10-18T17:16:55.187Z",
+  "commitMessage": "Wheel: recover product on remote governance lineage",
+  "publicationAdmission": {
+    "admissionId": "WHEEL_JARVISE_PRODUCT_RECOVERY_MISSION1_20261018_PRESENT_R1_PUBLICATION_ADMISSION_R1",
+    "admissionPath": "governance/authority/publication-admissions/GATE24/WHEEL_JARVISE_PRODUCT_RECOVERY_MISSION1_20261018_PRESENT_R1_PUBLICATION_ADMISSION_R1.json",
+    "admissionSha256": "557ac91e83d528ac74523d7b880cec44739d5e330ddcaaf38070cbc1f7bb5efa"
+  },
+  "cohortSelfExclusion": {
+    "path": "governance/historical-architecture/WHEEL_JARVISE_PRODUCT_RECOVERY_MISSION1_20261018_PRESENT_R1_CONSUMPTION_R1.json",
+    "reason": "The consumption record cannot hash its own final bytes; its identity is bound by the authority and manifest instead."
+  },
+  "cohortPathCount": 150,
+  "cohort": [
+    {
+      "path": "app/calculations/wheelMetrics.crossedMarket.test.mjs",
+      "sha256": "d569c278e67a8410fa66ff7a9cc31323975d0d5cb6d73b09b579c3c85032ae8c",
+      "byteLength": 2742,
+      "operation": "CREATE",
+      "reason": "Present Owner mandate: exact isolated product recovery, without historical authority reuse or Gate status change.",
+      "artifactClass": "PRODUCT_RECOVERY"
+    },
+    {
+      "path": "app/calculations/wheelMetrics.js",
+      "sha256": "1f69bcd8a64f3a516c16a5f3ceda4a0f2310d2a8e093055f2a22b73f21fcdb83",
+      "byteLength": 13983,
+      "operation": "MODIFY",
+      "reason": "Present Owner mandate: exact isolated product recovery, without historical authority reuse or Gate status change.",
+      "artifactClass": "PRODUCT_RECOVERY"
+    },
+    {
+      "path": "app/diagnostics/forensicObservation.js",
+      "sha256": "3f2325472d4ae696c44dd78c1b327a4c468cb5b7861e80b7c3ca7f672e344f70",
+      "byteLength": 8874,
+      "operation": "CREATE",
+      "reason": "Present Owner mandate: exact isolated product recovery, without historical authority reuse or Gate status change.",
+      "artifactClass": "PRODUCT_RECOVERY"
+    },
+    {
+      "path": "app/diagnostics/forensicObservation.test.mjs",
+      "sha256": "436ef1f713136219a45a6cd5b769c1be97a06befcb22bd46ef75c9ce5719c36b",
+      "byteLength": 4171,
+      "operation": "CREATE",
+      "reason": "Present Owner mandate: exact isolated product recovery, without historical authority reuse or Gate status change.",
+      "artifactClass": "PRODUCT_RECOVERY"
+    },
+    {
+      "path": "app/diagnostics/yahooFunnelDiagnosticsV1.js",
+      "sha256": "319e1d33c80d9861097c01703c33b8b9ee279d7c717f45f2c864064b0ec62534",
+      "byteLength": 20787,
+      "operation": "MODIFY",
+      "reason": "Present Owner mandate: exact isolated product recovery, without historical authority reuse or Gate status change.",
+      "artifactClass": "PRODUCT_RECOVERY"
+    },
+    {
+      "path": "app/diagnostics/yahooFunnelDiagnosticsV1.test.mjs",
+      "sha256": "7bc745d9df6d072a9779737a96f456950c12c2493db55fe77e38fe8784047ac7",
+      "byteLength": 5700,
+      "operation": "MODIFY",
+      "reason": "Present Owner mandate: exact isolated product recovery, without historical authority reuse or Gate status change.",
+      "artifactClass": "PRODUCT_RECOVERY"
+    },
+    {
+      "path": "app/scanners/wheelScanCapacity400.test.mjs",
+      "sha256": "043da353547c535d1058930f1c45af16f37b3f5d98e2ff92e8a02a8725437bc6",
+      "byteLength": 24484,
+      "operation": "CREATE",
+      "reason": "Present Owner mandate: exact isolated product recovery, without historical authority reuse or Gate status change.",
+      "artifactClass": "PRODUCT_RECOVERY"
+    },
+    {
+      "path": "app/scanners/wheelScanner.js",
+      "sha256": "c3aa43dd8178b3ecda3fda8aa365f37ed249901ef71a5a60a972c94eca352e5b",
+      "byteLength": 54562,
+      "operation": "MODIFY",
+      "reason": "Present Owner mandate: exact isolated product recovery, without historical authority reuse or Gate status change.",
+      "artifactClass": "PRODUCT_RECOVERY"
+    },
+    {
+      "path": "app/services/marketService.chainIdentity.test.mjs",
+      "sha256": "e3f2b9aa7fced6426d3cc3e70d8c920ca6a2e5594bdb7c3a6bfdfc51bde2aa89",
+      "byteLength": 4252,
+      "operation": "CREATE",
+      "reason": "Present Owner mandate: exact isolated product recovery, without historical authority reuse or Gate status change.",
+      "artifactClass": "PRODUCT_RECOVERY"
+    },
+    {
+      "path": "app/services/marketService.js",
+      "sha256": "5254ec19db47cf2ab6e0ea560f7e11635b2f7643d7fbde7b336d846548844d3a",
+      "byteLength": 38839,
+      "operation": "MODIFY",
+      "reason": "Present Owner mandate: exact isolated product recovery, without historical authority reuse or Gate status change.",
+      "artifactClass": "PRODUCT_RECOVERY"
+    },
+    {
+      "path": "app/watchlist/researchExpandedPool.js",
+      "sha256": "f5bfb7483f5e87fe1a8a019b6e85160d139f0cb3ba95e57caea33b3bdec70e0d",
+      "byteLength": 8923,
+      "operation": "MODIFY",
+      "reason": "Present Owner mandate: exact isolated product recovery, without historical authority reuse or Gate status change.",
+      "artifactClass": "PRODUCT_RECOVERY"
+    },
+    {
+      "path": "docs/WHEEL_FORENSIC_EXPORT_SCHEMA.md",
+      "sha256": "f52b32febcebb8543a86872199bfa9313cc9ca8bd4695247aa07092b7c013f91",
+      "byteLength": 2357,
+      "operation": "CREATE",
+      "reason": "Present Owner mandate: exact isolated product recovery, without historical authority reuse or Gate status change.",
+      "artifactClass": "PRODUCT_RECOVERY"
+    },
+    {
+      "path": "docs/WHEEL_USER_SETTINGS.md",
+      "sha256": "a3bd091cf222b69e2270028567d6002b2bfe9ae256a67b523edb2143f784f72d",
+      "byteLength": 5288,
+      "operation": "CREATE",
+      "reason": "Present Owner mandate: exact isolated product recovery, without historical authority reuse or Gate status change.",
+      "artifactClass": "PRODUCT_RECOVERY"
+    },
+    {
+      "path": "python_ibkr/test_ibkr_async_wheel_safe_aggressive.py",
+      "sha256": "2d2e51141151aa6e9168f96641160f9a60b3a71069299304bd37dda73f4bf225",
+      "byteLength": 106346,
+      "operation": "MODIFY",
+      "reason": "Present Owner mandate: exact isolated product recovery, without historical authority reuse or Gate status change.",
+      "artifactClass": "PRODUCT_RECOVERY"
+    },
+    {
+      "path": "python_ibkr/test_ibkr_async_wheel_safe_aggressive_batch.py",
+      "sha256": "a86a7be404e52e84ad8d2395d17c486b89559ab1d0ad930480074cc8fd7b35c9",
+      "byteLength": 39066,
+      "operation": "MODIFY",
+      "reason": "Present Owner mandate: exact isolated product recovery, without historical authority reuse or Gate status change.",
+      "artifactClass": "PRODUCT_RECOVERY"
+    },
+    {
+      "path": "python_ibkr/test_progressive_safe_unusable_quote.py",
+      "sha256": "0d72750c6b71907fa3ebc527db69fdeefe2f687e7d26f8913297d456b8ce0a5c",
+      "byteLength": 10964,
+      "operation": "CREATE",
+      "reason": "Present Owner mandate: exact isolated product recovery, without historical authority reuse or Gate status change.",
+      "artifactClass": "PRODUCT_RECOVERY"
+    },
+    {
+      "path": "server.js",
+      "sha256": "5ce9badcd0200c86273cbf89b61af351dccc44db5fccad186ccdcc52a1d7a5c8",
+      "byteLength": 133458,
+      "operation": "MODIFY",
+      "reason": "Present Owner mandate: exact isolated product recovery, without historical authority reuse or Gate status change.",
+      "artifactClass": "PRODUCT_RECOVERY"
+    },
+    {
+      "path": "wheel-dashboard/src/balancedModeUi.js",
+      "sha256": "e037d59823422da3b1a00d3b5abb82fdd9b7551c47ac06433329a8d9e27ea1d3",
+      "byteLength": 30394,
+      "operation": "MODIFY",
+      "reason": "Present Owner mandate: exact isolated product recovery, without historical authority reuse or Gate status change.",
+      "artifactClass": "PRODUCT_RECOVERY"
+    },
+    {
+      "path": "wheel-dashboard/src/capitalComboPortfolio.js",
+      "sha256": "0cf08381a36ed9c174269979e864c19f0fec990c8aade1a6a22d982ca3cfa1ba",
+      "byteLength": 237373,
+      "operation": "MODIFY",
+      "reason": "Present Owner mandate: exact isolated product recovery, without historical authority reuse or Gate status change.",
+      "artifactClass": "PRODUCT_RECOVERY"
+    },
+    {
+      "path": "wheel-dashboard/src/dashboard.balanced-mode-ui.test.mjs",
+      "sha256": "8ab36d7900e4cda4875e382eabb4fa636a448e81364f0c0ddd3840155185667b",
+      "byteLength": 10442,
+      "operation": "MODIFY",
+      "reason": "Present Owner mandate: exact isolated product recovery, without historical authority reuse or Gate status change.",
+      "artifactClass": "PRODUCT_RECOVERY"
+    },
+    {
+      "path": "wheel-dashboard/src/dashboard.jsx",
+      "sha256": "46f284750410f97f2b99fab5f3479c0e99132f095cba7a7c3677eb50d2ce094b",
+      "byteLength": 836032,
+      "operation": "MODIFY",
+      "reason": "Present Owner mandate: exact isolated product recovery, without historical authority reuse or Gate status change.",
+      "artifactClass": "PRODUCT_RECOVERY"
+    },
+    {
+      "path": "wheel-dashboard/src/dashboard.recommendation-semantics.test.mjs",
+      "sha256": "1a0905c36d9680ec7798847d8b0b82ec10df8328ab161057ca83498f67bdd0c3",
+      "byteLength": 35617,
+      "operation": "MODIFY",
+      "reason": "Present Owner mandate: exact isolated product recovery, without historical authority reuse or Gate status change.",
+      "artifactClass": "PRODUCT_RECOVERY"
+    },
+    {
+      "path": "wheel-dashboard/src/preIbkrPool.js",
+      "sha256": "1acb61af4e0dbf13bacb9c8125944b6071bc6de806777e3b775e592d993a4ffa",
+      "byteLength": 11465,
+      "operation": "MODIFY",
+      "reason": "Present Owner mandate: exact isolated product recovery, without historical authority reuse or Gate status change.",
+      "artifactClass": "PRODUCT_RECOVERY"
+    },
+    {
+      "path": "wheel-dashboard/src/scanFunnelArchivePayload.js",
+      "sha256": "81b8002ba79ad6b17af447a89a75f40ed20dce9798b606657ab035d2f48f08f9",
+      "byteLength": 17199,
+      "operation": "MODIFY",
+      "reason": "Present Owner mandate: exact isolated product recovery, without historical authority reuse or Gate status change.",
+      "artifactClass": "PRODUCT_RECOVERY"
+    },
+    {
+      "path": "wheel-dashboard/src/scanFunnelArchivePayload.test.mjs",
+      "sha256": "8c94dc3c3fe28fe4f4c82f362701ff5a960c07ed2d4bd1c63a4fefbaa64f2fb6",
+      "byteLength": 19225,
+      "operation": "MODIFY",
+      "reason": "Present Owner mandate: exact isolated product recovery, without historical authority reuse or Gate status change.",
+      "artifactClass": "PRODUCT_RECOVERY"
+    },
+    {
+      "path": "wheel-dashboard/src/threeLegSelection.js",
+      "sha256": "92840c94b2303b40e5d5d6d0465ff2082220d471ecfd86594b9bc0db30636049",
+      "byteLength": 12235,
+      "operation": "CREATE",
+      "reason": "Present Owner mandate: exact isolated product recovery, without historical authority reuse or Gate status change.",
+      "artifactClass": "PRODUCT_RECOVERY"
+    },
+    {
+      "path": "wheel-dashboard/src/threeLegSelection.test.mjs",
+      "sha256": "f256856be4d0fb599bed648ba3e9c5cc9662e0f119b03f7a03821daf9d35e808",
+      "byteLength": 16554,
+      "operation": "CREATE",
+      "reason": "Present Owner mandate: exact isolated product recovery, without historical authority reuse or Gate status change.",
+      "artifactClass": "PRODUCT_RECOVERY"
+    },
+    {
+      "path": "wheel-dashboard/src/tickerPipelineDiagnostic.js",
+      "sha256": "72363c37fdab7b85197e93d5287b829e75cfada3b3aede6de8848423f9147fed",
+      "byteLength": 48872,
+      "operation": "MODIFY",
+      "reason": "Present Owner mandate: exact isolated product recovery, without historical authority reuse or Gate status change.",
+      "artifactClass": "PRODUCT_RECOVERY"
+    },
+    {
+      "path": "wheel-dashboard/src/tickerPipelineDiagnostic.test.mjs",
+      "sha256": "d349391fc05abc5cba467943fbcd40206374cf446f3ae4c8cfc6134be861217b",
+      "byteLength": 19457,
+      "operation": "MODIFY",
+      "reason": "Present Owner mandate: exact isolated product recovery, without historical authority reuse or Gate status change.",
+      "artifactClass": "PRODUCT_RECOVERY"
+    },
+    {
+      "path": "wheel-dashboard/src/yahooIbkrQuoteComparison.js",
+      "sha256": "14b846bed5ad1ed0a9ac90832294ae786e9c1989b3b5a6ff61d5e292fe29cd97",
+      "byteLength": 12415,
+      "operation": "CREATE",
+      "reason": "Present Owner mandate: exact isolated product recovery, without historical authority reuse or Gate status change.",
+      "artifactClass": "PRODUCT_RECOVERY"
+    },
+    {
+      "path": "wheel-dashboard/src/yahooIbkrQuoteComparison.test.mjs",
+      "sha256": "c4b9435cdca4a99837ada050d36094c816fc4849de80c0cdbc2517b57ecf3a3d",
+      "byteLength": 6411,
+      "operation": "CREATE",
+      "reason": "Present Owner mandate: exact isolated product recovery, without historical authority reuse or Gate status change.",
+      "artifactClass": "PRODUCT_RECOVERY"
+    },
+    {
+      "path": "scripts/tradingview/diagnoseDrawdown2026.mjs",
+      "sha256": "41f6fae7480ee6f5c97c94feb2dd30068004d364e23648077be0877381fddf64",
+      "byteLength": 8449,
+      "operation": "CREATE",
+      "reason": "Present Owner mandate: exact isolated product recovery, without historical authority reuse or Gate status change.",
+      "artifactClass": "PRODUCT_RECOVERY"
+    },
+    {
+      "path": "scripts/tradingview/finalReport.mjs",
+      "sha256": "d653c7d931340b8b6f06c1727d562d29a4e2dab3252262b7641ce80ebbcbbab1",
+      "byteLength": 10976,
+      "operation": "CREATE",
+      "reason": "Present Owner mandate: exact isolated product recovery, without historical authority reuse or Gate status change.",
+      "artifactClass": "PRODUCT_RECOVERY"
+    },
+    {
+      "path": "scripts/tradingview/lib/analysis.mjs",
+      "sha256": "7472c01947e887a8f6d6b97e371dd00dc5dec6c0e7ec4470f9f91a40838a4458",
+      "byteLength": 1433,
+      "operation": "CREATE",
+      "reason": "Present Owner mandate: exact isolated product recovery, without historical authority reuse or Gate status change.",
+      "artifactClass": "PRODUCT_RECOVERY"
+    },
+    {
+      "path": "scripts/tradingview/phase2Optimize.mjs",
+      "sha256": "636a19745cc6a24d5bd53df73245ade82c4aff79fc65acb62c4e53987e81f74e",
+      "byteLength": 19256,
+      "operation": "CREATE",
+      "reason": "Present Owner mandate: exact isolated product recovery, without historical authority reuse or Gate status change.",
+      "artifactClass": "PRODUCT_RECOVERY"
+    },
+    {
+      "path": "scripts/tradingview/r4DivergenceAudit.mjs",
+      "sha256": "169b14df05b8dc0bb08dc4bf36256d0f4742a45697b129caf33b3f3bcb4814da",
+      "byteLength": 20079,
+      "operation": "CREATE",
+      "reason": "Present Owner mandate: exact isolated product recovery, without historical authority reuse or Gate status change.",
+      "artifactClass": "PRODUCT_RECOVERY"
+    },
+    {
+      "path": "scripts/tradingview/testExitCandidates.mjs",
+      "sha256": "cd5667376c9f11dbe68704c10ac52c3354d15a2ae42b37aa6a0cbe047d4eb87b",
+      "byteLength": 4467,
+      "operation": "CREATE",
+      "reason": "Present Owner mandate: exact isolated product recovery, without historical authority reuse or Gate status change.",
+      "artifactClass": "PRODUCT_RECOVERY"
+    },
+    {
+      "path": "scripts/tradingview/tradeQualityAudit.mjs",
+      "sha256": "33d4cb276f318e11ed03f6457fa9a18f78555d780aec4ab5164741f19037bff4",
+      "byteLength": 46609,
+      "operation": "CREATE",
+      "reason": "Present Owner mandate: exact isolated product recovery, without historical authority reuse or Gate status change.",
+      "artifactClass": "PRODUCT_RECOVERY"
+    },
+    {
+      "path": "scripts/tradingview/walkForward.mjs",
+      "sha256": "5ee4bf376a90d8b6b49e1c1c52612daeb57818fd98131e100175fe384e733428",
+      "byteLength": 5426,
+      "operation": "CREATE",
+      "reason": "Present Owner mandate: exact isolated product recovery, without historical authority reuse or Gate status change.",
+      "artifactClass": "PRODUCT_RECOVERY"
+    },
+    {
+      "path": ".cursor/commands/wheel-close-gate.md",
+      "sha256": "50ab555d2c2997c30aef881e099540c337bb55da08eb695dab30da13c6072d66",
+      "byteLength": 114,
+      "operation": "CREATE",
+      "reason": "Present Owner mandate: exact isolated product recovery, without historical authority reuse or Gate status change.",
+      "artifactClass": "PRODUCT_RECOVERY"
+    },
+    {
+      "path": ".cursor/commands/wheel-preflight.md",
+      "sha256": "9dd4545e90fff33199804449a4ef805ff7d59eac8724e019cb8055c4dab1aef2",
+      "byteLength": 96,
+      "operation": "CREATE",
+      "reason": "Present Owner mandate: exact isolated product recovery, without historical authority reuse or Gate status change.",
+      "artifactClass": "PRODUCT_RECOVERY"
+    },
+    {
+      "path": ".cursor/commands/wheel-resume.md",
+      "sha256": "1e1ab7691c2694adb3c680f50fae086770606476e5bec81187f64b8565ae7527",
+      "byteLength": 115,
+      "operation": "CREATE",
+      "reason": "Present Owner mandate: exact isolated product recovery, without historical authority reuse or Gate status change.",
+      "artifactClass": "PRODUCT_RECOVERY"
+    },
+    {
+      "path": "debug/capital-combinations-af17-patch-validation/capital-combinations-af17-patch-validation.mjs",
+      "sha256": "3cd9a72c910012897faf6c8c71999c02da39bf541d52c06ace2b4572472d430c",
+      "byteLength": 5763,
+      "operation": "CREATE",
+      "reason": "Present Owner mandate: exact isolated product recovery, without historical authority reuse or Gate status change.",
+      "artifactClass": "PRODUCT_RECOVERY"
+    },
+    {
+      "path": "debug/capital-combinations-af18-patch-validation/capital-combinations-af18-patch-validation.mjs",
+      "sha256": "664da5e65347c755094911989953b1e8e8efb92d621335bbb926f4e9decf668b",
+      "byteLength": 8129,
+      "operation": "CREATE",
+      "reason": "Present Owner mandate: exact isolated product recovery, without historical authority reuse or Gate status change.",
+      "artifactClass": "PRODUCT_RECOVERY"
+    },
+    {
+      "path": "debug/capital-combinations-audit-fable/capital-combinations-audit-fable.json",
+      "sha256": "0c43d57054e2dbd3f55d61b8597242a92bfb42d5e34623f86a3843f6afc51298",
+      "byteLength": 61794,
+      "operation": "CREATE",
+      "reason": "Present Owner mandate: exact isolated product recovery, without historical authority reuse or Gate status change.",
+      "artifactClass": "PRODUCT_RECOVERY"
+    },
+    {
+      "path": "debug/capital-combinations-audit-fable/capital-combinations-audit-fable.md",
+      "sha256": "3a7cd0a6d75ff8f42e577e79468c252ba10d15fe45967fcb9b85c7ea5097a4ca",
+      "byteLength": 39726,
+      "operation": "CREATE",
+      "reason": "Present Owner mandate: exact isolated product recovery, without historical authority reuse or Gate status change.",
+      "artifactClass": "PRODUCT_RECOVERY"
+    },
+    {
+      "path": "debug/top20FormulaE2bRobustHistorySim.mjs",
+      "sha256": "b2595518520ca0adb264fe9c42c05cc10bf1a464c6a9b22d395b21c871613ec9",
+      "byteLength": 43688,
+      "operation": "CREATE",
+      "reason": "Present Owner mandate: exact isolated product recovery, without historical authority reuse or Gate status change.",
+      "artifactClass": "PRODUCT_RECOVERY"
+    },
+    {
+      "path": "scripts/auditBearishAnnualWindows.mjs",
+      "sha256": "e212aadc2f12d73c53a2879429c888453d3d38ab6fc71e877838bc9640163927",
+      "byteLength": 5993,
+      "operation": "CREATE",
+      "reason": "Present Owner mandate: exact isolated product recovery, without historical authority reuse or Gate status change.",
+      "artifactClass": "PRODUCT_RECOVERY"
+    },
+    {
+      "path": "scripts/auditBearishSynthetic.mjs",
+      "sha256": "2b8a25223c4ca1766e2f6c0d31f162ce38dda1badf63768706e5e845ea9f70ed",
+      "byteLength": 4559,
+      "operation": "CREATE",
+      "reason": "Present Owner mandate: exact isolated product recovery, without historical authority reuse or Gate status change.",
+      "artifactClass": "PRODUCT_RECOVERY"
+    },
+    {
+      "path": "scripts/auditBullishAnnualWindows.mjs",
+      "sha256": "e8c6db8f9dfbe970b3eeae2d5af037a014a936e8e1ac2cf565999f32335dbae2",
+      "byteLength": 8229,
+      "operation": "CREATE",
+      "reason": "Present Owner mandate: exact isolated product recovery, without historical authority reuse or Gate status change.",
+      "artifactClass": "PRODUCT_RECOVERY"
+    },
+    {
+      "path": "scripts/auditJournalPopTop20N.mjs",
+      "sha256": "ee2661ba00daa8dd45953c8d5bacc35440b5e5ca6af28be66dcf2c9463afbeaf",
+      "byteLength": 14386,
+      "operation": "CREATE",
+      "reason": "Present Owner mandate: exact isolated product recovery, without historical authority reuse or Gate status change.",
+      "artifactClass": "PRODUCT_RECOVERY"
+    },
+    {
+      "path": "scripts/auditManualYellowArrowCorrelation.mjs",
+      "sha256": "95288544973a36eb3f5585dec6806a29f3fa79ac350edf36127774dc10636ce8",
+      "byteLength": 30256,
+      "operation": "CREATE",
+      "reason": "Present Owner mandate: exact isolated product recovery, without historical authority reuse or Gate status change.",
+      "artifactClass": "PRODUCT_RECOVERY"
+    },
+    {
+      "path": "scripts/auditSeasonalityHeaderScore.mjs",
+      "sha256": "6d5ee434e0cd021f0692a57de078b6f1bab924edd808798e0de3d772f7a12c54",
+      "byteLength": 13217,
+      "operation": "CREATE",
+      "reason": "Present Owner mandate: exact isolated product recovery, without historical authority reuse or Gate status change.",
+      "artifactClass": "PRODUCT_RECOVERY"
+    },
+    {
+      "path": "scripts/auditSeasonalityUiSources.mjs",
+      "sha256": "7c18e382601e14bf58878465ebf946e76a4802e26bde26da48b494b2d1c55f86",
+      "byteLength": 8909,
+      "operation": "CREATE",
+      "reason": "Present Owner mandate: exact isolated product recovery, without historical authority reuse or Gate status change.",
+      "artifactClass": "PRODUCT_RECOVERY"
+    },
+    {
+      "path": "scripts/auditTechnicalConfluenceAroundManualArrows.mjs",
+      "sha256": "aaaacdb2602718b9a261641540604f37b1ea28da2bf5109629f482dbb28e1e18",
+      "byteLength": 44748,
+      "operation": "CREATE",
+      "reason": "Present Owner mandate: exact isolated product recovery, without historical authority reuse or Gate status change.",
+      "artifactClass": "PRODUCT_RECOVERY"
+    },
+    {
+      "path": "scripts/auditTop20DteAssignmentCounting.mjs",
+      "sha256": "d4a41ee99af83d5faed254f982e18cc019e58c2f658d2f603c9f901eb395388c",
+      "byteLength": 9443,
+      "operation": "CREATE",
+      "reason": "Present Owner mandate: exact isolated product recovery, without historical authority reuse or Gate status change.",
+      "artifactClass": "PRODUCT_RECOVERY"
+    },
+    {
+      "path": "scripts/auditTop20EventVsObservationImpact.mjs",
+      "sha256": "880addc49be87d1c8a1ebc301fdac22e2bec3adbce95579f7ee4f7065a39500f",
+      "byteLength": 15795,
+      "operation": "CREATE",
+      "reason": "Present Owner mandate: exact isolated product recovery, without historical authority reuse or Gate status change.",
+      "artifactClass": "PRODUCT_RECOVERY"
+    },
+    {
+      "path": "scripts/auditTopCorrelationMultiTimeframe.mjs",
+      "sha256": "e2d571e56b77c43cf1a2143359d1d7ced2f0efd96cedd365b24b5c8b9ae8d5e6",
+      "byteLength": 49914,
+      "operation": "CREATE",
+      "reason": "Present Owner mandate: exact isolated product recovery, without historical authority reuse or Gate status change.",
+      "artifactClass": "PRODUCT_RECOVERY"
+    },
+    {
+      "path": "scripts/auditTopCorrelationWeekly.mjs",
+      "sha256": "1721c6493923f4512073fe48e8e4a951b1c8b48f81ca414797b0e00caa546f4d",
+      "byteLength": 63422,
+      "operation": "CREATE",
+      "reason": "Present Owner mandate: exact isolated product recovery, without historical authority reuse or Gate status change.",
+      "artifactClass": "PRODUCT_RECOVERY"
+    },
+    {
+      "path": "scripts/auditTqqqSeasonalitySnapshot.mjs",
+      "sha256": "2e2f01d183a93452c47fcd5bf26a05bc4cd75ece581edaabf84b21a980644fb5",
+      "byteLength": 7171,
+      "operation": "CREATE",
+      "reason": "Present Owner mandate: exact isolated product recovery, without historical authority reuse or Gate status change.",
+      "artifactClass": "PRODUCT_RECOVERY"
+    },
+    {
+      "path": "scripts/auditYellowArrowCorrelation.mjs",
+      "sha256": "9223feefbe5b37be82002be160f5fcc3d2fc6afa70fc3e1dcff1738df52fa662",
+      "byteLength": 40130,
+      "operation": "CREATE",
+      "reason": "Present Owner mandate: exact isolated product recovery, without historical authority reuse or Gate status change.",
+      "artifactClass": "PRODUCT_RECOVERY"
+    },
+    {
+      "path": "scripts/backtestTopRiskLiveRules.mjs",
+      "sha256": "26f7b732f8086467c980b403604e02cd42ec6476e541107c356455c2dc0bf3d4",
+      "byteLength": 41982,
+      "operation": "CREATE",
+      "reason": "Present Owner mandate: exact isolated product recovery, without historical authority reuse or Gate status change.",
+      "artifactClass": "PRODUCT_RECOVERY"
+    },
+    {
+      "path": "scripts/clusterTopRiskEvents.mjs",
+      "sha256": "65c40deecb5ea2eb4db3496f0ebf001946de0d3797772cd5674effe785a29e9f",
+      "byteLength": 12557,
+      "operation": "CREATE",
+      "reason": "Present Owner mandate: exact isolated product recovery, without historical authority reuse or Gate status change.",
+      "artifactClass": "PRODUCT_RECOVERY"
+    },
+    {
+      "path": "scripts/clusterTopRiskEventsStrict.mjs",
+      "sha256": "ea630f8047e16936a149f66c56059dbb739ef5e6f765f92240bc55c367b89208",
+      "byteLength": 21702,
+      "operation": "CREATE",
+      "reason": "Present Owner mandate: exact isolated product recovery, without historical authority reuse or Gate status change.",
+      "artifactClass": "PRODUCT_RECOVERY"
+    },
+    {
+      "path": "scripts/exportTopRiskTradingViewDates.mjs",
+      "sha256": "177c72466b04266f8f6b07ff8ad5b3799e1843a3f169af2c3b3a2389ffd521d6",
+      "byteLength": 8842,
+      "operation": "CREATE",
+      "reason": "Present Owner mandate: exact isolated product recovery, without historical authority reuse or Gate status change.",
+      "artifactClass": "PRODUCT_RECOVERY"
+    },
+    {
+      "path": "scripts/extractTopRiskSignalDates.mjs",
+      "sha256": "e43a06d97541de45ba95d35d0cc351a4292e2e77164ae4a3ec828d22e92e204e",
+      "byteLength": 16704,
+      "operation": "CREATE",
+      "reason": "Present Owner mandate: exact isolated product recovery, without historical authority reuse or Gate status change.",
+      "artifactClass": "PRODUCT_RECOVERY"
+    },
+    {
+      "path": "scripts/tradingview/backtestTqqqStrategy.mjs",
+      "sha256": "08e241698d54d08131648ad213354ecfffe89c8bdaffd6d0fb6a3daa495f77e7",
+      "byteLength": 13642,
+      "operation": "CREATE",
+      "reason": "Present Owner mandate: exact isolated product recovery, without historical authority reuse or Gate status change.",
+      "artifactClass": "PRODUCT_RECOVERY"
+    },
+    {
+      "path": "scripts/tradingview/recalibrateRealBaseline.mjs",
+      "sha256": "b91b70cdf043fd98d99d46521c79055c199661019e8304f9fde594fbb2bc8d00",
+      "byteLength": 16159,
+      "operation": "CREATE",
+      "reason": "Present Owner mandate: exact isolated product recovery, without historical authority reuse or Gate status change.",
+      "artifactClass": "PRODUCT_RECOVERY"
+    },
+    {
+      "path": "scripts/validateEventUniqueVerdictPatch.mjs",
+      "sha256": "b8d6d706e056c4c770705e0b1b8816110a4a91f21a3b220f1609f67564822b3f",
+      "byteLength": 11788,
+      "operation": "CREATE",
+      "reason": "Present Owner mandate: exact isolated product recovery, without historical authority reuse or Gate status change.",
+      "artifactClass": "PRODUCT_RECOVERY"
+    },
+    {
+      "path": "wheel-dashboard/scripts/auditSelectedLegCapitalDisplay.mjs",
+      "sha256": "68fb9d724462681251c8c4d8782ca15a55bb9d519c8c6f9e2052b92a58f12169",
+      "byteLength": 2615,
+      "operation": "CREATE",
+      "reason": "Present Owner mandate: exact isolated product recovery, without historical authority reuse or Gate status change.",
+      "artifactClass": "PRODUCT_RECOVERY"
+    },
+    {
+      "path": "debug/TQQQ_Top_Risk_Live_Final.pine",
+      "sha256": "71659f616d2bd27f12bbbc2d9b775d4a0aa32c500e24a4f7cf24cbf422f30bb9",
+      "byteLength": 13257,
+      "operation": "CREATE",
+      "reason": "Present Owner mandate: exact isolated product recovery, without historical authority reuse or Gate status change.",
+      "artifactClass": "PRODUCT_RECOVERY"
+    },
+    {
+      "path": "debug/manual-yellow-arrow-dates-TQQQ.csv",
+      "sha256": "2425aa715069dfa31e6e411f950b293f6b795a29d4353772d1c0b01f634a67b0",
+      "byteLength": 1384,
+      "operation": "CREATE",
+      "reason": "Present Owner mandate: exact isolated product recovery, without historical authority reuse or Gate status change.",
+      "artifactClass": "PRODUCT_RECOVERY"
+    },
+    {
+      "path": "debug/phase-a3b-result-scan-7dte-20260710.json",
+      "sha256": "d6461b5bf2a0fe5250fea0501ad2ad7699fa5f2e256065d0d7a6ad7ffcb48a66",
+      "byteLength": 693564,
+      "operation": "CREATE",
+      "reason": "Present Owner mandate: exact isolated product recovery, without historical authority reuse or Gate status change.",
+      "artifactClass": "PRODUCT_RECOVERY"
+    },
+    {
+      "path": "debug/tradingview/ohlc-cache-TECL-raw.json",
+      "sha256": "527d56c0b1ae6ae18504d2f6c26b3aac82a495fe59a0b679258d4f30373bc3ed",
+      "byteLength": 803235,
+      "operation": "CREATE",
+      "reason": "Present Owner mandate: exact isolated product recovery, without historical authority reuse or Gate status change.",
+      "artifactClass": "PRODUCT_RECOVERY"
+    },
+    {
+      "path": "debug/tradingview/tecl-profile-audit.json",
+      "sha256": "7120dd0cd63f3943b370f1729477e22cdf62bc6ee6f82adff77a7755fe5248f2",
+      "byteLength": 40450,
+      "operation": "CREATE",
+      "reason": "Present Owner mandate: exact isolated product recovery, without historical authority reuse or Gate status change.",
+      "artifactClass": "PRODUCT_RECOVERY"
+    },
+    {
+      "path": "debug/tradingview/tecl-profile-audit.md",
+      "sha256": "d28ad23fea6fcf816075ffb751bc826bcfc6abdf04d9bfc61e2e0c68813009d6",
+      "byteLength": 7146,
+      "operation": "CREATE",
+      "reason": "Present Owner mandate: exact isolated product recovery, without historical authority reuse or Gate status change.",
+      "artifactClass": "PRODUCT_RECOVERY"
+    },
+    {
+      "path": "debug/tradingview/tecl-tv-reconciliation.json",
+      "sha256": "4aacebb203fc02dc527176f7edd4e9d92dd953923f715ae05d42e836e2bc89b3",
+      "byteLength": 32421,
+      "operation": "CREATE",
+      "reason": "Present Owner mandate: exact isolated product recovery, without historical authority reuse or Gate status change.",
+      "artifactClass": "PRODUCT_RECOVERY"
+    },
+    {
+      "path": "debug/tradingview/tecl-tv-reconciliation.md",
+      "sha256": "7fa3d92223152676b2ecf23a63ada1475654d2f8bdba293e533f780b4f120180",
+      "byteLength": 12243,
+      "operation": "CREATE",
+      "reason": "Present Owner mandate: exact isolated product recovery, without historical authority reuse or Gate status change.",
+      "artifactClass": "PRODUCT_RECOVERY"
+    },
+    {
+      "path": "debug/tradingview/tqqq-2026-drawdown-diagnostic.csv",
+      "sha256": "477797ca8d3eca33411496bc5758c59e20881712e2c687d0d939ca22da95ef02",
+      "byteLength": 12292,
+      "operation": "CREATE",
+      "reason": "Present Owner mandate: exact isolated product recovery, without historical authority reuse or Gate status change.",
+      "artifactClass": "PRODUCT_RECOVERY"
+    },
+    {
+      "path": "debug/tradingview/tqqq-2026-drawdown-diagnostic.md",
+      "sha256": "f77be9700ac20300c62c26a7d9b422e76af075ab46b497b221d258e7700901c3",
+      "byteLength": 6765,
+      "operation": "CREATE",
+      "reason": "Present Owner mandate: exact isolated product recovery, without historical authority reuse or Gate status change.",
+      "artifactClass": "PRODUCT_RECOVERY"
+    },
+    {
+      "path": "debug/tradingview/tqqq-exit-candidates.json",
+      "sha256": "1884ce455cb30b9f1dc1e97020837a1f15476ba2792046158bd51ed41981ec6a",
+      "byteLength": 12415,
+      "operation": "CREATE",
+      "reason": "Present Owner mandate: exact isolated product recovery, without historical authority reuse or Gate status change.",
+      "artifactClass": "PRODUCT_RECOVERY"
+    },
+    {
+      "path": "debug/tradingview/tqqq-phase2-LK-reentry-optimization.json",
+      "sha256": "080908e33ddf31c24f9d10394ce098babd2724c8cd1d8f7ce765ba67aca7a8ac",
+      "byteLength": 45896,
+      "operation": "CREATE",
+      "reason": "Present Owner mandate: exact isolated product recovery, without historical authority reuse or Gate status change.",
+      "artifactClass": "PRODUCT_RECOVERY"
+    },
+    {
+      "path": "debug/tradingview/tqqq-phase2-LK-reentry-optimization.md",
+      "sha256": "7759d916e29c63a152d5f648f3c15c720284ebc69ade581025e9c1991af6e5b4",
+      "byteLength": 9833,
+      "operation": "CREATE",
+      "reason": "Present Owner mandate: exact isolated product recovery, without historical authority reuse or Gate status change.",
+      "artifactClass": "PRODUCT_RECOVERY"
+    },
+    {
+      "path": "debug/tradingview/tqqq-r4-trade-divergence-audit.md",
+      "sha256": "9a0b39f4c40cdc75bcd5cd00c4b99db8da35b0d81ecc6ba3d8a1f7cf0e0f31f6",
+      "byteLength": 8369,
+      "operation": "CREATE",
+      "reason": "Present Owner mandate: exact isolated product recovery, without historical authority reuse or Gate status change.",
+      "artifactClass": "PRODUCT_RECOVERY"
+    },
+    {
+      "path": "debug/tradingview/tqqq-strategy-backtest-current.json",
+      "sha256": "02c5d7d4bc140530ecde3cdcebd1ecf99b987e2c0fdddc797f0df5cde87d89b8",
+      "byteLength": 12137,
+      "operation": "CREATE",
+      "reason": "Present Owner mandate: exact isolated product recovery, without historical authority reuse or Gate status change.",
+      "artifactClass": "PRODUCT_RECOVERY"
+    },
+    {
+      "path": "debug/tradingview/tqqq-strategy-backtest-current.md",
+      "sha256": "ae408061fd64fbd5cc28e5e950e76763fd88bad0cdea4a7195939ebeaa83f73c",
+      "byteLength": 10042,
+      "operation": "CREATE",
+      "reason": "Present Owner mandate: exact isolated product recovery, without historical authority reuse or Gate status change.",
+      "artifactClass": "PRODUCT_RECOVERY"
+    },
+    {
+      "path": "debug/tradingview/tqqq-strategy-exit-optimization-report.json",
+      "sha256": "1b2aeef180b14cbbf1227a69ea9450dfc2e15d2b0a6bfa5969f546a86f27900c",
+      "byteLength": 18785,
+      "operation": "CREATE",
+      "reason": "Present Owner mandate: exact isolated product recovery, without historical authority reuse or Gate status change.",
+      "artifactClass": "PRODUCT_RECOVERY"
+    },
+    {
+      "path": "debug/tradingview/tqqq-strategy-exit-optimization-report.md",
+      "sha256": "c936ad3601adcfb328cb26cc08fe3e55521cc4339185b6658d96a11f45ca08d4",
+      "byteLength": 7981,
+      "operation": "CREATE",
+      "reason": "Present Owner mandate: exact isolated product recovery, without historical authority reuse or Gate status change.",
+      "artifactClass": "PRODUCT_RECOVERY"
+    },
+    {
+      "path": "debug/tradingview/tqqq-trade-quality-audit.json",
+      "sha256": "c99095789cbf915ad570cda1cc077b26ec83da428dbc8b509405a38f34126316",
+      "byteLength": 41426,
+      "operation": "CREATE",
+      "reason": "Present Owner mandate: exact isolated product recovery, without historical authority reuse or Gate status change.",
+      "artifactClass": "PRODUCT_RECOVERY"
+    },
+    {
+      "path": "debug/tradingview/tqqq-trade-quality-audit.md",
+      "sha256": "68d5d791157364be7333b2753ed0b0de6328866777362f9433b0daec39838a79",
+      "byteLength": 16153,
+      "operation": "CREATE",
+      "reason": "Present Owner mandate: exact isolated product recovery, without historical authority reuse or Gate status change.",
+      "artifactClass": "PRODUCT_RECOVERY"
+    },
+    {
+      "path": "debug/tradingview/tqqq-walkforward.json",
+      "sha256": "aa3173c8acf5542214833c8e6377a302030dd2eae2bdb799266c43478b2fd280",
+      "byteLength": 12207,
+      "operation": "CREATE",
+      "reason": "Present Owner mandate: exact isolated product recovery, without historical authority reuse or Gate status change.",
+      "artifactClass": "PRODUCT_RECOVERY"
+    },
+    {
+      "path": "debug/tradingview/tv-trades-TQQQ-2026-06-05.csv",
+      "sha256": "324bacf779e96274be9712a11e9f0f939469a454a61046ab63af79cc9adc2b18",
+      "byteLength": 976,
+      "operation": "CREATE",
+      "reason": "Present Owner mandate: exact isolated product recovery, without historical authority reuse or Gate status change.",
+      "artifactClass": "PRODUCT_RECOVERY"
+    },
+    {
+      "path": ".gitignore",
+      "sha256": "673e6b787f6f1b9107b5ddc973163235a6c4e6db0f48ef2e476231d712783835",
+      "byteLength": 1340,
+      "operation": "MODIFY",
+      "reason": "Present Owner mandate: exact isolated product recovery, without historical authority reuse or Gate status change.",
+      "artifactClass": "PRODUCT_RECOVERY"
+    },
+    {
+      "path": "research/directional-lab/src/canonical/canonicalSchemaRegistryV1.mjs",
+      "sha256": "b94e9281a311858a529a8f56dc99bed714bace8eccea1dff616984645f4cb3e8",
+      "byteLength": 35360,
+      "operation": "MODIFY",
+      "reason": "Present Owner mandate: exact isolated product recovery, without historical authority reuse or Gate status change.",
+      "artifactClass": "PRODUCT_RECOVERY"
+    },
+    {
+      "path": "research/directional-lab/src/contracts/earningsContractsL4CIIV1.mjs",
+      "sha256": "ad8ec87ae20f3aebf7d58f97dc6eefc55d0e8bd6e647e664c8fa05faac791542",
+      "byteLength": 33998,
+      "operation": "CREATE",
+      "reason": "Present Owner mandate: exact isolated product recovery, without historical authority reuse or Gate status change.",
+      "artifactClass": "PRODUCT_RECOVERY"
+    },
+    {
+      "path": "research/directional-lab/src/earnings/earningsAsOfMaterializationL4CIIV1.mjs",
+      "sha256": "0758b3f53d9c61ed929ff9d494b67c0269473f7eb03dae17499cffe536b9f249",
+      "byteLength": 21416,
+      "operation": "CREATE",
+      "reason": "Present Owner mandate: exact isolated product recovery, without historical authority reuse or Gate status change.",
+      "artifactClass": "PRODUCT_RECOVERY"
+    },
+    {
+      "path": "research/directional-lab/src/earnings/earningsAsOfResolutionPolicyL4CIIV1.mjs",
+      "sha256": "1f2f9a8a1c250b51eefed27bc4a9b6dd51892aa51460c77d555c13bf1b39f4f4",
+      "byteLength": 2562,
+      "operation": "CREATE",
+      "reason": "Present Owner mandate: exact isolated product recovery, without historical authority reuse or Gate status change.",
+      "artifactClass": "PRODUCT_RECOVERY"
+    },
+    {
+      "path": "research/directional-lab/src/earnings/earningsDatasetBindingL4CIIV1.mjs",
+      "sha256": "c7ce13987e72cfb439f0484ca89d1822644abd52b828c5b732ba692fe2d82b08",
+      "byteLength": 11379,
+      "operation": "CREATE",
+      "reason": "Present Owner mandate: exact isolated product recovery, without historical authority reuse or Gate status change.",
+      "artifactClass": "PRODUCT_RECOVERY"
+    },
+    {
+      "path": "research/directional-lab/src/earnings/earningsFiscalClassificationL4CIIV1.mjs",
+      "sha256": "24b1450e04728c1b4effd2a34241b6f0cddd9803f342683668290fbe3c979f97",
+      "byteLength": 16847,
+      "operation": "CREATE",
+      "reason": "Present Owner mandate: exact isolated product recovery, without historical authority reuse or Gate status change.",
+      "artifactClass": "PRODUCT_RECOVERY"
+    },
+    {
+      "path": "research/directional-lab/src/earnings/earningsFiscalClassificationPolicyL4CIIV1.mjs",
+      "sha256": "2e982cb8f73cbc53c4a3db203179b41d458fef79fe2c9922aa3d8b9a60e49319",
+      "byteLength": 2905,
+      "operation": "CREATE",
+      "reason": "Present Owner mandate: exact isolated product recovery, without historical authority reuse or Gate status change.",
+      "artifactClass": "PRODUCT_RECOVERY"
+    },
+    {
+      "path": "research/directional-lab/src/earnings/earningsFiscalClassificationReportL4CIIV1.mjs",
+      "sha256": "215fc4e19b5adba0d272d7ffb2101328409c8ecd8d2af917c66c74d5d4c877c3",
+      "byteLength": 6377,
+      "operation": "CREATE",
+      "reason": "Present Owner mandate: exact isolated product recovery, without historical authority reuse or Gate status change.",
+      "artifactClass": "PRODUCT_RECOVERY"
+    },
+    {
+      "path": "research/directional-lab/src/earnings/earningsFiscalMetadataL4CIIV1.mjs",
+      "sha256": "09765656c41624b7a6b34ae4b2d2c12c7df7e8e5406187465cbb15e73affc2d6",
+      "byteLength": 7514,
+      "operation": "CREATE",
+      "reason": "Present Owner mandate: exact isolated product recovery, without historical authority reuse or Gate status change.",
+      "artifactClass": "PRODUCT_RECOVERY"
+    },
+    {
+      "path": "research/directional-lab/src/earnings/earningsMaterializationTraversalL4CIIV1.mjs",
+      "sha256": "294e09d0d91ba8c79ba7d4f0a44afeb076b43ea273475c5c792bfce254d311b7",
+      "byteLength": 17308,
+      "operation": "CREATE",
+      "reason": "Present Owner mandate: exact isolated product recovery, without historical authority reuse or Gate status change.",
+      "artifactClass": "PRODUCT_RECOVERY"
+    },
+    {
+      "path": "research/directional-lab/src/earnings/resolveEarningsAsOfL4CIIV1.mjs",
+      "sha256": "e7f933ff1cb63f9d6d0c8afdcf00c96af40432465974f16a189db0761c0d45f0",
+      "byteLength": 7980,
+      "operation": "CREATE",
+      "reason": "Present Owner mandate: exact isolated product recovery, without historical authority reuse or Gate status change.",
+      "artifactClass": "PRODUCT_RECOVERY"
+    },
+    {
+      "path": "research/directional-lab/test/earningsFiscalL4CIISyntheticFixture.mjs",
+      "sha256": "5051932af248b739f091cdf9996a5b7f3d48d2c2ef532af7c84de28d6b190ace",
+      "byteLength": 23472,
+      "operation": "CREATE",
+      "reason": "Present Owner mandate: exact isolated product recovery, without historical authority reuse or Gate status change.",
+      "artifactClass": "PRODUCT_RECOVERY"
+    },
+    {
+      "path": "research/directional-lab/test/helpers/earningsIntentAssertionsL4CIV1.mjs",
+      "sha256": "672eaa18f8842ccc34e4e1e35180007f99f64035d747aa9671456b8d07851587",
+      "byteLength": 74567,
+      "operation": "MODIFY",
+      "reason": "Present Owner mandate: exact isolated product recovery, without historical authority reuse or Gate status change.",
+      "artifactClass": "PRODUCT_RECOVERY"
+    },
+    {
+      "path": "research/directional-lab/test/helpers/earningsOfficialTestHarnessL4CIV1.mjs",
+      "sha256": "116d4cccf4405ed141298f8738f9927d653dc14441211df3676110398ef4c424",
+      "byteLength": 62853,
+      "operation": "MODIFY",
+      "reason": "Present Owner mandate: exact isolated product recovery, without historical authority reuse or Gate status change.",
+      "artifactClass": "PRODUCT_RECOVERY"
+    },
+    {
+      "path": "research/directional-lab/test/helpers/independentEarningsAsOfOracleL4CIIV1.mjs",
+      "sha256": "a28265b360218ef2f89615bad485d5508bebb3714deaca044df6c728d912750f",
+      "byteLength": 36490,
+      "operation": "CREATE",
+      "reason": "Present Owner mandate: exact isolated product recovery, without historical authority reuse or Gate status change.",
+      "artifactClass": "PRODUCT_RECOVERY"
+    },
+    {
+      "path": "research/directional-lab/test/market-data-l3-i3.test.mjs",
+      "sha256": "d4f343e9e8b2cd6488fdd7c759829ce99df8f6f708adc5f5cfb42d26c9c351ca",
+      "byteLength": 80934,
+      "operation": "MODIFY",
+      "reason": "Present Owner mandate: exact isolated product recovery, without historical authority reuse or Gate status change.",
+      "artifactClass": "PRODUCT_RECOVERY"
+    },
+    {
+      "path": "research/directional-lab/test/market-data-l3-i4.test.mjs",
+      "sha256": "98edcdf695178904b32c8c27e2cae1705ae9228d34f6d6e64fb83803df2a3f54",
+      "byteLength": 74748,
+      "operation": "MODIFY",
+      "reason": "Present Owner mandate: exact isolated product recovery, without historical authority reuse or Gate status change.",
+      "artifactClass": "PRODUCT_RECOVERY"
+    },
+    {
+      "path": "research/directional-lab/test/market-data-l3-i5.test.mjs",
+      "sha256": "e0ce955e903dbb8789c57365e68eb8656e243a904c563cfa8c8f1490931ef6f8",
+      "byteLength": 42494,
+      "operation": "MODIFY",
+      "reason": "Present Owner mandate: exact isolated product recovery, without historical authority reuse or Gate status change.",
+      "artifactClass": "PRODUCT_RECOVERY"
+    },
+    {
+      "path": "research/directional-lab/test/market-data-l3-i6.test.mjs",
+      "sha256": "7120e9465edd2ed6d810684646478a18feec3953e91065134a259830ece0db89",
+      "byteLength": 58329,
+      "operation": "MODIFY",
+      "reason": "Present Owner mandate: exact isolated product recovery, without historical authority reuse or Gate status change.",
+      "artifactClass": "PRODUCT_RECOVERY"
+    },
+    {
+      "path": "research/directional-lab/test/market-earnings-l4c-i2-adversarial.test.mjs",
+      "sha256": "900a1c3207c73de439b5d43be27633c7935a8ae6fa4b67933adeffa35833483b",
+      "byteLength": 20899,
+      "operation": "CREATE",
+      "reason": "Present Owner mandate: exact isolated product recovery, without historical authority reuse or Gate status change.",
+      "artifactClass": "PRODUCT_RECOVERY"
+    },
+    {
+      "path": "research/directional-lab/test/market-earnings-l4c-i2-as-of-policy.test.mjs",
+      "sha256": "7af3c958f800c520fac8c4aa11c4aef3903a5aa6dcd8d8cb34914995b1337d28",
+      "byteLength": 5390,
+      "operation": "CREATE",
+      "reason": "Present Owner mandate: exact isolated product recovery, without historical authority reuse or Gate status change.",
+      "artifactClass": "PRODUCT_RECOVERY"
+    },
+    {
+      "path": "research/directional-lab/test/market-earnings-l4c-i2-binding.test.mjs",
+      "sha256": "719232269a746562bc5aa1e4087b83202ab01c6b5229ed7f049b09ffa0eeee0f",
+      "byteLength": 9683,
+      "operation": "CREATE",
+      "reason": "Present Owner mandate: exact isolated product recovery, without historical authority reuse or Gate status change.",
+      "artifactClass": "PRODUCT_RECOVERY"
+    },
+    {
+      "path": "research/directional-lab/test/market-earnings-l4c-i2-calendar-boundaries.test.mjs",
+      "sha256": "546ed6035df0aaa6b7bfae3a87921ac2ccaddff78822375ab5a16a7ea3a037e1",
+      "byteLength": 8802,
+      "operation": "CREATE",
+      "reason": "Present Owner mandate: exact isolated product recovery, without historical authority reuse or Gate status change.",
+      "artifactClass": "PRODUCT_RECOVERY"
+    },
+    {
+      "path": "research/directional-lab/test/market-earnings-l4c-i2-contracts.test.mjs",
+      "sha256": "23d5d23dbe02732d4830965d6e20b3172c0ca5cc8b048dce8718071953771191",
+      "byteLength": 23014,
+      "operation": "CREATE",
+      "reason": "Present Owner mandate: exact isolated product recovery, without historical authority reuse or Gate status change.",
+      "artifactClass": "PRODUCT_RECOVERY"
+    },
+    {
+      "path": "research/directional-lab/test/market-earnings-l4c-i2-corruption.test.mjs",
+      "sha256": "030d506c02cc44f981d571ec711113d16e316312297f97ed5026294ba0681309",
+      "byteLength": 9517,
+      "operation": "CREATE",
+      "reason": "Present Owner mandate: exact isolated product recovery, without historical authority reuse or Gate status change.",
+      "artifactClass": "PRODUCT_RECOVERY"
+    },
+    {
+      "path": "research/directional-lab/test/market-earnings-l4c-i2-cutoff.test.mjs",
+      "sha256": "5f7ca80f1f2f4eec0130012b36c86df68faee37800be0b746c020599be35fb77",
+      "byteLength": 5082,
+      "operation": "CREATE",
+      "reason": "Present Owner mandate: exact isolated product recovery, without historical authority reuse or Gate status change.",
+      "artifactClass": "PRODUCT_RECOVERY"
+    },
+    {
+      "path": "research/directional-lab/test/market-earnings-l4c-i2-empty.test.mjs",
+      "sha256": "ad126159c462895f2e1eeeed48dd0bc7f99d68b39fccc5b914dd43c5eaf77058",
+      "byteLength": 7426,
+      "operation": "CREATE",
+      "reason": "Present Owner mandate: exact isolated product recovery, without historical authority reuse or Gate status change.",
+      "artifactClass": "PRODUCT_RECOVERY"
+    },
+    {
+      "path": "research/directional-lab/test/market-earnings-l4c-i2-fiscal-metadata.test.mjs",
+      "sha256": "c70095f5c2d45a01dbf4884ffa36ec662ea317f4a03b4744b46202b450d0d626",
+      "byteLength": 9152,
+      "operation": "CREATE",
+      "reason": "Present Owner mandate: exact isolated product recovery, without historical authority reuse or Gate status change.",
+      "artifactClass": "PRODUCT_RECOVERY"
+    },
+    {
+      "path": "research/directional-lab/test/market-earnings-l4c-i2-fiscal-policy.test.mjs",
+      "sha256": "05b6575581d3b0c0b515c1a672acd42d88623e69db2cda8da2895ae617d70445",
+      "byteLength": 16007,
+      "operation": "CREATE",
+      "reason": "Present Owner mandate: exact isolated product recovery, without historical authority reuse or Gate status change.",
+      "artifactClass": "PRODUCT_RECOVERY"
+    },
+    {
+      "path": "research/directional-lab/test/market-earnings-l4c-i2-forms.test.mjs",
+      "sha256": "8f620fea06f0dfa846909e22f617909e678fa88c3d4fa5c1d1bcd27586225cfe",
+      "byteLength": 4347,
+      "operation": "CREATE",
+      "reason": "Present Owner mandate: exact isolated product recovery, without historical authority reuse or Gate status change.",
+      "artifactClass": "PRODUCT_RECOVERY"
+    },
+    {
+      "path": "research/directional-lab/test/market-earnings-l4c-i2-fy-q4.test.mjs",
+      "sha256": "6a42d173fc9fd1b2610a76fbe29670b8b71e1dccc826f7e15879b1189fac7979",
+      "byteLength": 9416,
+      "operation": "CREATE",
+      "reason": "Present Owner mandate: exact isolated product recovery, without historical authority reuse or Gate status change.",
+      "artifactClass": "PRODUCT_RECOVERY"
+    },
+    {
+      "path": "research/directional-lab/test/market-earnings-l4c-i2-implementation-manifest.test.mjs",
+      "sha256": "97d806b8c497b1e56b2aa538cce0150e595e1b618569dcb3f9f5243b2a370e7b",
+      "byteLength": 7435,
+      "operation": "CREATE",
+      "reason": "Present Owner mandate: exact isolated product recovery, without historical authority reuse or Gate status change.",
+      "artifactClass": "PRODUCT_RECOVERY"
+    },
+    {
+      "path": "research/directional-lab/test/market-earnings-l4c-i2-integration.test.mjs",
+      "sha256": "2ce8aca1303d5086d8de263460958ce386378fb2360b52d798e9d568731567e8",
+      "byteLength": 9539,
+      "operation": "CREATE",
+      "reason": "Present Owner mandate: exact isolated product recovery, without historical authority reuse or Gate status change.",
+      "artifactClass": "PRODUCT_RECOVERY"
+    },
+    {
+      "path": "research/directional-lab/test/market-earnings-l4c-i2-materialization.test.mjs",
+      "sha256": "c97defa30a72851e7d338a49cf306d7c88a8bb8c2c40c2652a986e14718ed8b6",
+      "byteLength": 14256,
+      "operation": "CREATE",
+      "reason": "Present Owner mandate: exact isolated product recovery, without historical authority reuse or Gate status change.",
+      "artifactClass": "PRODUCT_RECOVERY"
+    },
+    {
+      "path": "research/directional-lab/test/market-earnings-l4c-i2-multi-store.test.mjs",
+      "sha256": "d26209f3b4848c809b4b81e1e84796d065cf9d8921dc409a77f8589f79212c2a",
+      "byteLength": 2932,
+      "operation": "CREATE",
+      "reason": "Present Owner mandate: exact isolated product recovery, without historical authority reuse or Gate status change.",
+      "artifactClass": "PRODUCT_RECOVERY"
+    },
+    {
+      "path": "research/directional-lab/test/market-earnings-l4c-i2-oracle.test.mjs",
+      "sha256": "25a9b6c6967200a3b67a149d209a89f7966da760af1e9fa58195ec5d7de9e3c2",
+      "byteLength": 13151,
+      "operation": "CREATE",
+      "reason": "Present Owner mandate: exact isolated product recovery, without historical authority reuse or Gate status change.",
+      "artifactClass": "PRODUCT_RECOVERY"
+    },
+    {
+      "path": "research/directional-lab/test/market-earnings-l4c-i2-partial.test.mjs",
+      "sha256": "21c121d7192031dbcba531fcdeaca758760ef3e51616d78765ba244fe20ad71b",
+      "byteLength": 6323,
+      "operation": "CREATE",
+      "reason": "Present Owner mandate: exact isolated product recovery, without historical authority reuse or Gate status change.",
+      "artifactClass": "PRODUCT_RECOVERY"
+    },
+    {
+      "path": "research/directional-lab/test/market-earnings-l4c-i2-prefix-invariance.test.mjs",
+      "sha256": "07b398eb5fe17d077e0a31ad20dcdfaad50ab25b687fc880b7eeafeafdd6a7b8",
+      "byteLength": 10092,
+      "operation": "CREATE",
+      "reason": "Present Owner mandate: exact isolated product recovery, without historical authority reuse or Gate status change.",
+      "artifactClass": "PRODUCT_RECOVERY"
+    },
+    {
+      "path": "research/directional-lab/test/market-earnings-l4c-i2-quarter-ytd.test.mjs",
+      "sha256": "fcbd07cc8873a5cddf76bdefcb32d5cbe49d615e794e51bd2041880acdc67e40",
+      "byteLength": 7626,
+      "operation": "CREATE",
+      "reason": "Present Owner mandate: exact isolated product recovery, without historical authority reuse or Gate status change.",
+      "artifactClass": "PRODUCT_RECOVERY"
+    },
+    {
+      "path": "research/directional-lab/test/market-earnings-l4c-i2-registry.test.mjs",
+      "sha256": "e019035bc72a263aca63f446026b3c7ecb2875b81e9cc4a0f61c5e823e00eedd",
+      "byteLength": 4067,
+      "operation": "CREATE",
+      "reason": "Present Owner mandate: exact isolated product recovery, without historical authority reuse or Gate status change.",
+      "artifactClass": "PRODUCT_RECOVERY"
+    },
+    {
+      "path": "research/directional-lab/test/market-earnings-l4c-i2-replay.test.mjs",
+      "sha256": "6696e7dd3fbb5ee5b938122416288f6ec7af7ed85a8e8a1aeb56d4ec5a945fa6",
+      "byteLength": 3727,
+      "operation": "CREATE",
+      "reason": "Present Owner mandate: exact isolated product recovery, without historical authority reuse or Gate status change.",
+      "artifactClass": "PRODUCT_RECOVERY"
+    },
+    {
+      "path": "research/directional-lab/test/market-earnings-l4c-i2-resolver.test.mjs",
+      "sha256": "0c8e22097c41b68b24e0f18bd2e2ea70a0270a64e02c63020e772e02610f14dc",
+      "byteLength": 12975,
+      "operation": "CREATE",
+      "reason": "Present Owner mandate: exact isolated product recovery, without historical authority reuse or Gate status change.",
+      "artifactClass": "PRODUCT_RECOVERY"
+    },
+    {
+      "path": "research/directional-lab/test/market-earnings-l4c-i2-traversal.test.mjs",
+      "sha256": "20ee11f66f7c4c281c3fec73d8eed81f23eec94062e2fba5abbf35733f8d5a8a",
+      "byteLength": 9626,
+      "operation": "CREATE",
+      "reason": "Present Owner mandate: exact isolated product recovery, without historical authority reuse or Gate status change.",
+      "artifactClass": "PRODUCT_RECOVERY"
+    },
+    {
+      "path": "research/directional-lab/test/market-features-l4a-a-integration.test.mjs",
+      "sha256": "3b068586ca8f1c97599759ed05969e0cbe37b2b474d273f3ea135afe3efe1677",
+      "byteLength": 8278,
+      "operation": "MODIFY",
+      "reason": "Present Owner mandate: exact isolated product recovery, without historical authority reuse or Gate status change.",
+      "artifactClass": "PRODUCT_RECOVERY"
+    },
+    {
+      "path": "research/directional-lab/test/market-features-l4a-b-adversarial.test.mjs",
+      "sha256": "96f3fcf81552076eddf15f645fa02eedce80af9e0544d9a1c9af7b9581414bdd",
+      "byteLength": 33381,
+      "operation": "MODIFY",
+      "reason": "Present Owner mandate: exact isolated product recovery, without historical authority reuse or Gate status change.",
+      "artifactClass": "PRODUCT_RECOVERY"
+    },
+    {
+      "path": "research/directional-lab/test/market-features-l4a-b-integration.test.mjs",
+      "sha256": "f57cc1e0e3c78db873325bf9b9bb61ee9e6cede502ad4436d69b62c490e09c70",
+      "byteLength": 17155,
+      "operation": "MODIFY",
+      "reason": "Present Owner mandate: exact isolated product recovery, without historical authority reuse or Gate status change.",
+      "artifactClass": "PRODUCT_RECOVERY"
+    },
+    {
+      "path": "research/directional-lab/test/market-features-l4a-c1-contracts.test.mjs",
+      "sha256": "c987b734932c054641eea899f03bb7c13886e9698277efeb6b6ff0f1f24314f8",
+      "byteLength": 5711,
+      "operation": "MODIFY",
+      "reason": "Present Owner mandate: exact isolated product recovery, without historical authority reuse or Gate status change.",
+      "artifactClass": "PRODUCT_RECOVERY"
+    },
+    {
+      "path": "research/directional-lab/test/market-features-l4a-c2-report.test.mjs",
+      "sha256": "762862ffcd720b6d2c0b2812d86bf0a64cfd2ca98eee41026a08893bcfd74f83",
+      "byteLength": 14635,
+      "operation": "MODIFY",
+      "reason": "Present Owner mandate: exact isolated product recovery, without historical authority reuse or Gate status change.",
+      "artifactClass": "PRODUCT_RECOVERY"
+    },
+    {
+      "path": "research/directional-lab/test/market-features-l4a-c3-integration.test.mjs",
+      "sha256": "5102b226398ea67d4b1541ba32cd1192311b6bdc3c624a251f8073eca91e9176",
+      "byteLength": 4433,
+      "operation": "MODIFY",
+      "reason": "Present Owner mandate: exact isolated product recovery, without historical authority reuse or Gate status change.",
+      "artifactClass": "PRODUCT_RECOVERY"
+    },
+    {
+      "path": "research/directional-lab/test/market-macro-l4b-f1-contracts.test.mjs",
+      "sha256": "af584ae64b0861678485a444522842026b7f304ff2d89f2077a43752771be71d",
+      "byteLength": 9238,
+      "operation": "MODIFY",
+      "reason": "Present Owner mandate: exact isolated product recovery, without historical authority reuse or Gate status change.",
+      "artifactClass": "PRODUCT_RECOVERY"
+    },
+    {
+      "path": "research/directional-lab/test/market-macro-l4b-f2-contracts.test.mjs",
+      "sha256": "b4de7282771499d14dd15720c1b9cba386d615f755c0cba70e03f280b52e94fd",
+      "byteLength": 5625,
+      "operation": "MODIFY",
+      "reason": "Present Owner mandate: exact isolated product recovery, without historical authority reuse or Gate status change.",
+      "artifactClass": "PRODUCT_RECOVERY"
+    },
+    {
+      "path": "research/directional-lab/test/market-macro-l4b-i1-contracts.test.mjs",
+      "sha256": "bfb3466c4f1cf8769555c53557ebb3ef01d18715682d60cb85adaaf422e51913",
+      "byteLength": 14405,
+      "operation": "MODIFY",
+      "reason": "Present Owner mandate: exact isolated product recovery, without historical authority reuse or Gate status change.",
+      "artifactClass": "PRODUCT_RECOVERY"
+    },
+    {
+      "path": "research/directional-lab/test/market-macro-l4b-i2-contracts.test.mjs",
+      "sha256": "624eac6ff602593e60e5058aa249949160f523f054e6a64126812e713f0e4eb3",
+      "byteLength": 6053,
+      "operation": "MODIFY",
+      "reason": "Present Owner mandate: exact isolated product recovery, without historical authority reuse or Gate status change.",
+      "artifactClass": "PRODUCT_RECOVERY"
+    },
+    {
+      "path": "research/directional-lab/test/market-macro-l4b-p-contracts.test.mjs",
+      "sha256": "8700bf6af2b48960e5f3836c866a74591afbae2ae56c400641503be8c6132c8a",
+      "byteLength": 3602,
+      "operation": "MODIFY",
+      "reason": "Present Owner mandate: exact isolated product recovery, without historical authority reuse or Gate status change.",
+      "artifactClass": "PRODUCT_RECOVERY"
+    },
+    {
+      "path": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_WHEEL_JARVISE_PRODUCT_RECOVERY_MISSION1_20261018_PRESENT_R1.json",
+      "sha256": "ed994dacf89e9ec8a94fdfc10ee10383622e4010ad25e7dde08278433e55b6c3",
+      "byteLength": 2198,
+      "operation": "CREATE",
+      "reason": "Present Owner mandate: exact isolated product recovery, without historical authority reuse or Gate status change.",
+      "artifactClass": "PRODUCT_RECOVERY"
+    },
+    {
+      "path": "governance/historical-architecture/WHEEL_JARVISE_PRODUCT_RECOVERY_MISSION1_20261018_PRESENT_R1_AUTHORIZED_PATHS.json",
+      "sha256": "ad8c81e654ada4db5ecf02df756eaf6a2bae7836bd17c6a85263193895226c79",
+      "byteLength": 62326,
+      "operation": "CREATE",
+      "reason": "Present Owner mandate: exact isolated product recovery, without historical authority reuse or Gate status change.",
+      "artifactClass": "PRODUCT_RECOVERY"
+    }
+  ]
+}

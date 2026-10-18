@@ -1,0 +1,574 @@
+{
+  "generatedAt": "2026-06-05T21:14:46.644Z",
+  "periods": [
+    {
+      "key": "2020-2021",
+      "from": "2020-01-01",
+      "to": "2021-12-31"
+    },
+    {
+      "key": "2022-2023",
+      "from": "2022-01-01",
+      "to": "2023-12-31"
+    },
+    {
+      "key": "2024-2026",
+      "from": "2024-01-01",
+      "to": "2026-12-31"
+    },
+    {
+      "key": "2021-2026 (post-COVID)",
+      "from": "2021-01-01",
+      "to": "2026-12-31"
+    },
+    {
+      "key": "2022-2026",
+      "from": "2022-01-01",
+      "to": "2026-12-31"
+    },
+    {
+      "key": "2020-2026 (complet)",
+      "from": "2020-01-01",
+      "to": "2030-12-31"
+    }
+  ],
+  "variants": [
+    "baseline",
+    "B",
+    "C",
+    "K",
+    "L"
+  ],
+  "grid": {
+    "baseline": {
+      "2020-2021": {
+        "ret": 326.76,
+        "dd": -37.99,
+        "trades": 8,
+        "pf": 7.72,
+        "win": 75,
+        "expo": 9.17,
+        "critDD": 0
+      },
+      "2022-2023": {
+        "ret": 130.33,
+        "dd": -19.91,
+        "trades": 4,
+        "pf": 166.32,
+        "win": 75,
+        "expo": 4.03,
+        "critDD": 0
+      },
+      "2024-2026": {
+        "ret": 417.15,
+        "dd": -42.32,
+        "trades": 11,
+        "pf": 11.35,
+        "win": 63.64,
+        "expo": 10.71,
+        "critDD": -26.95199504552669
+      },
+      "2021-2026 (post-COVID)": {
+        "ret": 1516,
+        "dd": -42.36,
+        "trades": 19,
+        "pf": 11.37,
+        "win": 57.89,
+        "expo": 19.25,
+        "critDD": -26.95199504552669
+      },
+      "2022-2026": {
+        "ret": 1106.96,
+        "dd": -42.35,
+        "trades": 14,
+        "pf": 12.66,
+        "win": 64.29,
+        "expo": 14.83,
+        "critDD": -26.95199504552669
+      },
+      "2020-2026 (complet)": {
+        "ret": 4386.81,
+        "dd": -42.36,
+        "trades": 22,
+        "pf": 11.46,
+        "win": 63.64,
+        "expo": 24.08,
+        "critDD": -26.95199504552669
+      }
+    },
+    "B": {
+      "2020-2021": {
+        "ret": 233.54,
+        "dd": -41.44,
+        "trades": 11,
+        "pf": 3.79,
+        "win": 45.45,
+        "expo": 8.88,
+        "critDD": 0
+      },
+      "2022-2023": {
+        "ret": 101.68,
+        "dd": -25.27,
+        "trades": 5,
+        "pf": 5.55,
+        "win": 60,
+        "expo": 3.9,
+        "critDD": 0
+      },
+      "2024-2026": {
+        "ret": 140.4,
+        "dd": -28.73,
+        "trades": 14,
+        "pf": 2.69,
+        "win": 42.86,
+        "expo": 9.05,
+        "critDD": -7.680896265574266
+      },
+      "2021-2026 (post-COVID)": {
+        "ret": 454,
+        "dd": -28.74,
+        "trades": 26,
+        "pf": 2.83,
+        "win": 38.46,
+        "expo": 17.08,
+        "critDD": -7.680896265574266
+      },
+      "2022-2026": {
+        "ret": 391.37,
+        "dd": -28.74,
+        "trades": 18,
+        "pf": 3.04,
+        "win": 44.44,
+        "expo": 13.05,
+        "critDD": -7.680896265574266
+      },
+      "2020-2026 (complet)": {
+        "ret": 1327.59,
+        "dd": -41.44,
+        "trades": 29,
+        "pf": 3.02,
+        "win": 41.38,
+        "expo": 22.01,
+        "critDD": -7.680896265574266
+      }
+    },
+    "C": {
+      "2020-2021": {
+        "ret": 228.64,
+        "dd": -41.44,
+        "trades": 13,
+        "pf": 3.9,
+        "win": 38.46,
+        "expo": 8.69,
+        "critDD": 0
+      },
+      "2022-2023": {
+        "ret": 101.68,
+        "dd": -25.27,
+        "trades": 5,
+        "pf": 5.55,
+        "win": 60,
+        "expo": 3.9,
+        "critDD": 0
+      },
+      "2024-2026": {
+        "ret": 154.51,
+        "dd": -25.08,
+        "trades": 14,
+        "pf": 3.24,
+        "win": 42.86,
+        "expo": 9,
+        "critDD": -7.680896265574266
+      },
+      "2021-2026 (post-COVID)": {
+        "ret": 477.84,
+        "dd": -25.27,
+        "trades": 28,
+        "pf": 3.26,
+        "win": 35.71,
+        "expo": 16.83,
+        "critDD": -7.680896265574266
+      },
+      "2022-2026": {
+        "ret": 420.22,
+        "dd": -25.27,
+        "trades": 18,
+        "pf": 3.57,
+        "win": 44.44,
+        "expo": 13,
+        "critDD": -7.680896265574266
+      },
+      "2020-2026 (complet)": {
+        "ret": 1389.17,
+        "dd": -41.44,
+        "trades": 31,
+        "pf": 3.48,
+        "win": 38.71,
+        "expo": 21.76,
+        "critDD": -7.680896265574266
+      }
+    },
+    "K": {
+      "2020-2021": {
+        "ret": 228.64,
+        "dd": -41.44,
+        "trades": 13,
+        "pf": 3.9,
+        "win": 38.46,
+        "expo": 8.69,
+        "critDD": 0
+      },
+      "2022-2023": {
+        "ret": 101.68,
+        "dd": -25.27,
+        "trades": 5,
+        "pf": 5.55,
+        "win": 60,
+        "expo": 3.9,
+        "critDD": 0
+      },
+      "2024-2026": {
+        "ret": 154.51,
+        "dd": -25.08,
+        "trades": 14,
+        "pf": 3.24,
+        "win": 42.86,
+        "expo": 9,
+        "critDD": -7.680896265574266
+      },
+      "2021-2026 (post-COVID)": {
+        "ret": 477.84,
+        "dd": -25.27,
+        "trades": 28,
+        "pf": 3.26,
+        "win": 35.71,
+        "expo": 16.83,
+        "critDD": -7.680896265574266
+      },
+      "2022-2026": {
+        "ret": 420.22,
+        "dd": -25.27,
+        "trades": 18,
+        "pf": 3.57,
+        "win": 44.44,
+        "expo": 13,
+        "critDD": -7.680896265574266
+      },
+      "2020-2026 (complet)": {
+        "ret": 1389.17,
+        "dd": -41.44,
+        "trades": 31,
+        "pf": 3.48,
+        "win": 38.71,
+        "expo": 21.76,
+        "critDD": -7.680896265574266
+      }
+    },
+    "L": {
+      "2020-2021": {
+        "ret": 326.76,
+        "dd": -37.99,
+        "trades": 8,
+        "pf": 7.72,
+        "win": 75,
+        "expo": 9.17,
+        "critDD": 0
+      },
+      "2022-2023": {
+        "ret": 130.33,
+        "dd": -19.91,
+        "trades": 4,
+        "pf": 166.32,
+        "win": 75,
+        "expo": 4.03,
+        "critDD": 0
+      },
+      "2024-2026": {
+        "ret": 163.71,
+        "dd": -34.44,
+        "trades": 11,
+        "pf": 2.74,
+        "win": 54.55,
+        "expo": 9.51,
+        "critDD": -16.94620644271273
+      },
+      "2021-2026 (post-COVID)": {
+        "ret": 665.58,
+        "dd": -34.47,
+        "trades": 20,
+        "pf": 3.19,
+        "win": 55,
+        "expo": 17.91,
+        "critDD": -16.94620644271273
+      },
+      "2022-2026": {
+        "ret": 515.04,
+        "dd": -34.46,
+        "trades": 14,
+        "pf": 3.34,
+        "win": 57.14,
+        "expo": 13.64,
+        "critDD": -16.94620644271273
+      },
+      "2020-2026 (complet)": {
+        "ret": 2185.89,
+        "dd": -37.99,
+        "trades": 22,
+        "pf": 3.47,
+        "win": 59.09,
+        "expo": 22.88,
+        "critDD": -16.94620644271273
+      }
+    }
+  },
+  "robustness": {
+    "B": {
+      "ddWins": 3,
+      "retKept": 2,
+      "pfOk": 5,
+      "score": 10,
+      "avgRetRetentionPct": 50,
+      "bullHarmPct": 25,
+      "tradeInflation": 18,
+      "avgCrisisProtectionPts": 19.3,
+      "detail": [
+        {
+          "period": "2020-2021",
+          "ddImp": false,
+          "retOk": true,
+          "pfGood": true,
+          "ret": 233.54,
+          "dd": -41.44,
+          "pf": 3.79,
+          "trades": 11
+        },
+        {
+          "period": "2022-2023",
+          "ddImp": false,
+          "retOk": true,
+          "pfGood": true,
+          "ret": 101.68,
+          "dd": -25.27,
+          "pf": 5.55,
+          "trades": 5
+        },
+        {
+          "period": "2024-2026",
+          "ddImp": true,
+          "retOk": false,
+          "pfGood": true,
+          "ret": 140.4,
+          "dd": -28.73,
+          "pf": 2.69,
+          "trades": 14
+        },
+        {
+          "period": "2021-2026 (post-COVID)",
+          "ddImp": true,
+          "retOk": false,
+          "pfGood": true,
+          "ret": 454,
+          "dd": -28.74,
+          "pf": 2.83,
+          "trades": 26
+        },
+        {
+          "period": "2022-2026",
+          "ddImp": true,
+          "retOk": false,
+          "pfGood": true,
+          "ret": 391.37,
+          "dd": -28.74,
+          "pf": 3.04,
+          "trades": 18
+        }
+      ]
+    },
+    "C": {
+      "ddWins": 3,
+      "retKept": 2,
+      "pfOk": 5,
+      "score": 10,
+      "avgRetRetentionPct": 51,
+      "bullHarmPct": 26,
+      "tradeInflation": 22,
+      "avgCrisisProtectionPts": 19.3,
+      "detail": [
+        {
+          "period": "2020-2021",
+          "ddImp": false,
+          "retOk": true,
+          "pfGood": true,
+          "ret": 228.64,
+          "dd": -41.44,
+          "pf": 3.9,
+          "trades": 13
+        },
+        {
+          "period": "2022-2023",
+          "ddImp": false,
+          "retOk": true,
+          "pfGood": true,
+          "ret": 101.68,
+          "dd": -25.27,
+          "pf": 5.55,
+          "trades": 5
+        },
+        {
+          "period": "2024-2026",
+          "ddImp": true,
+          "retOk": false,
+          "pfGood": true,
+          "ret": 154.51,
+          "dd": -25.08,
+          "pf": 3.24,
+          "trades": 14
+        },
+        {
+          "period": "2021-2026 (post-COVID)",
+          "ddImp": true,
+          "retOk": false,
+          "pfGood": true,
+          "ret": 477.84,
+          "dd": -25.27,
+          "pf": 3.26,
+          "trades": 28
+        },
+        {
+          "period": "2022-2026",
+          "ddImp": true,
+          "retOk": false,
+          "pfGood": true,
+          "ret": 420.22,
+          "dd": -25.27,
+          "pf": 3.57,
+          "trades": 18
+        }
+      ]
+    },
+    "K": {
+      "ddWins": 3,
+      "retKept": 2,
+      "pfOk": 5,
+      "score": 10,
+      "avgRetRetentionPct": 51,
+      "bullHarmPct": 26,
+      "tradeInflation": 22,
+      "avgCrisisProtectionPts": 19.3,
+      "detail": [
+        {
+          "period": "2020-2021",
+          "ddImp": false,
+          "retOk": true,
+          "pfGood": true,
+          "ret": 228.64,
+          "dd": -41.44,
+          "pf": 3.9,
+          "trades": 13
+        },
+        {
+          "period": "2022-2023",
+          "ddImp": false,
+          "retOk": true,
+          "pfGood": true,
+          "ret": 101.68,
+          "dd": -25.27,
+          "pf": 5.55,
+          "trades": 5
+        },
+        {
+          "period": "2024-2026",
+          "ddImp": true,
+          "retOk": false,
+          "pfGood": true,
+          "ret": 154.51,
+          "dd": -25.08,
+          "pf": 3.24,
+          "trades": 14
+        },
+        {
+          "period": "2021-2026 (post-COVID)",
+          "ddImp": true,
+          "retOk": false,
+          "pfGood": true,
+          "ret": 477.84,
+          "dd": -25.27,
+          "pf": 3.26,
+          "trades": 28
+        },
+        {
+          "period": "2022-2026",
+          "ddImp": true,
+          "retOk": false,
+          "pfGood": true,
+          "ret": 420.22,
+          "dd": -25.27,
+          "pf": 3.57,
+          "trades": 18
+        }
+      ]
+    },
+    "L": {
+      "ddWins": 3,
+      "retKept": 2,
+      "pfOk": 5,
+      "score": 10,
+      "avgRetRetentionPct": 66,
+      "bullHarmPct": 0,
+      "tradeInflation": 1,
+      "avgCrisisProtectionPts": 10,
+      "detail": [
+        {
+          "period": "2020-2021",
+          "ddImp": false,
+          "retOk": true,
+          "pfGood": true,
+          "ret": 326.76,
+          "dd": -37.99,
+          "pf": 7.72,
+          "trades": 8
+        },
+        {
+          "period": "2022-2023",
+          "ddImp": false,
+          "retOk": true,
+          "pfGood": true,
+          "ret": 130.33,
+          "dd": -19.91,
+          "pf": 166.32,
+          "trades": 4
+        },
+        {
+          "period": "2024-2026",
+          "ddImp": true,
+          "retOk": false,
+          "pfGood": true,
+          "ret": 163.71,
+          "dd": -34.44,
+          "pf": 2.74,
+          "trades": 11
+        },
+        {
+          "period": "2021-2026 (post-COVID)",
+          "ddImp": true,
+          "retOk": false,
+          "pfGood": true,
+          "ret": 665.58,
+          "dd": -34.47,
+          "pf": 3.19,
+          "trades": 20
+        },
+        {
+          "period": "2022-2026",
+          "ddImp": true,
+          "retOk": false,
+          "pfGood": true,
+          "ret": 515.04,
+          "dd": -34.46,
+          "pf": 3.34,
+          "trades": 14
+        }
+      ]
+    }
+  }
+}

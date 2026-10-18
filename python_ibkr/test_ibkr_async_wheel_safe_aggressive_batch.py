@@ -303,6 +303,13 @@ def _finalize_ticker_payload(
     if "marketDataTypeReceivedLabel" not in payload:
         payload["marketDataTypeReceivedLabel"] = "unknown"
     payload["scanCompletedAt"] = _utc_iso_now()
+    # R3 : relais diagnostics moteur déjà présents. Mapping reason inchangé.
+    if "errorDetail" not in payload:
+        payload["errorDetail"] = None
+    if "failureStage" not in payload:
+        payload["failureStage"] = None
+    if "forensicTrace" not in payload:
+        payload["forensicTrace"] = None
     if payload.get("ok") is not True:
         payload["reason"] = _reason_for_payload(payload)
         if apply_soft_timeout_label and payload["durationMs"] >= per_ticker_timeout_ms:

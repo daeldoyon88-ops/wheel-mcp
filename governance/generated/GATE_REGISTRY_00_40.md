@@ -2,7 +2,7 @@
 <!-- generatedBy=governance/tools/generate-governance-docs.mjs -->
 <!-- generatedFrom=governance/GATE_REGISTRY_00_40.json -->
 <!-- generatedAt=2026-08-01T16:00:00.000Z -->
-<!-- sourceDigest=1f0d59e55d1d767b903538903d4547c7a3e0c1021a97986feea45b45e4614708 -->
+<!-- sourceDigest=7911b43734daff84d7162e1b90b7fe5589d2446d3a0cc670e7d6a7b5b396c041 -->
 
 # GATE_REGISTRY_00_40
 

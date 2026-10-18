@@ -42,7 +42,7 @@ import {
   ORCHESTRATED_TRANSITIONS, deriveCandidateTransition, ledgerLineBytes,
   runLifecycleTransition, validateCandidateInStagingRoot
 } from '../tools/gate-lifecycle-orchestrator.mjs';
-import { auditFinalGateIntegrity, actualIdentity } from '../tools/final-gate-integrity-auditor.mjs';
+import { auditFinalGateIntegrity, actualIdentity, CHECK_FAMILIES } from '../tools/final-gate-integrity-auditor.mjs';
 import { canonicalize, sha256Bytes, sha256Canonical } from '../tools/canonical-json.mjs';
 import { computeSealedMembersDigest } from '../tools/validate-state-seal.mjs';
 
@@ -79,6 +79,11 @@ function spineDigest(root) {
 
 /** GATE17 rewound to the state its hand-built AGENT_CLOSURE acted on. */
 function rewindGate17ToPostStart(root) {
+  // Rewind the dependent registry bytes with the historical ledger, in scratch only.
+  const registryBytes = execFileSync('git', ['show', '337e4d2^:governance/GATE_REGISTRY_00_40.json'], { cwd: REPO_ROOT, stdio: 'pipe' });
+  assert.equal(sha256Bytes(registryBytes), 'aaa9efcded9c58ccb0f26578bc67ba8b50143e6a94426965772d8731fcada9c7');
+  fs.writeFileSync(path.join(root, 'governance/GATE_REGISTRY_00_40.json'), registryBytes);
+
   fs.rmSync(path.join(root, 'governance/gates/GATE17/state/revisions/R0003'), { recursive: true, force: true });
   fs.rmSync(path.join(root, 'governance/gates/GATE17/state/revisions/R0004'), { recursive: true, force: true });
   const lines = readText(root, LEDGER).split('\n').filter(Boolean);
@@ -680,7 +685,7 @@ test('H14: the same generic code path produces the verdict for every closed Gate
   // If a bypass existed for one Gate, the others would not behave identically.
   for (const gateId of ['GATE12', 'GATE13', 'GATE14', 'GATE15', 'GATE16', 'GATE17']) {
     const report = auditFinalGateIntegrity({ root: REPO_ROOT, gateId });
-    assert.equal(report.familiesRun.length, 9, `${gateId} must run every family`);
+    assert.deepEqual([...report.familiesRun].sort(), [...CHECK_FAMILIES].sort(), `${gateId} must run every declared family`);
     assert.equal(report.document, 'FINAL_GATE_INTEGRITY_AUDITOR');
     assert.ok(['PASS', 'FAIL'].includes(report.FINAL_GATE_INTEGRITY));
     assert.equal(report.gateId, gateId);

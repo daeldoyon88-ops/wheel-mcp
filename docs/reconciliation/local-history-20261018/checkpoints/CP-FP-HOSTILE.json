@@ -1,0 +1,42 @@
+{
+  "checkpoint": "CP-FP-HOSTILE",
+  "mission": "WHEEL_GATE_FAST_PATH_CONTROL_PLANE_R1",
+  "recordedAt": "2026-08-13T22:54:58.021Z",
+  "phasesComplete": [
+    "A",
+    "B",
+    "C",
+    "D",
+    "E",
+    "F",
+    "G",
+    "H",
+    "I",
+    "J",
+    "L",
+    "N",
+    "O"
+  ],
+  "tests": {
+    "file": "governance/tests/gate-fast-path-control-plane.test.mjs",
+    "total": 24,
+    "pass": 24,
+    "fail": 0
+  },
+  "admissionTests": {
+    "file": "governance/tests/gate-preexecution-reuse-check.test.mjs",
+    "total": 18,
+    "pass": 18,
+    "fail": 0
+  },
+  "gate15": "FAST_PATH_READY",
+  "gate16": "READY_WHEN_SEQUENCED",
+  "regressionDelta": {
+    "baseline": 70,
+    "current": 70,
+    "newUnrelated": 0,
+    "repaired": 0,
+    "preexisting": 41,
+    "stale": 29
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "documentKind": "MAINTENANCE_AUTHORITY_WITHDRAWAL_DECISION",
+  "decisionId": "WHEEL_R2_AUTHORITY_WITHDRAWAL_RESOLUTION_R1",
+  "issuedBy": "PROJECT_OWNER",
+  "recordedAt": "2026-10-17T19:18:36.492Z",
+  "programId": "WHEEL_STABLE_FINANCIAL_GUARDRAILS_REPAIR_R2",
+  "authorityId": "WHEEL_STABLE_FINANCIAL_GUARDRAILS_REPAIR_R2_AUTHORITY",
+  "authoritySha256": "a394d473781b453c6c086b12e76e811c9d5485a37ef1ee0b97271f6f88f5a897",
+  "decision": "WITHDRAW_EXECUTION_CONSENT",
+  "scope": "PROGRAM_AND_AUTHORITY_ID",
+  "reasonCode": "OWNER_CONSENT_WITHDRAWN",
+  "ownerDecisionText": "Je confirme que l'autorité WHEEL_STABLE_FINANCIAL_GUARDRAILS_REPAIR_R2, SHA-256 a394d473781b453c6c086b12e76e811c9d5485a37ef1ee0b97271f6f88f5a897, ne doit plus être exécutée. Elle reste historiquement non consommée. Aucun reçu fictif ne doit être créé.",
+  "source": "OWNER AUTHORIZATION — R2 AUTHORITY WITHDRAWAL CANDIDATE R1"
+}

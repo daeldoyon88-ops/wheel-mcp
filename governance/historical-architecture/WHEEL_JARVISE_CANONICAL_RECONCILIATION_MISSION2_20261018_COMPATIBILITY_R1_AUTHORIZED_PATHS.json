@@ -1,0 +1,77 @@
+{
+  "documentKind": "POST_FREEZE_MAINTENANCE_AUTHORIZED_PATH_MANIFEST",
+  "schemaVersion": 2,
+  "manifestId": "WHEEL_JARVISE_CANONICAL_RECONCILIATION_MISSION2_20261018_COMPATIBILITY_R1_AUTHORIZED_PATHS",
+  "programId": "WHEEL_JARVISE_CANONICAL_RECONCILIATION_MISSION2_20261018_COMPATIBILITY_R1",
+  "paths": [
+    {
+      "path": "governance/gee-v1/tests/gee-path-prestate-binding.test.mjs",
+      "operation": "MODIFY",
+      "phase": "GOVERNANCE_RECONCILIATION",
+      "reason": "Present Owner mandate: exact isolated canonical governance reconciliation, without historical authority reuse or Gate status change.",
+      "artifactClass": "GOVERNANCE_RECONCILIATION",
+      "prestate": {
+        "state": "PRESENT",
+        "sha256": "7149079a0a3c144b58963d9f425a5f6a342682aac5763dd4ea91d99f5fdc6b44",
+        "byteLength": 21096
+      }
+    },
+    {
+      "path": "governance/gee-v1/tests/gee-post-freeze-maintenance-authority.test.mjs",
+      "operation": "MODIFY",
+      "phase": "GOVERNANCE_RECONCILIATION",
+      "reason": "Present Owner mandate: exact isolated canonical governance reconciliation, without historical authority reuse or Gate status change.",
+      "artifactClass": "GOVERNANCE_RECONCILIATION",
+      "prestate": {
+        "state": "PRESENT",
+        "sha256": "7ea12e3b00232e873e223457adc10ff1b43a06894f282253d458c8f7c6a3c5f7",
+        "byteLength": 55341
+      }
+    },
+    {
+      "path": "governance/gee-v1/tests/helpers/fixture-publication-admission.mjs",
+      "operation": "CREATE",
+      "phase": "GOVERNANCE_RECONCILIATION",
+      "reason": "Present Owner mandate: exact isolated canonical governance reconciliation, without historical authority reuse or Gate status change.",
+      "artifactClass": "GOVERNANCE_RECONCILIATION",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "governance/tests/maintenance-publication-admission.test.mjs",
+      "operation": "MODIFY",
+      "phase": "GOVERNANCE_RECONCILIATION",
+      "reason": "Present Owner mandate: exact isolated canonical governance reconciliation, without historical authority reuse or Gate status change.",
+      "artifactClass": "GOVERNANCE_RECONCILIATION",
+      "prestate": {
+        "state": "PRESENT",
+        "sha256": "61185dbc95d89bb1f0e9d2a3e51529106f4bd7452142b13bcb7d5db0034f4f99",
+        "byteLength": 44709
+      }
+    },
+    {
+      "path": "governance/tools/gate-lifecycle-orchestrator.mjs",
+      "operation": "MODIFY",
+      "phase": "GOVERNANCE_RECONCILIATION",
+      "reason": "Present Owner mandate: exact isolated canonical governance reconciliation, without historical authority reuse or Gate status change.",
+      "artifactClass": "GOVERNANCE_RECONCILIATION",
+      "prestate": {
+        "state": "PRESENT",
+        "sha256": "392bec2b5f39e9d31b70e8c66d44f17aabc1e1f7223cbfdec7775e31c7c76132",
+        "byteLength": 62246
+      }
+    },
+    {
+      "path": "governance/historical-architecture/WHEEL_JARVISE_CANONICAL_RECONCILIATION_MISSION2_20261018_COMPATIBILITY_R1_CONSUMPTION_R1.json",
+      "operation": "CREATE",
+      "phase": "GOVERNANCE_RECONCILIATION",
+      "reason": "Present Owner mandate: exact isolated canonical governance reconciliation, without historical authority reuse or Gate status change.",
+      "artifactClass": "GOVERNANCE_RECONCILIATION",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    }
+  ],
+  "prestateSelfExclusion": []
+}

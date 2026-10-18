@@ -1,0 +1,61 @@
+{
+  "document": "GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY",
+  "schemaVersion": 2,
+  "authorityId": "WHEEL_JARVISE_CANONICAL_RECONCILIATION_MISSION2_20261018_COMPATIBILITY_R1_AUTHORITY",
+  "authorityClass": "PROJECT_OWNER_POST_FREEZE_MAINTENANCE_AUTHORITY",
+  "authorityMode": "LOCAL_EXPLICIT_AUTHORITY",
+  "issuedBy": "PROJECT_OWNER",
+  "createdAt": "2026-10-18T18:06:03.085Z",
+  "expiresAt": "2026-10-18T19:06:03.085Z",
+  "targetSystem": "PROJECT_GOVERNANCE",
+  "programId": "WHEEL_JARVISE_CANONICAL_RECONCILIATION_MISSION2_20261018_COMPATIBILITY_R1",
+  "authorityPurpose": "NORMAL_MAINTENANCE",
+  "resumePoint": "CP-MISSION2-FC02-CANDIDATE-PREPARED",
+  "maxUse": 1,
+  "preState": {
+    "baseHead": "6127ae5e45eb88f73f13585e72bda4a4cc157d54",
+    "ledgerEventCount": 104,
+    "ledgerPrefixSha256": "2def19c84b7581da0ab54d2d1ba9d68f5bc2ce40e108443cfbd086835a0116da",
+    "gateId": "GATE24",
+    "gateStatus": "COMPLETE_CONFIRMED",
+    "stateRevision": "R0005",
+    "contractRevision": "R0002",
+    "activeGate": "GATE13",
+    "R8ExpectedAbsent": true
+  },
+  "authorizedPathManifestPath": "governance/historical-architecture/WHEEL_JARVISE_CANONICAL_RECONCILIATION_MISSION2_20261018_COMPATIBILITY_R1_AUTHORIZED_PATHS.json",
+  "authorizedPathManifestSha256": "f55aba0e8371e08a328a82a84d85e91fea710acb5b617e48afdf95ccc729c1aa",
+  "authorizedOperationClasses": [
+    "GOVERNANCE_RECONCILIATION"
+  ],
+  "commitPolicy": {
+    "maxCommitCount": 1,
+    "allowedGitOperations": [
+      "GIT_ADD_PATHSPEC",
+      "GIT_COMMIT"
+    ],
+    "commitMessage": "Governance: reconcile canonical lineage and withdrawals",
+    "thirdCommitAuthorized": false
+  },
+  "pushAuthorized": false,
+  "authorityPredecessor": null,
+  "authorityHeadBinding": {
+    "mode": "BASE_HEAD",
+    "baseHead": "6127ae5e45eb88f73f13585e72bda4a4cc157d54"
+  },
+  "consumptionRecordPath": "governance/historical-architecture/WHEEL_JARVISE_CANONICAL_RECONCILIATION_MISSION2_20261018_COMPATIBILITY_R1_CONSUMPTION_R1.json",
+  "prohibitedOperations": [
+    "START",
+    "SECOND_START",
+    "AGENT_CLOSURE",
+    "EXTERNAL_CONFIRMATION",
+    "COMPLETE_AGENT",
+    "COMPLETE_CONFIRMED",
+    "ACTIVE_GATE_SWITCH",
+    "GEE_R8",
+    "GIT_PUSH",
+    "HISTORY_REWRITE",
+    "THIRD_COMMIT",
+    "UNRELATED_WRITE"
+  ]
+}

@@ -1,0 +1,72 @@
+{
+  "documentKind": "MAINTENANCE_PUBLICATION_ADMISSION",
+  "schemaVersion": 1,
+  "authorityMode": "LOCAL_EXPLICIT_AUTHORITY",
+  "issuedBy": "PROJECT_OWNER",
+  "admissionId": "WHEEL_JARVISE_CANONICAL_RECONCILIATION_MISSION2_20261018_ARCHIVE_BYTES_R1_PUBLICATION_ADMISSION_R1",
+  "decisionId": "WHEEL_JARVISE_CANONICAL_RECONCILIATION_MISSION2_20261018_ARCHIVE_BYTES_R1_OWNER_MANDATE",
+  "issuedAtUtc": "2026-10-18T18:17:39.488Z",
+  "expiresAtUtc": "2026-10-18T19:17:39.488Z",
+  "projectId": "WHEEL",
+  "repositoryId": "REPO-WHEEL-JARVISE-PRIMARY",
+  "gateId": "GATE24",
+  "programId": "WHEEL_JARVISE_CANONICAL_RECONCILIATION_MISSION2_20261018_ARCHIVE_BYTES_R1",
+  "purpose": "MAINTENANCE_PUBLICATION_ADMISSION",
+  "publicationClass": "PATH_PRESTATE_PROGRAM_PUBLISHER",
+  "authorityPurpose": "NORMAL_MAINTENANCE",
+  "maxUse": 1,
+  "admissionStatement": "Present Owner MISSION 2/2 R1 mandate sections 4, 5, 6 and 9: preserve exact SHA and historical meaning of the archived local proofs across future Windows checkouts by adding one scoped archive attributes file, using the existing governance byte-preservation mechanism. No source, authority law, historical evidence bytes or product change. Governing documents are admitted prior inputs outside the write cohort.",
+  "admittedAuthority": {
+    "path": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_WHEEL_JARVISE_CANONICAL_RECONCILIATION_MISSION2_20261018_ARCHIVE_BYTES_R1.json",
+    "sha256": "d0471f060a0acbd604d03934f5c8c92d6a2a91624a17701812a801bd3cbf7117",
+    "byteLength": 2263,
+    "schemaVersion": 2,
+    "documentId": "WHEEL_JARVISE_CANONICAL_RECONCILIATION_MISSION2_20261018_ARCHIVE_BYTES_R1_AUTHORITY"
+  },
+  "admittedManifest": {
+    "path": "governance/historical-architecture/WHEEL_JARVISE_CANONICAL_RECONCILIATION_MISSION2_20261018_ARCHIVE_BYTES_R1_AUTHORIZED_PATHS.json",
+    "sha256": "360474d7fbe81710a3878f92351b948edc60a8853b3119628c05d6d9a1a2a791",
+    "byteLength": 1254,
+    "schemaVersion": 2,
+    "documentId": "WHEEL_JARVISE_CANONICAL_RECONCILIATION_MISSION2_20261018_ARCHIVE_BYTES_R1_AUTHORIZED_PATHS"
+  },
+  "admittedPrestate": {
+    "baseHead": "6127ae5e45eb88f73f13585e72bda4a4cc157d54",
+    "ledgerEventCount": 104,
+    "ledgerPrefixSha256": "2def19c84b7581da0ab54d2d1ba9d68f5bc2ce40e108443cfbd086835a0116da",
+    "gateId": "GATE24",
+    "gateStatus": "COMPLETE_CONFIRMED",
+    "stateRevision": "R0005",
+    "contractRevision": "R0002",
+    "activeGate": "GATE13",
+    "R8ExpectedAbsent": true
+  },
+  "admittedOperationClasses": [
+    "GOVERNANCE_RECONCILIATION"
+  ],
+  "grantsFutureBytePermission": false,
+  "grantsGateAuthorizationPermission": false,
+  "grantsStartPermission": false,
+  "grantsStatusTransitionPermission": false,
+  "grantsHistoricalAdmissionWidening": false,
+  "genericV1Admission": false,
+  "derivedFromGitDelta": false,
+  "derivedFromFinalGateIntegrityFindings": false,
+  "prohibitedOperations": [
+    "START",
+    "SECOND_START",
+    "GATE_AUTHORIZATION",
+    "STATUS_TRANSITION",
+    "ACTIVE_GATE_SWITCH",
+    "GEE_R8",
+    "GIT_PUSH",
+    "HISTORY_REWRITE",
+    "GENERIC_V1_ADMISSION",
+    "HISTORICAL_ADMISSION_WIDENING",
+    "SELF_ADMISSION"
+  ],
+  "successorRequirement": "A later publication requires a new exact Owner admission over a new exact pre-state.",
+  "admissionDigest": "6a0a932d649a59e9c017a68cb53f8b37c02d888c367d86b55075b31b62d76632",
+  "ownerAuthorizationPath": "governance/sources/MAINTENANCE_PUBLICATION_ADMISSION_OWNER_AUTHORIZATION_WHEEL_JARVISE_CANONICAL_RECONCILIATION_MISSION2_20261018_ARCHIVE_BYTES_R1.json",
+  "ownerAuthorizationSha256": "e872048981b5f2d55e4f5254f0d33b9c51850494f6d1cd3234c00780d3d69f82"
+}

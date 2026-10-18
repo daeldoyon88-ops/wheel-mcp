@@ -1,0 +1,72 @@
+{
+  "documentKind": "MAINTENANCE_PUBLICATION_ADMISSION",
+  "schemaVersion": 1,
+  "authorityMode": "LOCAL_EXPLICIT_AUTHORITY",
+  "issuedBy": "PROJECT_OWNER",
+  "admissionId": "WHEEL_JARVISE_CANONICAL_RECONCILIATION_MISSION2_20261018_FINAL_CONTRACTS_R1_PUBLICATION_ADMISSION_R1",
+  "decisionId": "WHEEL_JARVISE_CANONICAL_RECONCILIATION_MISSION2_20261018_FINAL_CONTRACTS_R1_OWNER_MANDATE",
+  "issuedAtUtc": "2026-10-18T18:13:37.232Z",
+  "expiresAtUtc": "2026-10-18T19:13:37.232Z",
+  "projectId": "WHEEL",
+  "repositoryId": "REPO-WHEEL-JARVISE-PRIMARY",
+  "gateId": "GATE24",
+  "programId": "WHEEL_JARVISE_CANONICAL_RECONCILIATION_MISSION2_20261018_FINAL_CONTRACTS_R1",
+  "purpose": "MAINTENANCE_PUBLICATION_ADMISSION",
+  "publicationClass": "PATH_PRESTATE_PROGRAM_PUBLISHER",
+  "authorityPurpose": "NORMAL_MAINTENANCE",
+  "maxUse": 1,
+  "admissionStatement": "Present Owner MISSION 2/2 R1 mandate sections 4, 6 and 9: exact auditor reuse of the existing canonical precontract anchor law, correction of historical scratch registry fixtures and declared-family assertion, hostile tests, and three demonstrated generated projection drifts using their original generators. No authority law, historical event, Gate state or product change. Authority and manifest are causally prior admitted inputs outside the publication cohort.",
+  "admittedAuthority": {
+    "path": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_WHEEL_JARVISE_CANONICAL_RECONCILIATION_MISSION2_20261018_FINAL_CONTRACTS_R1.json",
+    "sha256": "fba427085a928405771f28b9def7d2ba084655da20b29a3cd6d3740da7320057",
+    "byteLength": 2271,
+    "schemaVersion": 2,
+    "documentId": "WHEEL_JARVISE_CANONICAL_RECONCILIATION_MISSION2_20261018_FINAL_CONTRACTS_R1_AUTHORITY"
+  },
+  "admittedManifest": {
+    "path": "governance/historical-architecture/WHEEL_JARVISE_CANONICAL_RECONCILIATION_MISSION2_20261018_FINAL_CONTRACTS_R1_AUTHORIZED_PATHS.json",
+    "sha256": "a730f09b9017cda9bc7da066019034beb643276484998deda1893ebc0f2368a2",
+    "byteLength": 4842,
+    "schemaVersion": 2,
+    "documentId": "WHEEL_JARVISE_CANONICAL_RECONCILIATION_MISSION2_20261018_FINAL_CONTRACTS_R1_AUTHORIZED_PATHS"
+  },
+  "admittedPrestate": {
+    "baseHead": "6127ae5e45eb88f73f13585e72bda4a4cc157d54",
+    "ledgerEventCount": 104,
+    "ledgerPrefixSha256": "2def19c84b7581da0ab54d2d1ba9d68f5bc2ce40e108443cfbd086835a0116da",
+    "gateId": "GATE24",
+    "gateStatus": "COMPLETE_CONFIRMED",
+    "stateRevision": "R0005",
+    "contractRevision": "R0002",
+    "activeGate": "GATE13",
+    "R8ExpectedAbsent": true
+  },
+  "admittedOperationClasses": [
+    "GOVERNANCE_RECONCILIATION"
+  ],
+  "grantsFutureBytePermission": false,
+  "grantsGateAuthorizationPermission": false,
+  "grantsStartPermission": false,
+  "grantsStatusTransitionPermission": false,
+  "grantsHistoricalAdmissionWidening": false,
+  "genericV1Admission": false,
+  "derivedFromGitDelta": false,
+  "derivedFromFinalGateIntegrityFindings": false,
+  "prohibitedOperations": [
+    "START",
+    "SECOND_START",
+    "GATE_AUTHORIZATION",
+    "STATUS_TRANSITION",
+    "ACTIVE_GATE_SWITCH",
+    "GEE_R8",
+    "GIT_PUSH",
+    "HISTORY_REWRITE",
+    "GENERIC_V1_ADMISSION",
+    "HISTORICAL_ADMISSION_WIDENING",
+    "SELF_ADMISSION"
+  ],
+  "successorRequirement": "A later publication requires a new exact Owner admission over a new exact pre-state.",
+  "admissionDigest": "e269848178922e93ee4d6b55de96dcbe55cf7ff49b4e7eee5cd158e9c6a40ba2",
+  "ownerAuthorizationPath": "governance/sources/MAINTENANCE_PUBLICATION_ADMISSION_OWNER_AUTHORIZATION_WHEEL_JARVISE_CANONICAL_RECONCILIATION_MISSION2_20261018_FINAL_CONTRACTS_R1.json",
+  "ownerAuthorizationSha256": "9283efa847ff9dba33c738e7d1b5b1cdf2561cbd3c6f13ecdcc0612d89465bc1"
+}

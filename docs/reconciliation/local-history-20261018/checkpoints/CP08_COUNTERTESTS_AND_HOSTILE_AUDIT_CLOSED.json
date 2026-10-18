@@ -1,0 +1,12 @@
+{
+  "checkpoint": "CP08",
+  "status": "COMPLETE",
+  "R2CountertestPassCount": 38,
+  "R3CountertestPassCount": 20,
+  "R4CountertestCount": 43,
+  "R4CountertestPassCount": 43,
+  "realDetectorExecutionCount": 43,
+  "fabricatedFindingCount": 0,
+  "syntheticFallbackCount": 0,
+  "undetectedHostileCaseCount": 0
+}

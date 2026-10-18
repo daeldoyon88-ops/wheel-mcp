@@ -1,0 +1,29 @@
+{
+  "documentKind": "POST_FREEZE_MAINTENANCE_AUTHORIZED_PATH_MANIFEST",
+  "schemaVersion": 2,
+  "manifestId": "WHEEL_JARVISE_CANONICAL_RECONCILIATION_MISSION2_20261018_ARCHIVE_BYTES_R1_AUTHORIZED_PATHS",
+  "programId": "WHEEL_JARVISE_CANONICAL_RECONCILIATION_MISSION2_20261018_ARCHIVE_BYTES_R1",
+  "paths": [
+    {
+      "path": "docs/reconciliation/local-history-20261018/.gitattributes",
+      "operation": "CREATE",
+      "phase": "GOVERNANCE_RECONCILIATION",
+      "reason": "Present Owner mandate: exact isolated canonical governance reconciliation, without historical authority reuse or Gate status change.",
+      "artifactClass": "GOVERNANCE_RECONCILIATION",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "governance/historical-architecture/WHEEL_JARVISE_CANONICAL_RECONCILIATION_MISSION2_20261018_ARCHIVE_BYTES_R1_CONSUMPTION_R1.json",
+      "operation": "CREATE",
+      "phase": "GOVERNANCE_RECONCILIATION",
+      "reason": "Present Owner mandate: exact isolated canonical governance reconciliation, without historical authority reuse or Gate status change.",
+      "artifactClass": "GOVERNANCE_RECONCILIATION",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    }
+  ],
+  "prestateSelfExclusion": []
+}

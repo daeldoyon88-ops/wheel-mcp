@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "documentKind": "MAINTENANCE_AUTHORITY_WITHDRAWAL_DECISION",
+  "decisionId": "WHEEL_STABLE_FINANCIAL_CLASSIFICATION_CLOSURE_R1_WITHDRAWAL_FOR_BOOTSTRAP_R1",
+  "issuedBy": "PROJECT_OWNER",
+  "recordedAt": "2026-10-18T03:15:37.047Z",
+  "programId": "WHEEL_STABLE_FINANCIAL_CLASSIFICATION_CLOSURE_R1",
+  "authorityId": "WHEEL_STABLE_FINANCIAL_CLASSIFICATION_CLOSURE_R1_AUTHORITY",
+  "authoritySha256": "701b5a5ec102804c0754cbe5f7e438bd800dbc4d77d4b5720a8eece702b14a65",
+  "decision": "WITHDRAW_EXECUTION_CONSENT",
+  "scope": "PROGRAM_AND_AUTHORITY_ID",
+  "reasonCode": "SUPERSEDED_FINANCIAL_CONTRACT",
+  "ownerDecisionText": "PROPOSITION NON ADOPTEE : je retire le consentement execution de A. Ses documents et son historique non consomme sont conserves ; aucun recu de consommation A ne doit etre cree. C ne peut etre admise avant verification effective de ce retrait.",
+  "source": "FINANCIAL_AUTHORITY_BOOTSTRAP_R1_PROPOSED_OWNER_DECISION"
+}

@@ -129,6 +129,36 @@ export function validateAuthorityMode(value, {
   return { mode, valid: findings.length === 0, findings };
 }
 
+export const MAINTENANCE_WITHDRAWAL_DECISIONS = Object.freeze([
+  Object.freeze({ path: 'governance/authority/withdrawals/WHEEL_STABLE_FINANCIAL_GUARDRAILS_REPAIR_R2_WITHDRAWAL_R1.json', sha256: '58c828c8261d0f5599c2f06f9d0109ad4c0d0879d094117414d6545aaf6f19ae' })
+]);
+
+export function evaluateMaintenanceAuthorityWithdrawal({ authority, withdrawalEvidence } = {}) {
+  const findings = [];
+  if (!Array.isArray(withdrawalEvidence) || withdrawalEvidence.length !== MAINTENANCE_WITHDRAWAL_DECISIONS.length) {
+    return [{ code: 'AUTHORITY_WITHDRAWAL_EVIDENCE_MISSING' }];
+  }
+  for (const expected of MAINTENANCE_WITHDRAWAL_DECISIONS) {
+    const matches = withdrawalEvidence.filter((entry) => entry?.path === expected.path);
+    const text = matches.length === 1 ? matches[0].text : null;
+    if (typeof text !== 'string') { findings.push({ code: 'AUTHORITY_WITHDRAWAL_EVIDENCE_MISSING', detail: expected.path }); continue; }
+    if (sha256Hex(Buffer.from(text, 'utf8')) !== expected.sha256) {
+      findings.push({ code: 'AUTHORITY_WITHDRAWAL_EVIDENCE_SHA_MISMATCH', detail: expected.path }); continue;
+    }
+    let decision;
+    try { decision = JSON.parse(text); } catch { findings.push({ code: 'AUTHORITY_WITHDRAWAL_DECISION_INVALID' }); continue; }
+    if (decision.schemaVersion !== 1 || decision.documentKind !== 'MAINTENANCE_AUTHORITY_WITHDRAWAL_DECISION'
+        || decision.issuedBy !== 'PROJECT_OWNER' || decision.decision !== 'WITHDRAW_EXECUTION_CONSENT'
+        || decision.scope !== 'PROGRAM_AND_AUTHORITY_ID') {
+      findings.push({ code: 'AUTHORITY_WITHDRAWAL_DECISION_INVALID' }); continue;
+    }
+    if (authority?.programId === decision.programId || authority?.authorityId === decision.authorityId) {
+      findings.push({ code: 'AUTHORITY_WITHDRAWN', detail: decision.decisionId });
+    }
+  }
+  return findings;
+}
+
 const AUTHORITY_FIELDS = Object.freeze([
   'document', 'schemaVersion', 'authorityId', 'authorityClass', 'authorityMode',
   'issuedBy', 'createdAt', 'expiresAt', 'targetSystem', 'programId', 'authorityPurpose',
@@ -821,6 +851,7 @@ export function evaluatePostFreezeMaintenanceAuthorityV2({
   // verified against the consumption record instead, which binds the authority,
   // the program, the manifest digest and the baseHead it was consumed at.
   if (phase === PHASE_AUTHORIZE_PROGRAM_APPLY) {
+    findings.push(...evaluateMaintenanceAuthorityWithdrawal({ authority, withdrawalEvidence: observed.withdrawalEvidence }));
     // The authorized-path pre-state gate. Placed with the other AUTHORIZE-time
     // bindings for the same reason they are: it describes the state the program
     // may act ON, so re-asserting it after publication would demand the program

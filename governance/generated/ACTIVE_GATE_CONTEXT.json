@@ -21,11 +21,11 @@
     },
     {
       "path": "governance/GATE_REGISTRY_00_40.json",
-      "sha256": "aaa9efcded9c58ccb0f26578bc67ba8b50143e6a94426965772d8731fcada9c7"
+      "sha256": "76d5f9ff0a21f8c1eadaf9ccd9e48c9087d12655fac6a5c9215584053652a56b"
     },
     {
       "path": "governance/state/GATE_STATUS_LEDGER.ndjson",
-      "sha256": "9b8004d15402c47303fdb4641a4d9fee5850fb4af4695f459c38a74d3649c67c"
+      "sha256": "2def19c84b7581da0ab54d2d1ba9d68f5bc2ce40e108443cfbd086835a0116da"
     }
   ],
   "generatedAt": "2026-08-01T16:00:00.000Z",

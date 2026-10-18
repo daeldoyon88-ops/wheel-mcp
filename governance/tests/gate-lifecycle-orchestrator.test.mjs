@@ -366,6 +366,11 @@ function syntheticAuthorizedClosure(root, staging, gateId = 'GATE18') {
  * at R0002. This is the exact pre-state the hand-built AGENT_CLOSURE acted on.
  */
 function rewindGate17ToPostStart(root) {
+  // Rewind the dependent registry bytes with the historical ledger, in scratch only.
+  const registryBytes = execFileSync('git', ['show', '337e4d2^:governance/GATE_REGISTRY_00_40.json'], { cwd: REPO_ROOT, stdio: 'pipe' });
+  assert.equal(sha256Bytes(registryBytes), 'aaa9efcded9c58ccb0f26578bc67ba8b50143e6a94426965772d8731fcada9c7');
+  fs.writeFileSync(path.join(root, 'governance/GATE_REGISTRY_00_40.json'), registryBytes);
+
   fs.rmSync(path.join(root, 'governance/gates/GATE17/state/revisions/R0003'), { recursive: true, force: true });
   fs.rmSync(path.join(root, 'governance/gates/GATE17/state/revisions/R0004'), { recursive: true, force: true });
   const ledgerFile = path.join(root, ...LEDGER_PATH.split('/'));

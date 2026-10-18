@@ -1,0 +1,15 @@
+{
+  "checkpoint": "CP-FP-BASELINE",
+  "mission": "WHEEL_GATE_FAST_PATH_CONTROL_PLANE_R1",
+  "recordedAt": "2026-08-13T22:35:04.878Z",
+  "head": "d96b8ace7ac2d2bf3285802e65164562dedbf0aa",
+  "originMain": "3eb0641d2193f1adf42599915531e6c033d69442",
+  "divergence": "0 behind / 1 ahead",
+  "ledgerEvents": 61,
+  "gate14": "COMPLETE_CONFIRMED",
+  "gate15_40": "NOT_STARTED",
+  "startEventsGate15Plus": 0,
+  "activeGate": "GATE13",
+  "r8": "ABSENT",
+  "verdict": "BASELINE_MATCHES_EXPECTATION"
+}

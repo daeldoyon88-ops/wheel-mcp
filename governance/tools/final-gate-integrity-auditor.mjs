@@ -45,7 +45,7 @@ import { fileURLToPath } from 'node:url';
 
 import { canonicalize, sha256Bytes, sha256Canonical } from './canonical-json.mjs';
 import {
-  MODE_FULL, TRANSITIONS, NATIVE_STATE_PIN_FIRST_ORDINAL,
+  MODE_FULL, MODE_LEDGER_INTEGRITY, TRANSITIONS, NATIVE_STATE_PIN_FIRST_ORDINAL,
   HISTORICAL_RECONCILIATION_TRANSITIONS, CONTRACT_SUCCESSION_TRANSITIONS,
   PRECONTRACT_CONSUMPTION_ANCHOR_TRANSITIONS,
   reconstructLedgerPrefixBytes, validateLedger
@@ -261,6 +261,17 @@ export function auditFinalGateIntegrity({
   const ledgerLines = ledgerText.split('\n');
   if (ledgerLines.at(-1) === '') ledgerLines.pop();
 
+  // Anchor pins follow the existing canonical anchor contract, which verifies
+  // exact prior-pin restatement or a strict bootstrap absence, plus its authority.
+  // Reuse that proof rather than applying the ordinary state-minting rule twice.
+  const canonicalAnchorReport = validateLedger({ root, ledgerPath: repoPath(root, LEDGER_PATH), mode: MODE_LEDGER_INTEGRITY });
+  const anchorIds = new Set((canonicalAnchorReport.events ?? []).filter((event) =>
+    PRECONTRACT_CONSUMPTION_ANCHOR_TRANSITIONS.some(([from, to, type]) =>
+      from === event.fromStatus && to === event.toStatus && type === event.transitionType)).map((event) => event.eventId));
+  for (const finding of canonicalAnchorReport.findings.filter((finding) => finding.severity === 'BLOCKING' && anchorIds.has(finding.eventId))) {
+    blocking('LEDGER', finding.detectorId, { path: LEDGER_PATH, expected: finding.expectedRule, actual: finding.actualValue, message: finding.message });
+  }
+
   const events = [];
   for (const [index, line] of ledgerLines.entries()) {
     const lineNumber = index + 1;
@@ -305,7 +316,7 @@ export function auditFinalGateIntegrity({
     }
     // The native state pin boundary is enforced in both directions.
     const hasPin = Object.hasOwn(event, 'stateRevision') || Object.hasOwn(event, 'stateRevisionSealSha256');
-    if (event.ordinal >= NATIVE_STATE_PIN_FIRST_ORDINAL && !hasPin) {
+    if (event.ordinal >= NATIVE_STATE_PIN_FIRST_ORDINAL && !hasPin && !anchorIds.has(event.eventId)) {
       blocking('LEDGER', 'NATIVE_STATE_PIN_MISSING', {
         path: LEDGER_PATH, expected: 'stateRevision + stateRevisionSealSha256', actual: 'ABSENT',
         message: `ordinal ${event.ordinal}`

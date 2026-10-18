@@ -827,6 +827,7 @@ export function validateLifecycleTransactionProvenance({ root, transaction }) {
             root, (observation.manifest.paths ?? []).map((entry) => entry.path), recordedBefore
           );
         }
+        rewound.withdrawalEvidence = observation.observed.withdrawalEvidence;
         const evaluation = evaluatePostFreezeMaintenanceAuthorityV2({ authority, manifest: observation.manifest, observed: rewound, phase: PHASE_AUTHORIZE_PROGRAM_APPLY });
         if (evaluation.decision !== 'AUTHORIZED') finding(findings, 'PENDING_TRANSACTION_AUTHORITY_NOT_AUTHORIZED', evaluation.findings?.map((item) => item.code).join(',') ?? null);
       }

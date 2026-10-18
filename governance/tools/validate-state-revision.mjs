@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { sha256Bytes } from './canonical-json.mjs';
+import { canonicalize, sha256Bytes, sha256Canonical } from './canonical-json.mjs';
 import { validateStateSeal } from './validate-state-seal.mjs';
 import { resolveStateRevisionLineage } from '../gee-v1/core/state-revision-resolver.mjs';
 
@@ -32,6 +32,277 @@ function readLegacyBindings(bindingsPath) {
 
 const CHECKPOINT_FIELDS = ['gateId', 'stateRevision', 'milestone', 'resumePoint', 'completedTasks', 'openTasks', 'reusableEvidence', 'invalidatedEvidence', 'requiredNextActions', 'protectedHashes', 'createdAt'];
 const DEFECT_FIELDS = ['defectId', 'severity', 'status', 'description', 'affectedRequirements', 'evidence', 'detector', 'repairScope', 'blockingProgression', 'openedAt', 'closedAt', 'closureEvidence'];
+const SHA256_RE = /^[a-f0-9]{64}$/;
+const REVISION_RE = /^R[0-9]{4}$/;
+const EXECUTION_CONTRACT_RE = /^EXECUTION_CONTRACT_R[0-9]{4}\.json$/;
+export const PROTECTED_HASH_MATCH = 'PROTECTED_HASH_MATCH';
+export const HISTORICAL_PROTECTED_HASH_SUPERSEDED = 'HISTORICAL_PROTECTED_HASH_SUPERSEDED';
+export const HISTORICAL_LEDGER_PREFIX = 'HISTORICAL_LEDGER_PREFIX';
+export const PROTECTED_HASH_MISMATCH = 'PROTECTED_HASH_MISMATCH';
+
+function readJsonQuiet(file) {
+  try { return JSON.parse(fs.readFileSync(file, 'utf8').replace(/^﻿/, '')); } catch { return null; }
+}
+
+function normalizedPath(value) {
+  return typeof value === 'string' ? value.split(path.sep).join('/') : null;
+}
+
+function exactFileIdentity(file) {
+  if (!file || !fs.existsSync(file) || !fs.statSync(file).isFile()) return null;
+  const bytes = fs.readFileSync(file);
+  return { bytes, sha256: sha256Bytes(bytes), byteLength: bytes.length };
+}
+
+function collectContractPins(value, protectedPath, pins = []) {
+  if (Array.isArray(value)) {
+    for (const item of value) collectContractPins(item, protectedPath, pins);
+    return pins;
+  }
+  if (!value || typeof value !== 'object') return pins;
+  if (normalizedPath(value.path) === protectedPath && SHA256_RE.test(String(value.sha256 || ''))) pins.push(value.sha256);
+  const keyed = value[protectedPath];
+  if (SHA256_RE.test(String(keyed || ''))) pins.push(keyed);
+  else if (keyed && typeof keyed === 'object' && SHA256_RE.test(String(keyed.sha256 || ''))) pins.push(keyed.sha256);
+  for (const [key, nested] of Object.entries(value)) {
+    if (key === protectedPath || key === 'path' || key === 'sha256') continue;
+    collectContractPins(nested, protectedPath, pins);
+  }
+  return pins;
+}
+
+function readLedgerDocument(ledgerPath) {
+  const reasons = [];
+  let bytes;
+  try { bytes = fs.readFileSync(ledgerPath); } catch { return { valid: false, reasons: ['LEDGER_UNREADABLE'], bytes: null, rawLines: [], events: [] }; }
+  const text = bytes.toString('utf8');
+  if (!text.endsWith('\n')) reasons.push('LEDGER_FINAL_LF_MISSING');
+  if (text.includes('\r')) reasons.push('LEDGER_CR_FORBIDDEN');
+  const rawLines = text.split('\n');
+  if (rawLines.at(-1) === '') rawLines.pop();
+  if (rawLines.some((line) => line.length === 0)) reasons.push('LEDGER_EMPTY_LINE');
+  const events = [];
+  const ids = new Set();
+  const ordinals = new Set();
+  let previousPayload = null;
+  let previousRecordedAt = null;
+  for (const [index, raw] of rawLines.entries()) {
+    let event;
+    try { event = JSON.parse(raw); } catch { reasons.push(`LEDGER_JSON_INVALID:${index + 1}`); continue; }
+    events.push(event);
+    if (canonicalize(event) !== raw) reasons.push(`LEDGER_EVENT_NON_CANONICAL:${index + 1}`);
+    if (event.ordinal !== index + 1) reasons.push(`LEDGER_ORDINAL_INVALID:${index + 1}`);
+    if (ids.has(event.eventId)) reasons.push(`LEDGER_EVENT_ID_DUPLICATE:${event.eventId}`);
+    if (ordinals.has(event.ordinal)) reasons.push(`LEDGER_ORDINAL_DUPLICATE:${event.ordinal}`);
+    ids.add(event.eventId);
+    ordinals.add(event.ordinal);
+    if (event.previousEventSha256 !== previousPayload) reasons.push(`LEDGER_CHAIN_BREAK:${index + 1}`);
+    const { eventPayloadSha256, ...payload } = event;
+    const recomputed = sha256Canonical(payload);
+    if (eventPayloadSha256 !== recomputed) reasons.push(`LEDGER_PAYLOAD_HASH_INVALID:${index + 1}`);
+    previousPayload = eventPayloadSha256 ?? null;
+    if (previousRecordedAt && (!event.recordedAt || Date.parse(event.recordedAt) < Date.parse(previousRecordedAt))) {
+      reasons.push(`LEDGER_TIMESTAMP_REGRESSION:${index + 1}`);
+    }
+    previousRecordedAt = event.recordedAt ?? previousRecordedAt;
+  }
+  return { valid: reasons.length === 0, reasons, bytes, rawLines, events };
+}
+
+function inspectLedgerSealedContract({ root, event, protectedPath }) {
+  const reasons = [];
+  if (!event?.gateId || !REVISION_RE.test(String(event.stateRevision || '')) || !SHA256_RE.test(String(event.stateRevisionSealSha256 || ''))) {
+    return { valid: false, reasons: ['CROSS_GATE_EVENT_STATE_PROOF_INVALID'], pins: [] };
+  }
+  const gateRoot = path.join(root, 'governance', 'gates', event.gateId);
+  const sealPath = path.join(gateRoot, 'state', 'revisions', event.stateRevision, 'STATE_SEAL.json');
+  const sealIdentity = exactFileIdentity(sealPath);
+  const seal = sealIdentity ? readJsonQuiet(sealPath) : null;
+  if (!sealIdentity || !seal || sealIdentity.sha256 !== event.stateRevisionSealSha256) reasons.push('CROSS_GATE_EVENT_SEAL_MISSING_OR_MISMATCH');
+  const currentState = readJsonQuiet(path.join(gateRoot, 'state', 'CURRENT_STATE.json'));
+  const sealReport = sealIdentity
+    ? validateStateSeal({ root, sealPath, currentRevision: currentState?.stateRevision })
+    : { valid: false };
+  if (!sealReport.valid) reasons.push('CROSS_GATE_EVENT_SEAL_INVALID');
+
+  const contractSha256 = seal?.payload?.contractSha256;
+  if (!SHA256_RE.test(String(contractSha256 || ''))) reasons.push('CROSS_GATE_EVENT_CONTRACT_BINDING_INVALID');
+  const contractsRoot = path.join(gateRoot, 'contracts');
+  const allContracts = fs.existsSync(contractsRoot)
+    ? fs.readdirSync(contractsRoot, { withFileTypes: true })
+      .filter((entry) => entry.isFile() && EXECUTION_CONTRACT_RE.test(entry.name))
+      .map((entry) => {
+        const absolute = path.join(contractsRoot, entry.name);
+        return { absolute, identity: exactFileIdentity(absolute), json: readJsonQuiet(absolute) };
+      })
+    : [];
+  const contracts = allContracts.filter((entry) => entry.identity?.sha256 === contractSha256);
+  if (contracts.length !== 1) reasons.push('CROSS_GATE_EVENT_CONTRACT_IDENTITY_AMBIGUOUS');
+  const contract = contracts[0]?.json ?? null;
+  if (contract?.gateId !== event.gateId) reasons.push('CROSS_GATE_EVENT_CONTRACT_GATE_MISMATCH');
+  // Discovery remains fail-closed when the event seal is absent: an unsealed
+  // gate that visibly contains a contract pin is still the earliest attempted
+  // proof and may not be skipped in favour of a later, healthier gate.
+  const discoveryContracts = contract
+    ? [contract]
+    : allContracts.map((entry) => entry.json).filter(Boolean)
+      .filter((candidate) => collectContractPins(candidate, protectedPath).length > 0);
+  const pins = [...new Set(discoveryContracts.flatMap((candidate) => collectContractPins(candidate, protectedPath)))];
+  return { valid: reasons.length === 0, reasons, pins };
+}
+
+export function classifyCrossGateProtectedHashSuccession({
+  root,
+  gateId,
+  stateRevision,
+  protectedPath,
+  expectedSha256,
+  actualSha256,
+  ledgerPath = null
+} = {}) {
+  const rootResolved = path.resolve(root || '.');
+  const reasons = [];
+  const resolvedLedgerPath = ledgerPath
+    ? (path.isAbsolute(ledgerPath) ? ledgerPath : path.resolve(rootResolved, ledgerPath))
+    : path.join(rootResolved, ...DEFAULT_LEDGER_PATH.split('/'));
+  const ledger = readLedgerDocument(resolvedLedgerPath);
+  if (!ledger.valid) return { proven: false, reasonCodes: ['CROSS_GATE_LEDGER_INVALID', ...ledger.reasons] };
+
+  const sourceGateRoot = path.join(rootResolved, 'governance', 'gates', gateId);
+  const sourceSealPath = path.join(sourceGateRoot, 'state', 'revisions', stateRevision, 'STATE_SEAL.json');
+  const sourceSealIdentity = exactFileIdentity(sourceSealPath);
+  const sourceCurrentState = readJsonQuiet(path.join(sourceGateRoot, 'state', 'CURRENT_STATE.json'));
+  const sourceSealReport = sourceSealIdentity
+    ? validateStateSeal({ root: rootResolved, sealPath: sourceSealPath, currentRevision: sourceCurrentState?.stateRevision })
+    : { valid: false };
+  if (!sourceSealIdentity || !sourceSealReport.valid) reasons.push('CROSS_GATE_SOURCE_REVISION_UNSEALED');
+  const sourceAnchors = sourceSealIdentity
+    ? ledger.events.filter((event) => event?.gateId === gateId
+      && event?.stateRevision === stateRevision
+      && event?.stateRevisionSealSha256 === sourceSealIdentity.sha256)
+    : [];
+  if (sourceAnchors.length !== 1) reasons.push('CROSS_GATE_SOURCE_LEDGER_ANCHOR_MISSING_OR_AMBIGUOUS');
+  const sourceAnchor = sourceAnchors[0] ?? null;
+  const sourceGateEvents = ledger.events.filter((event) => event?.gateId === gateId);
+  if (sourceGateEvents.at(-1)?.toStatus !== 'COMPLETE_CONFIRMED') reasons.push('CROSS_GATE_SOURCE_GATE_NOT_COMPLETE_CONFIRMED');
+  if (reasons.length > 0) return { proven: false, reasonCodes: reasons };
+
+  const inspected = ledger.events
+    .filter((event) => event?.gateId !== gateId && event?.stateRevision && event?.stateRevisionSealSha256)
+    .map((event) => ({ event, proof: inspectLedgerSealedContract({ root: rootResolved, event, protectedPath }) }))
+    .filter(({ proof }) => proof.pins.includes(actualSha256));
+  const laterPins = inspected.filter(({ event }) => event.ordinal > sourceAnchor.ordinal);
+  if (laterPins.length === 0) {
+    reasons.push(inspected.length > 0 ? 'CROSS_GATE_PROOF_NOT_LATER' : 'CROSS_GATE_LATER_PROOF_ABSENT');
+    return { proven: false, reasonCodes: reasons };
+  }
+
+  const firstPin = laterPins[0];
+  if (!firstPin.proof.valid) reasons.push(...firstPin.proof.reasons);
+  if (firstPin.proof.pins.length !== 1 || firstPin.proof.pins[0] !== actualSha256) reasons.push('CROSS_GATE_LATER_CONTRACT_LIVE_PIN_MISMATCH');
+  const pinningGateId = firstPin.event.gateId;
+  const laterProofs = ledger.events.filter((event) => event?.gateId === pinningGateId
+    && event?.toStatus === 'COMPLETE_CONFIRMED'
+    && event?.ordinal > sourceAnchor.ordinal);
+  if (laterProofs.length !== 1) reasons.push(laterProofs.length === 0 ? 'CROSS_GATE_LATER_PROOF_ABSENT' : 'CROSS_GATE_LATER_PROOF_AMBIGUOUS');
+  const laterProofEvent = laterProofs[0] ?? null;
+  if (laterProofEvent && laterProofEvent.ordinal <= sourceAnchor.ordinal) reasons.push('CROSS_GATE_PROOF_NOT_LATER');
+  if (laterProofEvent) {
+    const completionProof = inspectLedgerSealedContract({ root: rootResolved, event: laterProofEvent, protectedPath });
+    if (!completionProof.valid) reasons.push(...completionProof.reasons);
+    if (completionProof.pins.length !== 1 || completionProof.pins[0] !== actualSha256) reasons.push('CROSS_GATE_LATER_CONTRACT_LIVE_PIN_MISMATCH');
+  }
+  const pinningGateEvents = ledger.events.filter((event) => event?.gateId === pinningGateId);
+  if (pinningGateEvents.at(-1)?.toStatus !== 'COMPLETE_CONFIRMED') reasons.push('CROSS_GATE_PINNING_GATE_NOT_COMPLETE_CONFIRMED');
+  if (!SHA256_RE.test(String(expectedSha256 || '')) || !SHA256_RE.test(String(actualSha256 || '')) || expectedSha256 === actualSha256) {
+    reasons.push('CROSS_GATE_HASH_TRANSITION_INVALID');
+  }
+  return {
+    proven: reasons.length === 0,
+    reasonCodes: [...new Set(reasons)],
+    ...(reasons.length === 0 ? { sourceEventId: sourceAnchor.eventId, pinningGateId, proofEventId: laterProofEvent.eventId } : {})
+  };
+}
+
+function protectedResult(classification, {
+  gateId = null, stateRevision = null, protectedPath = null,
+  expectedSha256 = null, actualSha256 = null, reasonCodes = []
+} = {}) {
+  return {
+    classification,
+    blocking: classification === PROTECTED_HASH_MISMATCH,
+    gateId,
+    stateRevision,
+    path: protectedPath,
+    expectedSha256,
+    actualSha256,
+    reasonCodes: [...new Set(reasonCodes)]
+  };
+}
+
+export function classifyProtectedHashLiveCheck({
+  root,
+  gateId,
+  stateRevision,
+  protectedHash,
+  currentStatePath = null,
+  ledgerPath = null,
+  legacyBindingsPath = null,
+  historicalLedgerPrefixProven = false
+} = {}) {
+  const rootResolved = path.resolve(root || '.');
+  const protectedPath = normalizedPath(protectedHash?.path);
+  const expectedSha256 = protectedHash?.sha256;
+  const base = { gateId, stateRevision, protectedPath, expectedSha256 };
+  const early = [];
+  if (!gateId || !REVISION_RE.test(String(stateRevision || ''))) early.push('PROTECTED_REVISION_ID_INVALID');
+  if (!safeRelative(protectedPath)) early.push('PROTECTED_PATH_INVALID');
+  if (!SHA256_RE.test(String(expectedSha256 || ''))) early.push('PROTECTED_SHA256_INVALID');
+  if (early.length > 0) return protectedResult(PROTECTED_HASH_MISMATCH, { ...base, reasonCodes: early });
+
+  const protectedAbsolute = path.resolve(rootResolved, ...protectedPath.split('/'));
+  const live = exactFileIdentity(protectedAbsolute);
+  const actualSha256 = live?.sha256 ?? null;
+  const gateRoot = path.join(rootResolved, 'governance', 'gates', gateId);
+  const revisionRoot = path.join(gateRoot, 'state', 'revisions');
+  const targetCheckpointPath = path.join(revisionRoot, stateRevision, 'CHECKPOINT.json');
+  const targetCheckpoint = readJsonQuiet(targetCheckpointPath);
+  const targetEntries = Array.isArray(targetCheckpoint?.protectedHashes)
+    ? targetCheckpoint.protectedHashes.filter((entry) => normalizedPath(entry?.path) === protectedPath)
+    : [];
+  if (targetEntries.length !== 1) early.push(targetEntries.length > 1 ? 'DUPLICATE_PROTECTED_PATH' : 'PREDECESSOR_PROTECTED_PATH_MISSING');
+  if (targetCheckpoint?.gateId !== gateId || targetCheckpoint?.stateRevision !== stateRevision) early.push('PREDECESSOR_CHECKPOINT_IDENTITY_INVALID');
+  if (targetEntries.length === 1 && targetEntries[0].sha256 !== expectedSha256) early.push('PREDECESSOR_PROTECTED_HASH_BINDING_MISMATCH');
+  if (live && actualSha256 === expectedSha256 && early.length === 0) {
+    return protectedResult(PROTECTED_HASH_MATCH, { ...base, actualSha256 });
+  }
+
+  const currentPath = currentStatePath || path.join(gateRoot, 'state', 'CURRENT_STATE.json');
+  const currentState = readJsonQuiet(currentPath);
+  const currentRevision = currentState?.stateRevision;
+  if (historicalLedgerPrefixProven === true
+      && protectedPath === DEFAULT_LEDGER_PATH
+      && REVISION_RE.test(String(currentRevision || ''))
+      && early.length === 0) {
+    return protectedResult(HISTORICAL_LEDGER_PREFIX, { ...base, actualSha256 });
+  }
+
+  const crossGate = classifyCrossGateProtectedHashSuccession({
+    root: rootResolved,
+    gateId,
+    stateRevision,
+    protectedPath,
+    expectedSha256,
+    actualSha256,
+    ledgerPath
+  });
+  if (crossGate.proven && early.length === 0) {
+    return protectedResult(HISTORICAL_PROTECTED_HASH_SUPERSEDED, { ...base, actualSha256 });
+  }
+
+  return protectedResult(PROTECTED_HASH_MISMATCH, { ...base, actualSha256, reasonCodes: [...early, ...(crossGate.reasonCodes ?? [])] });
+}
+
 const POINTER_FIELDS = ['schemaVersion', 'gateId', 'stateRevision', 'revisionPath', 'stateSealSha256', 'committedByTransactionId'];
 
 function option(name, fallback = null) {
@@ -108,6 +379,7 @@ function validateDefects(defects, previous, findings) {
 
 function validateStateRevision({ root, gateId, currentStatePath, contractPath, ledgerPath = null, legacyBindingsPath = null }) {
   const findings = [];
+  const protectedHashChecks = [];
   const rootResolved = path.resolve(root);
   const gateRoot = path.join(rootResolved, 'governance', 'gates', gateId);
   const revisionRoot = path.join(gateRoot, 'state', 'revisions');
@@ -144,7 +416,11 @@ function validateStateRevision({ root, gateId, currentStatePath, contractPath, l
     const protectedHashes = checkpoint?.protectedHashes || [];
     for (const [index, protectedHash] of protectedHashes.entries()) {
       const protectedPath = resolveUnderRoot(rootResolved, protectedHash.path, findings, `/${revisionName}/protectedHashes/${index}/path`);
-      if (protectedPath && fs.existsSync(protectedPath) && sha256Bytes(fs.readFileSync(protectedPath)) !== protectedHash.sha256) finding(findings, 'PROTECTED_HASH_MISMATCH', `/${revisionName}/protectedHashes/${index}`, protectedHash, 'hash of protected real bytes', 'Protected authority was changed after checkpoint.', 'REQ-REV-01');
+      if (protectedPath && fs.existsSync(protectedPath)) {
+        const check = classifyProtectedHashLiveCheck({ root: rootResolved, gateId, stateRevision: revisionName, protectedHash, currentStatePath: currentPath, ledgerPath, legacyBindingsPath });
+        protectedHashChecks.push(check);
+        if (check.blocking) finding(findings, 'PROTECTED_HASH_MISMATCH', `/${revisionName}/protectedHashes/${index}`, protectedHash, 'exact live bytes or uniquely proven later sealed contract', 'Protected authority changed without an exact succession proof: ' + check.reasonCodes.join(', '), 'REQ-REV-01');
+      }
     }
   }
   for (let index = 1; index < revisions.length; index += 1) {
@@ -216,6 +492,7 @@ function validateStateRevision({ root, gateId, currentStatePath, contractPath, l
     resolvedBy: lineage?.decidedBy ?? null,
     anchorState: lineage?.anchorState ?? null,
     ledgerAvailable,
+    protectedHashChecks,
     sealChain: lineage?.sealChain ?? [],
     orphanRevisions: lineage?.orphans ?? [],
     currentStatePath: path.relative(rootResolved, currentPath).replaceAll('\\', '/')

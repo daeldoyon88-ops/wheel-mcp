@@ -1,0 +1,25 @@
+{
+  "document": "MAINTENANCE_PUBLICATION_ADMISSION_OWNER_AUTHORIZATION",
+  "schemaVersion": 1,
+  "authorityId": "WHEEL_JARVISE_CANONICAL_RECONCILIATION_MISSION2_20261018_R1_PUBLICATION_OWNER_AUTHORIZATION",
+  "authorityClass": "PROJECT_OWNER_MAINTENANCE_PUBLICATION_ADMISSION_AUTHORITY",
+  "authorityMode": "LOCAL_EXPLICIT_AUTHORITY",
+  "issuedBy": "PROJECT_OWNER",
+  "issuedAtUtc": "2026-10-18T17:59:06.735Z",
+  "decisionId": "WHEEL_JARVISE_CANONICAL_RECONCILIATION_MISSION2_20261018_R1_OWNER_MANDATE",
+  "purpose": "MAINTENANCE_PUBLICATION_ADMISSION",
+  "reexecutionAuthorized": false,
+  "grantsFutureBytePermission": false,
+  "genericV1Admission": false,
+  "admittedPublications": [
+    {
+      "admissionId": "WHEEL_JARVISE_CANONICAL_RECONCILIATION_MISSION2_20261018_R1_PUBLICATION_ADMISSION_R1",
+      "projectId": "WHEEL",
+      "gateId": "GATE24",
+      "programId": "WHEEL_JARVISE_CANONICAL_RECONCILIATION_MISSION2_20261018_R1",
+      "admissionPath": "governance/authority/publication-admissions/GATE24/WHEEL_JARVISE_CANONICAL_RECONCILIATION_MISSION2_20261018_R1_PUBLICATION_ADMISSION_R1.json",
+      "admissionDigest": "fe4697e3441dc7449d45c7546d5a537c5dd5319889a3a56491753b56fb5a9b30"
+    }
+  ],
+  "registryDigest": "0105dd122b6d8d1ee466881318a861db4fa9591494cd7b633bb5a83e1a4b3636"
+}

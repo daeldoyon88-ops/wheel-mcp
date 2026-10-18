@@ -1,0 +1,26 @@
+{
+  "checkpoint": "CP-FP-FINAL",
+  "mission": "WHEEL_GATE_FAST_PATH_CONTROL_PLANE_R1",
+  "recordedAt": "2026-08-13T23:03:22.894Z",
+  "baseHead": "d96b8ace7ac2d2bf3285802e65164562dedbf0aa",
+  "commit": "8765e3fc0eeee2a20e413706002bf915e5ad91c6",
+  "commitContentCorrect": true,
+  "commitMessageCorrect": false,
+  "commitMessageDefect": "Subject prefixed with a stray \"@\" and a trailing \"@\" line, caused by PowerShell here-string syntax passed to bash. Content of all 14 staged paths is exactly the authorized cohort.",
+  "amendPerformed": false,
+  "amendBlockedBy": "GATE_FAST_PATH_AUTHORIZED_PATHS_R1 authority: amendAuthorized=false, prohibitedOperations includes COMMIT_AMEND and HISTORY_REWRITE",
+  "successBar": {
+    "P0": 0,
+    "P1": 0,
+    "bindings": "5/5",
+    "gate15": "FAST_PATH_READY",
+    "gate16": "READY_WHEN_SEQUENCED",
+    "ledger": 61,
+    "activeGate": "GATE13",
+    "r8": "ABSENT",
+    "newUnrelatedRegressions": 0,
+    "unclassifiedRelevantArtifacts": 0
+  },
+  "pushed": false,
+  "ownerDecisionRequired": "COMMIT_MESSAGE_CORRECTION_AUTHORIZATION"
+}

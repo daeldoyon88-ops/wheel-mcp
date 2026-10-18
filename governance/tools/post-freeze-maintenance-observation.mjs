@@ -3,7 +3,7 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import { collectClosedStateSealMembers, collectClosedStateSealMembersAtCommit } from '../gee-v1/core/sealed-state-evidence.mjs';
-import { isExactMaintenancePath } from '../gee-v1/core/post-freeze-maintenance-authority.mjs';
+import { isExactMaintenancePath, MAINTENANCE_WITHDRAWAL_DECISIONS } from '../gee-v1/core/post-freeze-maintenance-authority.mjs';
 import { collectValidatedOwnerPresentByteBootstrapReceipts } from '../gee-v1/core/owner-present-byte-bootstrap.mjs';
 
 function sha256(bytes) { return crypto.createHash('sha256').update(bytes).digest('hex'); }
@@ -26,6 +26,15 @@ function readJson(file) { return JSON.parse(fs.readFileSync(file, 'utf8').replac
  * the authority file exists and the record cites that authority's manifest
  * digest. A record whose authority has drifted certifies nothing here.
  */
+/** Always re-read live Owner withdrawal evidence; no cached decision is accepted. */
+export function collectMaintenanceWithdrawalEvidence(root) {
+  return MAINTENANCE_WITHDRAWAL_DECISIONS.map(({ path: relativePath }) => {
+    const file = resolveMaintenancePath(root, relativePath);
+    try { return { path: relativePath, text: fs.readFileSync(file, 'utf8') }; }
+    catch { return { path: relativePath, text: null }; }
+  });
+}
+
 export function collectCanonicalPredecessors(root, relativePaths) {
   const byPath = new Map(relativePaths.map((p) => [p, new Set()]));
   for (const relativePath of relativePaths) {
@@ -265,6 +274,7 @@ export function collectPostFreezeMaintenanceObservation({
     return {
       valid: true, findings, manifest,
       observed: {
+        withdrawalEvidence: collectMaintenanceWithdrawalEvidence(root),
         baseHead, ledgerEventCount: events.length, ledgerPrefixSha256: sha256(ledgerBytes), gateId,
         gateStatus: events.filter((event) => event.gateId === gateId).at(-1)?.toStatus ?? null,
         stateRevision: currentState?.stateRevision ?? null, contractRevision: currentContract?.contractRevision ?? null,

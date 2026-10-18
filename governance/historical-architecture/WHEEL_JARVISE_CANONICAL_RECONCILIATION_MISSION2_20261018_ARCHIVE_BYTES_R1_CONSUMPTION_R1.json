@@ -1,0 +1,32 @@
+{
+  "documentKind": "POST_FREEZE_MAINTENANCE_AUTHORITY_CONSUMPTION",
+  "schemaVersion": 2,
+  "authorityId": "WHEEL_JARVISE_CANONICAL_RECONCILIATION_MISSION2_20261018_ARCHIVE_BYTES_R1_AUTHORITY",
+  "programId": "WHEEL_JARVISE_CANONICAL_RECONCILIATION_MISSION2_20261018_ARCHIVE_BYTES_R1",
+  "manifestSha256": "360474d7fbe81710a3878f92351b948edc60a8853b3119628c05d6d9a1a2a791",
+  "baseHead": "6127ae5e45eb88f73f13585e72bda4a4cc157d54",
+  "consumedUse": 1,
+  "transactionId": "WHEEL_JARVISE_CANONICAL_RECONCILIATION_MISSION2_20261018_ARCHIVE_BYTES_R1_TRANSACTION",
+  "recordedAt": "2026-10-18T18:17:41.917Z",
+  "commitMessage": "Governance: reconcile canonical lineage and withdrawals",
+  "publicationAdmission": {
+    "admissionId": "WHEEL_JARVISE_CANONICAL_RECONCILIATION_MISSION2_20261018_ARCHIVE_BYTES_R1_PUBLICATION_ADMISSION_R1",
+    "admissionPath": "governance/authority/publication-admissions/GATE24/WHEEL_JARVISE_CANONICAL_RECONCILIATION_MISSION2_20261018_ARCHIVE_BYTES_R1_PUBLICATION_ADMISSION_R1.json",
+    "admissionSha256": "55a003a0436a23c497c355fee9349105f5d860e6b84e9619d3f774ba357731ff"
+  },
+  "cohortSelfExclusion": {
+    "path": "governance/historical-architecture/WHEEL_JARVISE_CANONICAL_RECONCILIATION_MISSION2_20261018_ARCHIVE_BYTES_R1_CONSUMPTION_R1.json",
+    "reason": "The consumption record cannot hash its own final bytes; its identity is bound by the authority and manifest instead."
+  },
+  "cohortPathCount": 2,
+  "cohort": [
+    {
+      "path": "docs/reconciliation/local-history-20261018/.gitattributes",
+      "sha256": "604857bf7a3c0f0d0d01847433941920e839910710ad8b220ea3d3996e32d810",
+      "byteLength": 83,
+      "operation": "CREATE",
+      "reason": "Present Owner mandate: exact isolated canonical governance reconciliation, without historical authority reuse or Gate status change.",
+      "artifactClass": "GOVERNANCE_RECONCILIATION"
+    }
+  ]
+}

@@ -1,0 +1,72 @@
+{
+  "documentKind": "MAINTENANCE_PUBLICATION_ADMISSION",
+  "schemaVersion": 1,
+  "authorityMode": "LOCAL_EXPLICIT_AUTHORITY",
+  "issuedBy": "PROJECT_OWNER",
+  "admissionId": "WHEEL_JARVISE_CANONICAL_RECONCILIATION_MISSION2_20261018_R1_PUBLICATION_ADMISSION_R1",
+  "decisionId": "WHEEL_JARVISE_CANONICAL_RECONCILIATION_MISSION2_20261018_R1_OWNER_MANDATE",
+  "issuedAtUtc": "2026-10-18T17:59:06.735Z",
+  "expiresAtUtc": "2026-10-18T18:59:06.735Z",
+  "projectId": "WHEEL",
+  "repositoryId": "REPO-WHEEL-JARVISE-PRIMARY",
+  "gateId": "GATE24",
+  "programId": "WHEEL_JARVISE_CANONICAL_RECONCILIATION_MISSION2_20261018_R1",
+  "purpose": "MAINTENANCE_PUBLICATION_ADMISSION",
+  "publicationClass": "PATH_PRESTATE_PROGRAM_PUBLISHER",
+  "authorityPurpose": "NORMAL_MAINTENANCE",
+  "maxUse": 1,
+  "admissionStatement": "Present Owner MISSION 2/2 R1 mandate sections 3-6 and 9: exact isolated canonical FC02 repair, adopted R2 execution withdrawal, noncanonical historical archives and demonstrated generated context drift. No historic authority invention, Gate start or remote publication.",
+  "admittedAuthority": {
+    "path": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_WHEEL_JARVISE_CANONICAL_RECONCILIATION_MISSION2_20261018_R1.json",
+    "sha256": "6316abcce0821e2610897f042e3dee4e4daeb1999ba42ca07f18b39fc2a3db4e",
+    "byteLength": 2207,
+    "schemaVersion": 2,
+    "documentId": "WHEEL_JARVISE_CANONICAL_RECONCILIATION_MISSION2_20261018_R1_AUTHORITY"
+  },
+  "admittedManifest": {
+    "path": "governance/historical-architecture/WHEEL_JARVISE_CANONICAL_RECONCILIATION_MISSION2_20261018_R1_AUTHORIZED_PATHS.json",
+    "sha256": "5aeadd87278abd27528500cb39c81edb5ae768605b1a0b520d996ddac0358515",
+    "byteLength": 10920,
+    "schemaVersion": 2,
+    "documentId": "WHEEL_JARVISE_CANONICAL_RECONCILIATION_MISSION2_20261018_R1_AUTHORIZED_PATHS"
+  },
+  "admittedPrestate": {
+    "baseHead": "6127ae5e45eb88f73f13585e72bda4a4cc157d54",
+    "ledgerEventCount": 104,
+    "ledgerPrefixSha256": "2def19c84b7581da0ab54d2d1ba9d68f5bc2ce40e108443cfbd086835a0116da",
+    "gateId": "GATE24",
+    "gateStatus": "COMPLETE_CONFIRMED",
+    "stateRevision": "R0005",
+    "contractRevision": "R0002",
+    "activeGate": "GATE13",
+    "R8ExpectedAbsent": true
+  },
+  "admittedOperationClasses": [
+    "GOVERNANCE_RECONCILIATION"
+  ],
+  "grantsFutureBytePermission": false,
+  "grantsGateAuthorizationPermission": false,
+  "grantsStartPermission": false,
+  "grantsStatusTransitionPermission": false,
+  "grantsHistoricalAdmissionWidening": false,
+  "genericV1Admission": false,
+  "derivedFromGitDelta": false,
+  "derivedFromFinalGateIntegrityFindings": false,
+  "prohibitedOperations": [
+    "START",
+    "SECOND_START",
+    "GATE_AUTHORIZATION",
+    "STATUS_TRANSITION",
+    "ACTIVE_GATE_SWITCH",
+    "GEE_R8",
+    "GIT_PUSH",
+    "HISTORY_REWRITE",
+    "GENERIC_V1_ADMISSION",
+    "HISTORICAL_ADMISSION_WIDENING",
+    "SELF_ADMISSION"
+  ],
+  "successorRequirement": "A later publication requires a new exact Owner admission over a new exact pre-state.",
+  "admissionDigest": "fe4697e3441dc7449d45c7546d5a537c5dd5319889a3a56491753b56fb5a9b30",
+  "ownerAuthorizationPath": "governance/sources/MAINTENANCE_PUBLICATION_ADMISSION_OWNER_AUTHORIZATION_WHEEL_JARVISE_CANONICAL_RECONCILIATION_MISSION2_20261018_R1.json",
+  "ownerAuthorizationSha256": "89ff752b75bdbc95ab55a2de934cbd48d074a646b0796afccd27fdf9c2457b1b"
+}

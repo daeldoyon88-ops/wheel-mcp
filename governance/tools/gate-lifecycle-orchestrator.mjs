@@ -67,11 +67,11 @@ import { computeSealedMembersDigest, validateStateSeal } from './validate-state-
 import { validateStateRevision } from './validate-state-revision.mjs';
 import {
   PHASE_AUTHORIZE_PROGRAM_APPLY,
-  evaluatePostFreezeMaintenanceAuthorityV2
+  evaluatePostFreezeMaintenanceAuthorityV2, evaluateMaintenanceAuthorityWithdrawal
 } from '../gee-v1/core/post-freeze-maintenance-authority.mjs';
 import { collectClosedStateSealMembers } from '../gee-v1/core/sealed-state-evidence.mjs';
 import { WHEEL_EXTERNAL_AUTHORITY_POLICY } from '../gee-v1/adapters/wheel/external-authority-policy.mjs';
-import { collectPostFreezeMaintenanceObservation } from './post-freeze-maintenance-observation.mjs';
+import { collectPostFreezeMaintenanceObservation, collectMaintenanceWithdrawalEvidence } from './post-freeze-maintenance-observation.mjs';
 import { recoverTransaction } from './recover-governance-transaction.mjs';
 import {
   createLifecycleTransactionProvenance,
@@ -1016,6 +1016,17 @@ export function applyCandidate({
   requireRecoverableProvenance = true,
   writeFile = durableReplaceFileSync, rollbackWriteFile = durableReplaceFileSync, rollbackRemoveFile = fs.rmSync
 }) {
+  if (authority?.decision === 'AUTHORIZED' && !authorityDocumentPath) throw new Error('CANDIDATE_AUTHORITY_DOCUMENT_REQUIRED');
+  // Transaction provenance below already re-proves the full authority. Re-read
+  // the live execution withdrawal before staging; a cached decision cannot win.
+  if (authorityDocumentPath) {
+    const currentAuthority = readJsonOrNull(root, authorityDocumentPath);
+    if (!currentAuthority) throw new Error('CANDIDATE_AUTHORITY_NOT_AUTHORIZED:AUTHORITY_ABSENT');
+    const withdrawn = currentAuthority.document === 'GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY' && currentAuthority.schemaVersion === 2 ? evaluateMaintenanceAuthorityWithdrawal({
+      authority: currentAuthority, withdrawalEvidence: collectMaintenanceWithdrawalEvidence(root)
+    }) : [];
+    if (withdrawn.length) throw new Error('CANDIDATE_AUTHORITY_NOT_AUTHORIZED:' + withdrawn.map((entry) => entry.code).join('|'));
+  }
   const before = candidate.writes.map((write) => {
     const target = repoPath(root, write.path);
     const existed = fs.existsSync(target);

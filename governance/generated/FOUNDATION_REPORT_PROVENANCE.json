@@ -6,8 +6,8 @@
   "reportState": "CURRENT",
   "report": {
     "path": "governance/generated/FOUNDATION_REPORT.md",
-    "sha256": "fbc2d5111282f7c8492d263fe7fa006b49550f6e2015dcffdc2f0414834006f6",
-    "byteLength": 5548
+    "sha256": "626ad8169897d2ad716b0b3cd2e6b36a95efde044f04edddfe3cdbc36372e757",
+    "byteLength": 5553
   },
   "generator": {
     "path": "governance/tools/generate-foundation-report.mjs",
@@ -25,8 +25,8 @@
       "sourceBindings": [
         {
           "path": "governance/GATE_REGISTRY_00_40.json",
-          "sha256": "aaa9efcded9c58ccb0f26578bc67ba8b50143e6a94426965772d8731fcada9c7",
-          "byteLength": 113118,
+          "sha256": "76d5f9ff0a21f8c1eadaf9ccd9e48c9087d12655fac6a5c9215584053652a56b",
+          "byteLength": 114592,
           "pointers": [
             {
               "pointer": "/gates/17",
@@ -52,12 +52,12 @@
       "sourceBindings": [
         {
           "path": "governance/PROJECT_CONSTITUTION.json",
-          "sha256": "a26443b54c7168b2927e42e2b70bc480eba3aee8abdca10a56852d576d3d62c8",
-          "byteLength": 16370,
+          "sha256": "79a17db82bb95adca0ea9a24370ce76a04a5754322962cb32f64cb05594017ea",
+          "byteLength": 17552,
           "pointers": [
             {
               "pointer": "/rules",
-              "valueSha256": "c80d7658e9ac817b84cc6309e460d8e7ac7a622037b030a082c08fd5faeb6fdb"
+              "valueSha256": "cea2413fbc01307bb4716ed1364d1285248e07d2b85064288bb9f76fa932246f"
             }
           ]
         },
@@ -121,12 +121,12 @@
       "sourceBindings": [
         {
           "path": "governance/state/GATE_STATUS_LEDGER.ndjson",
-          "sha256": "9b8004d15402c47303fdb4641a4d9fee5850fb4af4695f459c38a74d3649c67c",
-          "byteLength": 48265,
+          "sha256": "2def19c84b7581da0ab54d2d1ba9d68f5bc2ce40e108443cfbd086835a0116da",
+          "byteLength": 63787,
           "pointers": [
             {
               "pointer": "/events",
-              "valueSha256": "bb98f0512859d7ede7b129f1f6dbaf01be0f174c851a5ae4e40142e438bded4c"
+              "valueSha256": "45d9481f77d2718f931d04d75ad94448cfe210bd48184804b074c4a3fcac7633"
             }
           ]
         },

@@ -1,0 +1,9 @@
+{
+  "checkpoint": "CP01",
+  "status": "COMPLETE",
+  "falsePassCount": 10,
+  "independentBlockingFindingReproductionCount": 13,
+  "bindingContradictionReproduced": true,
+  "idStylePointerRejected": true,
+  "doubleEscapeRiskReproduced": true
+}

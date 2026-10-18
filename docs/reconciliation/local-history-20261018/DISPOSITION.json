@@ -1,0 +1,54 @@
+{
+  "sourceBranch": "original local main; divergent GATE19 ledger excluded",
+  "canonicalAuthority": false,
+  "records": [
+    {
+      "sourceCommit": "3176ab420770fa580294ca079b5c830717ef17fb",
+      "sourcePath": "checkpoints/CP-FP-BASELINE.json",
+      "path": "docs/reconciliation/local-history-20261018/checkpoints/CP-FP-BASELINE.json",
+      "sha256": "96a0901f6024781a478cb6bed9928acb80bd3a266745a65019b0e115002cf19b",
+      "byteLength": 491,
+      "disposition": "HISTORICAL_LOCAL_CHECKPOINT_NOT_CANONICAL_CONFIRMATION"
+    },
+    {
+      "sourceCommit": "3176ab420770fa580294ca079b5c830717ef17fb",
+      "sourcePath": "checkpoints/CP-FP-FINAL.json",
+      "path": "docs/reconciliation/local-history-20261018/checkpoints/CP-FP-FINAL.json",
+      "sha256": "c07d4f3c4670d94b4f4448e10b96969d68d3de1993ae6eb03b171d6439ef084d",
+      "byteLength": 1075,
+      "disposition": "HISTORICAL_LOCAL_CHECKPOINT_NOT_CANONICAL_CONFIRMATION"
+    },
+    {
+      "sourceCommit": "3176ab420770fa580294ca079b5c830717ef17fb",
+      "sourcePath": "checkpoints/CP-FP-HOSTILE.json",
+      "path": "docs/reconciliation/local-history-20261018/checkpoints/CP-FP-HOSTILE.json",
+      "sha256": "24a8235a64e0fa90ca0622a7ac1bedd9af691e5b92af5c1827081b8e0a6469de",
+      "byteLength": 771,
+      "disposition": "HISTORICAL_LOCAL_CHECKPOINT_NOT_CANONICAL_CONFIRMATION"
+    },
+    {
+      "sourceCommit": "3176ab420770fa580294ca079b5c830717ef17fb",
+      "sourcePath": "checkpoints/CP01_INDEPENDENT_FINDINGS_REPRODUCED.json",
+      "path": "docs/reconciliation/local-history-20261018/checkpoints/CP01_INDEPENDENT_FINDINGS_REPRODUCED.json",
+      "sha256": "3303aa0e55e58526dd3cd51326e0f7bf070cf817237eb996943ec4396118c1aa",
+      "byteLength": 242,
+      "disposition": "HISTORICAL_LOCAL_CHECKPOINT_NOT_CANONICAL_CONFIRMATION"
+    },
+    {
+      "sourceCommit": "3176ab420770fa580294ca079b5c830717ef17fb",
+      "sourcePath": "checkpoints/CP08_COUNTERTESTS_AND_HOSTILE_AUDIT_CLOSED.json",
+      "path": "docs/reconciliation/local-history-20261018/checkpoints/CP08_COUNTERTESTS_AND_HOSTILE_AUDIT_CLOSED.json",
+      "sha256": "79644877e3d7b076c62174ceec5f65a871428ac80158ce5a7344ccd83a78b609",
+      "byteLength": 308,
+      "disposition": "HISTORICAL_LOCAL_CHECKPOINT_NOT_CANONICAL_CONFIRMATION"
+    },
+    {
+      "sourceCommit": "3176ab420770fa580294ca079b5c830717ef17fb",
+      "sourcePath": "governance/authority/withdrawals/WHEEL_STABLE_FINANCIAL_CLASSIFICATION_CLOSURE_R1_WITHDRAWAL_R1.json",
+      "path": "docs/reconciliation/local-history-20261018/governance/authority/withdrawals/WHEEL_STABLE_FINANCIAL_CLASSIFICATION_CLOSURE_R1_WITHDRAWAL_R1.json",
+      "sha256": "023489f2b0899c0c3cb6ee728b3954332eaa8bc058d1ef45d5ac65430f703c29",
+      "byteLength": 968,
+      "disposition": "HISTORICAL_PROPOSAL_NOT_ADOPTED_NOT_EXECUTABLE"
+    }
+  ]
+}

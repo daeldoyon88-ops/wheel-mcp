@@ -96,6 +96,8 @@ function makeFixtureRepository() {
   git(root, ['config', 'commit.gpgsign', 'false']);
 
   fs.mkdirSync(path.join(root, 'governance', 'gates'), { recursive: true });
+  // The real maintenance consumer requires the adopted execution withdrawal policy.
+  write(root, 'governance/authority/withdrawals/WHEEL_STABLE_FINANCIAL_GUARDRAILS_REPAIR_R2_WITHDRAWAL_R1.json', fs.readFileSync(new URL('../authority/withdrawals/WHEEL_STABLE_FINANCIAL_GUARDRAILS_REPAIR_R2_WITHDRAWAL_R1.json', import.meta.url)));
   write(root, TRACKED_TARGET, COMMITTED_BYTES);
   write(root, 'governance/active/ACTIVE_GATE.json', bytesOf({ activeGate: 'GATE13' }));
   write(root, `governance/gates/${GATE}/state/CURRENT_STATE.json`, bytesOf({ stateRevision: 'R0003' }));

@@ -1,0 +1,223 @@
+{
+  "documentKind": "MISSION2_FROZEN_LOCAL_DISPOSITION",
+  "schemaVersion": 1,
+  "originalHead": "402f28360b21d282859ea93d75b982a96b4d029f",
+  "originalBranch": "main",
+  "records": [
+    {
+      "path": "audit-reproduction/gau-r2-integration/TEST_OWNER_PRIVATE_KEY.pem",
+      "sha256": "56daca7225bf1e11afac0fa5991e9753c5f4ad112367953cb01cac19cfc482bf",
+      "byteLength": 119,
+      "disposition": "PROTECTED_LOCAL_SECRET_NEVER_PUBLISH",
+      "executionAuthorized": false
+    },
+    {
+      "path": "audit-reproduction/gau-r2-integration/bad.pem",
+      "sha256": "155d99a90448b24b6091683879f98a6a9ce9a599ebcc159a43d873a7336e8204",
+      "byteLength": 10,
+      "disposition": "PROTECTED_LOCAL_SECRET_NEVER_PUBLISH",
+      "executionAuthorized": false
+    },
+    {
+      "path": "debug/tradingview/TQQQ_strategy_L10_R4_reentry.pine",
+      "sha256": "812951e345487dc2b04b3e55c8ab6f75a15701d34ace1f6eb0da87fa21c3c55f",
+      "byteLength": 24712,
+      "disposition": "FROZEN_ORIGINAL_ONLY_NO_PRODUCT_CHANGE",
+      "executionAuthorized": false
+    },
+    {
+      "path": "governance/historical-architecture/WHEEL_FINANCIAL_A_WITHDRAWAL_BOOTSTRAP_R1_AUTHORIZED_PATHS.json",
+      "sha256": "ec7bd86b33e64d6736d4b66c403f8ae48739520312cdfa2cf6fd9edc73d9fe4c",
+      "byteLength": 3493,
+      "disposition": "RETAIN_ORIGINAL_ONLY_NOT_ADMITTED_ON_RECONCILED_BASE",
+      "executionAuthorized": false,
+      "metadata": {
+        "document": "POST_FREEZE_MAINTENANCE_AUTHORIZED_PATH_MANIFEST",
+        "schemaVersion": 1,
+        "programId": "WHEEL_FINANCIAL_A_WITHDRAWAL_BOOTSTRAP_R1"
+      }
+    },
+    {
+      "path": "governance/historical-architecture/WHEEL_STABLE_FINANCIAL_CLASSIFICATION_CLOSURE_R1_AUTHORIZED_PATHS.json",
+      "sha256": "3231c9450c3149817fc0abe0744db1617f28bbb9eca9bb9a6ebedd0b2f67c943",
+      "byteLength": 8951,
+      "disposition": "RETAIN_ORIGINAL_ONLY_NOT_ADMITTED_ON_RECONCILED_BASE",
+      "executionAuthorized": false,
+      "metadata": {
+        "document": "POST_FREEZE_MAINTENANCE_AUTHORIZED_PATH_MANIFEST",
+        "schemaVersion": 1,
+        "programId": "WHEEL_STABLE_FINANCIAL_CLASSIFICATION_CLOSURE_R1"
+      }
+    },
+    {
+      "path": "governance/historical-architecture/WHEEL_STABLE_FINANCIAL_EXACT_SUCCESSOR_R1_AUTHORIZED_PATHS.json",
+      "sha256": "a097e58cf8a3259790118228a553bc8caeddff0a3ddc101404ca43b28300ad44",
+      "byteLength": 9415,
+      "disposition": "RETAIN_ORIGINAL_ONLY_NOT_ADMITTED_ON_RECONCILED_BASE",
+      "executionAuthorized": false,
+      "metadata": {
+        "document": "POST_FREEZE_MAINTENANCE_AUTHORIZED_PATH_MANIFEST",
+        "schemaVersion": 1,
+        "programId": "WHEEL_STABLE_FINANCIAL_EXACT_SUCCESSOR_R1"
+      }
+    },
+    {
+      "path": "governance/historical-architecture/WHEEL_STABLE_FINANCIAL_GUARDRAILS_REPAIR_R1_AUTHORIZED_PATHS.json",
+      "sha256": "77ec5999fd1565bd2e6265a4c7b79226cef7d162a616d27dea70449591b6d044",
+      "byteLength": 7546,
+      "disposition": "RETAIN_ORIGINAL_ONLY_NOT_ADMITTED_ON_RECONCILED_BASE",
+      "executionAuthorized": false,
+      "metadata": {
+        "document": "POST_FREEZE_MAINTENANCE_AUTHORIZED_PATH_MANIFEST",
+        "schemaVersion": 1,
+        "programId": "WHEEL_STABLE_FINANCIAL_GUARDRAILS_REPAIR_R1"
+      }
+    },
+    {
+      "path": "governance/historical-architecture/WHEEL_STABLE_FINANCIAL_GUARDRAILS_REPAIR_R1_CONSUMPTION_R1.json",
+      "sha256": "a937c92df9728f494bd910a96748fe013629ee85cdbe948fa0bc2cdf121dd401",
+      "byteLength": 8284,
+      "disposition": "RETAIN_ORIGINAL_ONLY_NOT_ADMITTED_ON_RECONCILED_BASE",
+      "executionAuthorized": false,
+      "metadata": {
+        "document": "POST_FREEZE_MAINTENANCE_AUTHORITY_CONSUMPTION",
+        "schemaVersion": 2,
+        "programId": "WHEEL_STABLE_FINANCIAL_GUARDRAILS_REPAIR_R1",
+        "authorityId": "WHEEL_STABLE_FINANCIAL_GUARDRAILS_REPAIR_R1_AUTHORITY"
+      }
+    },
+    {
+      "path": "governance/historical-architecture/WHEEL_STABLE_FINANCIAL_GUARDRAILS_REPAIR_R2_AUTHORIZED_PATHS.json",
+      "sha256": "807634372b5aee7136430492b92607c162341fc683aecf01142212d83872962e",
+      "byteLength": 3751,
+      "disposition": "RETAIN_ORIGINAL_ONLY_NOT_ADMITTED_ON_RECONCILED_BASE",
+      "executionAuthorized": false,
+      "metadata": {
+        "document": "POST_FREEZE_MAINTENANCE_AUTHORIZED_PATH_MANIFEST",
+        "schemaVersion": 1,
+        "programId": "WHEEL_STABLE_FINANCIAL_GUARDRAILS_REPAIR_R2"
+      }
+    },
+    {
+      "path": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_WHEEL_FINANCIAL_A_WITHDRAWAL_BOOTSTRAP_R1.json",
+      "sha256": "ead66b4f56999d9660bf8eca187769ae1613b7bf48bfeecc94546dc38e5389a9",
+      "byteLength": 2138,
+      "disposition": "RETAIN_ORIGINAL_ONLY_NOT_ADMITTED_ON_RECONCILED_BASE",
+      "executionAuthorized": false,
+      "metadata": {
+        "document": "GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY",
+        "schemaVersion": 2,
+        "programId": "WHEEL_FINANCIAL_A_WITHDRAWAL_BOOTSTRAP_R1",
+        "authorityId": "WHEEL_FINANCIAL_A_WITHDRAWAL_BOOTSTRAP_R1_AUTHORITY",
+        "baseHead": "4b19f5d3073a9a4788f4697f1c87fc0f4905e3ba",
+        "createdAt": "2026-10-18T03:15:37.047Z",
+        "expiresAt": "2026-10-25T03:15:37.047Z"
+      }
+    },
+    {
+      "path": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_WHEEL_STABLE_FINANCIAL_CLASSIFICATION_CLOSURE_R1.json",
+      "sha256": "701b5a5ec102804c0754cbe5f7e438bd800dbc4d77d4b5720a8eece702b14a65",
+      "byteLength": 2298,
+      "disposition": "RETAIN_ORIGINAL_ONLY_NOT_ADMITTED_ON_RECONCILED_BASE",
+      "executionAuthorized": false,
+      "metadata": {
+        "document": "GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY",
+        "schemaVersion": 2,
+        "programId": "WHEEL_STABLE_FINANCIAL_CLASSIFICATION_CLOSURE_R1",
+        "authorityId": "WHEEL_STABLE_FINANCIAL_CLASSIFICATION_CLOSURE_R1_AUTHORITY",
+        "baseHead": "4b19f5d3073a9a4788f4697f1c87fc0f4905e3ba",
+        "createdAt": "2026-10-18T00:27:57.409Z",
+        "expiresAt": "2026-10-25T00:27:57.409Z"
+      }
+    },
+    {
+      "path": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_WHEEL_STABLE_FINANCIAL_EXACT_SUCCESSOR_R1.json",
+      "sha256": "ff97ad973d6f507eed23fdc42d84f910701b4c672b4196897f86cc9d9a3aed5e",
+      "byteLength": 2202,
+      "disposition": "RETAIN_ORIGINAL_ONLY_NOT_ADMITTED_ON_RECONCILED_BASE",
+      "executionAuthorized": false,
+      "metadata": {
+        "document": "GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY",
+        "schemaVersion": 2,
+        "programId": "WHEEL_STABLE_FINANCIAL_EXACT_SUCCESSOR_R1",
+        "authorityId": "WHEEL_STABLE_FINANCIAL_EXACT_SUCCESSOR_R1_AUTHORITY",
+        "baseHead": "4b19f5d3073a9a4788f4697f1c87fc0f4905e3ba",
+        "createdAt": "2026-10-18T03:15:37.047Z",
+        "expiresAt": "2026-10-25T03:15:37.047Z"
+      }
+    },
+    {
+      "path": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_WHEEL_STABLE_FINANCIAL_GUARDRAILS_REPAIR_R1.json",
+      "sha256": "3f7ebbb2d2344336a37b91ad794e35ea1b2aa0f502592dc2f0af59a461e5517a",
+      "byteLength": 2345,
+      "disposition": "RETAIN_ORIGINAL_ONLY_NOT_ADMITTED_ON_RECONCILED_BASE",
+      "executionAuthorized": false,
+      "metadata": {
+        "document": "GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY",
+        "schemaVersion": 2,
+        "programId": "WHEEL_STABLE_FINANCIAL_GUARDRAILS_REPAIR_R1",
+        "authorityId": "WHEEL_STABLE_FINANCIAL_GUARDRAILS_REPAIR_R1_AUTHORITY",
+        "baseHead": "566e413021a008051d4b44bca7d80ce5601e3ee3",
+        "createdAt": "2026-10-17T14:54:08.261Z",
+        "expiresAt": "2026-10-24T14:54:08.261Z"
+      }
+    },
+    {
+      "path": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_WHEEL_STABLE_FINANCIAL_GUARDRAILS_REPAIR_R2.json",
+      "sha256": "a394d473781b453c6c086b12e76e811c9d5485a37ef1ee0b97271f6f88f5a897",
+      "byteLength": 2375,
+      "disposition": "RETAIN_ORIGINAL_ONLY_NOT_ADMITTED_ON_RECONCILED_BASE",
+      "executionAuthorized": false,
+      "metadata": {
+        "document": "GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY",
+        "schemaVersion": 2,
+        "programId": "WHEEL_STABLE_FINANCIAL_GUARDRAILS_REPAIR_R2",
+        "authorityId": "WHEEL_STABLE_FINANCIAL_GUARDRAILS_REPAIR_R2_AUTHORITY",
+        "baseHead": "566e413021a008051d4b44bca7d80ce5601e3ee3",
+        "createdAt": "2026-10-17T16:29:19.308Z",
+        "expiresAt": "2026-10-24T16:29:19.308Z"
+      }
+    },
+    {
+      "path": "wheel-dashboard/src/dashboard.financial-guardrails-integration.test.mjs",
+      "sha256": "a8a192ea9312ee0c9b72bc99100871ba27f79697422e4c2713cd6f059533bc82",
+      "byteLength": 14900,
+      "disposition": "FROZEN_ORIGINAL_ONLY_NO_PRODUCT_CHANGE",
+      "executionAuthorized": false
+    },
+    {
+      "path": "wheel-dashboard/src/dashboard.jsx",
+      "sha256": "f5d7f7c12ce0e70419d74527bd3f28e7495441e916d68553fd92cc5707b250a3",
+      "byteLength": 839678,
+      "disposition": "FROZEN_ORIGINAL_ONLY_NO_PRODUCT_CHANGE",
+      "executionAuthorized": false
+    },
+    {
+      "path": "wheel-dashboard/src/dashboard.recommendation-semantics.test.mjs",
+      "sha256": "bfce8952784a9c220d300b3914ff74de1b072c3acc63e51c9f8c4c5b0fe7f3b9",
+      "byteLength": 38261,
+      "disposition": "FROZEN_ORIGINAL_ONLY_NO_PRODUCT_CHANGE",
+      "executionAuthorized": false
+    },
+    {
+      "path": "wheel-dashboard/src/threeLegSelection.js",
+      "sha256": "a0e09ae847f0f286a9a0eaba23cf4bf242abf03659135c7f37420506b176d388",
+      "byteLength": 13710,
+      "disposition": "FROZEN_ORIGINAL_ONLY_NO_PRODUCT_CHANGE",
+      "executionAuthorized": false
+    },
+    {
+      "path": "wheel-dashboard/src/threeLegSelection.test.mjs",
+      "sha256": "946f099bdc33738a010af894d45da7b30bada2468f7ec557a1ad397dde982575",
+      "byteLength": 20642,
+      "disposition": "FROZEN_ORIGINAL_ONLY_NO_PRODUCT_CHANGE",
+      "executionAuthorized": false
+    }
+  ],
+  "notes": [
+    "No original bytes are copied, normalized, staged or changed.",
+    "Expiry is recorded only; non-admission follows from absence of a present grant and exact base/manifest/consumption binding.",
+    "D is archived as the original non-adopted proposal; R2 is the separate adopted execution withdrawal.",
+    "The divergent local GATE19 events are excluded. Existing remote dependency proof mechanics are retained instead of replacing them with 2d75a932."
+  ]
+}

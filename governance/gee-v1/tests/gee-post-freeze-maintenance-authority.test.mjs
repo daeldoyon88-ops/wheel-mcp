@@ -21,7 +21,7 @@ import {
 import { collectClosedStateSealMembers } from '../core/sealed-state-evidence.mjs';
 import { verifyOwnerSignature } from '../core/release-authority.mjs';
 import { resolveCanonicalLedgerPrefix } from '../../tools/validate-status-ledger.mjs';
-import { collectPostFreezeMaintenanceObservation } from '../../tools/post-freeze-maintenance-observation.mjs';
+import { collectPostFreezeMaintenanceObservation, collectMaintenanceWithdrawalEvidence, observeCanonicalPreState } from '../../tools/post-freeze-maintenance-observation.mjs';
 
 const REPO_ROOT = process.env.WHEEL_LIVE_REPO_ROOT || path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..', '..');
 const CANDIDATE_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..', '..');
@@ -380,6 +380,7 @@ function makeV2Fixture() {
     prohibitedOperations: [...REQUIRED_PROHIBITED_OPERATIONS]
   };
   const observed = {
+    withdrawalEvidence: collectMaintenanceWithdrawalEvidence(REPO_ROOT),
     baseHead: authority.preState.baseHead,
     ledgerEventCount: authority.preState.ledgerEventCount,
     ledgerPrefixSha256: authority.preState.ledgerPrefixSha256,
@@ -908,7 +909,7 @@ test('W1: default observer proves a valid unconsumed V2 authority on a bounded s
     resumePoint: 'CP-WHEEL-GOVERNANCE-SCRATCH-UNCONSUMED-R1',
     createdAt: '2026-08-22T00:00:00.000Z',
     expiresAt: '2026-12-31T23:59:59.000Z',
-    preState: { ...liveAuthority.preState, baseHead: head },
+    preState: { ...observeCanonicalPreState(root, liveAuthority.preState.gateId), R8ExpectedAbsent: true },
     authorizedPathManifestPath: manifestRel,
     authorizedPathManifestSha256: sha256Hex(manifestBytes),
     authorityHeadBinding: { mode: 'BASE_HEAD', baseHead: head },

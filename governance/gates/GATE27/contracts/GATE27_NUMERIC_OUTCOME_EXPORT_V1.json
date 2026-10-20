@@ -1,0 +1,196 @@
+{
+  "document": "GATE27_NUMERIC_OUTCOME_EXPORT_CONTRACT",
+  "schemaVersion": 1,
+  "contractId": "GATE27_NUMERIC_OUTCOME_EXPORT_V1",
+  "contractRevision": "R2",
+  "gateId": "GATE27",
+  "status": "APPROVED_PREBUILD",
+  "productRoot": "data/jarvise/predictive-ensemble/GATE27/V1/NUMERIC_OUTCOME_EXPORT",
+  "product": {
+    "manifestSchema": "GATE27_NUMERIC_OUTCOME_EXPORT_MANIFEST_V1",
+    "pageSchema": "GATE27_NUMERIC_OUTCOME_PAGE_V1",
+    "productVersion": "GATE27_NUMERIC_OUTCOME_EXPORT_V1",
+    "canonicalJson": "CanonicalJSON/1_PLUS_LF",
+    "canonicalOrder": "queryIdentityId_ASCII_ASCENDING",
+    "pageSize": 128,
+    "pageCount": 536,
+    "queryCount": 68562,
+    "expectedDataPathCount": 537
+  },
+  "canonicalBindings": {
+    "baseHead": "eb8500359e0a149a55c7f586dc1e35d290dcf02d",
+    "gate26FullManifestPath": "data/jarvise/predictive-ensemble/GATE26/V1/FULL/MANIFEST.json",
+    "gate26FullManifestSha256": "731a16b60b239bf9921091d1fde11c382de5c1181c8aace1605c4dd73ce11dc6",
+    "gate26FullManifestByteLength": 384807,
+    "gate25AnalogueIndexPath": "data/jarvise/historical-analogue/GATE25/V1/ANALOGUE_INDEX.json",
+    "gate25AnalogueIndexSha256": "e32c2e3de4ee6d88b80ed27fec4f29b930c02ce022477ce084f7ae4c768a4f0b",
+    "gate25AnalogueIndexByteLength": 191493292,
+    "datasetId": "sha256:cc7bb76f37a97a5673a32c5a8f357088ee94230fefcbef1c19ad16227476488e",
+    "calendarRegistryManifestId": "sha256:3df426b405f9ae43cb996b14f310d8efed55ce9f6377ed68dea4cd6ef939883f",
+    "sourceBindingId": "sha256:04d3e217eb0303a506a112c40e00732ffb0586d6aa37b717464c49ea0b05282b",
+    "cohortDigest": "7ca9a18c4608c07be752cfdce8e3cbbc01ec343da85da7c710d0143705e336fb",
+    "outcomeSetIdDigest": "405f4720236ea99737d30fcbb97ccf6e1011542b40423a4cce927d0a9ba64d58",
+    "maturityProof": {
+      "scriptPath": "C:/Users/melan/JarviseDurable/GATE26_CLOSURE_SUCCESSOR_R1/EVIDENCE/analogue-outcome-maturity-proof-r1.mjs",
+      "scriptSha256": "b506ae1073d09575a524c27e4b943992d75b8f784aa05a005cd98bbc970791c6",
+      "reportPath": "C:/Users/melan/JarviseDurable/GATE26_CLOSURE_SUCCESSOR_R1/EVIDENCE/ANALOGUE_OUTCOME_MATURITY_PROOF_R1.json",
+      "reportSha256": "2220fc48e47cece7709e3e412e1d23ffa7dcacbf816d853948117b39511c4430",
+      "perAnalogueHorizonRecordCount": 841928,
+      "availableOutcomeCount": 63952,
+      "missingOutcomeCount": 777976
+    }
+  },
+  "horizons": [
+    {
+      "sessionCount": 30,
+      "horizonId": "30:sha256:3df426b405f9ae43cb996b14f310d8efed55ce9f6377ed68dea4cd6ef939883f"
+    },
+    {
+      "sessionCount": 90,
+      "horizonId": "90:sha256:3df426b405f9ae43cb996b14f310d8efed55ce9f6377ed68dea4cd6ef939883f"
+    },
+    {
+      "sessionCount": 180,
+      "horizonId": "180:sha256:3df426b405f9ae43cb996b14f310d8efed55ce9f6377ed68dea4cd6ef939883f"
+    },
+    {
+      "sessionCount": 252,
+      "horizonId": "252:sha256:3df426b405f9ae43cb996b14f310d8efed55ce9f6377ed68dea4cd6ef939883f"
+    }
+  ],
+  "outcomeSemantics": {
+    "priceBasis": "SPLIT_ADJUSTED",
+    "returnFormula": "Cfin / Cdebut - 1",
+    "negativeZeroRule": "NORMALIZE_TO_POSITIVE_ZERO",
+    "recordGranularity": "PER_ANALOGUE_PER_HORIZON",
+    "selectionSource": "PUBLISHED_GATE26_FULL_PROVENANCE_ANALOGUE_ORDER",
+    "reselection": "FORBIDDEN",
+    "gate26Regeneration": "FORBIDDEN",
+    "missingCellEncoding": null,
+    "availableCellEncoding": "[outcomeValue,outcomeAvailableAt]",
+    "selectionCompleteImplicit": true,
+    "sourceBindingIdScope": "MANIFEST_AND_PAGE_COMMON",
+    "expandedOutcomeRecordFields": [
+      "analogueIdentityId",
+      "horizonId",
+      "selectionComplete",
+      "outcomeStatus",
+      "outcomeValue",
+      "outcomeAvailableAt",
+      "sourceBindingId"
+    ]
+  },
+  "maturityRules": [
+    "M1_WINDOW_BARS_RESOLVABLE",
+    "M2_MAX_BAR_AVAILABLE_AT_LE_QUERY_CUTOFF",
+    "M3_PINNED_HORIZON_END_CUTOFF_LE_QUERY_CUTOFF",
+    "M4_HORIZON_END_SESSION_LE_QUERY_SESSION",
+    "M5_NO_BAR_AVAILABLE_BEFORE_ITS_SESSION_PINNED_CUTOFF"
+  ],
+  "identityAlgorithms": {
+    "outcomeSetId": "sha256(CanonicalJSON/1({artifactId,recordGranularity,selectionDigest,horizonIds,records}))",
+    "outcomeSetIdDigest": "sha256(UTF8('GATE27_NUMERIC_OUTCOME_EXPORT_V1\\n' + each published outcomeSetId in canonical query order followed by '\\n'))",
+    "pageSha256": "sha256(CanonicalJSON/1(page) + LF)",
+    "manifestSha256": "sha256(CanonicalJSON/1(manifest) + LF)"
+  },
+  "compactSchemas": {
+    "queryTuple": [
+      "queryIdentityId",
+      "knowledgeCutoff",
+      "selectionDigest",
+      "outcomeSetId",
+      "analogueTuples"
+    ],
+    "analogueTuple": [
+      "analogueIdentityId",
+      "fourHorizonCellsInContractOrder"
+    ],
+    "missingCell": null,
+    "availableCell": [
+      "finiteOutcomeValue",
+      "canonicalUtcOutcomeAvailableAt"
+    ],
+    "closed": true
+  },
+  "closedObjectFields": {
+    "manifest": [
+      "schema",
+      "productVersion",
+      "gateId",
+      "contractRevision",
+      "canonicalOrder",
+      "cohort",
+      "pageSize",
+      "pageCount",
+      "horizons",
+      "priceBasis",
+      "returnFormula",
+      "negativeZeroRule",
+      "missingEncoding",
+      "sourceBindingId",
+      "inputBinding",
+      "recordCounts",
+      "outcomeSetIdDigest",
+      "pages"
+    ],
+    "page": [
+      "schema",
+      "productVersion",
+      "cohortDigest",
+      "sourceBindingId",
+      "pageNumber",
+      "pageCount",
+      "pageSize",
+      "queryCount",
+      "firstQueryOrdinal",
+      "lastQueryOrdinal",
+      "firstQueryIdentityId",
+      "lastQueryIdentityId",
+      "pairedFullProvenancePage",
+      "recordCount",
+      "cellCount",
+      "availableByHorizon",
+      "missingByHorizon",
+      "records"
+    ],
+    "pairedFullProvenancePage": [
+      "path",
+      "sha256",
+      "byteLength"
+    ],
+    "pageDescriptor": [
+      "path",
+      "sha256",
+      "byteLength",
+      "pageNumber",
+      "recordCount",
+      "cellCount",
+      "firstQueryOrdinal",
+      "lastQueryOrdinal",
+      "firstQueryIdentityId",
+      "lastQueryIdentityId",
+      "availableByHorizon",
+      "missingByHorizon",
+      "pairedFullProvenancePage"
+    ]
+  },
+  "consumerBoundary": {
+    "manifestFirst": true,
+    "maximumPagesReadPerLookup": 1,
+    "decisionCutoffRule": "EXACT_EQUALITY_WITH_QUERY_KNOWLEDGE_CUTOFF",
+    "absentOrCutoffMismatch": "ABSTAIN",
+    "wheelScanParsing": "FORBIDDEN"
+  },
+  "forbidden": [
+    "NETWORK",
+    "YAHOO",
+    "RESELECTION",
+    "GATE26_REGENERATION",
+    "FUTURE_LEAKAGE",
+    "IMMATURE_VALUE_STORAGE",
+    "PROBABILITY",
+    "QUANTILE",
+    "CONFIDENCE",
+    "OPEN_SCHEMA_FIELDS"
+  ]
+}

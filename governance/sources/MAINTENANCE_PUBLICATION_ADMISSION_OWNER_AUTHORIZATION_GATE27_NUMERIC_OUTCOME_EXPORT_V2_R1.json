@@ -1,0 +1,25 @@
+{
+  "document": "MAINTENANCE_PUBLICATION_ADMISSION_OWNER_AUTHORIZATION",
+  "schemaVersion": 1,
+  "authorityId": "GATE27_NUMERIC_OUTCOME_EXPORT_PUBLICATION_OWNER_AUTHORIZATION_V2_R1",
+  "authorityClass": "PROJECT_OWNER_MAINTENANCE_PUBLICATION_ADMISSION_AUTHORITY",
+  "authorityMode": "LOCAL_EXPLICIT_AUTHORITY",
+  "issuedBy": "PROJECT_OWNER",
+  "issuedAtUtc": "2026-10-19T23:52:59.819Z",
+  "decisionId": "OWNER_GATE27_NUMERIC_SOURCE_AUTHORITY_DECISION_R2",
+  "purpose": "MAINTENANCE_PUBLICATION_ADMISSION",
+  "reexecutionAuthorized": false,
+  "grantsFutureBytePermission": false,
+  "genericV1Admission": false,
+  "admittedPublications": [
+    {
+      "admissionId": "GATE27_NUMERIC_OUTCOME_EXPORT_PUBLICATION_ADMISSION_V2_R1",
+      "projectId": "WHEEL",
+      "gateId": "GATE27",
+      "programId": "GATE27_NUMERIC_OUTCOME_EXPORT_R1",
+      "admissionPath": "governance/authority/publication-admissions/GATE27/GATE27_NUMERIC_OUTCOME_EXPORT_PUBLICATION_ADMISSION_V2_R1.json",
+      "admissionDigest": "4baa05c84b5d26f65d9bc7e4dfe78d6b856e803ddebc384400bb46b164e6e096"
+    }
+  ],
+  "registryDigest": "6fb07ccff6470b7f6353cf9fd5e21810e34190e79e3f09bc9fddf7df77ba8047"
+}

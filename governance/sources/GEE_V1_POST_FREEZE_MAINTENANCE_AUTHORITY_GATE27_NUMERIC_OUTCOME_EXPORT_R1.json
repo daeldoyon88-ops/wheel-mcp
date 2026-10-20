@@ -1,0 +1,61 @@
+{
+  "document": "GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY",
+  "schemaVersion": 2,
+  "authorityId": "GATE27_NUMERIC_OUTCOME_EXPORT_LOCAL_AUTHORITY_R2",
+  "authorityClass": "PROJECT_OWNER_POST_FREEZE_MAINTENANCE_AUTHORITY",
+  "authorityMode": "LOCAL_EXPLICIT_AUTHORITY",
+  "issuedBy": "PROJECT_OWNER",
+  "createdAt": "2026-10-19T23:52:59.813Z",
+  "expiresAt": "2026-10-26T03:59:59.000Z",
+  "targetSystem": "PROJECT_GOVERNANCE",
+  "programId": "GATE27_NUMERIC_OUTCOME_EXPORT_R1",
+  "authorityPurpose": "NORMAL_MAINTENANCE",
+  "resumePoint": "CP-GATE27-NUMERIC-OUTCOME-EXPORT-R1-SUCCESSOR-ISSUANCE-R1; Owner decision OWNER_GATE27_NUMERIC_SOURCE_AUTHORITY_DECISION_R2; ROUTE_A/W0/OD5-a; descriptive lineage from GATE27_NUMERIC_OUTCOME_EXPORT_LOCAL_AUTHORITY_R1 sha256 e00c87e72300b9c02629630698ddf8bb0b0f40314de50297decbae4995178e3f; historical P02_NOT_EXECUTED retained; emission only, no publication or Git write",
+  "maxUse": 1,
+  "preState": {
+    "baseHead": "c682662a477e99fcbcc6ed2cd4826c2310688f7e",
+    "ledgerEventCount": 121,
+    "ledgerPrefixSha256": "2e3d558b01386e15ac84fbad4ebd94ec1db672f7a1bd55150618725bfe333587",
+    "gateId": "GATE27",
+    "gateStatus": "NOT_STARTED",
+    "stateRevision": null,
+    "contractRevision": null,
+    "activeGate": "GATE13",
+    "R8ExpectedAbsent": true
+  },
+  "authorizedPathManifestPath": "governance/historical-architecture/GATE27_NUMERIC_OUTCOME_EXPORT_AUTHORIZED_PATHS_R1.json",
+  "authorizedPathManifestSha256": "99799b8a2ed4395021cdaa9a579c5781008700e8a48b897196c796eed9753469",
+  "authorizedOperationClasses": [
+    "MAINTENANCE"
+  ],
+  "commitPolicy": {
+    "maxCommitCount": 1,
+    "allowedGitOperations": [
+      "GIT_ADD_PATHSPEC",
+      "GIT_COMMIT"
+    ],
+    "commitMessage": "feat(gate27): add numeric outcome export",
+    "thirdCommitAuthorized": false
+  },
+  "pushAuthorized": false,
+  "authorityPredecessor": null,
+  "authorityHeadBinding": {
+    "mode": "BASE_HEAD",
+    "baseHead": "c682662a477e99fcbcc6ed2cd4826c2310688f7e"
+  },
+  "consumptionRecordPath": "governance/historical-architecture/GATE27_NUMERIC_OUTCOME_EXPORT_CONSUMPTION_R1.json",
+  "prohibitedOperations": [
+    "START",
+    "SECOND_START",
+    "AGENT_CLOSURE",
+    "EXTERNAL_CONFIRMATION",
+    "COMPLETE_AGENT",
+    "COMPLETE_CONFIRMED",
+    "ACTIVE_GATE_SWITCH",
+    "GEE_R8",
+    "GIT_PUSH",
+    "HISTORY_REWRITE",
+    "THIRD_COMMIT",
+    "UNRELATED_WRITE"
+  ]
+}

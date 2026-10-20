@@ -1,0 +1,48 @@
+{
+  "document": "GATE27_NUMERIC_OUTCOME_EXPORT_RESOURCE_BUDGET",
+  "schemaVersion": 1,
+  "bindingId": "GATE27_NUMERIC_OUTCOME_EXPORT_RESOURCE_BUDGET_V1",
+  "gateId": "GATE27",
+  "status": "BOUND",
+  "source": {
+    "basis": "GATE26_ANALOGUE_OUTCOME_MATURITY_PROOF_R1_MEASURED_WORKLOAD",
+    "scriptSha256": "b506ae1073d09575a524c27e4b943992d75b8f784aa05a005cd98bbc970791c6",
+    "reportSha256": "2220fc48e47cece7709e3e412e1d23ffa7dcacbf816d853948117b39511c4430",
+    "queryCount": 68562,
+    "perAnalogueHorizonRecordCount": 841928
+  },
+  "limits": {
+    "maximumRssBytes": 1610612736,
+    "maximumHeapUsedBytes": 1073741824,
+    "maximumExternalBytes": 268435456,
+    "maximumUniverseFullScanCount": 0,
+    "maximumSinglePageMs": 60000,
+    "absoluteMaximumRuntimeMs": 600000,
+    "maximumPageBytes": 3145728,
+    "maximumTotalProductBytes": 52428800,
+    "minimumFreeRamAtStartBytes": 1073741824,
+    "minimumFreeDiskAtStartBytes": 536870912
+  },
+  "measurementPolicy": {
+    "start": "IMMEDIATELY_BEFORE_CANONICAL_INPUT_PREPARATION",
+    "memory": "process.memoryUsage sampled after every P3H key, index pass and output page",
+    "disk": "fs.statfsSync on candidate volume",
+    "runtime": "performance.now monotonic",
+    "page": "provenance read through durable page write",
+    "productBytes": "sum of MANIFEST.json and all OUTCOME_PAGE files",
+    "breach": "FAIL_CLOSED"
+  },
+  "resumeContract": {
+    "supported": true,
+    "freshBuildRequiresProductRootAbsent": true,
+    "resumeRequiresCheckpoint": true,
+    "completedPagesRecomputedAndByteCompared": true,
+    "checkpointOutsideProductRoot": true,
+    "finalOutputMustBeByteIdenticalToFreshBuild": true
+  },
+  "networkPolicy": {
+    "network": "FORBIDDEN",
+    "yahoo": "FORBIDDEN",
+    "localGitLfsCheckout": "INPUT_PREPARATION_ONLY_NOT_PERFORMED_BY_BUILDER"
+  }
+}
